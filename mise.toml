@@ -1,3 +1,111 @@
 [tools]
 node = "24"
 "npm:@fission-ai/openspec" = "1.13.2"
+dotnet = "10"
+
+# The registry's `godot` tool is the standard edition. C# needs .NET/mono.
+[tool_alias]
+godot-dotnet = "github:godotengine/godot"
+
+[tools.godot-dotnet]
+version = "4"
+prerelease = false
+
+[tools.godot-dotnet.platforms.linux-x64]
+asset_pattern = "Godot_v{{ version }}_mono_linux*x86_64.zip"
+strip_components = 1
+bin_path = "."
+rename_exe = { "Godot_v*_mono_linux*" = "godot" }
+
+[tools.godot-dotnet.platforms.windows-x64]
+asset_pattern = "Godot_v{{ version }}_mono_win64.zip"
+strip_components = 1
+bin_path = "."
+rename_exe = { "Godot_v*_mono_win64.exe" = "godot.exe" }
+
+[tools.godot-dotnet.platforms.macos-arm64]
+asset_pattern = "Godot_v{{ version }}_mono_macos.universal.zip"
+strip_components = 0
+bin_path = "Godot_mono.app/Contents/MacOS"
+rename_exe = { "Godot" = "godot" }
+
+[tools.godot-dotnet.platforms.macos-x64]
+asset_pattern = "Godot_v{{ version }}_mono_macos.universal.zip"
+strip_components = 0
+bin_path = "Godot_mono.app/Contents/MacOS"
+rename_exe = { "Godot" = "godot" }
+
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "windows-x64", "macos-arm64", "macos-x64"]
+task.run_auto_install = false
+
+[env]
+DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+DOTNET_NOLOGO = "1"
+
+[tasks.runner]
+description = "Compile the local development supervisor"
+hide = true
+run = ["dotnet restore tools/DevRunner/DevRunner.csproj --locked-mode", "dotnet build tools/DevRunner/DevRunner.csproj --no-restore --nologo"]
+
+[tasks.test]
+description = "Run the engine-independent gameplay rules tests"
+run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet test tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo"]
+
+[tasks.dev]
+description = "Start a server and two playable client windows"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll dev"
+raw_args = true
+
+[tasks.server]
+description = "Start the headless server (defaults to loopback:7000)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll server"
+raw_args = true
+
+[tasks.client]
+description = "Connect a graphical client to a server"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll client"
+raw_args = true
+
+[tasks.prepare]
+description = "Check tools, compile C#, and import Godot resources"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll prepare"
+
+[tasks.build]
+description = "Compile the solution without exporting deliverables"
+run = ["dotnet restore Odot.slnx --locked-mode", "dotnet build Odot.slnx --no-restore --nologo"]
+
+[tasks.check]
+description = "Verify C# formatting without modifying source"
+run = ["dotnet restore Odot.slnx --locked-mode", "dotnet format Odot.slnx --verify-no-changes --no-restore"]
+
+[tasks.test-network]
+description = "Verify real server/client processes without a display"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-network"
+raw_args = true
+
+[tasks.prepare-templates]
+description = "Download and verify matching .NET export templates"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll prepare-templates"
+
+[tasks.export-client]
+description = "Export the Linux x86_64 desktop client"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll export-client"
+
+[tasks.export-server]
+description = "Export the Linux x86_64 dedicated server"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll export-server"
+
+[tasks.ci]
+description = "Verify formatting/rules/network, then build Linux deliverables"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci"

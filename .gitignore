@@ -1,0 +1,12 @@
+**/.godot/
+**/bin/
+**/obj/
+/dist/
+/logs/
+/.cache/
+/mise.local.toml
+/mise.local.lock
+**/*.user
+**/*.csproj.old
+**/export_credentials.cfg
+.DS_Store

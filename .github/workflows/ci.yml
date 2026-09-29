@@ -1,0 +1,24 @@
+name: Verify and build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v3
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared tools
+        run: mise install --locked dotnet godot-dotnet
+      - name: Verify, then export Linux client and server
+        run: mise run ci

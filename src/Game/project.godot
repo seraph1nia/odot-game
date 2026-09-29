@@ -1,0 +1,26 @@
+; Engine configuration. Generated caches belong in .godot/, never in Git.
+config_version=5
+
+[application]
+config/name="Odot - Coin Room"
+run/main_scene="res://Scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+run/flush_stdout_on_print=true
+
+[display]
+window/size/viewport_width=840
+window/size/viewport_height=660
+window/size/window_width_override=840
+window/size/window_height_override=660
+window/stretch/mode="canvas_items"
+
+[dotnet]
+project/assembly_name="Game"
+
+[physics]
+common/physics_ticks_per_second=60
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.035, 0.045, 0.075, 1)
