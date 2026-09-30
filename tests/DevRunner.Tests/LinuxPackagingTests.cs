@@ -10,6 +10,8 @@ namespace DevRunner.Tests;
 
 public sealed class LinuxPackagingTests
 {
+    private static readonly string[] SystemLibraries = ["/usr/lib/libm.so.6", "/lib/x86_64-linux-gnu/libm.so.6", "/usr/lib64/libm.so.6"];
+
     [Fact]
     public async Task InstallerSafelyInstallsReinstallsUpgradesAndUninstallsInOwnedPaths()
     {
@@ -28,6 +30,18 @@ public sealed class LinuxPackagingTests
             Assert.Equal("0.1.0-beta.1", CurrentVersion(install));
             Assert.True(File.Exists(Path.Combine(apps, "odot.desktop")));
             Assert.Contains("Exec=\"" + install + "/launcher\"", await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop")));
+            string systemLibrary = SystemLibraries.First(File.Exists);
+            string overlay = Path.Combine(root, "Steam fixture", "gameoverlayrenderer.so");
+            Directory.CreateDirectory(Path.GetDirectoryName(overlay)!); File.Copy(systemLibrary, overlay);
+            var launchEnvironment = new Dictionary<string, string>(environment) { ["ODOT_STEAM_OVERLAY"] = overlay, ["LD_PRELOAD"] = systemLibrary };
+            launchEnvironment.Remove("ODOT_STEAM_DISABLED");
+            (int launchCode, string launchOutput, _) = await Capture(Path.Combine(install, "launcher"), launchEnvironment, "one", "two words");
+            Assert.Equal(0, launchCode);
+            Assert.Contains(systemLibrary + ":" + overlay, launchOutput);
+            Assert.Contains("one two words", launchOutput);
+            launchEnvironment["ODOT_STEAM_OVERLAY"] = Path.Combine(root, "missing-overlay.so");
+            (_, string missingOutput, _) = await Capture(Path.Combine(install, "launcher"), launchEnvironment);
+            Assert.Contains(systemLibrary, missingOutput);
             await Run(firstScript, environment, succeeds: true);
 
             (string secondArchive, string secondHash) = await Archive(root, "0.2.0-beta.1", "second");
@@ -120,13 +134,19 @@ public sealed class LinuxPackagingTests
 
     private static async Task Run(string script, IReadOnlyDictionary<string, string> environment, bool succeeds)
     {
-        var start = new ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
-        start.ArgumentList.Add(script);
+        (int code, string stdout, string stderr) = await Capture("/bin/sh", environment, script);
+        Assert.True(succeeds == (code == 0), $"exit={code}\nstdout={stdout}\nstderr={stderr}");
+    }
+
+    private static async Task<(int Code, string Output, string Error)> Capture(string executable, IReadOnlyDictionary<string, string> environment, params string[] arguments)
+    {
+        var start = new ProcessStartInfo(executable) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        foreach (string argument in arguments) start.ArgumentList.Add(argument);
         foreach ((string key, string value) in environment) start.Environment[key] = value;
         using Process process = Process.Start(start)!;
         string stdout = await process.StandardOutput.ReadToEndAsync(), stderr = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
-        Assert.True(succeeds == (process.ExitCode == 0), $"exit={process.ExitCode}\nstdout={stdout}\nstderr={stderr}");
+        return (process.ExitCode, stdout, stderr);
     }
 
     private static string Root()

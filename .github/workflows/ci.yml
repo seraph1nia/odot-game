@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Verify formatting, build, rules, network and source UI
-        run: mise run ci-source
+        run: mise run ci-source --startup-timeout-ms 60000
   linux-package:
     needs: source
     runs-on: ubuntu-24.04
@@ -48,8 +48,8 @@ jobs:
         run: |
           mise run ci-linux-package
           git tag v0.1.0-beta.1
-          mise run package-linux --tag v0.1.0-beta.1
-          mise run verify-installed-linux --tag v0.1.0-beta.1
+          mise run package-linux --tag v0.1.0-beta.1 --startup-timeout-ms 60000
+          mise run verify-installed-linux --tag v0.1.0-beta.1 --startup-timeout-ms 60000
   windows-package:
     needs: source
     runs-on: windows-2025
