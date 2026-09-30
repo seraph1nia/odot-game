@@ -129,9 +129,8 @@ The release is visible briefly without binaries while its checks run. A retry
 never replaces existing release assets. Verification logs, screenshots, player
 data, and intermediate manifests remain in the ephemeral jobs and are not
 published. Ordinary CI runs only for pull requests targeting `main` and pushes
-to `main`; it remains read-only, packages Linux only for now, and uploads
-nothing. Native Windows installer qualification is deferred, although the
-release workflow still builds the Windows installer.
+to `main`; it remains read-only, runs Linux and native Windows package checks,
+and uploads nothing. Native Windows installer qualification remains deferred.
 
 Local package preparation and optional installation verification require a clean
 checkout of an existing exact tag:

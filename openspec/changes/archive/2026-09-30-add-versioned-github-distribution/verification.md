@@ -212,9 +212,9 @@ then validates the allowlisted hashes and common identity before attaching five
 public files. Gameplay, network, UI and Linux installation verification remain
 in ordinary CI and explicitly selected tasks; the release workflow does not
 rerun them. Ordinary CI runs only for pull requests targeting `main` and pushes
-to `main`, retains read-only permissions and has no artifact upload. Its native
-Windows job is temporarily commented out by owner decision; Windows installer
-qualification is accepted as deferred while releases still build that package.
+to `main`, retains read-only permissions and has no artifact upload. It retains
+parallel Linux and native Windows package jobs after the source gate; Windows
+installer qualification remains accepted as deferred.
 
 A nonpublishing validation branch exercises the actual Linux package and install
 path. Native Windows installer qualification is explicitly deferred. No real
@@ -244,7 +244,6 @@ The Windows runner successfully downloaded and checksum-verified Inno Setup
 6.7.3, exported the tagged Windows client and verified its build identity. The
 compiler invocation then failed by showing ISCC usage, so no installer was
 created and no install/upgrade/uninstall claim is made. The owner accepted this
-as deferred work and requested that ordinary CI comment out its Windows job for
-now. Tasks 2.3, 2.4, 5.4 and the Windows portion of 7.2 remain unchecked. The
-release workflow still attempts the native Windows package; a release will not
-attach partial assets when that build fails.
+as deferred work while retaining the native Windows export/build job in ordinary
+CI. Tasks 2.3, 2.4, 5.4 and the Windows portion of 7.2 remain unchecked. Release
+workflow work continues separately.

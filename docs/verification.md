@@ -844,9 +844,9 @@ preference assertions while verifying the About controls and accurate
 development-build update feedback on owned X11/Mesa software rendering.
 
 The ordinary `Verify and build` workflow runs only for pull requests targeting
-`main` and pushes to `main`. It runs the full source gate before Linux package
-checks and has no upload permission. Its native Windows job is temporarily
-commented out; native Windows installer qualification is accepted as deferred.
+`main` and pushes to `main`. It runs the full source gate before parallel Linux
+and native Windows package checks and has no upload permission. Native Windows
+installer qualification remains accepted as deferred.
 The separate `Build published release` workflow follows the owner's final
 preference to skip all gameplay, network, UI and installation tests: it performs
 lightweight public/tag/profile preflight, builds both tagged packages in
@@ -865,6 +865,6 @@ https://github.com/seraph1nia/odot-game/actions/runs/36763314446 passed its sour
 gate and complete tagged Linux path: package build, ordinary exported checks,
 installed graphical solo checks and owned uninstall cleanup. Its Windows export
 and build identity passed, but ISCC printed its usage and produced no installer.
-The owner accepted Windows installer qualification as deferred and requested
-that the ordinary-CI Windows job be commented out. The release workflow still
-attempts Windows packaging and will attach no partial release when it fails.
+The owner accepted Windows installer qualification as deferred. The ordinary
+CI workflow retains its native Windows export/build checks. Release workflow
+work continues separately.

@@ -45,7 +45,7 @@ The network task SHALL retain separate real headless dedicated-server/client sce
 - **THEN** the runner observes a new match identity and no effect from old requests or connections
 
 ### Requirement: Bounded lifecycle and continued CI gates
-Network and graphical scenarios SHALL retain configurable endpoints, readiness and assertion deadlines, attributable non-secret diagnostics, and cleanup of only their owned processes on success, failure, or interruption. Automated clients SHALL use isolated resume and graphical preference storage, and graphical verification SHALL use an owned private display. Endpoint/startup failure checks SHALL retain their meaning under serial and bounded parallel network execution. Existing unavailable-server, stopped-server, occupied-port, and startup/child-failure checks SHALL remain meaningful. The existing task names and Linux CI ordering SHALL retain checks and cooperative tests before client/server exports and exported-role smoke verification, without publishing or deployment. Normal CI SHALL NOT require Steam login, accounts, relay availability, or internet for gameplay verification after dependencies are prepared. A separate explicitly invoked Steam verification SHALL report missing prerequisites or failed assertions distinctly; skipped Steam coverage SHALL NOT count as a passing Steam test. Tests SHALL wait for observable session/state conditions rather than fixed sleeps.
+Network and graphical scenarios SHALL retain configurable endpoints, readiness and assertion deadlines, attributable non-secret diagnostics, and cleanup of only their owned processes and displays on success, failure, or interruption. Each automated client SHALL use isolated resume storage, and graphical verification SHALL use isolated preferences on a private display. Existing unavailable-server, stopped-server, occupied-port, and startup/child-failure checks SHALL remain meaningful under serial and bounded parallel network execution. Tests SHALL wait for observable session/state conditions rather than fixed sleeps. The existing task names SHALL remain, with a Linux `test-ui` task. Verification SHALL complete formatting, preparation, cooperative rules, all network scenarios and source graphical smoke before client/server exports. Independent checks SHALL be allowed to overlap after shared preparation, but a failed pre-export check SHALL prevent both exports. After successful exports, headless exported-role smoke and private-display exported-client graphical smoke SHALL gate overall success. Ordinary push/PR verification and `mise run ci` SHALL NOT upload artifacts, publish releases, or deploy. A separate manually published-release workflow SHALL build and attach distributable packages after lightweight tag/profile/identity/checksum checks without rerunning the test suites; this permission SHALL NOT extend to uploading verification logs, screenshots, or runtime data. Normal verification SHALL NOT require Steam login, accounts, relay availability, or internet for gameplay verification after dependencies are prepared. A separate explicitly invoked Steam verification SHALL report missing prerequisites or failed assertions distinctly; skipped or missing evidence SHALL NOT count as a Steam pass.
 
 #### Scenario: Missing reconnect or stalled battle
 - **WHEN** the resumed client never synchronizes or a required battle transition does not occur
@@ -53,19 +53,27 @@ Network and graphical scenarios SHALL retain configurable endpoints, readiness a
 
 #### Scenario: Cooperative tests fail
 - **WHEN** a cooperative rules or network assertion fails
-- **THEN** CI fails before either deliverable export is performed
+- **THEN** verification fails before either deliverable export is performed
 
 #### Scenario: Source UI verification fails
 - **WHEN** private-display startup, rendering or a required source UI assertion fails
-- **THEN** CI returns nonzero before either export and cleans up the owned graphical clients and display
+- **THEN** verification returns nonzero before either export and cleans up the owned graphical clients and display
 
 #### Scenario: Exported UI verification fails
 - **WHEN** the exported graphical client cannot load its packed presentation or fails a required graphical smoke assertion
-- **THEN** CI returns nonzero with attributable diagnostics even if source checks and headless exported-role smoke passed
+- **THEN** verification returns nonzero with attributable diagnostics even if source checks and headless exported-role smoke passed
+
+#### Scenario: Ordinary CI succeeds
+- **WHEN** normal push/PR verification or `mise run ci` succeeds
+- **THEN** outputs remain local to its workspace and it performs no uploads or publication
+
+#### Scenario: Versioned distribution succeeds
+- **WHEN** an explicit release workflow builds both packages and passes its identity/checksum checks
+- **THEN** its publication stage can upload only the selected distributables and public metadata
 
 #### Scenario: Run CI without Steam
-- **WHEN** ordinary CI runs on a prepared machine without Steam accounts or a Steam client
-- **THEN** core, authority, local process, and exported local-role checks can run and fail normally on regressions
+- **WHEN** ordinary verification runs on a prepared machine without Steam accounts or a Steam client
+- **THEN** core, local process, UI, and exported local-role checks execute normally without claiming real-Steam acceptance
 
 #### Scenario: Steam verification prerequisites are missing
 - **WHEN** the separate Steam verification is requested without usable accounts, application access, or test machines
