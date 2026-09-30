@@ -139,3 +139,57 @@ raw_args = true
 description = "Verify rules/network/private UI, export Linux roles and check packages"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci"
+
+[tasks.ci-windows]
+description = "Verify native Windows Steam/runtime exports and bounded offline solo (no publishing)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-windows"
+raw_args = true
+
+[tasks.ci-source]
+description = "Run all formatting/build/rules/network/source UI gates without exports"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-source"
+raw_args = true
+
+[tasks.ci-linux-package]
+description = "Prepare/export/check Linux packages (workflow requires source gate first)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-linux-package"
+raw_args = true
+
+[tasks.package-linux]
+description = "Build versioned Linux archive and installer from an exact clean tag"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll package-linux"
+raw_args = true
+
+[tasks.package-windows]
+description = "Build versioned Windows installer from an exact clean tag (requires ISCC_PATH)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll package-windows"
+raw_args = true
+
+[tasks.verify-installed-linux]
+description = "Install and verify existing Linux release assets without rebuilding"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll verify-installed-linux"
+raw_args = true
+
+[tasks.verify-installed-windows]
+description = "Install, upgrade, run and uninstall an existing Windows release installer"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll verify-installed-windows"
+raw_args = true
+
+[tasks.release-preflight]
+description = "Validate an exact clean release tag and packaging identity without building"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll release-preflight"
+raw_args = true
+
+[tasks.assemble-release-assets]
+description = "Validate and assemble the allowlisted public release assets"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll assemble-release-assets"
+raw_args = true

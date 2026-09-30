@@ -41,11 +41,11 @@ Installed clients SHALL retain Steam multiplayer and offline solo behavior. Prev
 - **THEN** distribution fails instead of silently shipping AppID 480
 
 ### Requirement: Gated GitHub publication
-A separate release workflow SHALL run for explicit version tags or a manual invocation naming an existing version tag, verify the exact tagged source, and publish only after required source verification, both platform builds, and installed-package checks pass. Public downloads SHALL reside in `seraph1nia/odot-game`; the repository SHALL be public before publication. Build jobs SHALL use locked tools/dependencies and validated matching export templates. Shared build/import/export mutations SHALL remain sequential within each workspace. Published assets SHALL be the bytes that passed package checks. Existing published versions SHALL NOT be overwritten or silently rebuilt in place.
+A separate release workflow SHALL run when the owner manually publishes an empty release for an existing version tag, verify the exact tagged source, and attach assets after both platform builds and identity/checksum checks pass. It SHALL NOT rerun gameplay, UI, network, or installation test suites. Public downloads SHALL reside in `seraph1nia/odot-game`; the repository SHALL be public before publication. Build jobs SHALL use locked tools/dependencies and validated matching export templates. Shared build/import/export mutations SHALL remain sequential within each workspace. Existing published assets SHALL NOT be overwritten or silently rebuilt in place.
 
 #### Scenario: A source or package gate fails
-- **WHEN** any required verification, platform export, installer, or package check fails or is unexecuted
-- **THEN** no completed public release is published
+- **WHEN** release preflight, a platform export, installer build, identity check, or checksum check fails
+- **THEN** no distributable assets are attached to the manually published release
 
 #### Scenario: Retry a completed release
 - **WHEN** publication is requested for a version that already has a completed release

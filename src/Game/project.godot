@@ -2,6 +2,7 @@
 config_version=5
 
 [application]
+config/version="development"
 config/name="Odot - Nine Tiles"
 run/main_scene="res://Scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")

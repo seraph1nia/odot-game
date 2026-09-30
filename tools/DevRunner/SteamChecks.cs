@@ -37,11 +37,13 @@ internal sealed partial class Runner
 
     private async Task CheckSteamExtension()
     {
-        if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
-            throw new InvalidOperationException("Steam extension verification currently requires Linux x86_64.");
+        DesktopExport layout = DesktopExport.For(options.ExportTarget);
+        if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64
+            || (layout.Target == "windows-x64" ? !OperatingSystem.IsWindows() : !OperatingSystem.IsLinux()))
+            throw new VerificationPrerequisiteException("Steam extension verification requires a native x86_64 host matching --target.");
         if (options.Exported)
         {
-            if (!File.Exists(Path.Combine(_root, "dist", "client", "odot.x86_64")))
+            if (!File.Exists(Path.Combine(_root, "dist", layout.Kind(options.Production), layout.Executable)))
                 throw new InvalidOperationException("Missing development client export; run mise run export-client first.");
             await VerifySteamFiles();
         }
@@ -70,7 +72,8 @@ internal sealed partial class Runner
         var args = new List<string> { "--headless" };
         if (exported)
         {
-            string source = Path.Combine(_root, "dist", "client");
+            DesktopExport layout = DesktopExport.For(options.ExportTarget);
+            string source = Path.Combine(_root, "dist", layout.Kind(options.Production));
             working = Path.Combine(owned.Directory, "package");
             foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
             {
@@ -79,10 +82,10 @@ internal sealed partial class Runner
                 File.Copy(file, target);
                 if (OperatingSystem.IsLinux()) File.SetUnixFileMode(target, File.GetUnixFileMode(file));
             }
-            executable = Path.Combine(working, "odot.x86_64");
-            foreach (string name in new[] { "libgodotsteam.linux.template_release.x86_64.so", "libsteam_api.so" })
+            executable = Path.Combine(working, layout.Executable);
+            foreach (string name in new[] { layout.NativeLibrary, layout.SteamLibrary })
             {
-                await using var original = File.OpenRead(Path.Combine(GameDirectory, "addons", "godotsteam", "linux64", name));
+                await using var original = File.OpenRead(Path.Combine(GameDirectory, "addons", "godotsteam", layout.NativeDirectory, name));
                 await using var packaged = File.OpenRead(Path.Combine(working, name));
                 byte[] originalHash = await SHA256.HashDataAsync(original, cancellation);
                 byte[] packagedHash = await SHA256.HashDataAsync(packaged, cancellation);
@@ -94,8 +97,10 @@ internal sealed partial class Runner
         }
         else args.AddRange(["--path", GameDirectory]);
         args.AddRange(["--", offline ? "--steam-probe-offline" : "--steam-probe"]);
+        var environment = owned.EnvironmentFor("probe");
+        if (exported && OperatingSystem.IsWindows()) WindowsStandaloneEnvironment(environment);
         await using var child = owned.Own(new Child("steam-extension-probe", executable, args, _root,
-            game: true, quiet: true, workingDirectory: working, environment: owned.EnvironmentFor("probe"),
+            game: true, quiet: true, workingDirectory: working, environment: environment,
             evidenceDirectory: owned.EvidenceDirectory, sanitizeSteam: true));
         await child.WaitFor(e => e.Type == "steam-probe", offline ? "optional initialization" : "Steam extension lifecycle",
             options.StartupTimeout, deadline.Token);

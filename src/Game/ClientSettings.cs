@@ -1,4 +1,5 @@
 using Godot;
+using Game.Distribution;
 
 namespace Game;
 
@@ -14,6 +15,9 @@ public partial class ClientSettings : Node
     private OptionButton _mode = null!, _resolution = null!;
     private HSlider _volume = null!;
     private Label _value = null!, _saveFeedback = null!;
+    private Label _updateStatus = null!;
+    private Button _checkUpdate = null!, _downloadUpdate = null!;
+    private ManualUpdateChecker? _updates;
     private readonly List<Vector2I> _sizes = [];
     private int _masterVolume = 50;
     private Window.ModeEnum _savedMode = Window.ModeEnum.Windowed;
@@ -29,6 +33,9 @@ public partial class ClientSettings : Node
     internal AcceptDialog Dialog => _dialog;
     internal TabContainer Categories { get; private set; } = null!;
     internal HSlider VolumeSlider => _volume;
+    internal Button CheckUpdateButton => _checkUpdate;
+    internal Button DownloadUpdateButton => _downloadUpdate;
+    internal string UpdateStatus => _updateStatus.Text;
     internal int MasterVolume => _masterVolume;
     public bool BlocksWorldHover(Vector2 mouse) => IsOpen || _button.IsVisibleInTree() && _button.GetGlobalRect().HasPoint(mouse);
 
@@ -79,6 +86,15 @@ public partial class ClientSettings : Node
             if (input is InputEventKey { Pressed: false } || input is InputEventMouseButton { Pressed: false }) Save();
         };
         Label(audio, "0 mutes all audio. Music keeps playing while muted.");
+        var about = Page(tabs, "About");
+        Label(about, "Version: " + BuildInfo.DisplayVersion);
+        _updateStatus = Label(about, BuildInfo.Identity is null ? "Development builds do not compare against published releases." : "Updates are checked only when you ask.");
+        _checkUpdate = new Button { Name = "CheckUpdate", Text = "Check for updates", CustomMinimumSize = new(0, 38) }; about.AddChild(_checkUpdate);
+        _downloadUpdate = new Button { Name = "DownloadUpdate", Text = "Download update", CustomMinimumSize = new(0, 38), Visible = false }; about.AddChild(_downloadUpdate);
+        string target = OS.GetName() == "Windows" ? "windows-x64" : "linux-x64";
+        _updates = new(BuildInfo.Identity, target, new System.Net.Http.HttpClient(), url => OS.ShellOpen(url) == Error.Ok);
+        _checkUpdate.Pressed += CheckUpdates;
+        _downloadUpdate.Pressed += OpenUpdate;
         _saveFeedback = Label(content, "");
         _dialog.VisibilityChanged += () =>
         {
@@ -177,6 +193,24 @@ public partial class ClientSettings : Node
         _restoreFocusOnClose = true;
         if (!restoreFocus) _returnFocus = null;
     }
+    private async void CheckUpdates()
+    {
+        if (_updates is null || _checkUpdate.Disabled) return;
+        _checkUpdate.Disabled = true; _downloadUpdate.Visible = false; _updateStatus.Text = "Checking for updates…";
+        UpdateCheckStatus result = await _updates.Check();
+        Callable.From(() =>
+        {
+            if (!GodotObject.IsInstanceValid(this) || !IsInsideTree()) return;
+            _checkUpdate.Disabled = false; _updateStatus.Text = result.Message;
+            _downloadUpdate.Visible = result.State == UpdateCheckState.Available;
+        }).CallDeferred();
+    }
+    private void OpenUpdate()
+    {
+        if (_updates is null) return;
+        UpdateCheckStatus result = _updates.OpenUpdate();
+        _updateStatus.Text = result.Message;
+    }
     private void RestoreFocus()
     {
         Control? target = _returnFocus;
@@ -235,6 +269,7 @@ public partial class ClientSettings : Node
     public override void _ExitTree()
     {
         _window.SizeChanged -= WindowResized;
+        _updates?.Dispose();
         Save();
     }
 }

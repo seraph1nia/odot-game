@@ -63,7 +63,12 @@ public partial class Main : Node, IGameSession
         try
         {
             string[] args = OS.GetCmdlineUserArgs();
-            if (args.Length == 1 && args[0] is "--steam-probe" or "--steam-probe-offline")
+            if (args.Length == 1 && args[0] == "--build-info-probe")
+            {
+                Emit(new("build-info", Message: BuildInfo.Identity?.ToJson() ?? BuildInfo.DisplayVersion));
+                GetTree().Quit();
+            }
+            else if (args.Length == 1 && args[0] is "--steam-probe" or "--steam-probe-offline")
                 SteamProbe.Run(this, args[0] == "--steam-probe");
             else if (DisplayServer.GetName() == "headless") Setup(args);
             else Callable.From(() => SetupGraphical(args)).CallDeferred();
@@ -612,18 +617,22 @@ public partial class Main : Node, IGameSession
         Application!.StopAudio();
         // Observe actual mixer cycles before destroying its server, retaining the bound.
         ulong deadline = Time.GetTicksMsec() + 1000;
-        double previous = AudioServer.GetTimeSinceLastMix();
-        int cycles = 0;
-        while (cycles < 2 && Time.GetTicksMsec() < deadline)
+        var progress = new AudioMixProgress();
+        void ObserveMix()
+        {
+            ulong before = Time.GetTicksUsec();
+            double elapsed = AudioServer.GetTimeSinceLastMix();
+            progress.Observe(before, elapsed, Time.GetTicksUsec());
+        }
+        ObserveMix();
+        while (progress.Cycles < 2 && Time.GetTicksMsec() < deadline)
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            double current = AudioServer.GetTimeSinceLastMix();
-            if (current < previous) cycles++;
-            previous = current;
+            ObserveMix();
         }
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        if (cycles < 2) Emit(new("error", Message: "Audio mixer did not drain within the shutdown deadline."));
-        GetTree().Quit(cycles >= 2 ? 0 : 1);
+        if (progress.Cycles < 2) Emit(new("error", Message: "Audio mixer did not drain within the shutdown deadline."));
+        GetTree().Quit(progress.Cycles >= 2 ? 0 : 1);
     }
     private async Task ProbeUi(string id, string? screenshot)
     {

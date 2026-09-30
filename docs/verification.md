@@ -1,6 +1,6 @@
 # Cooperative POC verification
 
-Verified on 2026-09-30 on Linux x86_64 using .NET SDK 10.0.401 and Godot 4.7.2 .NET. Historical desktop checks below used real X11 windows under KDE Wayland with the Compatibility renderer and an AMD Radeon RX 6800. The current recurring workflow uses private Xvfb displays and Mesa software graphics, as recorded in the final section. Windows/macOS runtime checks and the remote GitHub Actions runner have not been executed.
+Verified on 2026-09-30 on Linux x86_64 using .NET SDK 10.0.401 and Godot 4.7.2 .NET. Historical desktop checks below used real X11 windows under KDE Wayland with the Compatibility renderer and an AMD Radeon RX 6800. The current recurring workflow uses private Xvfb displays and Mesa software graphics. Platform and remote-run coverage is recorded in the dated sections below.
 
 ## Rules and real processes
 
@@ -595,9 +595,10 @@ required for real peer checks; different NAT networks are required for relay
 acceptance. One machine/account can run the compatibility probe but cannot prove
 remote reliable channels, authenticated remote identity, invitations or relay.
 
-The user has no second machine/account available during implementation and will
-check this later with friends. Local core, ENet, graphical and export checks
-continue without Steam. Unexecuted real-Steam tasks remain unchecked in OpenSpec;
+The user explicitly excluded testing with friends from this milestone and
+authorized its local completion, spec sync and archive on 2026-09-30. Local core,
+ENet, graphical and export checks pass without Steam. Unexecuted real-Steam
+checks remain unchecked in the archived OpenSpec checklist;
 missing prerequisites are never recorded as a pass. `mise run dev` remains the
 playable desktop host-and-guest command, with no Steam login dependency.
 
@@ -705,7 +706,7 @@ A missing-tools `check-ui-prerequisites` invocation exited nonzero and reported
 was likewise recorded unexecuted above. Available displays with rendering or
 feature failures still report failed; neither case becomes a pass.
 
-The change has **31/41 tasks complete** locally. Task 1.6, Steam tasks 5.2–5.4 and 5.6,
+Before the final scope revision, the original checklist had **31/41 tasks complete** locally. Task 1.6, Steam tasks 5.2–5.4 and 5.6,
 and all phase-7 acceptance tasks remain unchecked. Shared identity/resume policies
 and canceled/late callback guards are tested locally, but SDK-authenticated remote
 binding, real warm invitations, native channels, relay/NAT behavior, actual Steam
@@ -803,7 +804,57 @@ corrected before the passing build and full suite. `mise run dev` retains its
 Steam-independent playing host and guest route, exercised by existing process
 and graphical hosted regression checks.
 
-Progress is **31/41**. Tasks 1.6, 5.2–5.4, 5.6 and all phase-7 tasks still need
-their written real-Steam, own-AppID, or release-qualification evidence. No friend
+Original checklist progress is **31/41**. Tasks 1.6, 5.2–5.4, 5.6 and all phase-7
+items retain their unverified real-Steam, own-AppID, or release-qualification
+evidence requirements as deferred checks outside the closed local milestone. No friend
 invitation, remote Steam admission, real departure, or relay route was verified
 by these local checks.
+
+### Local milestone closure and archive decision
+
+On 2026-09-30 the user explicitly decided not to test with friends for this
+change and requested updating, syncing and archiving all locally executable work.
+The completed development milestone uses the passing core/ENet/source UI/Linux
+export gates and single-account compatibility evidence recorded above. No game
+code changed during closure; the same passing CI inputs remain applicable.
+
+The original ten unchecked external acceptance items are retained in
+`openspec/changes/archive/2026-09-30-add-start-screen-and-steam-hosting/tasks.md`
+as deferred audit entries. They do not block this user-authorized local archive.
+The synced specs retain the intended online behavior and distinguish local
+milestone completion from actual Steam or release acceptance. Friend invitations,
+remote authenticated identity/channels, relay/NAT routing, real Steam departures
+and owner reassignment, own-AppID cold launch, and release stability remain
+**unverified**. The existing paired runner can be used later if requested.
+## Versioned distribution verification
+
+On 2026-09-30 the distribution implementation added SemVer-tagged Linux and
+Windows clients, a per-user Inno Setup installer, a versioned Linux install
+script, installed-package runner slices, manual GitHub release discovery and a
+browser-assisted full-download action. After a locked restore and formatting,
+the suites pass 55 gameplay and 105 runner tests. The runner cases include
+isolated Linux install/reinstall/upgrade/failure/uninstall fixtures, native
+overlay launch policy, bounded deterministic HTTP fixtures and final release
+asset allowlist/hash/identity failures. No live GitHub release or Steam account
+is needed for those cases.
+
+`mise run test-ui --scenario settings` passed in 14.49 runner seconds at
+`logs/20260930-183338-a843d1da/`. It retained the existing modal/gameplay and
+preference assertions while verifying the About controls and accurate
+development-build update feedback on owned X11/Mesa software rendering.
+
+The ordinary `Verify and build` workflow still runs the full source gate before
+parallel Linux and native Windows package checks and has no upload permission.
+The separate `Build published release` workflow follows the owner's final
+preference to skip all gameplay, network, UI and installation tests: it performs
+lightweight public/tag/profile preflight, builds both tagged packages in
+parallel, and attaches only the installer, archive, install script, combined
+checksums and public build metadata after identity/hash consistency checks.
+Selected `verify-installed-linux` and `verify-installed-windows` commands remain
+available for deliberate package qualification without implicit rebuilds.
+
+The release workflow has not published anything. The repository was still
+private during implementation, and no real tag or release was created. Native
+Windows installer evidence is recorded from the nonpublishing validation branch
+when available; Windows graphical interaction and genuine paired Steam
+invitation/relay/cold-launch acceptance remain separate and unclaimed.

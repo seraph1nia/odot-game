@@ -3,17 +3,18 @@ name: Verify and build
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  verify-and-build:
+  source:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
         with:
           version: 2026.9.17
           install: false
@@ -24,5 +25,43 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
-      - name: Verify, then export Linux client and server
-        run: mise run ci
+      - name: Verify formatting, build, rules, network and source UI
+        # Cold hosted-runner imports can exceed the local 15-second startup default.
+        run: mise run ci-source --startup-timeout-ms 60000
+  linux-package:
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared tools
+        run: mise install --locked dotnet godot-dotnet
+      - name: Provide private-display software graphics
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
+      - name: Export Linux roles and verify packages
+        run: mise run ci-linux-package
+  windows-package:
+    needs: source
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared locked SDK and Godot .NET
+        shell: pwsh
+        run: mise install --locked dotnet godot-dotnet
+      - name: Verify native source, export and standalone offline solo
+        shell: pwsh
+        # A cold Windows asset import exceeds the local 15-second startup default.
+        run: mise run ci-windows --startup-timeout-ms 60000

@@ -27,6 +27,8 @@ internal sealed record UiObservation
     public bool Connected { get; init; }
     public bool SettingsOpen { get; init; }
     public int MasterVolume { get; init; }
+    public string BuildVersion { get; init; } = "";
+    public string UpdateStatus { get; init; } = "";
     public float MasterGain { get; init; }
     public bool MasterMuted { get; init; }
     public string Display { get; init; } = "";
@@ -76,6 +78,7 @@ internal sealed partial class Runner
         "settings" => "Modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
         "launcher" => "Application navigation, local session transitions and actual process exit; core/network checks miss visible controls.",
         "exported-package" => "Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
+        "installed-linux" => "Installed launcher, packed presentation and normal input; archive inventory alone cannot establish an installed graphical launch.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
     };
     private async Task<UiObservation> WaitUi(Child client, Func<UiObservation, bool> predicate, string expectation, CancellationToken token)
@@ -183,6 +186,11 @@ internal sealed partial class Runner
                 await WaitUi(client, p => p.SettingsOpen, "modal retains input", token);
                 GameEvent barrier = await Action(observer, "unknown", token, false);
                 Require(State(barrier).Players.Single(p => p.Id == client.PlayerId).Slots[0].Type == Building.Empty, "settings modal blocks gameplay input behind it");
+                await Click(client, "AboutTab", token);
+                UiObservation about = await WaitUi(client, p => p.Targets.TryGetValue("CheckUpdate", out UiTarget? update) && update.Visible, "About controls visible", token);
+                Require(about.BuildVersion == "Development build", "source settings identify a development build accurately");
+                await Click(client, "CheckUpdate", token);
+                await WaitUi(client, p => p.UpdateStatus.Contains("Development builds", StringComparison.Ordinal), "development update feedback", token);
                 await Click(client, "AudioTab", token);
                 await Click(client, "Volume", token);
                 await UiProtocol.Probe(client, options.StartupTimeout, token);

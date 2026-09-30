@@ -25,7 +25,8 @@ internal sealed partial class Runner
         string directory = TemplateDirectory();
         string marker = Path.Combine(directory, ".odot-checksum");
         if (File.Exists(marker) && (await File.ReadAllTextAsync(marker, cancellation)).Trim() == TemplateChecksum
-            && File.Exists(Path.Combine(directory, "linux_release.x86_64")) && File.Exists(Path.Combine(directory, "version.txt")))
+            && File.Exists(Path.Combine(directory, "linux_release.x86_64"))
+            && File.Exists(Path.Combine(directory, "windows_release_x86_64.exe")) && File.Exists(Path.Combine(directory, "version.txt")))
         {
             string installedVersion = (await File.ReadAllTextAsync(Path.Combine(directory, "version.txt"), cancellation)).Trim();
             if (installedVersion != EngineVersion + ".stable.mono")
@@ -77,16 +78,19 @@ internal sealed partial class Runner
 
     private async Task Export(bool server)
     {
-        if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
-            throw new InvalidOperationException("The initial export task targets Linux x86_64; cross-platform export CI is a later milestone.");
+        if (!(OperatingSystem.IsLinux() || OperatingSystem.IsWindows())
+            || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64
+            || server && !OperatingSystem.IsLinux())
+            throw new VerificationPrerequisiteException("Desktop export requires Linux/Windows x86_64; server export requires Linux x86_64.");
         SteamPackaging.ValidateAppId(options.Production, options.SteamAppId);
-        string kind = server ? "server" : options.Production ? "production-client" : "client";
+        DesktopExport layout = DesktopExport.For(server ? "linux-x64" : options.ExportTarget);
+        string kind = server ? "server" : layout.Kind(options.Production);
         string directory = Path.Combine(_root, "dist", kind);
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         Directory.CreateDirectory(directory);
         await ExecuteEditor("export-" + kind, options.Timeout, true, "--headless", "--path", GameDirectory,
-            "--export-release", server ? "Linux Server" : options.Production ? "Linux Production Client" : "Linux Client", Path.Combine(directory, "odot.x86_64"));
-        if (!File.Exists(Path.Combine(directory, "odot.x86_64"))) throw new InvalidOperationException($"Missing {kind} export executable.");
+            "--export-release", server ? "Linux Server" : layout.ClientPreset(options.Production), Path.Combine(directory, layout.Executable));
+        if (!File.Exists(Path.Combine(directory, layout.Executable))) throw new InvalidOperationException($"Missing {kind} export executable.");
         string notices = Path.Combine(directory, "licenses", "godotsteam");
         Directory.CreateDirectory(notices);
         foreach (string name in new[] { "license.md", "README.odot.md", "manifest.json" })
@@ -120,6 +124,12 @@ internal sealed partial class Runner
 
     private async Task Ci()
     {
+        await VerificationGate.Run(CiSource, CiLinuxExports, CiLinuxPackageChecks);
+        Console.WriteLine("CI checks and Linux exports passed. Outputs remain in dist/; nothing was uploaded or published.");
+    }
+
+    private async Task CiSource()
+    {
         PrivateDisplay.CheckPrerequisites();
         await Preflight();
         await VerifySteamFiles();
@@ -127,23 +137,34 @@ internal sealed partial class Runner
         await Execute("format", "dotnet", "format", "Odot.slnx", "--verify-no-changes", "--no-restore");
         await BuildAndImport();
         await SteamExtensionProbe(exported: false, offline: true);
-        await VerificationGate.Run(async () =>
-        {
-            await Task.WhenAll(Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo"),
-                Execute("tooling", "dotnet", "test", "tests/DevRunner.Tests/DevRunner.Tests.csproj", "--no-restore", "--no-build", "--nologo"), NetworkTests());
-            await UiTests(null);
-        }, async () =>
-        {
-            // Keep these calls sequential. Any failed check above must prevent both exports.
-            await PrepareTemplates();
-            await Export(false);
-            await Export(true);
-        }, async () =>
-        {
-            await _evidence.Measure("export-smoke", "suite", ExportSmoke);
-            await SteamExtensionProbe(exported: true, offline: true);
-            await UiTests("exported-package");
-        });
-        Console.WriteLine("CI checks and Linux exports passed. Outputs remain in dist/; nothing was uploaded or published.");
+        await BuildIdentityProbe(null);
+        await Task.WhenAll(Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo"),
+            Execute("tooling", "dotnet", "test", "tests/DevRunner.Tests/DevRunner.Tests.csproj", "--no-restore", "--no-build", "--nologo"), NetworkTests());
+        await UiTests(null);
+        Console.WriteLine("All source gates passed; no exports performed.");
+    }
+
+    private async Task CiLinuxPackage()
+    {
+        PrivateDisplay.CheckPrerequisites();
+        await Prepare();
+        await CiLinuxExports();
+        await CiLinuxPackageChecks();
+        Console.WriteLine("Linux package checks passed; source gates are a separate required workflow job. No uploads or publication.");
+    }
+
+    private async Task CiLinuxExports()
+    {
+        // Sequential mutations of this workspace; GitHub gates this job on CiSource.
+        await PrepareTemplates();
+        await Export(false);
+        await Export(true);
+    }
+
+    private async Task CiLinuxPackageChecks()
+    {
+        await _evidence.Measure("export-smoke", "suite", ExportSmoke);
+        await SteamExtensionProbe(exported: true, offline: true);
+        await UiTests("exported-package");
     }
 }
