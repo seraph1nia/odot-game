@@ -46,9 +46,9 @@ jobs:
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Export Linux roles and verify packages
         run: |
-          mise run ci-linux-package
           git tag v0.1.0-beta.1
           mise run package-linux --tag v0.1.0-beta.1 --startup-timeout-ms 60000
+          mise run ci-linux-package
           mise run verify-installed-linux --tag v0.1.0-beta.1 --startup-timeout-ms 60000
   windows-package:
     needs: source
@@ -79,7 +79,9 @@ jobs:
         shell: pwsh
         # A cold Windows asset import exceeds the local 15-second startup default.
         run: |
-          mise run ci-windows --startup-timeout-ms 60000
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           git tag v0.1.0-beta.1
           mise run package-windows --tag v0.1.0-beta.1 --startup-timeout-ms 60000
+          mise run ci-windows --startup-timeout-ms 60000
           mise run verify-installed-windows --tag v0.1.0-beta.1 --startup-timeout-ms 60000
