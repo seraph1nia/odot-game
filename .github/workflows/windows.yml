@@ -1,0 +1,58 @@
+name: Verify Windows client
+
+on:
+  push:
+    branches:
+      - 'ci/windows-distribution-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    permissions:
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Require the existing full Linux CI for this source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=''
+          for attempt in $(seq 1 12); do
+            run_id=$(gh run list --workflow ci.yml --commit "$SOURCE_SHA" --event push --json databaseId --jq 'sort_by(.databaseId) | last | .databaseId // empty')
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "$run_id" ]; then
+            echo 'No push-triggered Linux CI exists for this commit; push the branch before manually retrying.' >&2
+            exit 1
+          fi
+          gh run watch "$run_id" --exit-status --interval 10
+  windows-native:
+    needs: linux-gate
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v3
+        with:
+          version: 2026.9.17
+          install: false
+          cache: false
+      - name: Install declared locked SDK and Godot .NET
+        shell: pwsh
+        run: mise install --locked dotnet godot-dotnet
+      - name: Verify native source, export and standalone offline solo
+        shell: pwsh
+        run: mise run ci-windows

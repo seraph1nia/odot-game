@@ -15,6 +15,9 @@
     "linux64/libgodotsteam.linux.template_debug.x86_64.so": "7d2d5e574390d66b4178b830a256031f9948ba37b1f00051ca8d28c359d39760",
     "linux64/libgodotsteam.linux.template_release.x86_64.so": "7aaa02843e5bdb8bfec52cf43dab949663ff38255116956db51f438ec6a95cbe",
     "linux64/libsteam_api.so": "659127fd3c36788162149006efb607ae24c08b7264259c7af52c806fa40c2b4f",
-    "readme.md": "1eff9de97d048348645c6a3927fca18c32a8d7a647dbc05cefbc0833e4cbc66c"
+    "readme.md": "1eff9de97d048348645c6a3927fca18c32a8d7a647dbc05cefbc0833e4cbc66c",
+    "win64/libgodotsteam.windows.template_debug.x86_64.dll": "da20924a9d29085c2256988b67de47003835910316712302e208e31c00f24b96",
+    "win64/libgodotsteam.windows.template_release.x86_64.dll": "b7a6316bb866691d01d311e181b76b0fe0c38602913725d1589083bee1db7f26",
+    "win64/steam_api64.dll": "8de54d32508e216c9135b8bf025749243d44e404c1c22a8e5fe35acecabe7a9c"
   }
 }

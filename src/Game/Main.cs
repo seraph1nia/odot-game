@@ -63,7 +63,12 @@ public partial class Main : Node, IGameSession
         try
         {
             string[] args = OS.GetCmdlineUserArgs();
-            if (args.Length == 1 && args[0] is "--steam-probe" or "--steam-probe-offline")
+            if (args.Length == 1 && args[0] == "--build-info-probe")
+            {
+                Emit(new("build-info", Message: BuildInfo.Identity?.ToJson() ?? BuildInfo.DisplayVersion));
+                GetTree().Quit();
+            }
+            else if (args.Length == 1 && args[0] is "--steam-probe" or "--steam-probe-offline")
                 SteamProbe.Run(this, args[0] == "--steam-probe");
             else if (DisplayServer.GetName() == "headless") Setup(args);
             else Callable.From(() => SetupGraphical(args)).CallDeferred();

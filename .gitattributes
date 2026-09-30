@@ -3,3 +3,6 @@
 *.jpg binary
 *.ogg binary
 *.wav binary
+
+# Preserve upstream Steam files byte-for-byte for the provenance hashes.
+/src/Game/addons/godotsteam/** -text

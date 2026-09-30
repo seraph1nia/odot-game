@@ -120,6 +120,11 @@ internal sealed class ScenarioScope : IAsyncDisposable
             env["XDG_" + category + "_HOME"] = path;
         }
         env["ODOT_OWNED_DATA"] = env["XDG_DATA_HOME"];
+        if (OperatingSystem.IsWindows())
+        {
+            env["APPDATA"] = env["XDG_DATA_HOME"];
+            env["LOCALAPPDATA"] = env["XDG_CACHE_HOME"];
+        }
         if (Graphical) env["WAYLAND_DISPLAY"] = null;
         return env;
     }

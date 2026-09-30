@@ -5,9 +5,9 @@ using Game.Core;
 
 namespace DevRunner;
 
-internal sealed partial class Runner(Options options, CancellationToken cancellation, Evidence? evidence = null, ScenarioScope? scope = null)
+internal sealed partial class Runner(Options options, CancellationToken cancellation, Evidence? evidence = null, ScenarioScope? scope = null, string? root = null)
 {
-    private readonly string _root = FindRoot();
+    private readonly string _root = root ?? FindRoot();
     private string GameDirectory => Path.Combine(_root, "src", "Game");
     private const string EngineVersion = "4.7.2";
     private readonly Evidence _evidence = evidence ?? new Evidence(FindRoot(), options.EvidenceDirectory);
@@ -23,7 +23,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 case "help":
                     Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports)\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
-                    Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] (two accounts/machines; normal desktop).\nClient packaging: export-client [--steam-app-id ID] [--production] (production requires own non-480 ID).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
+                    Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
                 case "prepare": await Prepare(); break;
                 case "check-steam-extension": await CheckSteamExtension(); break;
@@ -40,9 +40,13 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     await UiTests(options.Scenario); break;
                 case "_ui-worker": await UiWorker(); break;
                 case "prepare-templates": await PrepareTemplates(); break;
-                case "export-client": await Prepare(); await PrepareTemplates(); await Export(false); break;
+                case "export-client":
+                    if (options.ReleaseTag is not null) await TaggedExport();
+                    else { await Prepare(); await PrepareTemplates(); await Export(false); }
+                    break;
                 case "export-server": await Prepare(); await PrepareTemplates(); await Export(true); break;
                 case "ci": await Ci(); break;
+                case "ci-windows": await WindowsCi(); break;
                 default: throw new ArgumentException($"Unknown command: {options.Command}");
             }
         }
@@ -54,6 +58,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 "test-ui" or "_ui-worker" => "all source UI slices",
                 "ci" or "test-network" => "full required set",
+                "ci-windows" => "Windows source/native/export/offline solo; Linux and real Steam gates separate",
                 _ => "command only; no test coverage claimed"
             };
             await _evidence.Summary(options.Command, coverage, options.Command is "ci" or "test-network" ? options.Jobs : 1, result, timer.Elapsed.TotalSeconds);
@@ -152,6 +157,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 // Stock export templates live in the normal data directory, not the help cache.
                 environment.Remove("XDG_DATA_HOME"); environment.Remove("ODOT_OWNED_DATA");
+                if (OperatingSystem.IsWindows()) environment.Remove("APPDATA");
             }
             await using var child = owned.Own(new Child(name, "godot", args, _root,
                 environment: environment, evidenceDirectory: owned.EvidenceDirectory));
@@ -193,6 +199,11 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         }
         args.AddRange(extra);
         var environment = _scope?.EnvironmentFor(name);
+        if (OperatingSystem.IsWindows() && exported is not null)
+        {
+            environment ??= new Dictionary<string, string?>();
+            WindowsStandaloneEnvironment(environment);
+        }
         if (_scope?.Graphical == true && role is "menu" or "solo") environment!["ODOT_STEAM_DISABLED"] = "1";
         bool steamDisabled = (environment?.GetValueOrDefault("ODOT_STEAM_DISABLED") ?? Environment.GetEnvironmentVariable("ODOT_STEAM_DISABLED")) == "1";
         if (OperatingSystem.IsLinux() && System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64
