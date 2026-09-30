@@ -1,0 +1,36 @@
+using Godot;
+
+// Decorative geometry only; these IDs remain the nine authoritative array indices.
+internal static class VillageLayout
+{
+    public const float TerrainScale = 1.5f;
+    public const float HalfWidth = TerrainScale;
+    public const float Radius = 1.1547005f * TerrainScale;
+    public const float RowStep = Radius * 1.5f;
+    public static Vector3 Hex(int column, int row) => new(column * HalfWidth * 2 + (Math.Abs(row) % 2) * HalfWidth, 0, row * RowStep);
+    public static Vector3 Slot(int slot) => Hex(slot % 3 - 1, slot / 3 + 2);
+    public static bool Contains(int slot, Vector3 point)
+    {
+        Vector3 local = point - Slot(slot);
+        float x = Math.Abs(local.X), z = Math.Abs(local.Z);
+        return x <= HalfWidth && z <= Radius - x / Mathf.Sqrt(3);
+    }
+    // Slab intersection returns distance along a normalized camera ray, including roofs.
+    public static float? RayBounds(Vector3 origin, Vector3 direction, Aabb bounds)
+    {
+        float near = 0, far = float.PositiveInfinity;
+        for (int axis = 0; axis < 3; axis++)
+        {
+            if (Math.Abs(direction[axis]) < 0.00001f)
+            {
+                if (origin[axis] < bounds.Position[axis] || origin[axis] > bounds.End[axis]) return null;
+                continue;
+            }
+            float a = (bounds.Position[axis] - origin[axis]) / direction[axis];
+            float b = (bounds.End[axis] - origin[axis]) / direction[axis];
+            near = Math.Max(near, Math.Min(a, b)); far = Math.Min(far, Math.Max(a, b));
+            if (near > far) return null;
+        }
+        return near;
+    }
+}

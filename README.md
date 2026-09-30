@@ -1,6 +1,6 @@
 # Odot: Nine Tiles
 
-A small cooperative city-defense POC in C# and Godot. Each player builds on nine square slots, recruits persistent soldiers, and survives three automatic waves. A separate headless server owns every resource, action and combat result; clients can resume their cities after disconnecting.
+A small cooperative city-defense POC in C# and Godot. Each player builds on nine indexed hex plots, recruits persistent soldiers, and survives three automatic waves. A separate headless server owns every resource, action and combat result; clients can resume their cities after disconnecting.
 
 ## Setup
 
@@ -34,7 +34,7 @@ The game keeps separate Debug and ExportRelease NuGet locks because Godot includ
 
 Read [the rules and a tested winning strategy](docs/gameplay.md). Gold buys mines, farms and barracks; food recruits soldiers by clicking a barracks. Upgrade buildings once. All connected living players click Ready to produce; every third production starts an automatic battle. Soldiers and city damage persist. Fallen cities send their living attackers and future allocations to surviving teammates. Clear three waves to win.
 
-The graphical client uses vendored free KayKit assets on an angled square tabletop. Click a world tile or sidebar square, then Build, Upgrade or Recruit. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
+The graphical client uses vendored free KayKit assets in a grass-and-river hex landscape with a lower angled view. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
 
 ## Development commands
 
@@ -47,7 +47,7 @@ mise run test-network
 mise run ci
 ```
 
-`dev` builds/imports once, starts a headless server, awaits readiness, and opens two positioned client windows. Wait for both players in the lobby, then click **Start match**. Use the sidebar controls or click the square board. Stop the terminal command with Ctrl+C to stop its children. Closing a window also ends the supervised session. Individual role commands prepare the project themselves and accept the shown endpoint arguments. Default bind/host is loopback and default port is 7000. Bind to a LAN interface explicitly to play on another machine, using that server address on the client and allowing its UDP port.
+`dev` builds/imports once, starts a headless server, awaits readiness, and opens two positioned client windows. Wait for both players in the lobby, then click **Start match**. Click a plot or building directly and use the bottom controls. Stop the terminal command with Ctrl+C to stop its children. Closing a window also ends the supervised session. Individual role commands prepare the project themselves and accept the shown endpoint arguments. Default bind/host is loopback and default port is 7000. Bind to a LAN interface explicitly to play on another machine, using that server address on the client and allowing its UDP port.
 
 `mise run prepare` checks tools, builds C# and imports resources. `mise run build` compiles only. `mise run check` verifies formatting. Direct Godot startup uses a role after the engine argument separator:
 
