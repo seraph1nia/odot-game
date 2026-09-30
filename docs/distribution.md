@@ -128,7 +128,10 @@ build-info.json
 The release is visible briefly without binaries while its checks run. A retry
 never replaces existing release assets. Verification logs, screenshots, player
 data, and intermediate manifests remain in the ephemeral jobs and are not
-published. Ordinary push/pull-request CI remains read-only and uploads nothing.
+published. Ordinary CI runs only for pull requests targeting `main` and pushes
+to `main`; it remains read-only, packages Linux only for now, and uploads
+nothing. Native Windows installer qualification is deferred, although the
+release workflow still builds the Windows installer.
 
 Local package preparation and optional installation verification require a clean
 checkout of an existing exact tag:

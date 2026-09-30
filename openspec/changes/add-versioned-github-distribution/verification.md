@@ -209,14 +209,18 @@ The owner requested that the on-release workflow skip all test suites. The final
 workflow therefore responds to a manually published empty release, performs
 only public/tag/profile preflight, builds Linux and Windows packages in parallel,
 then validates the allowlisted hashes and common identity before attaching five
-public files. Gameplay, network, UI and installation verification remain in
-ordinary CI and explicitly selected tasks; the release workflow does not rerun
-them. Ordinary CI retains read-only permissions and no artifact upload.
+public files. Gameplay, network, UI and Linux installation verification remain
+in ordinary CI and explicitly selected tasks; the release workflow does not
+rerun them. Ordinary CI runs only for pull requests targeting `main` and pushes
+to `main`, retains read-only permissions and has no artifact upload. Its native
+Windows job is temporarily commented out by owner decision; Windows installer
+qualification is accepted as deferred while releases still build that package.
 
-A nonpublishing validation branch continues to exercise the actual platform
-installers before checklist closure. No real release tag was pushed, no release
-was created, no asset was published, and repository visibility remains private.
-The owner will make it public before using the published-release workflow.
+A nonpublishing validation branch exercises the actual Linux package and install
+path. Native Windows installer qualification is explicitly deferred. No real
+release tag was pushed, no release was created, no asset was published, and
+repository visibility remains private. The owner will make it public before
+using the published-release workflow.
 
 The completion `mise run ci` passed in **153.96 runner seconds** (157.41 mise
 seconds) at `logs/20260930-184821-46fbe011/`. It covered 55 core + 105 runner

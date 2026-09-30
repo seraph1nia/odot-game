@@ -843,8 +843,10 @@ is needed for those cases.
 preference assertions while verifying the About controls and accurate
 development-build update feedback on owned X11/Mesa software rendering.
 
-The ordinary `Verify and build` workflow still runs the full source gate before
-parallel Linux and native Windows package checks and has no upload permission.
+The ordinary `Verify and build` workflow runs only for pull requests targeting
+`main` and pushes to `main`. It runs the full source gate before Linux package
+checks and has no upload permission. Its native Windows job is temporarily
+commented out; native Windows installer qualification is accepted as deferred.
 The separate `Build published release` workflow follows the owner's final
 preference to skip all gameplay, network, UI and installation tests: it performs
 lightweight public/tag/profile preflight, builds both tagged packages in
