@@ -23,7 +23,7 @@ Only authority calls `Step()` on the fixed physics tick. Local rendering and
 remote reliable channel-1 broadcasts consume complete authoritative snapshots.
 Reliable channel 0 carries admission, requests, acknowledgments and session end.
 An acknowledgment is still delivered if a newer channel-1 snapshot has already
-arrived; presentation retains the newer state. Protocol v3 adds handshake attempt
+arrived; presentation retains the newer state. Protocol v4 retains v3 handshake attempt
 and expected-match isolation. Exported reconnect retains the required Godot
 RPC-node reset while the persistent application stays alive.
 
@@ -68,3 +68,13 @@ succeeded, and host creation checks again before attaching gameplay. Offline/loc
 launches keep Steam disabled. A temporary online-status loss updates the menu
 status without forcibly destroying an existing match; Valve documents the live
 connection semantics of [BLoggedOn](https://partner.steamgames.com/doc/api/ISteamUser#BLoggedOn).
+
+
+Protocol v4 adds typed recruitment, scalar forward/lateral bodies, movement,
+profile and target/action timing, and bounded ordered combat-event history.
+`recruit <slot>` still means Swordsman; automation also accepts
+`recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
+is no mixed-version play. Stable unit IDs and event sequences are match-scoped,
+never Arch entity handles. Guest revision/match guards apply to all complete
+states. Presentation baselines history on admission/resume, seeks pending actions
+at the current tick, and resets to living state on a detectable history gap.

@@ -13,6 +13,6 @@ public interface IGameSession
     bool CanStart { get; }
     bool CanInvite { get; }
     int HostPlayerId { get; }
-    long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0);
+    long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman);
     void Connect(bool fresh = false);
 }

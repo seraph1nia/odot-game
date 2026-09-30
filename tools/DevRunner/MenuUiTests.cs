@@ -142,6 +142,14 @@ internal sealed partial class Runner
         await Pick(client, 1, token);
         GameEvent recruit = await ClickAck(client, "Recruit", token);
         Require(State(recruit).Players[0].Soldiers.Length == 1, "solo explicit recruitment follows ordinary production");
+        UiObservation recruitment = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        foreach (string name in new[] { "Recruit", "RecruitRanged" })
+        {
+            UiTarget control = UiProtocol.Target(recruitment, name);
+            Require(control.X > 0 && control.X < recruitment.Width && control.Y > 0 && control.Y < recruitment.Height, name + " fits at " + size);
+        }
+        GameEvent ranged = await ClickAck(client, "RecruitRanged", token);
+        Require(State(ranged).Players[0].Soldiers.Length == 2 && State(ranged).Players[0].Soldiers[1].Type == UnitType.Crossbowman, "ranged recruitment through actual solo controls at " + size);
         await ClickAck(client, "Pause", token);
         Require(Latest(client).Paused, "solo Pause freezes match");
         await MenuCheckpoint(client, "solo-" + size, token);

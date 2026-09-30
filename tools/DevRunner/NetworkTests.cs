@@ -107,8 +107,8 @@ internal sealed partial class Runner
             await late.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("locked"), "late join refusal", options.StartupTimeout, token);
         await Advance([a, b], token);
         MatchSnapshot before = Latest(b);
-        CommandResult spent = (await Action(b, "recruit 1", token)).Result!;
-        var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 1);
+        CommandResult spent = (await Action(b, "recruit 1 crossbowman", token)).Result!;
+        var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 1, SoldierType: UnitType.Crossbowman);
         string replay = "raw " + JsonSerializer.Serialize(original, WireJson.Options);
         int army = Latest(b).Players.Single(p => p.Id == cb.PlayerId).Soldiers.Length;
         await b.Send(replay); GameEvent dup = await b.WaitFor(e => e.Type == "ack" && e.Result!.Sequence == spent.Sequence && e.State!.Players.Single(p => p.Id == cb.PlayerId).Soldiers.Length == army, "duplicate recruitment", options.StartupTimeout, token);
@@ -117,9 +117,11 @@ internal sealed partial class Runner
         await Action(a, "build 4 mine", token, false);
         await b.Send("quit"); Require(await b.WaitExit(token) == 0, "departing client exits");
         MatchSnapshot absent = await Observe(a, s => s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == cb.PlayerId).Connected, "retained disconnected city", token);
-        await Observe(a, s => s.Tick > absent.Tick + 9, "combat continues while absent", token);
+        await Observe(a, s => s.Tick > absent.Tick + 9 && CombatPlayback.All(s).Any(u => u.PendingImpact), "pending combat continues while absent", token);
         MatchSnapshot frozen = State(await Action(a, "pause", token));
         await Observe(a, s => s.Paused && s.Tick == frozen.Tick, "paused snapshot", token);
+        Require(CombatPlayback.All(frozen).Any(u => u.PendingImpact) && frozen.Players.Single(p => p.Id == cb.PlayerId).Soldiers.Any(u => u.Type == UnitType.Crossbowman),
+            "paused authority retains pending action and typed soldier before resume");
         await using var resumed = StartGame("test-resumed", false, true, port, null, "--automated", "--session-file", bPath);
         GameEvent cr = await resumed.WaitFor(e => e.Type == "connected", "restart resume", options.StartupTimeout, token);
         Require(cr.PlayerId == cb.PlayerId && cr.PeerId != cb.PeerId && Gameplay(State(cr)) == Gameplay(frozen), "new peer restores original city and frozen gameplay without regrant");
@@ -167,6 +169,9 @@ internal sealed partial class Runner
         UnitState[] transferred = fallen.Enemies.Where(e => e.Origin == deadId).ToArray();
         Require(transferred.Length > 0 && transferred.All(e => e.Destination != deadId) && transferred.Select(e => e.Id).Distinct().Count() == transferred.Length, "live enemies transferred immediately without duplication");
         Require(transferred.All(e => attackers.Any(old => old.Id == e.Id && old.Health >= e.Health)), "transfers preserve identity and damage");
+        Require(transferred.All(e => e.Type == UnitType.Enemy && e.Profile.Health == 10 && !e.PendingImpact && e.Cooldown == Math.Max(0, e.ReadyTick - fallen.Tick))
+            && transferred.Any(e => e.Cooldown > 0), "transfers retain profiles/recovery and cancel former windups");
+        CombatContact(fallen);
         MatchSnapshot seen = await Observe(b, s => s.Revision == fallen.Revision, "matching transfer revision", token);
         Require(JsonSerializer.Serialize(fallen, WireJson.Options) == JsonSerializer.Serialize(seen, WireJson.Options), "surviving clients agree on transfers");
         await Observe(a, s => s.Wave == 2 && s.Phase == Phase.Building, "redistributed wave clear", token); await Observe(b, s => s.Wave == 2 && s.Phase == Phase.Building, "B next wave", token);
@@ -178,6 +183,16 @@ internal sealed partial class Runner
         await Advance([a, b], token); await Advance([a, b], token); await Advance([a, b], token);
         MatchSnapshot next = await Observe(a, s => s.Phase == Phase.Combat && s.Wave == 2, "future original roster allocation", token);
         Require(next.Enemies.Length == 18 && next.Players.Where(p => !p.Eliminated).All(p => next.Enemies.Count(e => e.Destination == p.Id) == 9), "fallen future allocation counted once and divided 9/9");
+    }
+    private static void CombatContact(MatchSnapshot state)
+    {
+        UnitState[] units = CombatPlayback.All(state).Where(u => u.Deployed).ToArray();
+        foreach (UnitState unit in units)
+        {
+            Require(unit.Position >= 0.2 && unit.Position <= 11.8 && Math.Abs(unit.Lateral) <= 1.5, "active entry remains in its corridor");
+            foreach (UnitState other in units.Where(u => u.Id > unit.Id && u.Destination == unit.Destination))
+                Require(Math.Sqrt(Math.Pow(unit.Position - other.Position, 2) + Math.Pow(unit.Lateral - other.Lateral, 2)) >= 0.4 - 1e-6, "occupied redistribution approach keeps body separation");
+        }
     }
     private async Task Defeat(int port, CancellationToken token)
     {

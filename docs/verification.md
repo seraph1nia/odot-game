@@ -868,3 +868,57 @@ and build identity passed, but ISCC printed its usage and produced no installer.
 The owner accepted Windows installer qualification as deferred. The ordinary
 CI workflow retains its native Windows export/build checks. Release workflow
 work continues separately.
+
+
+## Arch animated combat acceptance (2026-09-30)
+
+This change retains Godot, the current authority roles, six network scenarios and
+all existing cooperative assertions. It adds Arch 2.1.0 state ownership, typed
+recruitment and rigged C# presentation. Protocol v4 refuses older builds.
+The change’s detailed evidence ledger is
+[verification.md](../openspec/changes/add-arch-animated-unit-combat/verification.md).
+
+Final `mise run ci` passed in 183.78s (185.12s including runner preparation),
+with evidence under `logs/20260930-205517-0bd9989c/`. It includes 80 core and
+107 runner tests, all six network scenarios, all five source UI slices,
+sequential Linux client/server exports and headless/graphical package smoke.
+Source UI measured 60.89s including private-display startup; the combat case
+measured 13.74s. Packed graphical smoke measured 31.88s, or 35.18s including
+private-display startup. Locked restore, strict build and format verification
+passed before source checks; all source gates passed before exports.
+
+`mise run test-ui --scenario combat` is the fifth default source UI slice. Its
+admitted risk is missing/wrong imported rigs, non-moving bones, clock drift,
+visible contact, duplicated cosmetic effects, corpse leaks and stale session
+views: cheap numerical tests and headless peers cannot inspect those Godot nodes.
+It owns a dedicated authority, one graphical client and one headless observer,
+recruits one Swordsman and one Crossbowman through actual controls, and samples
+only the first wave. Setup uses ordinary farm/upgrade/barracks/ready commands.
+A 60-second case deadline bounds observable waits. Expected preparation plus
+execution was 20–40 seconds; selected execution measured 13.76s, or 23.45s with
+shared source preparation/private-display startup. Maintaining it adds one
+scenario, clip bindings and read-only pose/event observations, not a battle matrix.
+
+The existing reconnect slice now recruits the same small army and pauses an
+in-progress attack before transport recovery: selected execution measured 11.06s.
+Packed smoke validates both rigs, seven required clips, materials and three
+weapons, then samples short locomotion/shooting without repeating a complete
+match. Economy and launcher still assert ordinary input, including both
+recruitment controls at 1100×820 and 1280×720. Package-only selection consumes
+existing exports and does not prepare/rebuild source.
+
+Cheap coverage owns exact attack ticks, mutual deaths, invalid target/source,
+shooting range/close contact, upgraded costs and atomic rejection, 32-vs-32 pure
+and mixed contact/determinism/progress, entry queues/transfers, wave strategy,
+registry disposal, 120-tick/4096-event retention and playback baselines/gaps.
+The history stress fixture uses zero damage and a deliberately fast three-tick
+cadence; its payload bound is not a claim of bandwidth performance at that scale.
+
+Evidence remains under ignored `logs/<run-id>/`: non-secret owned engine logs,
+timing JSON, PNGs and fresh UI observation IDs. Scopes await peers and private
+displays before removing client data, and preserve other processes/preferences.
+These Linux x86_64 checks use owned X11, llvmpipe and Dummy audio. They establish
+software-rendered skeleton/control behavior, not native compositor/GPU cadence,
+physical input, audible quality, Windows animation/export execution or real
+paired Steam/overlay/relay acceptance. Those native checks remain unexecuted for
+this change; previously recorded Windows qualification applies to earlier work.

@@ -21,14 +21,14 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void SoloBindsOneCityAndDedicatedHasNoLocalController()
     {
-        var solo = new AuthoritySession(AuthorityPolicy.Solo);
+        using var solo = new AuthoritySession(AuthorityPolicy.Solo);
         Assert.Equal(1, solo.LocalPlayerId);
         Assert.Single(solo.Snapshot().Players);
         Assert.Equal(9, solo.Snapshot().Players[0].Slots.Length);
         Assert.False(Join(solo, 2).Accepted);
         Assert.True(solo.ExecuteLocal(Cmd(solo, 1, 1, "start")).Accepted);
         Assert.Equal(Phase.Building, solo.Snapshot().Phase);
-        var dedicated = new AuthoritySession(AuthorityPolicy.Dedicated);
+        using var dedicated = new AuthoritySession(AuthorityPolicy.Dedicated);
         Assert.Equal(0, dedicated.LocalPlayerId);
         Assert.Empty(dedicated.Snapshot().Players);
         Assert.False(dedicated.ExecuteLocal(Cmd(dedicated, 0, 1, "start")).Accepted);
@@ -37,7 +37,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void HostedStartBelongsOnlyToOriginalLocalHostAndCapacityIsFour()
     {
-        var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
+        using var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
         for (int peer = 2; peer <= 4; peer++) Assert.True(Join(session, peer).Accepted);
         Assert.Equal(4, session.Snapshot().Players.Length);
         Assert.False(Join(session, 5).Accepted);
@@ -55,7 +55,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void DedicatedConnectedMemberCanStartAndDisconnectedLobbyCityCannotResumeAfterRosterLocks()
     {
-        var session = new AuthoritySession(AuthorityPolicy.Dedicated);
+        using var session = new AuthoritySession(AuthorityPolicy.Dedicated);
         AdmissionResult first = Join(session, 2);
         AdmissionResult second = Join(session, 3);
         Assert.Equal(first.PlayerId, session.Disconnect(2));
@@ -79,7 +79,7 @@ public sealed class AuthoritySessionTests
         CommandResult[] results = new CommandResult[2];
         for (int delivery = 0; delivery < 2; delivery++)
         {
-            var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
+            using var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
             int guest = Join(session, 2).PlayerId;
             Assert.True(session.ExecuteLocal(Cmd(session, 1, 1, "start")).Accepted);
             int player = delivery == 0 ? 1 : guest;
@@ -110,7 +110,7 @@ public sealed class AuthoritySessionTests
     [InlineData(true)]
     public void RecruitmentRetryKeepsOneChargeAndOneSoldierAcrossResume(bool remote)
     {
-        var session = new AuthoritySession(remote ? AuthorityPolicy.Dedicated : AuthorityPolicy.Solo);
+        using var session = new AuthoritySession(remote ? AuthorityPolicy.Dedicated : AuthorityPolicy.Solo);
         AdmissionResult? admitted = remote ? Join(session, 2) : null;
         int player = admitted?.PlayerId ?? session.LocalPlayerId;
         int peer = 2;
@@ -138,7 +138,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void InvalidConcurrentAndWrongIdentityResumeNeverReplaceTheController()
     {
-        var session = new AuthoritySession(AuthorityPolicy.PlayingHost, originalHostIdentity: "host", requireTrustedIdentity: true);
+        using var session = new AuthoritySession(AuthorityPolicy.PlayingHost, originalHostIdentity: "host", requireTrustedIdentity: true);
         Assert.False(Join(session, 2).Accepted);
         Assert.False(Join(session, 2, identity: "host").Accepted);
         AdmissionResult guest = Join(session, 2, identity: "guest");
@@ -164,7 +164,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void ResumeDuringPauseAndAfterEliminationRetainsCityAndLedger()
     {
-        var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, WaveOne = 1 });
+        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, WaveOne = 1 });
         AdmissionResult player = Join(session, 2);
         Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 1, "start")).Accepted);
         for (int sequence = 2; sequence <= 4; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
@@ -190,7 +190,7 @@ public sealed class AuthoritySessionTests
     {
         // The delivery adapter supplies these trusted identities; SDK lookup itself remains
         // separate Steam acceptance. Accelerated rules reach elimination through normal steps.
-        var session = new AuthoritySession(AuthorityPolicy.PlayingHost,
+        using var session = new AuthoritySession(AuthorityPolicy.PlayingHost,
             new Rules { CityHealth = 3, DefenderDamage = 0, WaveOne = 1 },
             originalHostIdentity: "original-host", requireTrustedIdentity: true);
         AdmissionResult guest = Join(session, 2, identity: "guest-account");
@@ -244,12 +244,12 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void AuthenticatedReplacementAtSameHostRejectsOldMatchAndCredentialBeforeAllocatingCity()
     {
-        var original = new AuthoritySession(AuthorityPolicy.PlayingHost,
+        using var original = new AuthoritySession(AuthorityPolicy.PlayingHost,
             originalHostIdentity: "same-original-host", requireTrustedIdentity: true);
         AdmissionResult previous = Join(original, 2, identity: "guest-account");
         Assert.True(previous.Accepted);
         original.End();
-        var replacement = new AuthoritySession(AuthorityPolicy.PlayingHost,
+        using var replacement = new AuthoritySession(AuthorityPolicy.PlayingHost,
             originalHostIdentity: "same-original-host", requireTrustedIdentity: true);
         Assert.Equal(original.OriginalHostIdentity, replacement.OriginalHostIdentity);
         Assert.NotEqual(original.MatchId, replacement.MatchId);
@@ -277,7 +277,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void ProtocolMalformedOversizedAndRateFailuresLeaveOtherControllersUsable()
     {
-        var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
+        using var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
         Assert.False(session.Admit(2, WireJson.ProtocolVersion - 1, "", 0).Accepted);
         Assert.True(session.Admit(3, WireJson.ProtocolVersion, "", 0).Accepted);
         Assert.True(session.ExecuteLocal(Cmd(session, 1, 1, "start")).Accepted);
@@ -295,16 +295,16 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void EndFreezesAuthorityAndNewMatchRejectsOldCredentialsAndCommands()
     {
-        var original = new AuthoritySession(AuthorityPolicy.PlayingHost);
+        using var original = new AuthoritySession(AuthorityPolicy.PlayingHost);
         AdmissionResult guest = Join(original, 2);
         Command start = Cmd(original, 1, 1, "start");
         Assert.True(original.ExecuteLocal(start).Accepted);
-        original.End(); original.End();
+        original.End(); original.End(); Assert.True(original.CombatReleased);
         string before = State(original); original.Step(); Assert.Equal(before, State(original));
         Assert.False(original.ExecuteLocal(start).Accepted);
         Assert.False(Join(original, 3, guest.Credential).Accepted);
         Assert.Null(original.Request(2, "null", 1000));
-        var replacement = new AuthoritySession(AuthorityPolicy.PlayingHost);
+        using var replacement = new AuthoritySession(AuthorityPolicy.PlayingHost);
         Assert.NotEqual(original.MatchId, replacement.MatchId);
         before = State(replacement);
         Assert.False(Join(replacement, 2, guest.Credential).Accepted);

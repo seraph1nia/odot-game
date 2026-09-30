@@ -8,7 +8,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
 {
     private const string Assets = "res://Assets/KayKit/";
     private readonly Dictionary<string, PackedScene> _assets = [];
-    private readonly Dictionary<int, Node3D> _units = [];
+    private readonly Dictionary<int, UnitView> _units = [];
     private readonly Dictionary<int, Node3D> _boards = [];
     private readonly Dictionary<int, string> _boardKeys = [];
     private readonly Dictionary<int, Aabb?[]> _buildingBounds = [];
@@ -32,16 +32,20 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private float _framePanelHeight;
     private int _frameFocus;
     private bool _wasConnected;
-    private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!, _invite = null!, _return = null!;
+    private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ranged = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!, _invite = null!, _return = null!;
     private int _focus;
     private int _slot = -1;
     private string _rosterKey = "";
     private long _revision = -1;
     private string _matchId = "";
     private ClientSettings _settings = null!;
+    private string[] _unitBindings = [];
+    private readonly CombatPlayback _playback = new();
+    private int _playbackGeneration;
 
     public override void _Ready()
     {
+        _unitBindings = UnitAssets.Validate(this);
         AddChild(new WorldEnvironment { Environment = new Godot.Environment { BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new("a7c4c2"), AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new("f2f0df"), AmbientLightEnergy = 0.2f, TonemapMode = Godot.Environment.ToneMapper.Linear } });
         AddChild(new DirectionalLight3D { RotationDegrees = new(-55, -25, 0), LightEnergy = 0.35f, ShadowEnabled = true, DirectionalShadowMaxDistance = 65 });
         _camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Current = true, Far = 180 };
@@ -68,7 +72,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _barracks = Button(_buildActions, "Barracks", () => ContextAction("build", Building.Barracks));
         _buildingActions = new HBoxContainer(); context.AddChild(_buildingActions);
         _upgrade = Button(_buildingActions, "Upgrade", () => ContextAction("upgrade"));
-        _recruit = Button(_buildingActions, "Recruit", () => ContextAction("recruit"));
+        var recruitment = new HBoxContainer(); context.AddChild(recruitment);
+        _recruit = Button(recruitment, "Swordsman", () => ContextAction("recruit"));
+        _ranged = Button(recruitment, "Crossbowman", () => ContextAction("recruit", soldierType: UnitType.Crossbowman));
+        _ranged.Name = "RecruitRanged";
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.28f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 17); _phase.CustomMinimumSize = new(0, 44);
         _start = Button(match, "Start match", () => game.SendAction("start"));
@@ -84,10 +91,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _status = Text(footer, "Connecting", 13); _status.SizeFlagsStretchRatio = 0.32f;
         _feedback = Text(footer, "", 13); _feedback.SizeFlagsStretchRatio = 0.68f; _feedback.CustomMinimumSize = new(0, 32);
     }
-    private void ContextAction(string action, Building building = Building.Empty)
+    private void ContextAction(string action, Building building = Building.Empty, UnitType soldierType = UnitType.Swordsman)
     {
         if (_slot < 0 || !CanEdit()) return;
-        game.SendAction(action, _slot, building);
+        game.SendAction(action, _slot, building, soldierType: soldierType);
     }
     private bool CanEdit() => game.Connected && game.State is { Phase: Phase.Building, Paused: false } && Me() is { Eliminated: false, Ready: false } && _focus == game.PlayerId;
     private static Label Text(Node parent, string value, int size)
@@ -104,7 +111,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _start, _mine, _farm, _barracks, _upgrade, _recruit, _ready, _pause, _reconnect, _fresh, _invite, _return })
+        foreach (Button button in new[] { _start, _mine, _farm, _barracks, _upgrade, _recruit, _ranged, _ready, _pause, _reconnect, _fresh, _invite, _return })
             application.ObserveControl(targets, button.Name, button);
         for (int slot = 0; slot < 9; slot++)
         {
@@ -122,6 +129,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["FeedbackText"] = _feedback.Text;
         fields["DetailText"] = _detail.Text;
         fields["RosterText"] = string.Join(" | ", _roster.GetChildren().OfType<Button>().Select(button => button.Text));
+        fields["UnitBindings"] = _unitBindings;
+        fields["Units"] = _units.Values.OrderBy(u => u.State.Id).Select(u => u.Observe()).ToArray();
+        fields["CombatTick"] = _playback.Tick; fields["VisualSeconds"] = _playback.VisualSeconds;
+        fields["EventCursor"] = _playback.EventCursor; fields["PlaybackGeneration"] = _playback.Generation;
     }
     private static Vector3 Center(int id) => new((id - 1) * 40, 0, 0);
     private static Vector3 SlotPosition(int slot) => VillageLayout.Slot(slot);
@@ -130,7 +141,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         MatchSnapshot? state = game.State;
         if (state is not null && state.MatchId != _matchId)
         {
-            foreach (Node3D n in _boards.Values.Concat(_units.Values)) n.QueueFree();
+            foreach (Node3D n in _boards.Values.Concat<Node3D>(_units.Values)) n.QueueFree();
             _boards.Clear(); _units.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _cityLabels.Clear();
             _matchId = state.MatchId; _revision = -1; _focus = game.PlayerId; _slot = -1; _hover = -1; _rosterKey = "";
         }
@@ -139,11 +150,14 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             _revision = state.Revision;
             if (_focus == 0 || !state.Players.Any(p => p.Id == _focus)) _focus = game.PlayerId;
             UpdateWorld(state);
+            _playback.Accept(state, !_wasConnected && game.Connected);
         }
+        if (!_wasConnected && game.Connected && state is not null) _playback.Accept(state, baseline: true);
         if (_wasConnected != game.Connected) { _wasConnected = game.Connected; _slot = -1; _hover = -1; }
         if (Focus() is not { Slots.Length: 9 }) _slot = -1;
         string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{game.CanStart}:{game.CanInvite}:{_focus}:{_slot}";
         if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
+        UpdateUnits(delta);
         FrameCamera();
         Vector2 mouse = GetViewport().GetMousePosition();
         int hover = game.Connected && !application.BlocksWorldInput(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
@@ -179,7 +193,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _mine.Text = $"Mine · {r.BuildCost}g"; _farm.Text = $"Farm · {r.BuildCost}g"; _barracks.Text = $"Barracks · {r.BuildCost}g";
         _mine.Disabled = _farm.Disabled = _barracks.Disabled = !edit || slot.Type != Building.Empty || me!.Gold < r.BuildCost;
         _upgrade.Text = $"Upgrade · {r.UpgradeCost}g"; _upgrade.Disabled = !edit || slot.Level != 1 || me!.Gold < r.UpgradeCost;
-        _recruit.Text = $"Recruit · {r.RecruitCost - Math.Max(0, slot.Level - 1)} food"; _recruit.Disabled = !edit || slot.Type != Building.Barracks || me!.Food < r.RecruitCost - Math.Max(0, slot.Level - 1);
+        _recruit.Text = $"Swordsman · {r.RecruitCost - Math.Max(0, slot.Level - 1)} food"; _recruit.Disabled = !edit || slot.Type != Building.Barracks || me!.Food < r.RecruitCost - Math.Max(0, slot.Level - 1);
+        _ranged.Text = $"Crossbowman · {r.RangedRecruitCost - Math.Max(0, slot.Level - 1)} food";
+        _ranged.Disabled = !edit || slot.Type != Building.Barracks || me!.Food < r.RangedRecruitCost - Math.Max(0, slot.Level - 1);
+        _recruit.GetParent<Control>().Visible = _slot >= 0 && slot.Type == Building.Barracks;
         _ready.Text = me?.Ready == true ? "Unready · edit city" : "Ready · finish turn";
         _ready.Disabled = !live || s!.Phase != Phase.Building || s.Paused || me is null || me.Eliminated;
         _ready.Visible = s?.Phase != Phase.Lobby && game.Connected;
@@ -205,7 +222,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         float hud = _panel.Size.Y;
         if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == _focus) return;
         foreach ((int id, Node3D board) in _boards) board.Visible = id == _focus;
-        foreach (Node3D unit in _units.Values) unit.Visible = Math.Abs(unit.Position.X - Center(_focus).X) < 20;
+        foreach (UnitView unit in _units.Values) unit.Visible = unit.State.Deployed && unit.State.Destination == _focus;
         _frameSize = size; _framePanelHeight = hud; _frameFocus = _focus;
         Vector3 center = Center(Math.Max(1, _focus));
         float pitch = Mathf.DegToRad(34), azimuth = Mathf.DegToRad(28);
@@ -244,11 +261,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                 Label3D title = Label(board, new(0, 2.7f, 1), "CITY", 26); _cityLabels[city.Id] = title;
             }
             var beam = board.GetNode<MeshInstance3D>("DefenderShot");
-            UnitState? target = state.Enemies.Where(e => e.Destination == city.Id).OrderBy(e => e.Position).ThenBy(e => e.Id).FirstOrDefault();
+            UnitState? target = state.Enemies.Where(e => e.Deployed && e.Destination == city.Id).OrderBy(e => e.Position).ThenBy(e => e.Id).FirstOrDefault();
             beam.Visible = !city.Eliminated && target is not null && city.DefenderCooldown > state.Rules.AttackTicks - 8;
             if (beam.Visible)
             {
-                Vector3 from = new(-3, 1.1f, 0); Vector3 to = new((target!.Id % 7 - 3) * 0.43f, 0.4f, -(float)target.Position);
+                Vector3 from = new(-3, 1.1f, 0); Vector3 to = new((float)target!.Lateral, 0.4f, -(float)target.Position);
                 beam.Position = (from + to) / 2; beam.LookAt(board.ToGlobal(to)); ((BoxMesh)beam.Mesh).Size = new(0.06f, 0.06f, from.DistanceTo(to));
             }
             _cityLabels[city.Id].Text = $"P{city.Id}{(city.Id == game.PlayerId ? " • YOU" : "")}  ♥ {city.Health}\n{(city.Eliminated ? "FALLEN" : "Home · Defender")}";
@@ -271,26 +288,34 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                 _boardKeys[city.Id] = key;
             }
         }
-        var active = new HashSet<int>();
-        foreach (CityState city in state.Players) foreach (UnitState soldier in city.Soldiers) UpdateUnit(soldier, city.Id, false, active);
-        foreach (UnitState enemy in state.Enemies) UpdateUnit(enemy, enemy.Destination, true, active);
-        foreach (int removed in _units.Keys.Where(id => !active.Contains(id)).ToArray()) { _units[removed].QueueFree(); _units.Remove(removed); }
     }
-    private void UpdateUnit(UnitState unit, int city, bool enemy, HashSet<int> active)
+    private UnitView View(UnitState unit)
     {
-        active.Add(unit.Id);
-        if (!_units.TryGetValue(unit.Id, out Node3D? node))
+        if (!_units.TryGetValue(unit.Id, out UnitView? view))
+        { view = new UnitView(unit); AddChild(view); _units.Add(unit.Id, view); }
+        return view;
+    }
+    private void UpdateUnits(double delta)
+    {
+        if (_playbackGeneration != _playback.Generation)
         {
-            node = new Node3D(); AddChild(node); _units[unit.Id] = node;
-            Model(node, "Prototype/Dummy_Base.gltf", Vector3.Zero, 0.65f);
-            Box(node, new(0, 0.62f, 0), new(0.4f, 0.12f, 0.4f), enemy ? "bb4b43" : "487ecc");
-            Label(node, new(0, 1.05f + unit.Id % 2 * 0.55f, 0), "", 20);
+            foreach (UnitView view in _units.Values) view.QueueFree();
+            _units.Clear(); _playbackGeneration = _playback.Generation;
         }
-        node.Visible = city == _focus;
-        node.Position = Center(city) + new Vector3((unit.Id % 7 - 3) * 0.43f, 0, -(float)unit.Position);
-        node.GetChildren().OfType<Label3D>().Single().Text = $"{(enemy ? "E" : "S")}{unit.Health}";
-        // Snapshot cooldown drives the attack pulse: frozen snapshots mean frozen animation.
-        node.Scale = Vector3.One * (unit.Cooldown > (game.State?.Rules.AttackTicks ?? 60) - 6 ? 1.12f : 1);
+        _playback.Advance(delta, game.Connected);
+        var current = _playback.Units().ToDictionary(u => u.Id);
+        foreach (UnitState unit in current.Values) View(unit);
+        foreach (CombatEvent entry in _playback.Drain())
+            if (entry.Type is CombatEventType.Death or CombatEventType.Hit || entry.Type == CombatEventType.Impact && entry.Unit.Type == UnitType.Crossbowman)
+                View(entry.Unit).Event(entry, _playback.VisualSeconds);
+        foreach ((int id, UnitView view) in _units.ToArray())
+        {
+            // Missing live IDs with a buffered death stay until its common-clock event.
+            bool awaitingDeath = game.State?.CombatEvents.Any(e => e.Type == CombatEventType.Death && e.Unit.Id == id && e.Sequence > _playback.EventCursor) == true;
+            if (view.Expired(_playback.VisualSeconds) || !view.Dead && !current.ContainsKey(id) && !awaitingDeath)
+            { view.QueueFree(); _units.Remove(id); continue; }
+            view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus);
+        }
     }
     private Node3D Model(Node3D parent, string path, Vector3 position, float size)
     {

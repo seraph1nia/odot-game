@@ -57,7 +57,7 @@ The game keeps separate Debug and ExportRelease NuGet locks because Godot includ
 
 ## Gameplay
 
-Read [the rules and a tested winning strategy](docs/gameplay.md). Gold buys mines, farms and barracks; food recruits soldiers by clicking a barracks. Upgrade buildings once. All connected living players click Ready to produce; every third production starts an automatic battle. Soldiers and city damage persist. Fallen cities send their living attackers and future allocations to surviving teammates. Clear three waves to win.
+Read [the rules and a tested winning strategy](docs/gameplay.md). Gold buys mines, farms and barracks; food recruits Swordsmen or Crossbowmen through the selected barracks. Arch owns numerical movement/contact and timed attacks; Godot renders rigged KayKit soldiers. Upgrade buildings once. All connected living players click Ready to produce; every third production starts an automatic battle. Soldiers and city damage persist. Fallen cities send their living attackers and future allocations to surviving teammates. Clear three waves to win.
 
 The graphical client uses vendored free KayKit assets in a grass-and-river hex landscape with a lower angled view. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
 
@@ -77,6 +77,7 @@ mise run test-ui --scenario economy
 mise run test-ui --scenario reconnect
 mise run test-ui --scenario settings
 mise run test-ui --scenario launcher
+mise run test-ui --scenario combat
 mise run ci
 ```
 
@@ -92,13 +93,13 @@ godot --path src/Game -- --playing-host --bind 127.0.0.1 --port 7001
 godot --headless --path src/Game -- --solo
 ```
 
-Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. Protocol v3 adds handshake attempt/match isolation and hosted permissions. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries revision-ordered complete snapshots at 20 Hz. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
+Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. Protocol v4 retains handshake attempt/match isolation and hosted permissions and adds typed Arch combat snapshots/events. Older versions cannot join. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries revision-ordered complete snapshots at 20 Hz. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
 
 ## Verification and exports
 
 `test` runs cheap xUnit gameplay and runner tests without Godot. `test-network` launches separate real headless ENet peers and preserves ownership, economy, readiness, battle, pause/resume, retry, transfer, observer and victory/defeat coverage. Stable ids are `authority-resume-victory`, `redistribution`, `defeat`, `failure-cases`, `solo-session` and `playing-host-lifecycle`. The new slices cover socketless solo and original playing-host lifetime. Independent cases run with two workers by default; `--jobs 1` runs the same assertions serially. `--scenario NAME` runs only that case and reports selected coverage. `--port` pins the authority case, so it is rejected with other selected cases. Failure checks include unavailable/stopped servers, occupied ports, automatic bind retry, readiness deadlines and child exit; unrelated owners are preserved.
 
-`test-ui` runs four small source slices serially on an owned Xvfb display: `economy` checks picking/purchase/upgrade/recruit input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking plus one persisted volume change. `launcher` checks menu, offline feedback, settings/music continuity, solo, return/fresh session and actual Exit at 1100×820 and 1280×720. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
+`test-ui` runs five small source slices serially on an owned Xvfb display: `economy` checks picking/purchase/upgrade/recruit input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking plus one persisted volume change. `launcher` checks menu, offline feedback, settings/music continuity, solo, return/fresh session and actual Exit at 1100×820 and 1280×720. `combat` checks mixed rigged units, contact, attack/effect/death poses, pause and fresh-session cleanup. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
 
 The runner logs each process separately under ignored `logs/` and prints failed conditions with process output. Startup readiness has a 15-second deadline; network and UI suites each default to 180 seconds. Override with `--startup-timeout-ms` and `--timeout-ms` on network/UI tasks; dev also accepts the startup deadline. Network tests default to a dynamically selected loopback UDP port; pass `--port` for a specific endpoint. An occupied explicit port fails without killing its owner. Graphical clients show connecting, connected, connection-failed and server-disconnected status.
 
@@ -124,7 +125,7 @@ During development, run applicable cheap `test` checks frequently and choose the
 
 Add expensive tests only for a meaningful regression/risk that cheaper or existing checks miss. Document that gap and expected runtime/setup/maintenance cost alongside the scenario. Prefer a small independent vertical slice or an extension to an existing case. A simple option does not automatically warrant E2E coverage; avoid feature/option matrices and graphical duplication of full headless match flows. The initial slices protect actual picking/control routing, visible reconnect recovery, modal/persistence boundaries and packed-resource loading.
 
-The current cheap suites include 55 gameplay and 105 runner xUnit cases, alongside six network scenarios, four source UI slices and platform package checks. Native Windows source/export validation has passed on GitHub-hosted `windows-2025`; actual release-installer verification is available as an explicitly selected package-qualification task. Timing observations are single runs rather than portable benchmarks; see [POC verification](docs/verification.md) for evidence and limitations. Real Steam peer/invitation/relay acceptance remains separate. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
+The current cheap suites include 80 gameplay and 107 runner xUnit cases, alongside six network scenarios, five source UI slices and platform package checks. Native Windows source/export validation has passed on GitHub-hosted `windows-2025`; actual release-installer verification is available as an explicitly selected package-qualification task. Timing observations are single runs rather than portable benchmarks; see [POC verification](docs/verification.md) for evidence and limitations. Real Steam peer/invitation/relay acceptance remains separate. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
 
 ## Reconnect and local sessions
 
@@ -187,3 +188,12 @@ The user excluded friend testing from this development milestone; the archived c
 The publisher labels this extension **unstable** despite its non-prerelease tag;
 that release qualification remains pending. See [verification](docs/verification.md)
 for prerequisites, own-AppID cold launch, packaging, coverage and limitations.
+
+
+Animated combat has a selectable owned-display check: `mise run test-ui --scenario
+combat`. It recruits a small mixed army through actual controls, checks moving
+bones, paused poses, melee/shoot/hit/death and fresh-session cleanup during the
+first wave. Full source CI includes this fifth slice; packed smoke also exercises
+short combat and rig/weapon bindings. Reconnect tests baseline a paused living
+army without historical effects. See [combat rules](docs/gameplay.md) and
+[verification](docs/verification.md) for scope and measured evidence.

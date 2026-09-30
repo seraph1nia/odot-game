@@ -18,7 +18,7 @@ public sealed class AdmissionResult(bool accepted, bool ignored, int playerId, s
 }
 
 // Used only by an authority on its application thread; guests consume snapshots.
-public sealed class AuthoritySession
+public sealed class AuthoritySession : IDisposable
 {
     private readonly Match _match;
     private readonly Dictionary<int, int> _bindings = [];
@@ -35,6 +35,7 @@ public sealed class AuthoritySession
     public Phase Phase => _match.Phase;
     public string? OriginalHostIdentity { get; }
     public bool IsEnded { get; private set; }
+    internal bool CombatReleased => _match.Combat.IsDisposed && _match.Combat.RegistryReleased && _match.Combat.Events().Length == 0;
 
     public AuthoritySession(AuthorityPolicy policy, Rules? rules = null, string? matchId = null,
         string? originalHostIdentity = null, bool requireTrustedIdentity = false)
@@ -52,7 +53,8 @@ public sealed class AuthoritySession
         }
     }
 
-    public MatchSnapshot Snapshot() => _match.Snapshot();
+    private MatchSnapshot? _endedState;
+    public MatchSnapshot Snapshot() => _endedState ?? _match.Snapshot();
     public void Step() { if (!IsEnded) _match.Step(); }
 
     public bool CanStart(int playerId) => !IsEnded && _match.Phase == Phase.Lobby
@@ -154,10 +156,12 @@ public sealed class AuthoritySession
         return rate.Count <= 64;
     }
 
+    public void Dispose() { End(); GC.SuppressFinalize(this); }
+
     public void End()
     {
         if (IsEnded) return;
-        IsEnded = true;
+        _endedState = _match.Snapshot(); _match.Dispose(); IsEnded = true;
         _bindings.Clear(); _credentials.Clear(); _identities.Clear(); _ledgers.Clear(); _rates.Clear();
     }
 }
