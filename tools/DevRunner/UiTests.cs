@@ -9,6 +9,19 @@ internal sealed record UiObservation
 {
     public string Id { get; init; } = "";
     public string? Error { get; init; }
+    public string Screen { get; init; } = "";
+    public string FocusedControl { get; init; } = "";
+    public ulong MusicInstance { get; init; }
+    public ulong NativeWindow { get; init; }
+    public float MusicPosition { get; init; }
+    public bool MusicPlaying { get; init; }
+    public string FeedbackText { get; init; } = "";
+    public string SteamStatus { get; init; } = "";
+    public bool JoinConfirmationOpen { get; init; }
+    public string PhaseText { get; init; } = "";
+    public string StatusText { get; init; } = "";
+    public string DetailText { get; init; } = "";
+    public string RosterText { get; init; } = "";
     public long Revision { get; init; }
     public int SelectedSlot { get; init; }
     public bool Connected { get; init; }
@@ -61,6 +74,7 @@ internal sealed partial class Runner
         "economy" => "Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Visible recovery control and retained presentation/identity; headless resume cannot exercise the button.",
         "settings" => "Modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
+        "launcher" => "Application navigation, local session transitions and actual process exit; core/network checks miss visible controls.",
         "exported-package" => "Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
     };

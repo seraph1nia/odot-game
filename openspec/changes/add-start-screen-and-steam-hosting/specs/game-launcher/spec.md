@@ -33,10 +33,22 @@ Selecting Single player SHALL create and start a fresh match with exactly one lo
 ### Requirement: Multiplayer entry and availability feedback
 Multiplayer SHALL offer Host game and Back and explain that guests join through Steam invitations. Hosting SHALL open the hosted lobby only after creation succeeds. Unavailable Steam integration, failed initialization, unavailable account/app access, and connection failures SHALL produce clear recoverable feedback without disabling Single player, Settings, Back, or Exit Game. Choosing Steam multiplayer SHALL NOT silently create a local-only session or ask players to configure router ports.
 
+The start screen and multiplayer entry SHALL display the signed-in player's Steam persona name at the bottom, or "Open Steam to log in" when Steam is unavailable or disconnected. Host game SHALL recheck current Steam login/online availability before requesting a lobby, including after earlier successful initialization. An unavailable login SHALL show a warning to open Steam and log in and SHALL NOT create a gameplay session.
+
 #### Scenario: Steam is unavailable
 - **WHEN** a player opens Multiplayer without usable Steam access
 - **THEN** the application explains why hosting is unavailable and lets them return to the start screen
 - **AND** it does not present a failed or local-only session as an online lobby
+
+#### Scenario: Host without a Steam login
+- **WHEN** the player selects Host game without a current Steam login/connection
+- **THEN** the bottom status says "Open Steam to log in" and hosting shows an actionable warning to open Steam and log in
+- **AND** no online lobby or local replacement session is created
+
+#### Scenario: Show the current Steam player
+- **WHEN** Steam is initialized and connected with a signed-in player
+- **THEN** the start screen and multiplayer entry show the player's Steam persona name at the bottom
+- **AND** periodic availability refresh and each hosting attempt use the extension's current login state rather than a cached initialization result
 
 ### Requirement: Shared local settings and music lifetime
 The start-screen Settings action and the existing in-game Settings entry point SHALL open the same local Graphics and Audio menu and use the same persisted preferences. Settings and one music instance SHALL remain alive across the start screen, multiplayer entry, lobby, match, reconnect, and return to the start screen. Preferences SHALL be applied before music starts. Opening or editing settings SHALL block underlying input without changing authoritative readiness or pause state, and closing settings SHALL restore focus to an available control in the current screen. Existing authored-loop and preference semantics SHALL be preserved.

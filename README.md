@@ -1,6 +1,6 @@
 # Odot: Nine Tiles
 
-A small cooperative city-defense POC in C# and Godot. Each player builds on nine indexed hex plots, recruits persistent soldiers, and survives three automatic waves. A separate headless server owns every resource, action and combat result; clients can resume their cities after disconnecting.
+A small cooperative city-defense POC in C# and Godot. Each player builds on nine indexed hex plots, recruits persistent soldiers, and survives three automatic waves. Solo uses a local authority; multiplayer uses the original playing host or an explicit dedicated server. Guests render authoritative snapshots and can resume retained cities against the same running authority.
 
 ## Setup
 
@@ -57,6 +57,8 @@ The graphical client uses vendored free KayKit assets in a grass-and-river hex l
 
 ```sh
 mise run dev
+mise run dev --guests 3
+mise run play
 mise run server --bind 127.0.0.1 --port 7001
 mise run client --host 127.0.0.1 --port 7001 --session-file .sessions/player-a.json
 mise run test
@@ -66,25 +68,29 @@ mise run test-network --jobs 1
 mise run test-ui --scenario economy
 mise run test-ui --scenario reconnect
 mise run test-ui --scenario settings
+mise run test-ui --scenario launcher
 mise run ci
 ```
 
-`dev` builds/imports once, starts a headless server, awaits readiness, and opens two positioned client windows. Wait for both players in the lobby, then click **Start match**. Click a plot or building directly and use the bottom controls. Stop the terminal command with Ctrl+C to stop its children. Closing a window also ends the supervised session. Individual role commands prepare the project themselves and accept the shown endpoint arguments. Default bind/host is loopback and default port is 7000. Bind to a LAN interface explicitly to play on another machine, using that server address on the client and allowing its UDP port.
+`dev` builds/imports once and opens two playable desktop windows: one playing host and one guest, using ENet without Steam. `--guests 1..3` changes the guest count; the host owns the first city. Wait for the roster, then click **Start match** in the host window. Each process has isolated temporary preferences and credentials. Closing a window or Ctrl+C stops only supervised peers. `play` opens the normal start screen. Individual roles prepare themselves and keep endpoint arguments. Default bind/host is loopback and default port is 7000. Bind a LAN interface explicitly for ENet play on another machine, allowing its UDP port.
 
 `mise run prepare` checks tools, builds C# and imports resources. `mise run build` compiles only. `mise run check` verifies formatting. Direct Godot startup uses a role after the engine argument separator:
 
 ```sh
 godot --headless --path src/Game -- --server --port 7001
 godot --path src/Game -- --client --host 127.0.0.1 --port 7001
+godot --path src/Game
+godot --path src/Game -- --playing-host --bind 127.0.0.1 --port 7001
+godot --headless --path src/Game -- --solo
 ```
 
-Run `prepare` first for direct engine commands. Headless is a display mode: automated clients also use it. It never selects server role. The dedicated-server export defaults to server role. Conflicting role flags and malformed arguments fail clearly. The shared RPC node is `/root/Game` in both roles. Protocol v2 replaces the coin demo. Reliable requests carry match/phase/unique turn serial and command sequence; the authenticated sender determines city ownership. The server validates costs and eligibility before atomically changing state. Stable-player command ledgers prevent duplicate spending even after reconnect. Complete initial/resume snapshots enable input only after synchronization. Revision-ordered full snapshots use reliable channel one at 20 Hz because complete multi-city state exceeds the unreliable MTU. Combat uses fixed 60 Hz numerical steps, without physics or client prediction; visuals are created only by graphical clients.
+Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. Protocol v3 adds handshake attempt/match isolation and hosted permissions. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries revision-ordered complete snapshots at 20 Hz. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
 
 ## Verification and exports
 
-`test` runs cheap xUnit gameplay and runner tests without Godot. `test-network` launches separate real headless ENet peers and preserves ownership, economy, readiness, battle, pause/resume, retry, transfer, observer and victory/defeat coverage. Stable scenario ids are `authority-resume-victory`, `redistribution`, `defeat` and `failure-cases`. Independent cases run with two workers by default; `--jobs 1` runs the same assertions serially. `--scenario NAME` runs only that case and reports selected coverage. `--port` pins the authority case, so it is rejected with other selected cases. Failure checks include unavailable/stopped servers, occupied ports, automatic bind retry, readiness deadlines and child exit; unrelated owners are preserved.
+`test` runs cheap xUnit gameplay and runner tests without Godot. `test-network` launches separate real headless ENet peers and preserves ownership, economy, readiness, battle, pause/resume, retry, transfer, observer and victory/defeat coverage. Stable ids are `authority-resume-victory`, `redistribution`, `defeat`, `failure-cases`, `solo-session` and `playing-host-lifecycle`. The new slices cover socketless solo and original playing-host lifetime. Independent cases run with two workers by default; `--jobs 1` runs the same assertions serially. `--scenario NAME` runs only that case and reports selected coverage. `--port` pins the authority case, so it is rejected with other selected cases. Failure checks include unavailable/stopped servers, occupied ports, automatic bind retry, readiness deadlines and child exit; unrelated owners are preserved.
 
-`test-ui` runs three small source slices serially on an owned Xvfb display: `economy` checks picking/purchase/upgrade/recruit input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking plus one persisted volume change. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
+`test-ui` runs four small source slices serially on an owned Xvfb display: `economy` checks picking/purchase/upgrade/recruit input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking plus one persisted volume change. `launcher` checks menu, offline feedback, settings/music continuity, solo, return/fresh session and actual Exit at 1100×820 and 1280×720. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
 
 The runner logs each process separately under ignored `logs/` and prints failed conditions with process output. Startup readiness has a 15-second deadline; network and UI suites each default to 180 seconds. Override with `--startup-timeout-ms` and `--timeout-ms` on network/UI tasks; dev also accepts the startup deadline. Network tests default to a dynamically selected loopback UDP port; pass `--port` for a specific endpoint. An occupied explicit port fails without killing its owner. Graphical clients show connecting, connected, connection-failed and server-disconnected status.
 
@@ -99,13 +105,13 @@ mise run test-ui --scenario exported-package
 
 Matching .NET export templates are downloaded explicitly, checksum-verified and installed in Godot's user template directory. This is engine data, separate from mise tools and NuGet dependencies. Repeating preparation is safe. Exports go to ignored `dist/client` and `dist/server`. Individual export tasks are available for local iteration; CI applies the test gate before invoking them. Windows/macOS clients are desktop targets, with Linux the first export/CI platform.
 
-The selected `exported-package` slice uses existing exports without source preparation or implicit rebuilding, and fails clearly if either executable is missing. It checks packed resources, one real UI purchase and a rendered checkpoint rather than repeating every source flow. Every verification scenario owns temporary XDG preferences/cache, sessions, ports and explicit engine logs; restart reuses its client's owned state. Evidence remains in ignored `logs/<run-id>/`, with phase/scenario JSON timings, renderer information, logs and PNGs. Owned runtime/display state is removed on success, failure, timeout or interruption. Diagnostic selected runs are partial coverage, not full-suite passes.
+The selected `exported-package` slice uses existing exports without source preparation or implicit rebuilding, and fails clearly if either executable is missing. It checks packed resources, one real UI purchase, launcher/solo transitions and rendered checkpoints. Every verification scenario owns temporary XDG preferences/cache, sessions, ports and explicit engine logs; restart reuses its client's owned state. Evidence remains in ignored `logs/<run-id>/`, with phase/scenario JSON timings, renderer information, logs and PNGs. Owned runtime/display state is removed on success, failure, timeout or interruption. Diagnostic selected runs are partial coverage, not full-suite passes.
 
 During development, run applicable cheap `test` checks frequently and choose the affected network/UI slice when it adds useful evidence. Run full `ci` before and after a substantial feature/change, reusing an unchanged successful baseline; an edit or checklist item is not a new full-suite boundary. Do not repeat passed checks on unchanged inputs. Documentation-only edits need documentation/plan consistency checks. CI still requires every gate on its normal triggers.
 
 Add expensive tests only for a meaningful regression/risk that cheaper or existing checks miss. Document that gap and expected runtime/setup/maintenance cost alongside the scenario. Prefer a small independent vertical slice or an extension to an existing case. A simple option does not automatically warrant E2E coverage; avoid feature/option matrices and graphical duplication of full headless match flows. The initial slices protect actual picking/control routing, visible reconnect recovery, modal/persistence boundaries and packed-resource loading.
 
-The verified workflow includes 17 gameplay and 19 runner xUnit cases. In the recorded boundary runs, network elapsed time fell from about 105.52 seconds serially to 63.00 seconds with two workers. Fresh-source full CI took 112.32 seconds, including the added source/package UI gates. These are single-run observations with preparation/cache differences, not a portable benchmark; see [POC verification](docs/verification.md) for phase timings and limitations. [AGENTS.md](AGENTS.md) carries the same execution/admission policy for coding agents.
+The current verified workflow includes 50 gameplay and 51 runner xUnit cases, six network scenarios, four source UI slices and Linux package checks. Fresh-source launcher CI took 148.29 seconds; the subsequent overlay-fix CI took 145.34 seconds. Network elapsed time was about 62 seconds with two workers. These are single-run observations, not a portable benchmark; see [POC verification](docs/verification.md) for evidence and limitations. Actual `mise run dev` host/guest startup and native-close cleanup also passed. Real Steam peer/invitation/relay acceptance remains pending friend testing. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
 
 ## Reconnect and local sessions
 
@@ -119,8 +125,52 @@ mise run client --port 7001 --session-file .sessions/player-a.json
 mise run client --port 7001 --session-file .sessions/player-b.json
 ```
 
-After a client exits, relaunch its exact client command to recover the city. A disconnected open window offers Reconnect. Start with all players present; fresh joins after start are refused. If the server was replaced, the credential is expired and the client explains it. Use Join lobby with a fresh session deliberately to join the new lobby. There is no server save, account login, host migration or rematch; restart the server for another match.
+After a client exits, relaunch its exact client command to recover the city. A disconnected open window offers Reconnect. Start with all players present; fresh joins after start are refused. If the server was replaced, the credential is expired and the client explains it. Use Join lobby with a fresh session deliberately to join the new lobby. There is no server save/restart recovery or host migration. Return to menu and host again for a fresh hosted match; restart a dedicated server for another match.
 
-The runner assigns different temporary paths to each `dev` run's A/B windows and uses isolated temporary paths for network tests. The direct game accepts `--session-file`; its default is endpoint-scoped under Godot's user data directory, so two direct clients must specify different files. Private session files contain a credential and next command sequence, are written atomically, and must not be committed. Credentials never appear in shared snapshots or event logs. A sequence is reserved before sending; retries preserve identity, rejected identities cannot be repurposed, and new actions reserve new identities. This is a local/LAN prototype with possession-based resume credentials, not a production account service.
+The runner assigns different temporary paths to each `dev` run's A/B windows and uses isolated temporary paths for network tests. The direct game accepts `--session-file`; its default is endpoint-scoped under Godot's user data directory, so two direct clients must specify different files. Private session files contain a credential and next command sequence, are written atomically, and must not be committed. Credentials never appear in shared snapshots or event logs. A sequence is reserved before sending; retries preserve identity, rejected identities cannot be repurposed, and new actions reserve new identities. ENet uses possession-based resume credentials. Steam credentials also require the SDK-authenticated account, original host, application and lobby/match namespace.
 
 See [asset provenance and mapping](src/Game/Assets/KayKit/README.md). Assets are available from a clean checkout; runtime never downloads them. Only gold and food are gameplay resources.
+
+
+## Steam development and acceptance
+
+`mise run play` opens Single player, Multiplayer, Settings and Exit Game.
+Multiplayer creates a private Steam lobby for four players including its original
+host; Invite friends uses Steam's overlay. Single player needs no socket or
+Steam login. Explicit ENet/headless roles skip SDK initialization.
+
+On Linux, `mise run play` and the paired `test-steam` command preload the native
+Steam client's 64-bit overlay renderer into the game child before Godot creates
+its graphics device. Existing preloads are preserved; imports/builds, local
+`dev` roles and private-display checks are unaffected. Steam must be running and
+its overlay enabled. Test **Shift+Tab**, then **Invite friends** after hosting.
+If the overlay is unavailable, Invite shows feedback instead of silently doing
+nothing. Direct engine/export launches outside Steam need the same preload or a
+Steam launch; see [Valve's Linux FAQ](https://partner.steamgames.com/doc/store/application/platforms/linux#4).
+
+The pinned official [GodotSteam GDExtension](src/Game/addons/godotsteam/README.odot.md)
+uses its native `SteamMultiplayerPeer` through small C# helpers and Godot RPCs.
+Linux x86_64 is the packaged Steam target. Development defaults to **AppID 480**;
+`ODOT_STEAM_APP_ID` overrides it. Production export requires an explicit own
+non-480 AppID. `ODOT_STEAM_DISABLED=1 mise run play` exercises offline feedback.
+
+```sh
+mise run check-steam-extension --offline
+mise run check-steam-extension
+mise run export-client
+mise run check-steam-extension --exported
+mise run export-client --production --steam-app-id YOUR_GAME_APP_ID
+# Run on separate machines/accounts after both are signed in:
+mise run test-steam --role host --exported --timeout-ms 600000
+mise run test-steam --role guest --lobby PUBLIC_LOBBY_ID --exported --timeout-ms 600000
+```
+
+The host command prints the public lobby ID; alternatively join using Invite
+friends and the overlay. Pairing tests ordinary shared actions, readiness,
+combat, channel acknowledgments and a paused checkpoint. Compare both records'
+match/revision/tick and native connection diagnostics; a direct route cannot
+count as relay proof. Missing prerequisites are unexecuted, never passed.
+Real friend-to-friend checks are deferred until machines/accounts are available.
+The publisher labels this extension **unstable** despite its non-prerelease tag;
+that release qualification remains pending. See [verification](docs/verification.md)
+for prerequisites, own-AppID cold launch, packaging, coverage and limitations.

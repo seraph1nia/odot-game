@@ -39,7 +39,7 @@ internal sealed class Child : IAsyncDisposable
     public int ProcessId => _process.Id;
 
     public Child(string name, string executable, IEnumerable<string> args, string directory, bool game = false, bool quiet = false, string? workingDirectory = null,
-        IReadOnlyDictionary<string, string?>? environment = null, string? evidenceDirectory = null, bool ownsGroup = false)
+        IReadOnlyDictionary<string, string?>? environment = null, string? evidenceDirectory = null, bool ownsGroup = false, bool sanitizeSteam = false)
     {
         Name = name;
         _game = game;
@@ -69,8 +69,8 @@ internal sealed class Child : IAsyncDisposable
         {
             _log.Dispose(); _process.Dispose(); throw;
         }
-        _stdout = ReadOutput(_process.StandardOutput, false);
-        _stderr = ReadOutput(_process.StandardError, true);
+        _stdout = ReadOutput(_process.StandardOutput, false, sanitizeSteam);
+        _stderr = ReadOutput(_process.StandardError, true, sanitizeSteam);
         Exited = FinishReading();
     }
 
@@ -82,10 +82,15 @@ internal sealed class Child : IAsyncDisposable
         _events.Writer.TryComplete();
     }
 
-    private async Task ReadOutput(StreamReader reader, bool error)
+    private async Task ReadOutput(StreamReader reader, bool error, bool sanitizeSteam)
     {
         while (await reader.ReadLineAsync() is { } line)
         {
+            // The lobby identifier is public discovery data needed to run the guest side.
+            // Other native diagnostics can contain account identifiers and are redacted.
+            bool publicLobby = line.StartsWith(WireJson.EventPrefix, StringComparison.Ordinal)
+                && line.Contains("\"Type\":\"steam-lobby\"", StringComparison.Ordinal);
+            if (sanitizeSteam && !publicLobby) line = System.Text.RegularExpressions.Regex.Replace(line, @"\b\d{17}\b", "[SteamID redacted]");
             lock (_gate)
             {
                 if (line.StartsWith("ERROR:", StringComparison.Ordinal)) { HasEngineErrors = true; _engineErrors.Add(line); }
@@ -160,6 +165,13 @@ internal sealed class Child : IAsyncDisposable
     {
         await Exited.WaitAsync(cancellation);
         return ExitCode;
+    }
+
+    public void TerminateUnexpectedly()
+    {
+        if (_process.HasExited) throw new InvalidOperationException(Name + " exited before the owned host-loss check.");
+        ExpectedFailure = true;
+        _process.Kill(entireProcessTree: true);
     }
 
     public async ValueTask DisposeAsync()

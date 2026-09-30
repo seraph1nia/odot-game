@@ -8,6 +8,90 @@ namespace DevRunner.Tests;
 public sealed class HarnessTests
 {
     [Fact]
+    public void DevelopmentCapacityIncludesThePlayingHost()
+    {
+        Assert.Equal(1, Options.Parse(["dev"]).Guests);
+        Assert.Equal(3, Options.Parse(["dev", "--guests", "3"]).Guests);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["dev", "--guests", "4"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["server", "--guests", "1"]));
+    }
+
+    [Fact]
+    public void PairedSteamVerificationRequiresAnExplicitSide()
+    {
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-steam"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-steam", "--role", "host", "--lobby", "100"]));
+        var guest = Options.Parse(["test-steam", "--role", "guest", "--lobby", "100", "--exported"]);
+        Assert.Equal("guest", guest.SteamRole); Assert.Equal(100UL, guest.Lobby); Assert.True(guest.Exported);
+    }
+
+    [Fact]
+    public void StartupExtensionsTrackActualProjectDescriptorsWithoutTouchingOtherCacheFiles()
+    {
+        string project = Path.Combine(Path.GetTempPath(), "odot-import-fixture-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(project, "addons", "steam"));
+            Directory.CreateDirectory(Path.Combine(project, "addons", "another"));
+            Directory.CreateDirectory(Path.Combine(project, ".godot"));
+            File.WriteAllText(Path.Combine(project, "addons", "steam", "steam.gdextension"), "descriptor");
+            File.WriteAllText(Path.Combine(project, "addons", "another", "another.gdextension"), "descriptor");
+            string list = Path.Combine(project, ".godot", "extension_list.cfg");
+            string cache = Path.Combine(project, ".godot", "filesystem_cache10");
+            File.WriteAllText(list, "res://removed.gdextension\n");
+            File.WriteAllText(cache, "existing imports");
+            EditorImports.SeedStartupExtensions(project);
+            Assert.Equal(["res://addons/another/another.gdextension", "res://addons/steam/steam.gdextension"], File.ReadAllLines(list));
+            Assert.Equal("existing imports", File.ReadAllText(cache));
+            string content = File.ReadAllText(list);
+            EditorImports.SeedStartupExtensions(project);
+            Assert.Equal(content, File.ReadAllText(list));
+        }
+        finally { if (Directory.Exists(project)) Directory.Delete(project, true); }
+    }
+
+    [Fact]
+    public void StartupExtensionsRespectIgnoredAndGeneratedDirectories()
+    {
+        string project = Path.Combine(Path.GetTempPath(), "odot-import-fixture-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            foreach (string directory in new[] { ".godot", "excluded", "nested-project" })
+            {
+                Directory.CreateDirectory(Path.Combine(project, directory));
+                File.WriteAllText(Path.Combine(project, directory, "hidden.gdextension"), "descriptor");
+            }
+            File.WriteAllText(Path.Combine(project, "excluded", ".gdignore"), "");
+            File.WriteAllText(Path.Combine(project, "nested-project", "project.godot"), "");
+            File.WriteAllText(Path.Combine(project, ".hidden.gdextension"), "descriptor");
+            EditorImports.SeedStartupExtensions(project);
+            Assert.Empty(File.ReadAllText(Path.Combine(project, ".godot", "extension_list.cfg")));
+        }
+        finally { if (Directory.Exists(project)) Directory.Delete(project, true); }
+    }
+
+    [Theory]
+    [InlineData("export-client", "--production")]
+    [InlineData("export-client", "--production", "--steam-app-id", "480")]
+    [InlineData("export-client", "--steam-app-id", "0")]
+    public void InvalidSteamPackageIdentityFailsBeforeExport(params string[] args)
+    {
+        Assert.Throws<ArgumentException>(() => Options.Parse(args));
+    }
+
+    [Fact]
+    public void SteamChecksAndProductionAreExplicitIndependentOptions()
+    {
+        Assert.Null(Options.Parse(["export-client"]).SteamAppId);
+        var check = Options.Parse(["check-steam-extension", "--offline", "--exported"]);
+        Assert.True(check.Offline); Assert.True(check.Exported);
+        var production = Options.Parse(["export-client", "--production", "--steam-app-id", "123456"]);
+        Assert.True(production.Production); Assert.Equal(123456u, production.SteamAppId);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["ci", "--production"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["client", "--offline"]));
+    }
+
+    [Fact]
     public void NumericRunnerArgumentsUseInvariantCulture()
     {
         CultureInfo original = CultureInfo.CurrentCulture;
@@ -111,10 +195,25 @@ public sealed class HarnessTests
     [Fact]
     public void MissingDisplayPrerequisitesFailWithoutFallback()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => PrivateDisplay.CheckPrerequisites(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
+        var error = Assert.Throws<VerificationPrerequisiteException>(() => PrivateDisplay.CheckPrerequisites(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
         Assert.Contains("Xvfb", error.Message); Assert.Contains("No desktop fallback", error.Message);
         Assert.Throws<InvalidOperationException>(() => PrivateDisplay.ValidateWorker(Options.Parse(["_ui-worker"])));
         Assert.Throws<InvalidOperationException>(() => PrivateDisplay.RequireSoftwareGraphics("OpenGL version string: 4.6\nOpenGL renderer string: hardware GPU"));
+    }
+    [Fact]
+    public async Task MissingPrerequisitesAreRecordedAsUnexecuted()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "odot-prerequisite-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var evidence = new Evidence(root);
+            await Assert.ThrowsAsync<VerificationPrerequisiteException>(() => evidence.Measure("display", "ui",
+                () => { PrivateDisplay.CheckPrerequisites(Path.Combine(root, "missing-tools")); return Task.CompletedTask; }));
+            using var report = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(evidence.Directory, "display.json")));
+            Assert.Equal("unexecuted", report.RootElement.GetProperty("Result").GetString());
+            Assert.Contains("prerequisites", report.RootElement.GetProperty("Condition").GetString());
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
     [Fact]
     public async Task OwnedStateIsIsolatedAndCleanupPreservesUnrelatedProcess()

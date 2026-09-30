@@ -41,7 +41,7 @@ The network task SHALL retain separate real headless dedicated-server/client sce
 - **THEN** the runner observes a new match identity and no effect from old requests or connections
 
 ### Requirement: Bounded lifecycle and continued CI gates
-Network and graphical scenarios SHALL retain configurable endpoints, readiness and assertion deadlines, attributable non-secret diagnostics, and cleanup of only their owned processes on success, failure, or interruption. Automated clients SHALL use isolated resume and graphical preference storage. Existing unavailable-server, stopped-server, occupied-port, and startup/child-failure checks SHALL remain meaningful. The existing task names and Linux CI ordering SHALL retain checks and cooperative tests before client/server exports and exported-role smoke verification, without publishing or deployment. Normal CI SHALL NOT require Steam login, accounts, relay availability, or internet for gameplay verification after dependencies are prepared. A separate explicitly invoked Steam verification SHALL report missing prerequisites or failed assertions distinctly; skipped Steam coverage SHALL NOT count as a passing Steam test. Tests SHALL wait for observable session/state conditions rather than fixed sleeps.
+Network and graphical scenarios SHALL retain configurable endpoints, readiness and assertion deadlines, attributable non-secret diagnostics, and cleanup of only their owned processes on success, failure, or interruption. Automated clients SHALL use isolated resume and graphical preference storage, and graphical verification SHALL use an owned private display. Endpoint/startup failure checks SHALL retain their meaning under serial and bounded parallel network execution. Existing unavailable-server, stopped-server, occupied-port, and startup/child-failure checks SHALL remain meaningful. The existing task names and Linux CI ordering SHALL retain checks and cooperative tests before client/server exports and exported-role smoke verification, without publishing or deployment. Normal CI SHALL NOT require Steam login, accounts, relay availability, or internet for gameplay verification after dependencies are prepared. A separate explicitly invoked Steam verification SHALL report missing prerequisites or failed assertions distinctly; skipped Steam coverage SHALL NOT count as a passing Steam test. Tests SHALL wait for observable session/state conditions rather than fixed sleeps.
 
 #### Scenario: Missing reconnect or stalled battle
 - **WHEN** the resumed client never synchronizes or a required battle transition does not occur
@@ -50,6 +50,14 @@ Network and graphical scenarios SHALL retain configurable endpoints, readiness a
 #### Scenario: Cooperative tests fail
 - **WHEN** a cooperative rules or network assertion fails
 - **THEN** CI fails before either deliverable export is performed
+
+#### Scenario: Source UI verification fails
+- **WHEN** private-display startup, rendering or a required source UI assertion fails
+- **THEN** CI returns nonzero before either export and cleans up the owned graphical clients and display
+
+#### Scenario: Exported UI verification fails
+- **WHEN** the exported graphical client cannot load its packed presentation or fails a required graphical smoke assertion
+- **THEN** CI returns nonzero with attributable diagnostics even if source checks and headless exported-role smoke passed
 
 #### Scenario: Run CI without Steam
 - **WHEN** ordinary CI runs on a prepared machine without Steam accounts or a Steam client
@@ -60,11 +68,15 @@ Network and graphical scenarios SHALL retain configurable endpoints, readiness a
 - **THEN** it reports the missing prerequisite without claiming a Steam pass or hiding a genuine attempted test failure
 
 ### Requirement: Recorded graphical and clean-checkout verification
-Verification SHALL document and automate graphical start-screen navigation, solo entry, hosted local lobby/gameplay, direct hex-plot and building selection, purchase/upgrade/recruit controls, model/material loading, settings input isolation, automatic battles and transfers, pause/reconnect feedback, return to menu, and application exit. Graphical E2E SHALL use real input through rendered controls and assert displayed feedback plus authoritative results; screenshots or protocol-only automation SHALL NOT substitute for those UI assertions. Verification SHALL include fresh-source preparation and Linux client/server export smoke for solo and playing-host flows. Unexecuted platform or graphical checks SHALL be recorded as limitations rather than passed.
+Verification SHALL document and automate graphical start-screen navigation, solo entry, hosted local lobby/gameplay, direct hex-plot and building selection, purchase/upgrade/recruit controls, model/material loading, settings input isolation, automatic battles and transfers, pause/reconnect feedback, return to menu, and application exit. Graphical E2E SHALL use real input through rendered controls and assert displayed feedback plus authoritative results; screenshots or protocol-only automation SHALL NOT substitute for those UI assertions. Verification SHALL include fresh-source preparation and Linux client/server export smoke for solo and playing-host flows. Unexecuted platform or graphical checks SHALL be recorded as limitations rather than passed. Expensive coverage SHALL follow the documented risk/cost admission policy. Records SHALL distinguish rules, headless networking, private-display graphics and actual native display, GPU, physical input and listening observations; software rendering and silent audio SHALL NOT be claimed as native compositor, GPU-performance or audible-playback verification.
 
 #### Scenario: Review the completed milestone
 - **WHEN** implementation is reported complete
 - **THEN** its verification record distinguishes automated rule/network checks from actual graphical/export observations and any checks that could not be run
+
+#### Scenario: Repeat UI verification without desktop interaction
+- **WHEN** a developer or Linux CI runs the graphical smoke tasks
+- **THEN** assertions and rendered checkpoints run on a private display, identify their evidence, and do not require desktop focus or a physical screen
 
 #### Scenario: Build through rendered controls
 - **WHEN** graphical E2E clicks a plot and the displayed construction button
@@ -77,7 +89,7 @@ Verification SHALL document and automate graphical start-screen navigation, solo
 ## ADDED Requirements
 
 ### Requirement: Real Steam multiplayer acceptance
-A separate Steam acceptance run SHALL use compatible exported clients and distinct authenticated Steam accounts on separate machines. It SHALL verify private lobby creation, native overlay invitations, accepted invitations both while running and from launch, admission/ownership, shared gameplay, guest reconnect during pause, fresh-join refusal after start, and original-host exit. Development sessions SHALL default to AppID 480; genuine Steam cold-launch verification of this game's executable SHALL use its own configured AppID/launch registration and SHALL remain explicitly incomplete when unavailable. At least one connection SHALL run across different NAT-protected networks without manual port forwarding and record actual relay-route evidence. Local substitutes, explicit development launch arguments, and mocked invitation callbacks SHALL NOT count as proof of actual Steam transport, overlay, identity, relay behavior, or Steam launching the executable. Completion SHALL record extension provenance/hash, version and stability qualifications, engine/runtime, account/machine prerequisites without secrets, executed scenarios, and remaining limitations.
+A development milestone MAY close after passing local rules/authority, ENet process, source graphical, Linux export and single-account native compatibility checks when the owner explicitly defers friend testing. Its verification record SHALL identify the deferred real-Steam and release checks, and closure/archive SHALL NOT count as a Steam acceptance pass. When real Steam acceptance is requested, its separate run SHALL use compatible exported clients and distinct authenticated Steam accounts on separate machines. It SHALL verify private lobby creation, native overlay invitations, accepted invitations both while running and from launch, admission/ownership, shared gameplay, guest reconnect during pause, fresh-join refusal after start, and original-host exit. Development sessions SHALL default to AppID 480; genuine Steam cold-launch verification of this game's executable SHALL use its own configured AppID/launch registration and SHALL remain explicitly incomplete when unavailable. For that real Steam acceptance run, at least one connection SHALL run across different NAT-protected networks without manual port forwarding and record actual relay-route evidence. Local substitutes, explicit development launch arguments, and mocked invitation callbacks SHALL NOT count as proof of actual Steam transport, overlay, identity, relay behavior, or Steam launching the executable. Completion SHALL record extension provenance/hash, version and stability qualifications, engine/runtime, account/machine prerequisites without secrets, executed scenarios, and remaining limitations.
 
 #### Scenario: Steam acceptance covers an exported session
 - **WHEN** two exported clients on different networks complete the Steam invitation and gameplay route
@@ -88,3 +100,8 @@ A separate Steam acceptance run SHALL use compatible exported clients and distin
 - **WHEN** two development exports verify real invitations, shared gameplay, reconnect, and relay connectivity using AppID 480 without this game's own registered launch configuration
 - **THEN** those observed checks are recorded as passing independently of production AppID setup
 - **AND** genuine Steam cold-launch acceptance remains incomplete rather than being inferred from launch-argument tests
+
+#### Scenario: Close a locally verified development milestone
+- **WHEN** local and single-account compatibility gates pass and the owner explicitly excludes friend testing from the milestone
+- **THEN** the development change can be synced and archived with the real-account, relay, own-AppID cold-launch and release-qualification checks recorded as deferred/unverified
+- **AND** the record does not claim those checks passed or require friend testing to close that milestone

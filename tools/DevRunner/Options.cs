@@ -2,7 +2,9 @@ using System.Globalization;
 namespace DevRunner;
 
 internal sealed record Options(string Command, string Host, string Bind, int? Port, int StartupTimeout, int Timeout, string[] EngineArgs, string? SessionFile,
-    int Jobs = 2, string? Scenario = null, string? EvidenceDirectory = null, string? WorkerToken = null)
+    int Jobs = 2, string? Scenario = null, string? EvidenceDirectory = null, string? WorkerToken = null,
+    bool Production = false, uint? SteamAppId = null, bool Offline = false, bool Exported = false, int Guests = 1,
+    string? SteamRole = null, ulong? Lobby = null)
 {
     public static Options Parse(string[] args)
     {
@@ -14,7 +16,12 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         int timeout = 180000;
         string? sessionFile = null;
         int jobs = 2;
+        int guests = 1;
         string? scenario = null, evidence = null, workerToken = null;
+        bool production = false, offline = false, exported = false;
+        uint? steamAppId = null;
+        string? steamRole = null;
+        ulong? lobby = null;
         var engineArgs = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
@@ -29,15 +36,23 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--session-file": sessionFile = Value(); break;
                 case "--engine-arg": engineArgs.Add(Value()); break;
                 case "--jobs": jobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--guests" when command == "dev": guests = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--scenario": scenario = Value(); break;
                 case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
                 case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;
+                case "--production" when command == "export-client": production = true; break;
+                case "--steam-app-id" when command == "export-client": steamAppId = uint.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--offline" when command == "check-steam-extension": offline = true; break;
+                case "--exported" when command is "check-steam-extension" or "test-steam": exported = true; break;
+                case "--role" when command == "test-steam": steamRole = Value(); break;
+                case "--lobby" when command == "test-steam": lobby = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
                 case "--help": return new("help", host, bind, port, startup, timeout, [], sessionFile);
                 default: throw new ArgumentException($"Unknown runner argument: {args[i]}");
             }
         }
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
+        if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
@@ -47,9 +62,13 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
         if (args.Contains("--jobs") && command != "test-network") throw new ArgumentException("--jobs belongs to test-network.");
-        if (engineArgs.Count > 0 && command is not ("dev" or "client")) throw new ArgumentException("--engine-arg belongs to desktop dev/client tasks.");
+        if (engineArgs.Count > 0 && command is not ("dev" or "client" or "play")) throw new ArgumentException("--engine-arg belongs to desktop dev/client/play tasks.");
         if (command is "test-network" or "test-ui" or "_ui-worker" or "ci" && (host != "127.0.0.1" || bind != "127.0.0.1"))
             throw new ArgumentException("Verification owns loopback peers; use dev/client/server for other endpoints.");
-        return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken);
+        SteamPackaging.ValidateAppId(production, steamAppId);
+        if (command == "test-steam" && (steamRole is not ("host" or "guest") || lobby == 0 || steamRole == "host" && lobby is not null))
+            throw new ArgumentException("test-steam requires --role host or guest; --lobby ID belongs to guest. Two machines/accounts must run the paired command.");
+        return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
+            production, steamAppId, offline, exported, guests, steamRole, lobby);
     }
 }

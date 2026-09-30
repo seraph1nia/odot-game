@@ -1,22 +1,29 @@
 using System.Text.Json;
-using Game.Core;
 
 namespace Game;
 
 // Private client data. Never include credentials in diagnostics or public snapshots.
-public sealed record LocalSession(string Endpoint, string MatchId, string Token, long NextSequence);
-public sealed class SessionFile(string path, string endpoint)
+// Optional namespace fields preserve existing ENet files for the same running match.
+public sealed record LocalSession(string Endpoint, string MatchId, string Token, long NextSequence,
+    string Transport = "enet", string Application = "odot", string OriginalHostIdentity = "")
+{
+    public override string ToString() => $"LocalSession {{ Transport = {Transport}, Application = {Application}, MatchId = {MatchId} }}";
+}
+public sealed class SessionFile(string path, string endpoint, string transport = "enet", string application = "odot", string originalHostIdentity = "")
 {
     public LocalSession? Value { get; private set; }
+    public string Transport => transport;
     public void Load()
     {
+        Value = null;
         if (!File.Exists(path)) return;
         LocalSession? stored = JsonSerializer.Deserialize<LocalSession>(File.ReadAllText(path));
-        if (stored?.Endpoint == endpoint && stored.NextSequence > 0) Value = stored;
+        if (stored?.Endpoint == endpoint && stored.Transport == transport && stored.Application == application
+            && stored.OriginalHostIdentity == originalHostIdentity && stored.NextSequence > 0) Value = stored;
     }
     public void Welcome(string matchId, string token)
     {
-        Value = new(endpoint, matchId, token, Value?.MatchId == matchId ? Value.NextSequence : 1); Save();
+        Value = new(endpoint, matchId, token, Value?.MatchId == matchId ? Value.NextSequence : 1, transport, application, originalHostIdentity); Save();
     }
     public long Reserve()
     {

@@ -10,5 +10,6 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <ProjectReference Include="../../tools/DevRunner/DevRunner.csproj" />
+    <Compile Include="../../src/Game/SessionFile.cs" Link="SessionFile.cs" />
   </ItemGroup>
 </Project>

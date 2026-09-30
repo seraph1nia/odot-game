@@ -20,13 +20,17 @@ public partial class ClientSettings : Node
     private Vector2I _savedSize = DefaultSize, _windowedSize = DefaultSize;
     private bool _launchDisplayOverride, _displayEdited, _changingDisplay, _initialized, _dirty;
 
+    private Control? _returnFocus;
+    private bool _restoreFocusOnClose = true;
+    internal Func<Control?>? FocusFallback { get; set; }
+
     public bool IsOpen => _dialog.Visible;
     internal Button SettingsButton => _button;
     internal AcceptDialog Dialog => _dialog;
     internal TabContainer Categories { get; private set; } = null!;
     internal HSlider VolumeSlider => _volume;
     internal int MasterVolume => _masterVolume;
-    public bool BlocksWorldHover(Vector2 mouse) => IsOpen || _button.GetGlobalRect().HasPoint(mouse);
+    public bool BlocksWorldHover(Vector2 mouse) => IsOpen || _button.IsVisibleInTree() && _button.GetGlobalRect().HasPoint(mouse);
 
     public void Initialize(Control ui, Theme theme)
     {
@@ -44,7 +48,7 @@ public partial class ClientSettings : Node
         _button = new Button { Name = "SettingsButton", Text = "Settings", Position = new(12, 12), TooltipText = "Settings (Esc)" };
         ui.AddChild(_button);
         _button.Pressed += Open;
-        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = true, OkButtonText = "Close", DialogCloseOnEscape = true };
+        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Close", DialogCloseOnEscape = true };
         // Let Godot route modal input and dropdown focus within the parent viewport.
         _window.GuiEmbedSubwindows = true;
         AddChild(_dialog);
@@ -78,7 +82,7 @@ public partial class ClientSettings : Node
         _saveFeedback = Label(content, "");
         _dialog.VisibilityChanged += () =>
         {
-            if (!_dialog.Visible) { Save(); _button.GrabFocus(); }
+            if (!_dialog.Visible) { Save(); if (_restoreFocusOnClose) Callable.From(RestoreFocus).CallDeferred(); }
         };
         _window.SizeChanged += WindowResized;
         RefreshDisplay();
@@ -157,11 +161,28 @@ public partial class ClientSettings : Node
         foreach (Vector2I size in _sizes) _resolution.AddItem($"{size.X} × {size.Y}{(Presets.Contains(size) ? "" : " (custom)")}");
         _resolution.Select(_sizes.IndexOf(_windowedSize));
     }
-    public void Open()
+    public void Open() => Open(null);
+    public void Open(Control? returnFocus)
     {
         if (IsOpen) return;
+        _returnFocus = returnFocus ?? GetViewport().GuiGetFocusOwner() ?? _button;
         RefreshDisplay();
         _dialog.PopupCenteredClamped(new(500, 330), 0.9f);
+    }
+    public void Close(bool restoreFocus = true)
+    {
+        Save();
+        _restoreFocusOnClose = restoreFocus;
+        if (IsOpen) _dialog.Hide();
+        _restoreFocusOnClose = true;
+        if (!restoreFocus) _returnFocus = null;
+    }
+    private void RestoreFocus()
+    {
+        Control? target = _returnFocus;
+        if (target is null || !GodotObject.IsInstanceValid(target) || target.IsQueuedForDeletion() || !target.IsVisibleInTree()) target = FocusFallback?.Invoke();
+        if (target is not null && GodotObject.IsInstanceValid(target) && target.IsInsideTree() && target.IsVisibleInTree()) target.GrabFocus();
+        _returnFocus = null;
     }
     private void SelectMode(long index)
     {

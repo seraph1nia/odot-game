@@ -4,7 +4,7 @@ using Godot;
 namespace Game;
 
 // Entirely client-side presentation. Every interaction submits an ordinary command.
-public partial class Tabletop(Main game) : Node3D
+public partial class Tabletop(IGameSession game, GameApplication application) : Node3D
 {
     private const string Assets = "res://Assets/KayKit/";
     private readonly Dictionary<string, PackedScene> _assets = [];
@@ -32,7 +32,7 @@ public partial class Tabletop(Main game) : Node3D
     private float _framePanelHeight;
     private int _frameFocus;
     private bool _wasConnected;
-    private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!;
+    private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!, _invite = null!, _return = null!;
     private int _focus;
     private int _slot = -1;
     private string _rosterKey = "";
@@ -50,23 +50,9 @@ public partial class Tabletop(Main game) : Node3D
         _hoverMarker = Outline(this, 0.97f, "e7eee0"); _hoverMarker.Visible = false;
         var canvas = new CanvasLayer(); AddChild(canvas);
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; canvas.AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        var theme = new Theme { DefaultFontSize = 15 };
-        theme.SetColor("font_color", "Label", new("f4ecd9"));
-        theme.SetColor("font_color", "Button", new("f4ecd9"));
-        theme.SetColor("font_disabled_color", "Button", new("99a59b"));
-        theme.SetStylebox("panel", "PanelContainer", new StyleBoxFlat { BgColor = new("243c38"), BorderColor = new("899c78"), BorderWidthTop = 2, CornerRadiusTopLeft = 12, CornerRadiusTopRight = 12, ContentMarginLeft = 20, ContentMarginRight = 20, ContentMarginTop = 12, ContentMarginBottom = 10 });
-        foreach (string state in new[] { "normal", "hover", "pressed", "disabled", "focus" })
-        {
-            var style = new StyleBoxFlat { BgColor = new(state switch { "hover" => "58765d", "pressed" => "6c805f", "disabled" => "2e4540", "focus" => "4c6956", _ => "405e4e" }), BorderColor = new("a5b68a"), BorderWidthBottom = state == "hover" ? 2 : 0, CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5, CornerRadiusBottomLeft = 5, CornerRadiusBottomRight = 5, ContentMarginTop = 7, ContentMarginBottom = 7, ContentMarginLeft = 10, ContentMarginRight = 10 };
-            theme.SetStylebox(state, "Button", style);
-        }
-        root.Theme = theme;
-        _settings = new ClientSettings { Name = "ClientSettings" }; AddChild(_settings); _settings.Initialize(root, theme);
-        using var music = GD.Load<AudioStreamWav>("res://Assets/Music/LVS04_11_Echoes_of_Valhalla_bpm82_loop.wav");
-        var musicPlayer = new AudioStreamPlayer { Name = "BackgroundMusic", Stream = music, Bus = "Master", VolumeDb = -12, Autoplay = true };
-        musicPlayer.TreeExiting += musicPlayer.Stop;
-        AddChild(musicPlayer);
-        _panel = new PanelContainer { Name = "BottomPanel", MouseFilter = Control.MouseFilterEnum.Stop };
+        root.Theme = application.Theme;
+        _settings = application.Settings;
+        _panel = new PanelContainer { Name = "BottomPanel", MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
         root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -220;
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 8); _panel.AddChild(box);
         var columns = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; columns.AddThemeConstantOverride("separation", 24); box.AddChild(columns);
@@ -92,7 +78,9 @@ public partial class Tabletop(Main game) : Node3D
         _fresh = Button(match, "Join lobby · fresh session", () => game.Connect(true));
         foreach (var (button, name) in new[] { (_mine, "Mine"), (_farm, "Farm"), (_barracks, "Barracks"), (_upgrade, "Upgrade"), (_recruit, "Recruit"),
             (_ready, "Ready"), (_pause, "Pause"), (_start, "Start"), (_reconnect, "Reconnect"), (_fresh, "Fresh") }) button.Name = name;
+        _invite = Button(match, "Invite friends", application.RequestInvite); _invite.Name = "Invite";
         var footer = new HBoxContainer(); footer.AddThemeConstantOverride("separation", 20); box.AddChild(footer);
+        _return = Button(footer, "Return to menu", application.ReturnToMenu); _return.Name = "ReturnToMenu"; _return.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         _status = Text(footer, "Connecting", 13); _status.SizeFlagsStretchRatio = 0.32f;
         _feedback = Text(footer, "", 13); _feedback.SizeFlagsStretchRatio = 0.68f; _feedback.CustomMinimumSize = new(0, 32);
     }
@@ -107,70 +95,33 @@ public partial class Tabletop(Main game) : Node3D
         var label = new Label { Text = value, AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
         label.AddThemeFontSizeOverride("font_size", size); parent.AddChild(label); return label;
     }
-    private static Button Button(Node parent, string text, Action action)
+    private Button Button(Node parent, string text, Action action)
     {
-        var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; parent.AddChild(button); button.Pressed += action; return button;
+        var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; parent.AddChild(button);
+        button.Pressed += () => { if (!application.IsModalOpen) action(); }; return button;
     }
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
-    internal void StopAudio()
+    internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        var player = GetNodeOrNull<AudioStreamPlayer>("BackgroundMusic");
-        if (player is null) return;
-        player.Stop(); player.Stream = null;
-        player.QueueFree();
-    }
-    internal object ObserveUi(string id, string? screenshot, int colors)
-    {
-        var targets = new Dictionary<string, object>();
-        void ControlTarget(string name, Control control, Rect2? local = null)
-        {
-            Rect2 rect = local is { } area ? new Rect2(control.GetGlobalTransformWithCanvas() * area.Position, area.Size) : control.GetGlobalRect();
-            Vector2 point = rect.GetCenter();
-            if (control.GetViewport() is Window window && window != GetWindow()) point += window.Position;
-            point = GetViewport().GetFinalTransform() * point;
-            targets[name] = new { X = point.X, Y = point.Y, Visible = control.IsVisibleInTree(), Enabled = control is not BaseButton button || !button.Disabled };
-        }
-        foreach (Button button in new[] { _start, _farm, _barracks, _upgrade, _recruit, _ready, _reconnect }) ControlTarget(button.Name, button);
-        ControlTarget("Settings", _settings.SettingsButton);
-        if (_settings.IsOpen)
-        {
-            ControlTarget("AudioTab", _settings.Categories.GetTabBar(), _settings.Categories.GetTabBar().GetTabRect(1));
-            ControlTarget("Volume", _settings.VolumeSlider);
-            ControlTarget("CloseSettings", _settings.Dialog.GetOkButton());
-        }
+        foreach (Button button in new[] { _start, _mine, _farm, _barracks, _upgrade, _recruit, _ready, _pause, _reconnect, _fresh, _invite, _return })
+            application.ObserveControl(targets, button.Name, button);
         for (int slot = 0; slot < 9; slot++)
         {
             Vector3 point = Center(_focus) + SlotPosition(slot);
             if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds) && bounds[slot] is { } box) point = Center(_focus) + box.GetCenter();
             Vector2 screen = GetViewport().GetFinalTransform() * _camera.UnprojectPosition(point);
-            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null, Enabled = game.Connected };
+            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null, Enabled = game.Connected && !application.IsModalOpen };
         }
-        int master = AudioServer.GetBusIndex("Master");
-        using AudioStream? music = GetNode<AudioStreamPlayer>("BackgroundMusic").Stream;
-        return new
-        {
-            Id = id,
-            Revision = _revision,
-            SelectedSlot = _slot,
-            Connected = game.Connected,
-            SettingsOpen = _settings.IsOpen,
-            MasterVolume = _settings.MasterVolume,
-            MasterGain = AudioServer.GetBusVolumeLinear(master),
-            MasterMuted = AudioServer.IsBusMute(master),
-            Display = DisplayServer.GetName(),
-            AudioDriver = AudioServer.GetDriverName(),
-            UserDataPath = ProjectSettings.GlobalizePath("user://"),
-            Renderer = RenderingServer.GetVideoAdapterName(),
-            Models = _assets.Count,
-            Materials = _materials.Count,
-            MusicLoaded = music is not null,
-            Width = GetWindow().Size.X,
-            Height = GetWindow().Size.Y,
-            Targets = targets,
-            Screenshot = screenshot,
-            Colors = colors
-        };
+        fields["Revision"] = _revision;
+        fields["SelectedSlot"] = _slot;
+        fields["Models"] = _assets.Count;
+        fields["Materials"] = _materials.Count;
+        fields["PhaseText"] = _phase.Text;
+        fields["StatusText"] = _status.Text;
+        fields["FeedbackText"] = _feedback.Text;
+        fields["DetailText"] = _detail.Text;
+        fields["RosterText"] = string.Join(" | ", _roster.GetChildren().OfType<Button>().Select(button => button.Text));
     }
     private static Vector3 Center(int id) => new((id - 1) * 40, 0, 0);
     private static Vector3 SlotPosition(int slot) => VillageLayout.Slot(slot);
@@ -191,11 +142,11 @@ public partial class Tabletop(Main game) : Node3D
         }
         if (_wasConnected != game.Connected) { _wasConnected = game.Connected; _slot = -1; _hover = -1; }
         if (Focus() is not { Slots.Length: 9 }) _slot = -1;
-        string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{_focus}:{_slot}";
+        string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{game.CanStart}:{game.CanInvite}:{_focus}:{_slot}";
         if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
         FrameCamera();
         Vector2 mouse = GetViewport().GetMousePosition();
-        int hover = game.Connected && !_settings.BlocksWorldHover(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
+        int hover = game.Connected && !application.BlocksWorldInput(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
         if (hover != _hover) { _hover = hover; UpdateMarkers(); }
     }
     private void UpdateUi()
@@ -205,14 +156,14 @@ public partial class Tabletop(Main game) : Node3D
         _status.Text = $"{game.Status}  •  You: P{game.PlayerId}";
         _phase.Text = s is null ? "Waiting for server" : s.Phase switch { Phase.Victory => "VICTORY • three waves held", Phase.Defeat => "DEFEAT • all cities fell", _ => $"{(s.Paused ? "PAUSED • " : "")}{s.Phase}\nWave {s.Wave}/3 • Turn {s.Turn}/3" };
         _feedback.Text = game.Feedback;
-        string roster = s is null ? "" : string.Join('|', s.Players.Select(p => $"{p.Id}:{p.Connected}:{p.Ready}:{p.Eliminated}"));
+        string roster = s is null ? "" : string.Join('|', s.Players.Select(p => $"{p.Id}:{p.Connected}:{p.Ready}:{p.Eliminated}:{game.HostPlayerId}"));
         if (roster != _rosterKey)
         {
             _rosterKey = roster;
             foreach (Node n in _roster.GetChildren()) { _roster.RemoveChild(n); n.QueueFree(); }
             if (s is not null) foreach (CityState city in s.Players)
             {
-                int id = city.Id; Button tab = Button(_roster, $"P{id}{(id == game.PlayerId ? " · You" : "")}\n{(city.Eliminated ? "Fallen" : !city.Connected ? "Away" : city.Ready ? "Ready" : "Here")}", () => { _focus = id; _slot = -1; _hover = -1; _rosterKey = ""; }); tab.AddThemeFontSizeOverride("font_size", 13); tab.TooltipText = id == _focus ? "Viewing this city" : "Inspect city";
+                int id = city.Id; Button tab = Button(_roster, $"P{id}{(id == game.HostPlayerId ? " · Host" : "")}{(id == game.PlayerId ? " · You" : "")}\n{(city.Eliminated ? "Fallen" : !city.Connected ? "Away" : city.Ready ? "Ready" : "Here")}", () => { _focus = id; _slot = -1; _hover = -1; _rosterKey = ""; }); tab.AddThemeFontSizeOverride("font_size", 13); tab.TooltipText = id == _focus ? "Viewing this city" : "Inspect city";
             }
         }
         _stats.Text = focus is null ? "Up to four players. Start when everyone joins." : $"P{focus.Id}{(_focus == game.PlayerId ? " • YOUR CITY" : " • OBSERVING")}\nGold {focus.Gold}    Food {focus.Food}\nCity {focus.Health}/{s!.Rules.CityHealth}    Army {focus.Soldiers.Length}";
@@ -233,7 +184,9 @@ public partial class Tabletop(Main game) : Node3D
         _ready.Disabled = !live || s!.Phase != Phase.Building || s.Paused || me is null || me.Eliminated;
         _ready.Visible = s?.Phase != Phase.Lobby && game.Connected;
         _pause.Visible = game.Connected && s?.Phase != Phase.Lobby;
-        _start.Visible = game.Connected && s?.Phase == Phase.Lobby; _start.Disabled = !live;
+        _start.Visible = game.Connected && s?.Phase == Phase.Lobby && game.CanStart; _start.Disabled = !live || !game.CanStart;
+        _invite.Visible = game.HostPlayerId == game.PlayerId && game.HostPlayerId != 0; _invite.Disabled = !live || !game.CanInvite;
+        _invite.TooltipText = game.CanInvite ? "Invite friends through Steam" : "Invitations are unavailable for this session.";
         _pause.Text = s?.Paused == true ? "Resume whole match" : "Pause whole match";
         _pause.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Combat);
         _reconnect.Visible = !game.Connected; _reconnect.Disabled = game.Status == "Connecting";
@@ -432,11 +385,11 @@ public partial class Tabletop(Main game) : Node3D
     }
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (!_settings.IsOpen && @event.IsActionPressed("ui_cancel", false))
+        if (!application.IsModalOpen && @event.IsActionPressed("ui_cancel", false))
         {
             _settings.Open(); GetViewport().SetInputAsHandled(); return;
         }
-        if (_settings.IsOpen) return;
+        if (application.IsModalOpen) return;
         if (!game.Connected || @event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
         int selected = Pick(mouse.Position);
         if (selected >= 0) _slot = selected;

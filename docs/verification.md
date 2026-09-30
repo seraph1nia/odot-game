@@ -474,3 +474,336 @@ including timing JSON and PNG checkpoints, is in
 `logs/strict-csharp/baseline-ci.log` and `logs/strict-csharp/final-ci.log`.
 The OpenSpec sync records the strict contract in `linux-test-execution`;
 specification and strict change validation pass.
+
+## Launcher and Steam integration baseline
+
+Before integration on 2026-09-30, the clean settings/strict-C# baseline passed
+`mise run ci` in 110.05 seconds (runner: 106.81 seconds). Evidence is in
+`logs/20260930-120146-8f7918d7/`; console output was captured in
+`/tmp/odot-steam-baseline-ci.log`. All 17 core and 20 runner cases, four network
+scenarios, three source UI slices, both Linux exports and package checks passed.
+This includes the settings modal/input/restart check; existing native-device and
+listening limitations above still apply.
+
+The launcher will reuse `ClientSettings.Initialize`, `Open`, `IsOpen`, and
+`BlocksWorldHover`, its Graphics/Audio controls and `user://settings.cfg`.
+Preferences load and Master gain applies before the tabletop starts its single
+`BackgroundMusic` player. First-launch volume remains 50, zero mutes the Master
+bus while playback continues, and window overrides are not saved as preferences
+unless edited. Dialog close currently restores the tabletop Settings button;
+moving to application lifetime must restore an available current-screen control.
+The existing WAV/import, authored intro/loop and -12 dB music gain stay intact.
+Supervised shutdown stops/releases audio and drains the mixer within its bounded
+deadline. Application transitions must preserve that lifecycle contract.
+
+### Steam dependency, import diagnosis and packaging
+
+The Linux x86_64 extension files are pinned in
+`src/Game/addons/godotsteam/manifest.json`, with the archive and per-file hashes,
+upstream MIT notice and a separate Valve-runtime attribution. The upstream
+non-prerelease release and publisher unstable designation are both retained in
+`README.odot.md`. The descriptor keeps the official entry point and Linux paths;
+automatic SDK initialization is disabled. Small C# native helpers serve the
+compatibility probe and application integration.
+
+Checked-in diagnostic commands are:
+
+```sh
+mise run check-steam-extension --offline
+mise run check-steam-extension
+mise run export-client
+mise run check-steam-extension --exported --offline
+mise run check-steam-extension --exported
+```
+
+Source checks prepare and perform three additional editor imports, recreating
+only the derived extension startup list each time with an owned fresh global
+documentation cache. Asset imports stay cached. Exported
+checks use the existing client package copied outside the source tree. `--offline`
+loads the native classes without SDK initialization. Online checks require a
+running, signed-in Steam client with access to the configured application;
+development defaults to 480 and accepts `ODOT_STEAM_APP_ID`. They check native
+host/channel configuration, C# casting/assignment, local signal marshaling,
+callback polling and close/disposal/shutdown. The locally emitted diagnostic
+signal creates no Steam lobby/invitation and is not remote callback evidence.
+SDK diagnostic account identifiers are redacted before runner log retention.
+These commands establish single-account compatibility only, never remote channel,
+overlay or relay acceptance.
+
+`export-client --steam-app-id ID` writes an explicit package `steam-app.cfg`;
+default development packages use 480 without an AppID file. `export-client
+--production --steam-app-id ID` selects a separate production-feature preset and
+requires a positive non-480 ID before export begins. Its Steam initialization
+reads the explicit package configuration instead of the development environment
+override/default. Both presets exclude source AppID/config files and retain
+licenses alongside native libraries. Cheap tests cover missing/480/zero package
+IDs. An isolated production packaging fixture with non-480 ID 123456 passed;
+that arbitrary fixture tests configuration/exclusion only, with no SDK
+initialization or application ownership claim. Production Steam runtime and
+genuine launch registration remain unexecuted.
+
+On 2026-09-30 the first repository `check-steam-extension --offline` native
+import exited **139/SIGSEGV**, after editor initialization/script discovery. Its
+record is `logs/20260930-121259-861e272a/import.json`, with the engine output and
+`import-backtrace.log` alongside it. The owned failed process was PID 205627;
+the system retained its core. Subsequent exact-source/core mapping identified
+Godot's deferred `EditorHelp::_gen_extensions_docs` accessing cleared document
+data during shutdown. This also reproduces without C# or SDK initialization.
+Upstream reports include [Godot #111048](https://github.com/godotengine/godot/issues/111048)
+and [#111645](https://github.com/godotengine/godot/issues/111645).
+
+The runner now seeds Godot's ordinary generated `.godot/extension_list.cfg`
+before editor import/export and uses a fresh owned `XDG_CACHE_HOME` each time.
+Both measures avoid the diagnosed deferred documentation path. It uses stock
+Godot with no editor plugin, fixed delay, custom build or automatic retry.
+Diagnosis is retained in `logs/steam-import-diagnosis/`, independent counterfactual
+summaries in `logs/odot-import-repro-k5n9_ahl/` and
+`logs/odot-import-fix-check-ko1oma5o/`, and final results in `logs/steam-import-fix/`.
+
+A subsequent full `mise run ci` using the populated import cache passed in
+108.56 seconds (runner: 106.57 seconds), with zero compilation warnings/errors,
+17 core and 24 runner tests, all existing network/source-UI/package gates, and
+new source/isolated-export offline native-load probes. Evidence is in
+`logs/20260930-121604-1c33fce0/`; console records are copied into
+`logs/steam-integration/`. The exported release library and Valve runtime matched
+their pinned hashes and the license was present. The later successful import is
+one subsequent result, **not** proof of a resolved initial-import crash or
+fresh-source reliability. The later checks below supersede the single-account
+lifecycle limitation, while real account-to-account delivery, invitations and
+relay routes remain pending.
+
+A final isolated fresh-source CI run passed in **111.75 seconds** (runner), with
+17 core and 26 runner tests, all network/source-UI/export/package gates and
+source/export offline native-load probes. Evidence is
+`logs/steam-import-fix/20260930-124911-c087e29d/`; `tested-source.json` records
+source hashes. An earlier attempt ran out of space in owned `/tmp` fixtures;
+only those fixtures were moved to ignored cache before rerunning. This result,
+fresh-source preparation, repeated extension discovery imports and single-account
+online source/export SDK lifecycle checks establish observed import-fix coverage.
+Online probes verify initialization on 480, typed local signal marshaling,
+callbacks, native host assignment, channel 1 configuration, close/disposal and
+shutdown; they create no lobby or invitation. Retained package guard/exclusion/
+fixture logs are in `logs/steam-import-fix/packaging/`.
+
+### External Steam prerequisites and deferred acceptance
+
+Initial development uses **AppID 480 (Spacewar)**; registering or purchasing a
+production AppID is not required. Each friend needs a running Steam client,
+a distinct signed-in authorized account with access to 480, and a compatible
+Linux x86_64 build with the pinned extension/runtime. Two separate machines are
+required for real peer checks; different NAT networks are required for relay
+acceptance. One machine/account can run the compatibility probe but cannot prove
+remote reliable channels, authenticated remote identity, invitations or relay.
+
+The user has no second machine/account available during implementation and will
+check this later with friends. Local core, ENet, graphical and export checks
+continue without Steam. Unexecuted real-Steam tasks remain unchecked in OpenSpec;
+missing prerequisites are never recorded as a pass. `mise run dev` remains the
+playable desktop host-and-guest command, with no Steam login dependency.
+
+Steam genuinely cold-launching this game's executable requires the game's own
+configured AppID, correct Steam launch registration, and application access for
+both accounts. Spacewar 480 may launch its own executable; manually passing
+`+connect_lobby` exercises argument routing only. The non-480 packaging fixture
+does not satisfy own-AppID launch/runtime acceptance. The upstream publisher's
+**unstable** designation remains an independent release qualification until
+the outstanding acceptance checks are observed.
+
+### Verification layers for application sessions
+
+1. `mise run test` exercises shared authority, start/admission policy, action
+   validation, retries, identity/namespace boundaries and delayed Steam operation
+   guards without Godot, display or Steam accounts.
+2. `mise run test-network` uses real headless Godot processes. Existing outcome
+   cases remain, alongside selectable `solo-session` and `playing-host-lifecycle`.
+   Solo preserves an occupied endpoint while starting/building/restarting without
+   a socket. Playing-host checks cover local/guest policy, retained paused city,
+   retry after process restart, snapshot/ack progress, host end and old credentials.
+   `redistribution` uses a playing host and retained eliminated guest; dedicated
+   outcome, ownership, failure and resume cases remain in the suite.
+3. `mise run test-ui --scenario launcher` uses real pointer/keyboard input and
+   read-only geometry on owned Xvfb with Mesa/Dummy audio. It checks menu, settings,
+   solo, music continuity, fresh sessions, hosted controls and actual termination.
+   `exported-package` repeats representative application/gameplay transitions from
+   packed Linux resources. Native-close requests target the exact owned child PID
+   and observed main X11 window, never the developer's desktop.
+4. `mise run test-steam --role host|guest [--lobby ID] [--exported]` runs one side
+   of a real pair on separate signed-in machines. A normal desktop is required for
+   the Steam overlay; this is separate from ordinary CI. The command exercises
+   ordinary purchases/readiness/combat, channel-0 acknowledgments during snapshots
+   and a paused checkpoint. Native connection evidence uses whitelisted
+   `getConnectionInfo` state/authentication/relay flags/relay POP, never raw IP or
+   identity dictionaries. Compare both records' match and paused tick/revision.
+
+Compare gameplay at a common revision or after ordinary authoritative pause.
+Two moving clients' latest snapshots can legitimately differ. Connection/readiness
+changes are normalized only for retained-gameplay comparisons, never for admission
+or pause assertions. No resource grants, forced outcomes, alternate peer or mock
+Steam connection counts as real transport evidence.
+
+No transport fault interceptor is needed: cheap shared-ledger tests and real
+request replay after guest process restart prove a lost acknowledgment cannot
+double-charge. Old-match high-sequence requests and canceled callback operations
+exercise fresh-session isolation, alongside actual disconnect/restart tests.
+The recurring harness keeps one ordered driver per child and bounded waits.
+
+Absent Steam prerequisites produce a nonzero result explicitly marked
+`unexecuted`. A no-display prerequisite check was verified at
+`logs/20260930-134244-3c90e4f7/`; it starts no SDK, lobby or gameplay process.
+Missing graphical prerequisites also report `unexecuted` with a nonzero exit,
+without desktop fallback. An available display that fails rendering or assertions
+reports `failed`. Successful local
+CI never closes the external Steam gates. See [session ownership](sessions.md).
+
+
+### Final local launcher/session verification
+
+On 2026-09-30, fresh isolated source `mise run ci` passed in **148.29 seconds**
+(runner; mise total 151.93 seconds). The snapshot excluded generated import,
+build, export and session state. Its hashes and code comparison are retained in
+`logs/sessions-final-ci/tested-source.json` and `source-comparison.json`.
+Full evidence is `logs/sessions-final-ci/20260930-142111-40a095c1/`:
+
+- 50 core and 35 runner xUnit cases passed, with zero compilation warnings/errors.
+- All six real-process network scenarios passed in 62.39 seconds, retaining
+  dedicated outcomes/failures and adding solo and playing-host lifetime checks.
+- All four source UI slices passed in 34.76 seconds; launcher took 17.28 seconds.
+- Ordinary Linux client/server exports, pinned native files/notices, offline
+  extension loading, exported gameplay/reconnect and graphical package checks
+  passed. Exported UI took 24.23 seconds including private-display ownership.
+
+Earlier integrated CI also passed in 142.28 seconds at
+`logs/20260930-140223-313eb9d9/`. Stricter graphical guest coverage then exposed
+an orderly-close defect: immediately closing the ENet peer discarded the queued
+reliable session-end message. Logical teardown now happens immediately while the
+old transport drains until guests disconnect or the existing deadline expires.
+A fresh session waits for that transport; Exit waits before SDK/audio disposal.
+The final process tests require `session-ended` on orderly leave and separately
+exercise abrupt host death.
+
+Native close with Settings open initially failed because Godot's exclusive
+child window suppresses the parent's close event. Settings and invitation dialogs
+now use nonexclusive embedded windows with a root input guard. Actual pointer/Tab
+checks prove world input stays blocked, while a native parent close works.
+The final source and exported hosted UI checks open Settings in both windows,
+close the host's exact owned native window, require guest return to a usable menu
+with Settings dismissed, preserve music/preferences and explanatory host feedback,
+then use the guest's visible Exit button. This extends the earlier test that
+accepted ordinary transport loss and used a headless guest.
+
+After the drain fix, actual `mise run dev` was checked again on an owned private
+X11 desktop: two mapped host/guest windows, admitted guest, native host close,
+guest `session-ended` and menu, mise exit zero, and all owned descendants/display
+processes/runtime removed. Evidence is
+`logs/odot-session-work-6xvk322k/dev-drain-smoke/` (11.52 seconds overall).
+This command opens ordinary desktop windows for users; its diagnostic private
+display does not change the default command behavior or use their preferences.
+
+A missing-tools `check-ui-prerequisites` invocation exited nonzero and reported
+`unexecuted` before starting any display/gameplay child. Evidence is
+`logs/sessions-final-ci/20260930-142427-11c62bb3/`. Missing Steam/normal desktop
+was likewise recorded unexecuted above. Available displays with rendering or
+feature failures still report failed; neither case becomes a pass.
+
+The change has **31/41 tasks complete** locally. Task 1.6, Steam tasks 5.2–5.4 and 5.6,
+and all phase-7 acceptance tasks remain unchecked. Shared identity/resume policies
+and canceled/late callback guards are tested locally, but SDK-authenticated remote
+binding, real warm invitations, native channels, relay/NAT behavior, actual Steam
+host departures, own-AppID cold launch and release stability require the deferred
+external evidence. No real lobby or invitation was sent during local checks.
+
+
+### Linux invitation overlay launch fix
+
+The first real `mise run play` observation initialized AppID 480 and created a
+hosted lobby, but neither Invite friends nor Shift+Tab opened the overlay.
+Read-only inspection of that game process found Steam's client library mapped
+and no `gameoverlayrenderer.so`. This distinguishes lobby/SDK availability from
+an injected graphical overlay. No game input, desktop setting or process was
+changed during diagnosis.
+
+[Valve's Linux FAQ](https://partner.steamgames.com/doc/store/application/platforms/linux#4)
+requires preloading the overlay renderer when launching outside Steam.
+`SteamOverlayLaunch` now resolves a readable ELF64 x86-64 shared library from
+known native Steam client roots and merges it with existing `LD_PRELOAD` for the
+game child only. It applies to ordinary `play` and source/exported paired
+`test-steam` menu launches; local/headless/private-display/probe/import/build
+processes remain unaffected. No library is downloaded or installed. Missing
+native Steam libraries produce launcher feedback and leave local play available.
+
+The game uses the pinned extension's `isOverlayEnabled` and `overlay_toggled`
+APIs; both signatures were checked against
+[the selected release source](https://codeberg.org/godotsteam/godotsteam/src/tag/v4.22.1-gde/godotsteam.cpp).
+Invite reports unavailable/loading overlay state, tracks activation after a
+request with a five-second bound, and clears pending feedback on session leave.
+An activation callback reports an active overlay, not proof that an invitation
+was sent or received. Offline native-load probes check the real extension's
+local typed overlay signal marshaling without opening Steam UI or initializing
+the SDK. Online compatibility probes additionally query overlay availability.
+
+Cheap verification passes 50 core and 51 runner tests, including 16 new cases
+for launch eligibility, preload preservation, missing libraries and incompatible
+ELF headers. Isolated evidence is
+`logs/odot-session-work-6xvk322k/overlay/`; root tests and subsequent CI records
+are retained in `logs/steam-overlay-fix/`. The installed native renderer was
+found and validated. Real overlay visibility requires restarting the prior
+unpreloaded process; a local marshaling test or injected library alone does not
+close the pending real invitation/Steam acceptance tasks.
+
+Full `mise run ci` after the overlay fix passed in **145.34 runner seconds**
+(mise: 146.64 seconds), with all 101 unit tests, six network scenarios, source UI,
+Linux exports, source/export offline typed overlay callbacks and package UI.
+Evidence is `logs/20260930-144650-de55471d/`. Local dev launch eligibility is
+covered by the cheap tests; its previously verified playable host/guest behavior
+is preserved. No real overlay activation or invitation is claimed by this run.
+
+### Steam login presentation and remaining local policy checks
+
+On 2026-09-30, task **5.5** completed with authenticated playing-host policy
+coverage for paused/eliminated retained-city resume, preserved retry ledgers,
+wrong-account/token refusal, fresh-player rejection after roster lock, and old
+credentials/commands rejected by a replacement match at the same original host.
+These tests supply trusted identity at the transport boundary. Actual native SDK
+peer identity mapping remains in unchecked task 5.4.
+
+Pending consent now expires independently of create/join operations when its
+session generation changes, dismissing the native dialog. Old accept/decline
+delegates cannot consume a replacement invitation for the same lobby. The added
+cheap cases preserve current-generation consent and verify future offers remain
+usable. Isolated core evidence: `logs/steam-local-policy-validation/verification.md`.
+
+The existing launcher slice now exercises actual native invitation controls with
+Steam disabled: duplicate consent preserves the original, outside input stays
+blocked, Decline retains the match/selection, and Accept returns through ordinary
+session cleanup with music/preferences retained. Only the incoming presentation
+boundary is triggered by an owned, supervised offline-X11 command; no SDK/lobby,
+foreign match, forced gameplay outcome, or direct decision callback is used.
+This closes local portions of tasks 5.3/5.6 without checking their real-Steam
+acceptance requirements. It adds about 0.7 seconds to the existing launcher,
+without another child or battle. Source and exported routes retain screenshots.
+
+The menu and Multiplayer view show a bottom Steam persona/login label. Owned
+offline UI checks at both sizes verify "Open Steam to log in", clickable Host
+warning, no substitute session, and usable Back/solo/Settings/Exit. Native method
+availability is checked in offline source/export probes. A separate single-account
+`mise run check-steam-extension --exported` passed in 0.50 runner seconds at
+`logs/20260930-152708-3d3b2712/`: current login and real persona lookup succeeded
+without printing the name or creating a lobby/invitation. This is API compatibility
+evidence, not friend/relay acceptance. Login checks also cover already-initialized
+SDKs; review corrected offline-to-online callback subscription and rechecks before
+consent leaves a current match. Host remains usable while a previous peer drains.
+
+Full `mise run ci` passed in **145.92 runner seconds** (mise: 147.25 seconds),
+with **55 core + 51 runner tests**, all six network scenarios (62.39 seconds),
+all four source UI slices (34.36 seconds; launcher 18.02 seconds), Linux
+client/server exports, native offline probes, package smoke and exported UI
+(25.15 seconds). Evidence: `logs/20260930-152422-64802053/`. The earlier failed
+attempt caught a static-member analyzer requirement during compilation; it was
+corrected before the passing build and full suite. `mise run dev` retains its
+Steam-independent playing host and guest route, exercised by existing process
+and graphical hosted regression checks.
+
+Progress is **31/41**. Tasks 1.6, 5.2–5.4, 5.6 and all phase-7 tasks still need
+their written real-Steam, own-AppID, or release-qualification evidence. No friend
+invitation, remote Steam admission, real departure, or relay route was verified
+by these local checks.

@@ -54,7 +54,7 @@ description = "Run cheap gameplay and runner xUnit checks without Godot"
 run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet test tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo", "dotnet test tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore --nologo"]
 
 [tasks.dev]
-description = "Start a server and two playable client windows"
+description = "Start a playable host and one guest window (--guests 1..3)"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll dev"
 raw_args = true
@@ -63,6 +63,12 @@ raw_args = true
 description = "Start the headless server (defaults to loopback:7000)"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll server"
+raw_args = true
+
+[tasks.play]
+description = "Open the start screen (solo, Steam multiplayer, settings and exit)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll play"
 raw_args = true
 
 [tasks.client]
@@ -110,11 +116,24 @@ run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll prepare-templates"
 description = "Export the Linux x86_64 desktop client"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll export-client"
+raw_args = true
+
+[tasks.check-steam-extension]
+description = "Check pinned native Steam/C# lifecycle (single account; not multiplayer acceptance)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll check-steam-extension"
+raw_args = true
 
 [tasks.export-server]
 description = "Export the Linux x86_64 dedicated server"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll export-server"
+
+[tasks.test-steam]
+description = "Run one side of paired Steam verification (two machines/accounts, normal desktop)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-steam"
+raw_args = true
 
 [tasks.ci]
 description = "Verify rules/network/private UI, export Linux roles and check packages"

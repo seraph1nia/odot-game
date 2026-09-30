@@ -1,12 +1,12 @@
 # Nine Tiles POC
 
-One to four players share a match, each owning nine indexed building slots displayed as three staggered rows of hex plots and a separate grassy battle approach. Join the lobby before anybody clicks Start. The roster is fixed after start; returning players can resume, fresh players cannot join. Restart the server for another match.
+One to four players share a match, each owning nine indexed building slots displayed as three staggered rows of hex plots and a separate grassy battle approach. Single player starts one city immediately; hosted multiplayer waits for the original host to click Start. Join the roster before start. The roster is fixed after start; returning players can resume, fresh players cannot join. Return to menu and start again for a fresh local/hosted match; restart a dedicated server for another match.
 
 Each city starts with 100 health, 60 gold and no food. A production turn gives every living city 10 gold, including disconnected cities. Mine, farm and barracks each cost 20 gold. Mines produce 3 gold per level per turn; farms produce 5 food per level. Spend 20 gold to upgrade a building once, to level two. Select a barracks and click Recruit to buy exactly one soldier for 5 food (4 at level two). Barracks never recruit automatically. New soldiers have 10 health and deal 4 damage each second.
 
 Click an outlined grass plot or the visible body/roof of a building, then choose a construction or upgrade action in the bottom panel. Clicking only selects; it never spends. With no selection, the panel asks you to select in the world. Select a barracks, then click Recruit to buy a soldier. Changing city tabs clears selection. The surrounding grass, river, wooded hills, rocks and village props are decorative: they use no building slots and add no adjacency or movement rules. The roster tabs inspect other cities; their buildings cannot be edited. Ready prevents further editing; Unready restores it until the turn resolves. All connected living players must be ready. Production happens once, clears readiness, and after the third turn immediately starts combat. There is no opportunity to spend the third turn's food before that battle. There are three turns before each of three waves, nine production turns total.
 
-Enemies allocate 4, 6 and 8 per original player over the three waves. Each has 10 health and deals 3 damage each second. The city's built-in tower deals 1 damage each second even without soldiers, outside the nine slots. Units move and fight automatically along one numerical lane; no orders are required. The server accumulates damage before applying it, so simultaneous attacks count. Surviving soldiers keep their identity and remaining health; cities keep damage too. No healing occurs between waves.
+Enemies allocate 4, 6 and 8 per original player over the three waves. Each has 10 health and deals 3 damage each second. The city's built-in tower deals 1 damage each second even without soldiers, outside the nine slots. Units move and fight automatically along one numerical lane; no orders are required. The authority accumulates damage before applying it, so simultaneous attacks count. Surviving soldiers keep their identity and remaining health; cities keep damage too. No healing occurs between waves.
 
 A city falls at zero health. Its remaining attackers immediately move to the entrances of surviving cities' lanes, retaining identity, health and attack cooldown. They are split evenly, with remainders assigned in player-ID order; a previously cleared city can receive them. If two cities fall in the same step, neither receives transfers. Disconnected living cities still count as survivors. Future waves include one baseline allocation per original player, with fallen players' allocations divided among survivors. For example, after one of three cities falls, wave two gives each survivor 9 enemies (18 total). Inheriting enemies does not multiply future allocations. Eliminated players can observe, pause and resume. All players share victory after wave three if a city survives; all cities falling ends the match in defeat, including simultaneous final enemy deaths.
 
@@ -14,9 +14,9 @@ A verified starting strategy: build a farm in slot 1, upgrade it, and build a ba
 
 Any connected roster member can pause or resume the whole match. Pause freezes movement, attack cooldowns, health, production and turn progression. It also rejects economy/readiness commands. Networking stays active, and absent players can reconnect. Disconnecting itself never pauses or deletes a city: production/combat continue, readiness clears, and disconnected players do not block the ready check. With no connected living players, building waits; combat keeps running unless paused.
 
-Gold and food are the only resources. Walls, selling, healing, trades, reinforcements, accounts, host migration, server restart recovery and matchmaking are outside this POC. Rules are centralized in `src/Game.Core/World.cs`; the server sends costs/output values in snapshots so the UI uses the actual rules.
+Gold and food are the only resources. Walls, selling, healing, trades, reinforcements, save recovery, host migration, server restart recovery and matchmaking are outside this POC. Rules are centralized in `src/Game.Core/World.cs`; the server sends costs/output values in snapshots so the UI uses the actual rules.
 
-The bottom panel keeps city resources/health/army and inspection tabs on the left, selected building details/costs in the middle, and match controls on the right. Start is available in the lobby; Ready/Unready and Pause/Resume follow the authoritative phase. Connection and rejection messages appear along the bottom. A disconnected window offers Reconnect to my city; a synchronized resume retains the city and starts with no selected plot. Expired credentials expose the fresh-session lobby action. Fallen players can inspect all cities and pause/resume; victory/defeat remains visible to the entire roster.
+The bottom panel keeps city resources/health/army and inspection tabs on the left, selected building details/costs in the middle, and match controls on the right. Start is available to the original playing host in a hosted lobby (or connected players on a dedicated server); Ready/Unready and Pause/Resume follow the authoritative phase. Connection and rejection messages appear along the bottom. A disconnected window offers Reconnect to my city; a synchronized resume retains the city and starts with no selected plot. Expired credentials expose the fresh-session lobby action. Fallen players can inspect all cities and pause/resume; victory/defeat remains visible to the entire roster.
 
 ![The nine hex plots and bottom controls](images/source-building.png)
 
@@ -28,7 +28,7 @@ Press **Esc** or click **Settings** in the top-left to open Graphics and Audio.
 Press Esc again or **Close** to return; Esc dismisses an open dropdown first.
 Opening settings blocks gameplay input in your window while the shared match and
 network updates continue. Use **Pause whole match** separately to pause everyone.
-Music continues while connecting, during pauses/outcomes, and through reconnects.
+One application music player continues across menu, solo/hosted sessions, connecting, pauses/outcomes and reconnects.
 
 Graphics offers **Windowed** and **Fullscreen**. Windowed resolution changes the
 window's size, with 1100×820, 1280×720, 1600×900, and 1920×1080 offered when they
@@ -58,3 +58,39 @@ save becomes the shared OS user's defaults for later launches; it never updates
 the other running window. Servers and headless clients ignore graphical settings
 and do not create music players. Music provenance and import details are recorded
 in [the asset README](../src/Game/Assets/Music/README.md).
+
+
+## Start screen and session lifetime
+
+A normal graphical launch opens **Single player**, **Multiplayer**, **Settings**
+and **Exit Game**, over static bundled medieval scenery. Keyboard arrows/Tab and
+Enter work alongside pointer input. The menu creates no match or gameplay socket.
+The bottom of the start screen and Multiplayer view shows your Steam display
+name, or **Open Steam to log in** when Steam is unavailable or offline. Host game
+checks the current login each time and warns you to open Steam and log in before
+creating a lobby.
+
+Single player binds one local city and uses the same validated actions and rules
+as multiplayer. Multiplayer offers **Host game** and **Back**. With Steam running
+and signed in, Host game creates a private invitation-only lobby; use **Invite
+friends** in the bottom panel. Steam’s overlay must be enabled; Shift+Tab
+checks whether it can open. If it is unavailable or an invitation dialog does
+not activate, the bottom panel explains the problem. Only the original host
+starts the match. Missing
+Steam/login/access reports recoverable feedback; solo, settings, Back and Exit
+remain available. The local `mise run dev` host/guest flow uses ENet independently.
+
+**Return to menu** ends unsaved solo/host gameplay and clears selection and
+pending actions; preferences and music persist. Guests keep private credentials
+for the same running host. An invitation during a match asks before leaving;
+declining preserves it. Returning players can resume after the roster locks,
+including pause or elimination, using their retained credential and Steam account.
+Fresh players cannot join after start. A new host session has a new match and
+refuses old credentials.
+
+The original host owns the whole hosted session. Its orderly leave ends the
+session for guests; unexpected loss disables guest actions and offers bounded
+reconnect/return feedback. A Steam lobby owner change never migrates gameplay.
+**Exit Game** and the window's native close control stop the session, music,
+network/Steam resources and the game process. Closing settings restores valid
+focus and changes neither readiness nor shared pause.

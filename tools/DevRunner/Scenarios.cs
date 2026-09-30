@@ -8,9 +8,11 @@ namespace DevRunner;
 
 internal static class ScenarioNames
 {
-    public static readonly string[] Network = ["authority-resume-victory", "redistribution", "defeat", "failure-cases"];
-    public static readonly string[] Ui = ["economy", "reconnect", "settings", "exported-package"];
+    public static readonly string[] Network = ["authority-resume-victory", "redistribution", "defeat", "failure-cases", "solo-session", "playing-host-lifecycle"];
+    public static readonly string[] Ui = ["economy", "reconnect", "settings", "launcher", "exported-package"];
 }
+
+internal class VerificationPrerequisiteException(string message) : InvalidOperationException(message);
 
 internal sealed record Scenario(string Name, string Risk, Func<CancellationToken, Task> Execute);
 internal sealed record Measurement(string Name, string Kind, string Result, DateTimeOffset Started, double Seconds, string? Condition);
@@ -34,7 +36,7 @@ internal sealed class Evidence
         string? condition = null;
         Console.WriteLine($"START {kind}: {name}");
         try { await action(); }
-        catch (Exception error) { result = error is OperationCanceledException ? "cancelled" : "failed"; condition = error.Message; throw; }
+        catch (Exception error) { result = error is VerificationPrerequisiteException ? "unexecuted" : error is OperationCanceledException ? "cancelled" : "failed"; condition = error.Message; throw; }
         finally
         {
             var measurement = new Measurement(name, kind, result, started, timer.Elapsed.TotalSeconds, condition);

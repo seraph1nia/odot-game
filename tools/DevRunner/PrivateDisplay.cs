@@ -10,7 +10,7 @@ internal static class PrivateDisplay
     public static void CheckPrerequisites(string? searchPath = null)
     {
         if (!OperatingSystem.IsLinux() || RuntimeInformation.ProcessArchitecture != Architecture.X64)
-            throw new InvalidOperationException("Private-display verification currently requires Linux x86_64.");
+            throw new VerificationPrerequisiteException("Private-display verification unexecuted: currently requires Linux x86_64.");
         string[] paths = (searchPath ?? Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator);
         string[] missing = RequiredTools.Where(tool => !paths.Any(p =>
         {
@@ -18,7 +18,7 @@ internal static class PrivateDisplay
             return File.Exists(path) && OperatingSystem.IsLinux() && (File.GetUnixFileMode(path) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
         })).ToArray();
         if (missing.Length > 0)
-            throw new InvalidOperationException("Missing private-display prerequisites: " + string.Join(", ", missing) +
+            throw new VerificationPrerequisiteException("Private-display verification unexecuted: missing prerequisites: " + string.Join(", ", missing) +
                 ". Install distro packages listed in README (Xvfb, Xauthority/X11 utilities, Mesa and Openbox), then retry. No desktop fallback or automatic installation.");
         Console.WriteLine("Private-display executable prerequisites available; software OpenGL will be checked on the owned display.");
     }
@@ -130,7 +130,12 @@ internal sealed partial class Runner
         {
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
-            await worker.UiScenario(name, token);
+            if (name == "launcher") await worker.MenuUiScenario(false, token);
+            else
+            {
+                await worker.UiScenario(name, token);
+                if (name == "exported-package") await worker.MenuUiScenario(true, token);
+            }
             await owned.DisposeAsync(); owned.CheckErrors();
         }))).ToArray();
         Console.WriteLine($"UI coverage: {(options.Scenario is null ? "all source slices" : "selected: " + options.Scenario)}; jobs=1; {string.Join(", ", selected)}");

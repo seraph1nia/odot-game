@@ -48,7 +48,12 @@ internal sealed partial class Runner
     {
         using var suite = CancellationTokenSource.CreateLinkedTokenSource(cancellation); suite.CancelAfter(options.Timeout);
         var scenarios = ScenarioNames.Network.Where(n => options.Scenario is null || options.Scenario == n).Select(name =>
-            new Scenario(name, "Preserved real ENet gameplay/lifecycle integration", token => _evidence.Measure(name, "network", async () =>
+            new Scenario(name, name switch
+            {
+                "solo-session" => "Socketless local authority and fresh application session state; pure core tests miss delivery/lifetime.",
+                "playing-host-lifecycle" => "Bound host, real guest delivery, reconnect and host termination; dedicated tests lack local authority presentation.",
+                _ => "Preserved real ENet gameplay/lifecycle integration"
+            }, token => _evidence.Measure(name, "network", async () =>
             {
                 await using var owned = new ScenarioScope(name, _evidence);
                 var worker = new Runner(options, token, _evidence, owned);
@@ -58,6 +63,8 @@ internal sealed partial class Runner
                     case "redistribution": await worker.Redistribution(owned.Port(), token); break;
                     case "defeat": await worker.Defeat(owned.Port(), token); break;
                     case "failure-cases": await worker.FailureCases(token); break;
+                    case "solo-session": await worker.SoloSessionTest(token); break;
+                    case "playing-host-lifecycle": await worker.PlayingHostLifecycleTest(owned.Port(), token); break;
                 }
                 await owned.DisposeAsync(); owned.CheckErrors();
             }))).ToArray();
@@ -65,7 +72,7 @@ internal sealed partial class Runner
         {
             Console.WriteLine($"Network coverage: {(options.Scenario is null ? "full" : "selected")}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
             await _evidence.Measure("network", "suite", () => ScenarioScheduler.Run(scenarios, options.Jobs, suite.Token));
-            Console.WriteLine(options.Scenario is null ? "Network verification passed (all four groups)." : $"Selected network scenario passed: {options.Scenario}.");
+            Console.WriteLine(options.Scenario is null ? "Network verification passed (all required groups)." : $"Selected network scenario passed: {options.Scenario}.");
         }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new TimeoutException($"Network suite exceeded {options.Timeout} ms; children were cleaned up."); }
     }
@@ -146,9 +153,8 @@ internal sealed partial class Runner
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        var started = await StartServer("transfer-server", port, token);
-        await using var server = started.Server; port = started.Port;
-        await using var a = StartGame("transfer-a", false, true, port, null, "--automated");
+        await using var a = StartGameRole("transfer-a", "playing-host", true, port);
+        await a.WaitFor(e => e.Type == "ready", "playing host transfer readiness", options.StartupTimeout, token);
         await using var b = StartGame("transfer-b", false, true, port, null, "--automated");
         string cPath = Path.Combine(_scope!.Directory, "observer.json");
         await using var c = StartGame("transfer-c", false, true, port, null, "--automated", "--session-file", cPath);

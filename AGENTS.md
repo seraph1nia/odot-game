@@ -1,6 +1,6 @@
 # Repository guidance
 
-Odot is a C# Godot cooperative game with a separate authoritative server.
+Odot is a C# Godot cooperative game with local, playing-host and dedicated authorities.
 Keep numerical rules in `src/Game.Core`, engine/presentation code in `src/Game`,
 and verification/process supervision in `tools/DevRunner`. Use `Odot.slnx` for
 the repository; Godot also needs its smaller `src/Game/Game.sln`.
@@ -55,17 +55,21 @@ One-off diagnostic scripts may inspect evidence but do not replace those checks.
 ## Execution and ownership
 
 Network ids: `authority-resume-victory`, `redistribution`, `defeat`,
-`failure-cases`. Default concurrency is two independent scenarios;
+`failure-cases`, `solo-session`, `playing-host-lifecycle`. Default concurrency is two independent scenarios;
 `--jobs 1` keeps the same coverage serially. Preserve endpoint owners on bind
-failures. UI source ids: `economy`, `reconnect`, `settings`; unfiltered source UI
-runs all three serially. `test-ui --scenario exported-package` checks existing
+failures. UI source ids: `economy`, `reconnect`, `settings`, `launcher`; unfiltered source UI
+runs all four serially, including `launcher`. `test-ui --scenario exported-package` checks existing
 exports without preparing source or implicitly rebuilding packages.
 
 Private-display verification currently supports Linux x86_64 with the README's
 Xvfb/Xauthority/X11/Mesa/Openbox prerequisites. Use owned X11 displays, software
-OpenGL and Dummy audio; missing prerequisites/rendering must fail, with no
-desktop fallback. `mise run dev` deliberately opens two playable desktop windows.
-Keep that development behavior.
+OpenGL and Dummy audio; missing prerequisites report unexecuted with a nonzero
+exit, while rendering/assertion failures report failed. No desktop fallback. `mise run dev` deliberately opens two playable desktop windows.
+Keep that development behavior: one playable ENet host plus one guest by default,
+with `--guests 1..3`. `play` opens the normal start screen. Steam paired checks
+are separate from ordinary CI and require two distinct accounts/machines; missing
+prerequisites are unexecuted. Never open real lobby/invitation UI during local UI
+checks; owned menu/solo UI uses `ODOT_STEAM_DISABLED=1`.
 
 Verification owns temporary per-client XDG data/config/cache, credentials,
 endpoints and explicit engine logs. An intentional restart reuses only its

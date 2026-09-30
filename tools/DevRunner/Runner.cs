@@ -12,7 +12,6 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
     private const string EngineVersion = "4.7.2";
     private readonly Evidence _evidence = evidence ?? new Evidence(FindRoot(), options.EvidenceDirectory);
     private readonly ScenarioScope? _scope = scope;
-    private string? _devSessions;
 
     public async Task Run()
     {
@@ -23,11 +22,15 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             switch (options.Command)
             {
                 case "help":
-                    Console.WriteLine("Commands: dev, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports)\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client also accept repeated --engine-arg VALUE.");
+                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports)\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
+                    Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] (two accounts/machines; normal desktop).\nClient packaging: export-client [--steam-app-id ID] [--production] (production requires own non-480 ID).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
                 case "prepare": await Prepare(); break;
+                case "check-steam-extension": await CheckSteamExtension(); break;
+                case "test-steam": await TestSteam(); break;
                 case "dev": await Interactive(); break;
                 case "server":
+                case "play":
                 case "client": await SingleRole(); break;
                 case "test-network": await Prepare(); await NetworkTests(); break;
                 case "check-ui-prerequisites": PrivateDisplay.CheckPrerequisites(); break;
@@ -43,6 +46,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                 default: throw new ArgumentException($"Unknown command: {options.Command}");
             }
         }
+        catch (VerificationPrerequisiteException) { result = "unexecuted"; throw; }
         catch { result = "failed"; throw; }
         finally
         {
@@ -120,17 +124,52 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
     private async Task Prepare()
     {
         await Preflight();
+        await VerifySteamFiles();
         await Execute("restore", "dotnet", "restore", "Odot.slnx", "--locked-mode");
         await BuildAndImport();
     }
     private async Task BuildAndImport()
     {
         await Execute("build", "dotnet", "build", "Odot.slnx", "--no-restore", "--nologo");
-        await Execute("import", "godot", "--headless", "--path", GameDirectory, "--editor", "--import");
+        await Import("import");
+    }
+
+    private Task Import(string name) => ExecuteEditor(name, options.StartupTimeout, false,
+        "--headless", "--path", GameDirectory, "--editor", "--import");
+
+    private async Task ExecuteEditor(string name, int timeout, bool exporting, params string[] args)
+    {
+        await _evidence.Measure(name, "phase", async () =>
+        {
+            EditorImports.SeedStartupExtensions(GameDirectory);
+            // Both measures are needed: early extension loading and a cold help cache
+            // avoid Godot's deferred extension-documentation callback after shutdown.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            deadline.CancelAfter(timeout);
+            await using var owned = new ScenarioScope(name, _evidence);
+            var environment = owned.EnvironmentFor("editor");
+            if (exporting)
+            {
+                // Stock export templates live in the normal data directory, not the help cache.
+                environment.Remove("XDG_DATA_HOME"); environment.Remove("ODOT_OWNED_DATA");
+            }
+            await using var child = owned.Own(new Child(name, "godot", args, _root,
+                environment: environment, evidenceDirectory: owned.EvidenceDirectory));
+            int code = await child.WaitExit(deadline.Token);
+            if (code != 0 || child.HasEngineErrors)
+                throw new InvalidOperationException($"{name} failed with exit {code} or engine errors.\n{child.Tail()}");
+            await owned.DisposeAsync(); owned.CheckErrors();
+        });
     }
 
     private Child StartGame(string name, bool server, bool headless, int port, string? exported = null, params string[] extra)
+        => StartGameRole(name, server ? "server" : "client", headless, port, exported, extra);
+
+    private Child StartGameRole(string name, string role, bool headless, int port, string? exported = null, params string[] extra)
     {
+        bool server = role is "server" or "playing-host";
+        bool guest = role == "client";
+        if (role is not ("server" or "playing-host" or "client" or "menu" or "solo")) throw new ArgumentException("Unknown game role: " + role);
         var args = new List<string>();
         if (headless) args.Add("--headless");
         if (_scope is not null) args.AddRange(["--log-file", Path.Combine(_scope.EvidenceDirectory, name + "-engine-" + Guid.NewGuid().ToString("N") + ".log")]);
@@ -143,42 +182,65 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             if (name == "client-b") args.AddRange(["--position", "900,80"]);
             args.AddRange(options.EngineArgs);
         }
-        args.AddRange(["--", server ? "--server" : "--client", "--supervised", "--port", port.ToString(CultureInfo.InvariantCulture), server ? "--bind" : "--host", server ? options.Bind : options.Host]);
-        if (!server && !extra.Contains("--session-file"))
+        args.AddRange(["--", "--supervised"]);
+        if (role != "menu") args.Add("--" + role);
+        if (server || guest) args.AddRange(["--port", port.ToString(CultureInfo.InvariantCulture), server ? "--bind" : "--host", server ? options.Bind : options.Host]);
+        if (guest && !extra.Contains("--session-file"))
         {
-            string session = _scope is not null ? Path.Combine(_scope.Directory, name + ".json") : _devSessions is not null ? Path.Combine(_devSessions, name + ".json")
+            string session = _scope is not null ? Path.Combine(_scope.Directory, name + ".json")
                 : options.SessionFile ?? Path.Combine(_root, ".sessions", $"{name}-{port}.json");
             args.AddRange(["--session-file", session]);
         }
         args.AddRange(extra);
+        var environment = _scope?.EnvironmentFor(name);
+        if (_scope?.Graphical == true && role is "menu" or "solo") environment!["ODOT_STEAM_DISABLED"] = "1";
+        bool steamDisabled = (environment?.GetValueOrDefault("ODOT_STEAM_DISABLED") ?? Environment.GetEnvironmentVariable("ODOT_STEAM_DISABLED")) == "1";
+        if (OperatingSystem.IsLinux() && System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64
+            && SteamOverlayLaunch.IsEligible(options.Command, role, headless || args.Contains("--headless"), _scope?.Graphical == true, steamDisabled))
+        {
+            string? preload = SteamOverlayLaunch.Preload(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.GetEnvironmentVariable("LD_PRELOAD"));
+            environment ??= new Dictionary<string, string?>();
+            environment["ODOT_STEAM_OVERLAY_PRELOADED"] = preload is null ? "0" : "1";
+            if (preload is not null)
+            {
+                environment["LD_PRELOAD"] = preload;
+                Console.WriteLine("Steam overlay renderer prepared for the game process.");
+            }
+            else Console.WriteLine("Steam overlay renderer was not found in the native Steam installation. Launch through Steam to use invitations; Single player remains available.");
+        }
         var child = new Child(name, exported ?? "godot", args, _root, game: true, quiet: headless || _scope is not null,
-            workingDirectory: exported is null ? _root : Path.GetDirectoryName(exported), environment: _scope?.EnvironmentFor(name), evidenceDirectory: _scope?.EvidenceDirectory ?? _evidence.Directory);
+            workingDirectory: exported is null ? _root : Path.GetDirectoryName(exported), environment: environment, evidenceDirectory: _scope?.EvidenceDirectory ?? _evidence.Directory,
+            sanitizeSteam: options.Command == "test-steam");
         return _scope?.Own(child) ?? child;
     }
 
     private async Task Interactive()
     {
         await Prepare();
-        _devSessions = Path.Combine(Path.GetTempPath(), "odot-dev-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_devSessions);
-        try
+        // Own per-process preferences and credentials, while using the normal desktop.
+        await using var owned = new ScenarioScope("dev", _evidence);
+        var worker = new Runner(options, cancellation, _evidence, owned);
+        int port = options.Port ?? 7000;
+        Child host = worker.StartGameRole("client-a", "playing-host", false, port);
+        await host.WaitFor(e => e.Type == "ready", "playing host readiness", options.StartupTimeout, cancellation);
+        var peers = new List<Child> { host };
+        for (int i = 0; i < options.Guests; i++)
         {
-            int port = options.Port ?? 7000;
-            await using var server = StartGame("server", true, true, port);
-            await server.WaitFor(e => e.Type == "ready", "server readiness", options.StartupTimeout, cancellation);
-            await using var a = StartGame("client-a", false, false, port);
-            await using var b = StartGame("client-b", false, false, port);
-            await Task.WhenAny(server.Exited, a.Exited, b.Exited).WaitAsync(cancellation);
-            int code = new[] { server, a, b }.First(p => p.HasExited).ExitCode;
-            if (code != 0) throw new InvalidOperationException($"A supervised game process exited with {code}.");
+            Child guest = worker.StartGameRole(i == 0 ? "client-b" : "client-" + (i + 2), "client", false, port);
+            peers.Add(guest);
+            await guest.WaitFor(e => e.Type == "connected", "guest admission", options.StartupTimeout, cancellation);
         }
-        finally { Directory.Delete(_devSessions, true); _devSessions = null; }
+        Console.WriteLine($"Development: playing host + {options.Guests} guest(s); close a window or Ctrl-C to stop owned peers.");
+        await Task.WhenAny(peers.Select(p => p.Exited)).WaitAsync(cancellation);
+        Child exited = peers.First(p => p.HasExited);
+        if (exited.ExitCode != 0) throw new InvalidOperationException($"{exited.Name} exited with {exited.ExitCode}.\n{exited.Tail()}");
+        await owned.DisposeAsync(); owned.CheckErrors();
     }
 
     private async Task SingleRole()
     {
         await Prepare();
-        await using var child = StartGame(options.Command, options.Command == "server", options.Command == "server", options.Port ?? 7000);
+        await using var child = StartGameRole(options.Command, options.Command == "play" ? "menu" : options.Command, options.Command == "server", options.Port ?? 7000);
         int code = await child.WaitExit(cancellation);
         if (code != 0) throw new InvalidOperationException($"{options.Command} exited with {code}.");
     }

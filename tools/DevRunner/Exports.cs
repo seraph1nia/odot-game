@@ -79,13 +79,23 @@ internal sealed partial class Runner
     {
         if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
             throw new InvalidOperationException("The initial export task targets Linux x86_64; cross-platform export CI is a later milestone.");
-        string kind = server ? "server" : "client";
+        SteamPackaging.ValidateAppId(options.Production, options.SteamAppId);
+        string kind = server ? "server" : options.Production ? "production-client" : "client";
         string directory = Path.Combine(_root, "dist", kind);
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         Directory.CreateDirectory(directory);
-        await Execute("export-" + kind, "godot", "--headless", "--path", GameDirectory,
-            "--export-release", server ? "Linux Server" : "Linux Client", Path.Combine(directory, "odot.x86_64"));
+        await ExecuteEditor("export-" + kind, options.Timeout, true, "--headless", "--path", GameDirectory,
+            "--export-release", server ? "Linux Server" : options.Production ? "Linux Production Client" : "Linux Client", Path.Combine(directory, "odot.x86_64"));
         if (!File.Exists(Path.Combine(directory, "odot.x86_64"))) throw new InvalidOperationException($"Missing {kind} export executable.");
+        string notices = Path.Combine(directory, "licenses", "godotsteam");
+        Directory.CreateDirectory(notices);
+        foreach (string name in new[] { "license.md", "README.odot.md", "manifest.json" })
+            File.Copy(Path.Combine(GameDirectory, "addons", "godotsteam", name), Path.Combine(notices, name));
+        if (!server && options.SteamAppId is { } appId)
+            await File.WriteAllTextAsync(Path.Combine(directory, "steam-app.cfg"),
+                "[steam]\napp_id=" + appId.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n", cancellation);
+        if (options.Production && Directory.EnumerateFiles(directory, "steam_appid.txt", SearchOption.AllDirectories).Any())
+            throw new InvalidOperationException("Production package includes a development steam_appid.txt.");
     }
 
     private async Task ExportSmoke()
@@ -112,9 +122,11 @@ internal sealed partial class Runner
     {
         PrivateDisplay.CheckPrerequisites();
         await Preflight();
+        await VerifySteamFiles();
         await Execute("restore", "dotnet", "restore", "Odot.slnx", "--locked-mode");
         await Execute("format", "dotnet", "format", "Odot.slnx", "--verify-no-changes", "--no-restore");
         await BuildAndImport();
+        await SteamExtensionProbe(exported: false, offline: true);
         await VerificationGate.Run(async () =>
         {
             await Task.WhenAll(Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo"),
@@ -129,6 +141,7 @@ internal sealed partial class Runner
         }, async () =>
         {
             await _evidence.Measure("export-smoke", "suite", ExportSmoke);
+            await SteamExtensionProbe(exported: true, offline: true);
             await UiTests("exported-package");
         });
         Console.WriteLine("CI checks and Linux exports passed. Outputs remain in dist/; nothing was uploaded or published.");

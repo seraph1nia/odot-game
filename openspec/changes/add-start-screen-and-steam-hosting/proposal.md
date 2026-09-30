@@ -13,8 +13,8 @@ The desktop game currently connects immediately to a separately launched server,
 - Reuse the settings/music work from `add-background-music-and-settings` and give it application lifetime across menus, lobbies, and matches. Add Return to menu and proper session/application shutdown.
 - Use the official GodotSteam GDExtension, including its native `SteamMultiplayerPeer`, through small C# interop helpers or minimal GDScript glue. Retain Godot RPCs; do not implement a Steam-to-Godot transport wrapper or automatically fall back to Steamworks.NET. Exclude beta C# bindings, paused/abandoned peer adapters, engine forks, and custom NAT/relay/reliability code.
 - Default Steam development runs and development exports to AppID **480**. Keep the production AppID separate. Pin the assessed upstream non-prerelease extension and record its publisher's unstable designation and remaining compatibility checks explicitly; choosing it for development does not establish release stability or complete multiplayer acceptance.
-- Preserve ENet for localhost development and CI. Extend the runner to launch a playing host plus guests; verify core/session rules, real process lifecycle, graphical controls, and a separate real-Steam export scenario.
-- Deliver everything as one OpenSpec change with seven ordered phases and explicit acceptance gates; do not treat a local substitute or skipped Steam check as completed Steam support.
+- Preserve ENet for localhost development and CI. Extend the runner to launch a playing host plus guests; verify core/session rules, real process lifecycle, graphical controls, and single-account native compatibility; provide a separate paired Steam runner for optional future verification.
+- Deliver implementation and local verification as one OpenSpec change. On 2026-09-30 the user explicitly excluded friend testing from this milestone and requested sync/archive after the locally executable work. Complete the local gates and archive with real-account, relay, own-AppID cold-launch and release qualifications recorded as deferred/unverified; no skipped Steam check counts as a pass.
 
 ## Capabilities
 
@@ -28,7 +28,7 @@ The desktop game currently connects immediately to a separately launched server,
 - `resumable-multiplayer`: Authority inside a playing host or local match, equivalent command validation, identity binding, and explicit host-loss behavior.
 - `coop-city-match`: One-player local matches and host-controlled start for hosted lobbies while retaining nine-slot economy/combat rules.
 - `city-tabletop`: Mode-aware lobby/control feedback and presentation that starts only for a selected session while preserving direct world interaction and headless exports.
-- `coop-verification`: Playing-host process coverage, Steam-independent development/CI, repeatable graphical E2E, separate real-Steam acceptance, and bounded session cleanup.
+- `coop-verification`: Playing-host process coverage, Steam-independent development/CI, repeatable graphical E2E, explicitly deferred real-Steam acceptance, and bounded session cleanup.
 
 ## Impact
 
