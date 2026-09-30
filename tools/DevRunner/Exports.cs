@@ -124,6 +124,12 @@ internal sealed partial class Runner
 
     private async Task Ci()
     {
+        await VerificationGate.Run(CiSource, CiLinuxExports, CiLinuxPackageChecks);
+        Console.WriteLine("CI checks and Linux exports passed. Outputs remain in dist/; nothing was uploaded or published.");
+    }
+
+    private async Task CiSource()
+    {
         PrivateDisplay.CheckPrerequisites();
         await Preflight();
         await VerifySteamFiles();
@@ -132,23 +138,33 @@ internal sealed partial class Runner
         await BuildAndImport();
         await SteamExtensionProbe(exported: false, offline: true);
         await BuildIdentityProbe(null);
-        await VerificationGate.Run(async () =>
-        {
-            await Task.WhenAll(Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo"),
-                Execute("tooling", "dotnet", "test", "tests/DevRunner.Tests/DevRunner.Tests.csproj", "--no-restore", "--no-build", "--nologo"), NetworkTests());
-            await UiTests(null);
-        }, async () =>
-        {
-            // Keep these calls sequential. Any failed check above must prevent both exports.
-            await PrepareTemplates();
-            await Export(false);
-            await Export(true);
-        }, async () =>
-        {
-            await _evidence.Measure("export-smoke", "suite", ExportSmoke);
-            await SteamExtensionProbe(exported: true, offline: true);
-            await UiTests("exported-package");
-        });
-        Console.WriteLine("CI checks and Linux exports passed. Outputs remain in dist/; nothing was uploaded or published.");
+        await Task.WhenAll(Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo"),
+            Execute("tooling", "dotnet", "test", "tests/DevRunner.Tests/DevRunner.Tests.csproj", "--no-restore", "--no-build", "--nologo"), NetworkTests());
+        await UiTests(null);
+        Console.WriteLine("All source gates passed; no exports performed.");
+    }
+
+    private async Task CiLinuxPackage()
+    {
+        PrivateDisplay.CheckPrerequisites();
+        await Prepare();
+        await CiLinuxExports();
+        await CiLinuxPackageChecks();
+        Console.WriteLine("Linux package checks passed; source gates are a separate required workflow job. No uploads or publication.");
+    }
+
+    private async Task CiLinuxExports()
+    {
+        // Sequential mutations of this workspace; GitHub gates this job on CiSource.
+        await PrepareTemplates();
+        await Export(false);
+        await Export(true);
+    }
+
+    private async Task CiLinuxPackageChecks()
+    {
+        await _evidence.Measure("export-smoke", "suite", ExportSmoke);
+        await SteamExtensionProbe(exported: true, offline: true);
+        await UiTests("exported-package");
     }
 }

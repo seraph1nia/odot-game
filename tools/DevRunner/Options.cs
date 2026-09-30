@@ -67,7 +67,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
         if (args.Contains("--jobs") && command != "test-network") throw new ArgumentException("--jobs belongs to test-network.");
         if (engineArgs.Count > 0 && command is not ("dev" or "client" or "play")) throw new ArgumentException("--engine-arg belongs to desktop dev/client/play tasks.");
-        if (command is "test-network" or "test-ui" or "_ui-worker" or "ci" && (host != "127.0.0.1" || bind != "127.0.0.1"))
+        if (command is "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows" && (host != "127.0.0.1" || bind != "127.0.0.1"))
             throw new ArgumentException("Verification owns loopback peers; use dev/client/server for other endpoints.");
         if (releaseTag is not null)
         {

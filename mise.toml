@@ -144,3 +144,16 @@ run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci"
 description = "Verify native Windows Steam/runtime exports and bounded offline solo (no publishing)"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-windows"
+raw_args = true
+
+[tasks.ci-source]
+description = "Run all formatting/build/rules/network/source UI gates without exports"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-source"
+raw_args = true
+
+[tasks.ci-linux-package]
+description = "Prepare/export/check Linux packages (workflow requires source gate first)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-linux-package"
+raw_args = true

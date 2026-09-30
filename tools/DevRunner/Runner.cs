@@ -46,6 +46,8 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     break;
                 case "export-server": await Prepare(); await PrepareTemplates(); await Export(true); break;
                 case "ci": await Ci(); break;
+                case "ci-source": await CiSource(); break;
+                case "ci-linux-package": await CiLinuxPackage(); break;
                 case "ci-windows": await WindowsCi(); break;
                 default: throw new ArgumentException($"Unknown command: {options.Command}");
             }
@@ -58,10 +60,12 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 "test-ui" or "_ui-worker" => "all source UI slices",
                 "ci" or "test-network" => "full required set",
+                "ci-source" => "all source gates; no exports or package coverage",
+                "ci-linux-package" => "Linux exports/native/headless/private UI; source gates separate",
                 "ci-windows" => "Windows source/native/export/offline solo; Linux and real Steam gates separate",
                 _ => "command only; no test coverage claimed"
             };
-            await _evidence.Summary(options.Command, coverage, options.Command is "ci" or "test-network" ? options.Jobs : 1, result, timer.Elapsed.TotalSeconds);
+            await _evidence.Summary(options.Command, coverage, options.Command is "ci" or "ci-source" or "test-network" ? options.Jobs : 1, result, timer.Elapsed.TotalSeconds);
         }
     }
 

@@ -3,7 +3,7 @@
 Distribution targets Windows x86_64 and Linux x86_64. The installer, update
 controls and release workflow are being implemented in
 `add-versioned-github-distribution`; the tagged export command below prepares
-an attributed Linux payload only. It does not constitute a verified release.
+an attributed desktop payload. It does not constitute a verified release.
 
 ## Versions and tagged payloads
 
@@ -49,7 +49,8 @@ and therefore require native Windows. Neither route creates an installer yet.
 
 ## Native Windows validation
 
-`mise run ci-windows` requires Windows x86_64 and the same locked SDK/engine.
+`mise run ci-windows --startup-timeout-ms 60000` requires Windows x86_64 and
+the same locked SDK/engine. The bounded allowance accommodates a cold import.
 It builds/imports source, checks source and exported Steam native classes and
 typed C# callbacks with Steam initialization disabled, exports the full desktop
 client, checks PCK/runtime/assembly/notices, and runs a bounded offline solo
@@ -58,13 +59,23 @@ use owned APPDATA/LOCALAPPDATA and a system-only PATH with SDK discovery
 environment removed. No preferences, Steam login or real invitation UI is used.
 Output stays in `dist/windows-client/`; local evidence stays in ignored logs.
 
-The `Verify Windows client` workflow runs on branches matching
-`ci/windows-distribution-*`, and can be manually retried after a push. It waits
-for the existing `Verify and build` Linux workflow for the identical commit
-to pass before using a native `windows-2025` runner. Build permissions are
-read-only; there are no artifact upload, publication or deployment steps.
-Manual discovery of a newly added workflow requires its definition on the
-default branch; its branch-push trigger bootstraps validation before merging.
+The `Verify and build` workflow runs on pushes, pull requests and manual
+dispatch. Its Linux `source` job runs `mise run ci-source`: formatting, locked
+restore/build/import, cheap unit tests, every network scenario and all source
+UI slices. Only after that job succeeds do `linux-package` and
+`windows-package` run in parallel on separate runners at the same source
+commit. Linux prepares its own checkout, exports client/server sequentially,
+then checks headless/native/private-display package behavior through
+`mise run ci-linux-package`. Windows uses native `windows-2025` and the command
+above. No mutable build/import output crosses runners. Both package jobs must
+pass for workflow success. Permissions remain read-only; no artifacts, logs or
+player state are uploaded, and there are no publication or deployment steps.
+
+`ci-source` and the packaging commands each report their selected coverage;
+running a packaging command alone does not establish source acceptance.
+Local `mise run ci` retains the complete Linux source/export/package gate and
+one shared source preparation. The future release workflow uses the same
+source-first/platform-parallel gates before its separate publication stage.
 
 Risk admission: one Windows offline-solo startup catches missing native/runtime
 or packed files that Linux cross-export inventory and unit tests miss. It reuses
