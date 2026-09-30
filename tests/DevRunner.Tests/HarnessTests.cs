@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using DevRunner;
 using Xunit;
 
@@ -6,6 +7,21 @@ namespace DevRunner.Tests;
 
 public sealed class HarnessTests
 {
+    [Fact]
+    public void NumericRunnerArgumentsUseInvariantCulture()
+    {
+        CultureInfo original = CultureInfo.CurrentCulture;
+        var culture = (CultureInfo)original.Clone();
+        culture.NumberFormat.PositiveSign = "plus";
+        try
+        {
+            CultureInfo.CurrentCulture = culture;
+            Options options = Options.Parse(["test-network", "--jobs", "+2", "--startup-timeout-ms", "+15000"]);
+            Assert.Equal(2, options.Jobs);
+            Assert.Equal(15000, options.StartupTimeout);
+        }
+        finally { CultureInfo.CurrentCulture = original; }
+    }
     [Theory]
     [InlineData("rules")]
     [InlineData("network")]
@@ -47,7 +63,7 @@ public sealed class HarnessTests
         int active = 0, max = 0, completed = 0;
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var scenarios = Enumerable.Range(0, 4).Select(n => new Scenario(n.ToString(), "fixture", async token =>
+        var scenarios = Enumerable.Range(0, 4).Select(n => new Scenario(n.ToString(CultureInfo.InvariantCulture), "fixture", async token =>
         {
             int count = Interlocked.Increment(ref active);
             Interlocked.Exchange(ref max, Math.Max(max, count));

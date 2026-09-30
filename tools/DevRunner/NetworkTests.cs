@@ -193,8 +193,8 @@ internal sealed partial class Runner
         var retried = await StartServer("readiness-server", port, token);
         await using var readiness = retried.Server;
         Require(retried.Port != port && occupied.IsBound, "automatic bind collision retries without touching endpoint owner");
-        try { await readiness.WaitFor(e => e.Type == "missing", "missing readiness", 200, token); throw new Exception("Missing readiness passed."); } catch (TimeoutException) { Require(true, "missing readiness deadline"); }
+        try { await readiness.WaitFor(e => e.Type == "missing", "missing readiness", 200, token); throw new InvalidOperationException("Missing readiness passed."); } catch (TimeoutException) { Require(true, "missing readiness deadline"); }
         await readiness.Send("quit"); await readiness.WaitExit(token);
-        try { await readiness.WaitFor(e => e.Type == "missing", "exited child", 1000, token); throw new Exception("Exited child passed."); } catch (InvalidOperationException e) when (e.Message.Contains("exited before", StringComparison.Ordinal)) { Require(true, "exited child fails pending expectation"); }
+        try { await readiness.WaitFor(e => e.Type == "missing", "exited child", 1000, token); throw new InvalidOperationException("Exited child passed."); } catch (InvalidOperationException e) when (e.Message.Contains("exited before", StringComparison.Ordinal)) { Require(true, "exited child fails pending expectation"); }
     }
 }

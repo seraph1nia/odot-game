@@ -86,9 +86,9 @@ public sealed class WorldTests
     {
         Match m = Started(); var ledger = new CommandLedger(); Command command = Cmd(m, 1, "build", 0, Building.Farm, 5);
         CommandResult once = ledger.Execute(command, () => m.Apply(1, command));
-        Assert.Equal(once, ledger.Execute(command, () => throw new Exception("Executed twice"))); Assert.Equal(40, m.Players[1].Gold);
+        Assert.Equal(once, ledger.Execute(command, () => throw new InvalidOperationException("Executed twice"))); Assert.Equal(40, m.Players[1].Gold);
         Command bad = command with { Sequence = 6, Slot = 0 }; Assert.False(ledger.Execute(bad, () => m.Apply(1, bad)).Accepted);
-        Assert.False(ledger.Execute(bad with { Slot = 1 }, () => throw new Exception("Reused rejection")).Accepted);
+        Assert.False(ledger.Execute(bad with { Slot = 1 }, () => throw new InvalidOperationException("Reused rejection")).Accepted);
         Assert.True(ledger.Execute(command with { Sequence = 7, Slot = 1 }, () => m.Apply(1, command with { Sequence = 7, Slot = 1 })).Accepted);
     }
     [Fact]

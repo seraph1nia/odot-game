@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -37,7 +38,7 @@ internal static class PrivateDisplay
     {
         string renderer = info.Split('\n').FirstOrDefault(s => s.StartsWith("OpenGL renderer string:", StringComparison.Ordinal)) ?? "";
         Match version = Regex.Match(info, @"OpenGL version string: (\d+)\.(\d+)");
-        if (!version.Success || new Version(int.Parse(version.Groups[1].Value), int.Parse(version.Groups[2].Value)) < new Version(3, 3) ||
+        if (!version.Success || new Version(int.Parse(version.Groups[1].Value, CultureInfo.InvariantCulture), int.Parse(version.Groups[2].Value, CultureInfo.InvariantCulture)) < new Version(3, 3) ||
             !(renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException("Owned display needs Mesa software OpenGL >= 3.3.\n" + info);
         return renderer;
@@ -99,9 +100,9 @@ internal sealed partial class Runner
         var args = new List<string> { "xvfb-run", "--auto-servernum", "--auth-file", Path.Combine(display.Directory, "xauthority"),
             "--error-file", Path.Combine(display.EvidenceDirectory, "xvfb.log"), "--server-args=-screen 0 1920x1080x24 -nolisten tcp",
             "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", _evidence.Directory, "--worker-token", token,
-            "--startup-timeout-ms", options.StartupTimeout.ToString(), "--timeout-ms", options.Timeout.ToString() };
+            "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
         if (selection is not null) args.AddRange(["--scenario", selection]);
-        if (options.Port is not null) args.AddRange(["--port", options.Port.Value.ToString()]);
+        if (options.Port is not null) args.AddRange(["--port", options.Port.Value.ToString(CultureInfo.InvariantCulture)]);
         try
         {
             await _evidence.Measure(selection == "exported-package" ? "exported-ui" : "source-ui", "suite", async () =>

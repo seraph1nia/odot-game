@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
@@ -16,11 +17,12 @@ internal sealed record Measurement(string Name, string Kind, string Result, Date
 
 internal sealed class Evidence
 {
+    public static JsonSerializerOptions JsonOptions { get; } = new() { WriteIndented = true };
     private readonly ConcurrentQueue<Measurement> _results = new();
     public string Directory { get; }
     public Evidence(string root, string? directory = null)
     {
-        Directory = directory ?? Path.Combine(root, "logs", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory = directory ?? Path.Combine(root, "logs", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N")[..8]);
         System.IO.Directory.CreateDirectory(Directory);
         Console.WriteLine($"Evidence: {Directory}");
     }
@@ -37,7 +39,7 @@ internal sealed class Evidence
         {
             var measurement = new Measurement(name, kind, result, started, timer.Elapsed.TotalSeconds, condition);
             _results.Enqueue(measurement);
-            await File.WriteAllTextAsync(Path.Combine(Directory, name + ".json"), JsonSerializer.Serialize(measurement, new JsonSerializerOptions { WriteIndented = true }));
+            await File.WriteAllTextAsync(Path.Combine(Directory, name + ".json"), JsonSerializer.Serialize(measurement, JsonOptions));
             Console.WriteLine($"RESULT {kind}: {name} {result} {measurement.Seconds:F2}s{(condition is null ? "" : ": " + condition)}");
         }
     }
@@ -45,7 +47,7 @@ internal sealed class Evidence
     {
         var report = new { Command = command, Coverage = coverage, Jobs = jobs, Result = result, Seconds = seconds, Measurements = _results.ToArray() };
         string name = command == "_ui-worker" ? "ui-" + (coverage.Contains("exported-package", StringComparison.Ordinal) ? "package" : "source") : command.TrimStart('_');
-        await File.WriteAllTextAsync(Path.Combine(Directory, name + "-summary.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+        await File.WriteAllTextAsync(Path.Combine(Directory, name + "-summary.json"), JsonSerializer.Serialize(report, JsonOptions));
         Console.WriteLine($"{command}: {coverage}; jobs={jobs}; {result}; {seconds:F2}s. Evidence: {Directory}");
     }
 }

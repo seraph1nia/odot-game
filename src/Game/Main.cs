@@ -1,8 +1,11 @@
+using System.Globalization;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Game.Core;
 using Godot;
+
+namespace Game;
 
 public partial class Main : Node
 {
@@ -58,10 +61,10 @@ public partial class Main : Node
                     _server = args[i] == "--server"; roleSet = true; break;
                 case "--host": _host = Value(); break;
                 case "--bind": bind = Value(); break;
-                case "--port": _port = int.Parse(Value()); break;
+                case "--port": _port = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--session-file": sessionPath = Value(); break;
-                case "--protocol-version": _version = int.Parse(Value()); break;
-                case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value()); break;
+                case "--protocol-version": _version = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--automated": _automated = true; break;
                 case "--supervised": _supervised = true; break;
                 default: throw new ArgumentException($"Unknown game argument: {args[i]}");
@@ -283,11 +286,11 @@ public partial class Main : Node
                     SendRequest(new(_session!.Reserve(), State!.MatchId, State.Phase, 1, "ready", PlayerId)); break;
                 case "raw" when Connected: RpcId(1, MethodName.Request, text[4..]); break;
                 case "retry" when Connected:
-                    Command? saved = _sent.GetValueOrDefault(long.Parse(parts[1]));
+                    Command? saved = _sent.GetValueOrDefault(long.Parse(parts[1], CultureInfo.InvariantCulture));
                     if (saved is not null) SendRequest(saved); else Feedback = "Original request unavailable in this process; use raw to resend its identity.";
                     break;
-                case "build": SendAction("build", int.Parse(parts[1]), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3]) : 0); break;
-                case "upgrade": case "recruit": SendAction(parts[0], int.Parse(parts[1])); break;
+                case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
+                case "upgrade": case "recruit": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
                 default: SendAction(parts[0]); break;
             }
         }

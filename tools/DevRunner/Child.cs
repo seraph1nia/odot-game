@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -176,8 +178,8 @@ internal sealed class Child : IAsyncDisposable
         {
             if (_ownsGroup)
             {
-                Kill(-_process.Id, 15);
-                try { await Exited.WaitAsync(TimeSpan.FromSeconds(5)); } catch (TimeoutException) { Kill(-_process.Id, 9); }
+                SignalOwnedGroup(15);
+                try { await Exited.WaitAsync(TimeSpan.FromSeconds(5)); } catch (TimeoutException) { SignalOwnedGroup(9); }
             }
             else if (!_process.HasExited)
             {
@@ -191,14 +193,22 @@ internal sealed class Child : IAsyncDisposable
         {
             // xvfb-run's EXIT trap signals Xvfb without awaiting its final cache writes.
             // Drain the owned group before deleting the display's runtime directory.
-            Kill(-_process.Id, 15);
+            SignalOwnedGroup(15);
             var deadline = Stopwatch.StartNew();
             while (GroupRunning(_process.Id) && deadline.Elapsed < TimeSpan.FromSeconds(1)) await Task.Delay(25);
-            if (GroupRunning(_process.Id)) Kill(-_process.Id, 9);
+            if (GroupRunning(_process.Id)) SignalOwnedGroup(9);
             while (GroupRunning(_process.Id) && deadline.Elapsed < TimeSpan.FromSeconds(3)) await Task.Delay(25);
             if (GroupRunning(_process.Id)) throw new TimeoutException($"Owned process group {_process.Id} did not stop.");
         }
         _log.Dispose(); _process.Dispose();
+    }
+    private void SignalOwnedGroup(int signal)
+    {
+        if (Kill(-_process.Id, signal) == 0) return;
+        int error = Marshal.GetLastPInvokeError();
+        // Linux ESRCH: the owned process group has already exited.
+        if (error == 3) return;
+        throw new Win32Exception(error, $"Could not signal owned process group {_process.Id} with signal {signal}.");
     }
     private static bool GroupRunning(int group)
     {
@@ -209,7 +219,7 @@ internal sealed class Child : IAsyncDisposable
             {
                 string stat = File.ReadAllText(Path.Combine(directory, "stat"));
                 string[] fields = stat[(stat.LastIndexOf(')') + 2)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (fields[0] != "Z" && int.Parse(fields[2]) == group) return true;
+                if (fields[0] != "Z" && int.Parse(fields[2], CultureInfo.InvariantCulture) == group) return true;
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }

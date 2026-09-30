@@ -1,6 +1,8 @@
 using Game.Core;
 using Godot;
 
+namespace Game;
+
 // Entirely client-side presentation. Every interaction submits an ordinary command.
 public partial class Tabletop(Main game) : Node3D
 {
@@ -428,14 +430,14 @@ public partial class Tabletop(Main game) : Node3D
         for (int slot = 0; slot < 9; slot++) if (VillageLayout.Contains(slot, point)) return slot;
         return -1;
     }
-    public override void _UnhandledInput(InputEvent input)
+    public override void _UnhandledInput(InputEvent @event)
     {
-        if (!_settings.IsOpen && input.IsActionPressed("ui_cancel", false))
+        if (!_settings.IsOpen && @event.IsActionPressed("ui_cancel", false))
         {
             _settings.Open(); GetViewport().SetInputAsHandled(); return;
         }
         if (_settings.IsOpen) return;
-        if (!game.Connected || input is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
+        if (!game.Connected || @event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
         int selected = Pick(mouse.Position);
         if (selected >= 0) _slot = selected;
     }

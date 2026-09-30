@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using Game.Core;
@@ -142,7 +143,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             if (name == "client-b") args.AddRange(["--position", "900,80"]);
             args.AddRange(options.EngineArgs);
         }
-        args.AddRange(["--", server ? "--server" : "--client", "--supervised", "--port", port.ToString(), server ? "--bind" : "--host", server ? options.Bind : options.Host]);
+        args.AddRange(["--", server ? "--server" : "--client", "--supervised", "--port", port.ToString(CultureInfo.InvariantCulture), server ? "--bind" : "--host", server ? options.Bind : options.Host]);
         if (!server && !extra.Contains("--session-file"))
         {
             string session = _scope is not null ? Path.Combine(_scope.Directory, name + ".json") : _devSessions is not null ? Path.Combine(_devSessions, name + ".json")

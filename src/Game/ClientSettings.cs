@@ -1,5 +1,7 @@
 using Godot;
 
+namespace Game;
+
 // Instantiated only by the graphical presentation, independently of match/session state.
 public partial class ClientSettings : Node
 {

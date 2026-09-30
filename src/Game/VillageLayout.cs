@@ -1,5 +1,7 @@
 using Godot;
 
+namespace Game;
+
 // Decorative geometry only; these IDs remain the nine authoritative array indices.
 internal static class VillageLayout
 {

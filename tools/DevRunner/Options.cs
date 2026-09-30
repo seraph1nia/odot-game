@@ -1,3 +1,4 @@
+using System.Globalization;
 namespace DevRunner;
 
 internal sealed record Options(string Command, string Host, string Bind, int? Port, int StartupTimeout, int Timeout, string[] EngineArgs, string? SessionFile,
@@ -22,12 +23,12 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             {
                 case "--host": host = Value(); break;
                 case "--bind": bind = Value(); break;
-                case "--port": port = int.Parse(Value()); break;
-                case "--startup-timeout-ms": startup = int.Parse(Value()); break;
-                case "--timeout-ms": timeout = int.Parse(Value()); break;
+                case "--port": port = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--startup-timeout-ms": startup = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--timeout-ms": timeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--session-file": sessionFile = Value(); break;
                 case "--engine-arg": engineArgs.Add(Value()); break;
-                case "--jobs": jobs = int.Parse(Value()); break;
+                case "--jobs": jobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--scenario": scenario = Value(); break;
                 case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
                 case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;

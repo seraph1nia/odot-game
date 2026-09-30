@@ -37,7 +37,11 @@ The runner needs `setsid` from util-linux (normally present), and verifies Mesa 
 - `tools/DevRunner`: C# process supervision, integration checks and export preparation.
 - `openspec`: Change planning and capability specifications.
 
-Track source scenes/assets, source resource UID sidecars, project files, export presets and dependency/tool locks. Generated `.godot` data, `bin`, `obj`, `dist`, logs and local overrides are ignored. Use UTF-8/LF and `dotnet format Odot.slnx` for C# formatting. Commit the lockfiles with dependency updates.
+Track source scenes/assets, source resource UID sidecars, project files, export presets and dependency/tool locks. Generated `.godot` data, `bin`, `obj`, `dist`, logs and local overrides are ignored. Use UTF-8/LF and `dotnet format Odot.slnx --no-restore` after a locked restore for C# formatting. Commit the lockfiles with dependency updates.
+
+All C# projects inherit strict compilation from `Directory.Build.props`: nullable reference checking and implicit usings are enabled, and compiler/analyzer warnings fail the build. The locked SDK supplies the recommended .NET analyzers (`AnalysisLevel=latest-recommended`) without an extra NuGet dependency. Style analysis also runs during compilation; `.editorconfig` requires file-scoped namespaces and readonly fields where possible, and the formatting check rejects whitespace drift. Fix diagnostics rather than weakening enforcement or suppressing findings.
+
+The verification loop is `mise run check` (locked restore and `dotnet format --verify-no-changes`), `mise run build`, then `mise run test`, followed by the affected `test-network`/`test-ui` slice. `mise run ci` requires formatting, strict compilation, both xUnit suites, all Godot network/source UI checks and both exported-package smoke checks, while sharing source preparation and gating exports as described below.
 
 `Odot.slnx` is the repository solution. `src/Game/Game.sln` is the small engine-local solution required by Godot's C# editor/exporter; it includes the game and its core dependency, while tests and tooling stay outside the Godot import root. The explicit game target framework prevents the editor from inserting its default framework during import.
 

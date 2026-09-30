@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Game.Core;
 
+namespace Game;
+
 // Private client data. Never include credentials in diagnostics or public snapshots.
 public sealed record LocalSession(string Endpoint, string MatchId, string Token, long NextSequence);
 public sealed class SessionFile(string path, string endpoint)

@@ -430,3 +430,47 @@ locked toolchain and read-only permissions. No checks silently skip, and no
 upload/publish/deploy steps were added. The hosted Actions job was not run from
 this workspace. Windows/macOS, native Wayland/GPU behavior, physical input and
 new listening checks were not executed as part of this change.
+
+## Strict C# compilation
+
+On 2026-09-30, full `mise run ci` passed before strict enforcement changes in
+110.56 seconds including supervisor bootstrap (runner: 107.58 seconds), and
+after implementation in 109.32 seconds (runner: 106.53 seconds). Both used the
+locked SDK 10.0.401 and Godot .NET 4.7.2 on this Linux host with available build,
+import, NuGet and export-template caches. The final working tree is based on
+`c49127317f575d1f8c5ae470cefd86f7620e9c5b`; only documentation/planning updates
+followed the final run. This is a single before/after correctness gate, without
+a performance claim or a new fresh-source/platform check.
+
+All projects retain nullable reference checking, implicit usings and warnings
+as errors, with explicit recommended SDK analyzers and build-time style
+enforcement added. Findings were fixed without rule exclusions or suppressions:
+invariant machine-facing numbers/timestamps, namespaced Godot types, cached
+JSON serializer options, specific exceptions, matching override parameters and
+checked native process-group signal results. Linux ESRCH is handled as an
+already-exited owned group; other signaling errors fail explicitly.
+
+Temporary source probes verified ordinary compilation rejects nullable returns
+with CS8603, a code-quality violation with CA2201 and a mutable field eligible
+for readonly with IDE0044. Formatting verification rejected a whitespace probe
+without rewriting it. The probes were removed before final CI; their diagnostic
+logs remain in ignored `logs/strict-csharp/`. A checked-in cheap regression
+verifies runner numeric arguments under a culture with a different positive
+sign. Final strict compilation reported zero warnings/errors; 17 core and
+20 runner xUnit cases passed, including the existing descendant cleanup fixture.
+
+Every existing integration gate passed: all four headless network scenarios,
+the three source private-display UI slices, sequential Linux client/server
+exports, ordinary-protocol exported smoke and graphical exported-package smoke.
+The final network set took 62.48 seconds, source UI 16.24 seconds, exports
+4.86/3.38 seconds and package smoke 0.84/6.66 seconds. Comparable baseline phases
+were 62.89, 16.81, 4.65/3.54 and 1.09/6.65 seconds respectively; host/cache timing
+variation applies. No expensive scenarios or dependency/tool lock changes were
+added. Existing graphical/native-device coverage limitations remain.
+
+Baseline evidence is in ignored `logs/20260930-114515-b476dd8a/`; final evidence,
+including timing JSON and PNG checkpoints, is in
+`logs/20260930-115317-d18ee2b9/`. Console copies are
+`logs/strict-csharp/baseline-ci.log` and `logs/strict-csharp/final-ci.log`.
+The OpenSpec sync records the strict contract in `linux-test-execution`;
+specification and strict change validation pass.
