@@ -22,7 +22,7 @@ public sealed partial class WorkflowPolicyTests
         Assert.Contains("on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]", ci, StringComparison.Ordinal);
         Assert.DoesNotContain("workflow_dispatch:", ci, StringComparison.Ordinal);
         Assert.Contains("  linux-package:", ci, StringComparison.Ordinal);
-        Assert.DoesNotContain("\n  windows-package:", ci, StringComparison.Ordinal);
+        Assert.Contains("\n  windows-package:", ci, StringComparison.Ordinal);
         Assert.Contains("on:\n  release:\n    types: [published]", release, StringComparison.Ordinal);
         Assert.DoesNotContain("\n  push:", release, StringComparison.Ordinal);
         Assert.DoesNotContain("\n  pull_request:", release, StringComparison.Ordinal);

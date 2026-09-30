@@ -230,3 +230,21 @@ slice. All upstream actions in both workflows are pinned to immutable commit
 SHAs with their current release labels; the workflow policy tests reject a
 floating `uses:` reference, an upload in ordinary CI or a test-suite command in
 the release workflow.
+
+The nonpublishing hosted run at
+https://github.com/seraph1nia/odot-game/actions/runs/36763314446 used the pinned
+actions. Its source gate passed in 3m13s. The tagged Linux package passed in
+64.74s, the ordinary exported-package checks passed in 79.47s, and the actual
+installed Linux graphical slice passed in 30.17s; `verify-installed-linux`
+completed in 34.35s with owned paths and cleanup. The overall run is red only
+because its now-deferred Windows diagnostic also ran on the earlier validation
+revision.
+
+The Windows runner successfully downloaded and checksum-verified Inno Setup
+6.7.3, exported the tagged Windows client and verified its build identity. The
+compiler invocation then failed by showing ISCC usage, so no installer was
+created and no install/upgrade/uninstall claim is made. The owner accepted this
+as deferred work and requested that ordinary CI comment out its Windows job for
+now. Tasks 2.3, 2.4, 5.4 and the Windows portion of 7.2 remain unchecked. The
+release workflow still attempts the native Windows package; a release will not
+attach partial assets when that build fails.

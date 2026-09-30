@@ -856,7 +856,15 @@ Selected `verify-installed-linux` and `verify-installed-windows` commands remain
 available for deliberate package qualification without implicit rebuilds.
 
 The release workflow has not published anything. The repository was still
-private during implementation, and no real tag or release was created. Native
-Windows installer evidence is recorded from the nonpublishing validation branch
-when available; Windows graphical interaction and genuine paired Steam
-invitation/relay/cold-launch acceptance remain separate and unclaimed.
+private during implementation, and no real tag or release was created. Windows
+installer, graphical interaction and genuine paired Steam
+invitation/relay/cold-launch acceptance remain unclaimed.
+
+The pinned-action nonpublishing run
+https://github.com/seraph1nia/odot-game/actions/runs/36763314446 passed its source
+gate and complete tagged Linux path: package build, ordinary exported checks,
+installed graphical solo checks and owned uninstall cleanup. Its Windows export
+and build identity passed, but ISCC printed its usage and produced no installer.
+The owner accepted Windows installer qualification as deferred and requested
+that the ordinary-CI Windows job be commented out. The release workflow still
+attempts Windows packaging and will attach no partial release when it fails.
