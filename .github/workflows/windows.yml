@@ -55,4 +55,5 @@ jobs:
         run: mise install --locked dotnet godot-dotnet
       - name: Verify native source, export and standalone offline solo
         shell: pwsh
-        run: mise run ci-windows
+        # A cold Windows asset import exceeds the local 15-second startup default.
+        run: mise run ci-windows --startup-timeout-ms 60000
