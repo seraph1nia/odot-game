@@ -7,6 +7,7 @@
     <ProjectReference Include="../../src/Game.Core/Game.Core.csproj" />
     <Compile Include="../../src/Game/Distribution/ReleaseVersion.cs" Link="Distribution/ReleaseVersion.cs" />
     <Compile Include="../../src/Game/Distribution/ReleaseIdentity.cs" Link="Distribution/ReleaseIdentity.cs" />
+    <Compile Include="../../src/Game/Distribution/ReleaseDiscovery.cs" Link="Distribution/ReleaseDiscovery.cs" />
     <Compile Include="../../src/Game/AudioMixProgress.cs" Link="AudioMixProgress.cs" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ mise run test
 
 Tools are declared in `mise.toml` and resolved in `mise.lock`: Godot **.NET** 4.7.2 and .NET SDK 10.0.401. Do not substitute the standard Godot edition or move the executable away from its GodotSharp files. The SDK selection in `global.json` is exact. NuGet dependencies are declared in the projects and checked with locked restores against the repository's configured nuget.org feed. Task execution never silently installs or upgrades global tools.
 
-The initial host configurations cover Linux x86_64, Windows x86_64, and macOS Intel/Apple Silicon. CI verifies Linux only. Node/OpenSpec remain available for planning; neither is a gameplay dependency. Mise's core .NET backend uses its upstream installer; SDK archive metadata in the lock comes from Microsoft's release manifest. Refresh that metadata when deliberately changing SDK versions.
+The initial host configurations cover Linux x86_64, Windows x86_64, and macOS Intel/Apple Silicon. CI verifies Linux and native Windows x86_64 distribution paths; macOS is not a release target. Node/OpenSpec remain available for planning; neither is a gameplay dependency. Mise's core .NET backend uses its upstream installer; SDK archive metadata in the lock comes from Microsoft's release manifest. Refresh that metadata when deliberately changing SDK versions.
 
 Private-display UI verification currently supports Linux x86_64. Install its OS packages yourself; runner tasks report missing prerequisites and never install them or fall back to desktop windows:
 
@@ -45,7 +45,7 @@ The verification loop is `mise run check` (locked restore and `dotnet format --v
 
 `Odot.slnx` is the repository solution. `src/Game/Game.sln` is the small engine-local solution required by Godot's C# editor/exporter; it includes the game and its core dependency, while tests and tooling stay outside the Godot import root. The explicit game target framework prevents the editor from inserting its default framework during import.
 
-The game keeps separate Debug and ExportRelease NuGet locks because Godot includes its editor assembly only in development builds. The game and core declare the Linux export runtime in advance so publishing does not rewrite their locks. Deliberate dependency updates require `dotnet restore --force-evaluate -p:RestoreLockedMode=false`; regenerate the game export lock with `-p:Configuration=ExportRelease -r linux-x64` as well, then run `ci` and review the resulting lock changes.
+The game keeps separate Debug and ExportRelease NuGet locks because Godot includes its editor assembly only in development builds. The game and core declare the `linux-x64` and `win-x64` export runtimes in advance so publishing does not rewrite their locks. Deliberate dependency updates require `dotnet restore --force-evaluate -p:RestoreLockedMode=false`; regenerate the game export lock with `-p:Configuration=ExportRelease` as well, then run `ci` and review the resulting lock changes.
 
 ## Gameplay
 
@@ -94,16 +94,21 @@ Run `prepare` first for direct commands. Headless is a display mode; explicit `-
 
 The runner logs each process separately under ignored `logs/` and prints failed conditions with process output. Startup readiness has a 15-second deadline; network and UI suites each default to 180 seconds. Override with `--startup-timeout-ms` and `--timeout-ms` on network/UI tasks; dev also accepts the startup deadline. Network tests default to a dynamically selected loopback UDP port; pass `--port` for a specific endpoint. An occupied explicit port fails without killing its owner. Graphical clients show connecting, connected, connection-failed and server-disconnected status.
 
-Standalone network/source UI tasks prepare safely. `ci` restores the solution, checks formatting and compiles/imports once, overlaps cheap rules/tooling checks with all bounded network cases, then requires all source UI slices **before** Linux client/server exports. Exports remain ordered. Headless exported-role smoke and the minimal private-display exported-package slice gate final success. A failed source gate prevents both exports. GitHub Actions provisions graphics prerequisites and runs the same task on pushes/PRs with read-only repository permissions. Outputs stay in the workspace: **no uploads, releases, publishing or deployment**.
+Standalone network/source UI tasks prepare safely. `ci` restores the solution, checks formatting and compiles/imports once, overlaps cheap rules/tooling checks with all bounded network cases, then requires all source UI slices **before** Linux client/server exports. Exports remain ordered. Headless exported-role smoke and the minimal private-display exported-package slice gate final success. A failed source gate prevents both exports. GitHub Actions provisions graphics prerequisites and runs these source and package gates in separate dependent jobs on pushes/PRs, adding native Windows packaging alongside Linux with read-only repository permissions. Outputs stay in the workspace: **no uploads, releases, publishing or deployment**.
 
 ```sh
 mise run prepare-templates
 mise run export-client
+mise run export-client --target windows-x64
 mise run export-server
 mise run test-ui --scenario exported-package
 ```
 
-Matching .NET export templates are downloaded explicitly, checksum-verified and installed in Godot's user template directory. This is engine data, separate from mise tools and NuGet dependencies. Repeating preparation is safe. Exports go to ignored `dist/client` and `dist/server`. Individual export tasks are available for local iteration; CI applies the test gate before invoking them. Windows/macOS clients are desktop targets, with Linux the first export/CI platform.
+Matching .NET export templates are downloaded explicitly, checksum-verified and installed in Godot's user template directory. This is engine data, separate from mise tools and NuGet dependencies. Repeating preparation is safe. Linux exports go to ignored `dist/client` and `dist/server`; Windows desktop exports go to `dist/windows-client`. Individual export tasks are available for local iteration; CI applies the test gate before invoking them. Linux can cross-export Windows for inventory inspection; native launch verification requires Windows x86_64.
+
+On native Windows, `mise run ci-windows --startup-timeout-ms 60000` performs locked restore, formatting, build/import, offline native Steam source/export probes, package/runtime inventory checks and a bounded standalone solo launch. It uses isolated APPDATA/LOCALAPPDATA and removes SDK discovery from exported processes. GitHub's `Verify and build` workflow runs `ci-source` first, then `ci-linux-package` and native Windows checks in parallel on separate runners at the same commit. Both packaging jobs require complete source success; Linux client/server exports remain sequential. Each runner prepares its own checkout without transferring mutable build/import output. Local `mise run ci` retains its complete Linux checks with one source preparation. This ordinary workflow has no uploads or publishing.
+
+The separate `Build published release` workflow responds only when the owner publishes an existing GitHub release. It checks the exact SemVer tag and public repository, then runs source gates followed by native Linux/Windows package, installation and removal checks. Its final job alone attaches the verified installer, archive, install script, checksum manifest and public build metadata. Release runs never publish logs or player state and never overwrite an existing version. See [distribution documentation](docs/distribution.md) for friend-facing installation, manual updates, supported Linux systems and the release procedure.
 
 The selected `exported-package` slice uses existing exports without source preparation or implicit rebuilding, and fails clearly if either executable is missing. It checks packed resources, one real UI purchase, launcher/solo transitions and rendered checkpoints. Every verification scenario owns temporary XDG preferences/cache, sessions, ports and explicit engine logs; restart reuses its client's owned state. Evidence remains in ignored `logs/<run-id>/`, with phase/scenario JSON timings, renderer information, logs and PNGs. Owned runtime/display state is removed on success, failure, timeout or interruption. Diagnostic selected runs are partial coverage, not full-suite passes.
 
@@ -111,7 +116,7 @@ During development, run applicable cheap `test` checks frequently and choose the
 
 Add expensive tests only for a meaningful regression/risk that cheaper or existing checks miss. Document that gap and expected runtime/setup/maintenance cost alongside the scenario. Prefer a small independent vertical slice or an extension to an existing case. A simple option does not automatically warrant E2E coverage; avoid feature/option matrices and graphical duplication of full headless match flows. The initial slices protect actual picking/control routing, visible reconnect recovery, modal/persistence boundaries and packed-resource loading.
 
-The current verified workflow includes 50 gameplay and 51 runner xUnit cases, six network scenarios, four source UI slices and Linux package checks. Fresh-source launcher CI took 148.29 seconds; the subsequent overlay-fix CI took 145.34 seconds. Network elapsed time was about 62 seconds with two workers. These are single-run observations, not a portable benchmark; see [POC verification](docs/verification.md) for evidence and limitations. Actual `mise run dev` host/guest startup and native-close cleanup also passed. Real Steam peer/invitation/relay acceptance remains pending friend testing. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
+The current cheap suites include 55 gameplay and 102 runner xUnit cases, alongside six network scenarios, four source UI slices and platform package checks. Native Windows source/export validation has passed on GitHub-hosted `windows-2025`; actual release-installer verification runs when a tagged release is manually published. Timing observations are single runs rather than portable benchmarks; see [POC verification](docs/verification.md) for evidence and limitations. Real Steam peer/invitation/relay acceptance remains separate. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
 
 ## Reconnect and local sessions
 
@@ -150,7 +155,7 @@ Steam launch; see [Valve's Linux FAQ](https://partner.steamgames.com/doc/store/a
 
 The pinned official [GodotSteam GDExtension](src/Game/addons/godotsteam/README.odot.md)
 uses its native `SteamMultiplayerPeer` through small C# helpers and Godot RPCs.
-Linux x86_64 is the packaged Steam target. Development defaults to **AppID 480**;
+Desktop exports include Linux and Windows x86_64 Steam libraries. Development defaults to **AppID 480**;
 `ODOT_STEAM_APP_ID` overrides it. Production export requires an explicit own
 non-480 AppID. `ODOT_STEAM_DISABLED=1 mise run play` exercises offline feedback.
 
@@ -170,7 +175,7 @@ friends and the overlay. Pairing tests ordinary shared actions, readiness,
 combat, channel acknowledgments and a paused checkpoint. Compare both records'
 match/revision/tick and native connection diagnostics; a direct route cannot
 count as relay proof. Missing prerequisites are unexecuted, never passed.
-Real friend-to-friend checks are deferred until machines/accounts are available.
+The user excluded friend testing from this development milestone; the archived change retains the unexecuted Steam checklist. The paired commands remain available for optional future verification.
 The publisher labels this extension **unstable** despite its non-prerelease tag;
 that release qualification remains pending. See [verification](docs/verification.md)
 for prerequisites, own-AppID cold launch, packaging, coverage and limitations.

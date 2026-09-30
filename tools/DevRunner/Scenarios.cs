@@ -9,7 +9,7 @@ namespace DevRunner;
 internal static class ScenarioNames
 {
     public static readonly string[] Network = ["authority-resume-victory", "redistribution", "defeat", "failure-cases", "solo-session", "playing-host-lifecycle"];
-    public static readonly string[] Ui = ["economy", "reconnect", "settings", "launcher", "exported-package"];
+    public static readonly string[] Ui = ["economy", "reconnect", "settings", "launcher", "exported-package", "installed-linux"];
 }
 
 internal class VerificationPrerequisiteException(string message) : InvalidOperationException(message);

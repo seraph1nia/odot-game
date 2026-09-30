@@ -238,7 +238,10 @@ public partial class GameApplication(Main session) : Node
         if (Settings.IsOpen)
         {
             ObserveControl(targets, "AudioTab", Settings.Categories.GetTabBar(), Settings.Categories.GetTabBar().GetTabRect(1));
+            ObserveControl(targets, "AboutTab", Settings.Categories.GetTabBar(), Settings.Categories.GetTabBar().GetTabRect(2));
             ObserveControl(targets, "Volume", Settings.VolumeSlider);
+            ObserveControl(targets, "CheckUpdate", Settings.CheckUpdateButton);
+            ObserveControl(targets, "DownloadUpdate", Settings.DownloadUpdateButton);
             ObserveControl(targets, "CloseSettings", Settings.Dialog.GetOkButton());
         }
         if (_join.Visible)
@@ -257,6 +260,8 @@ public partial class GameApplication(Main session) : Node
             ["SettingsOpen"] = Settings.IsOpen,
             ["JoinConfirmationOpen"] = _join.Visible,
             ["MasterVolume"] = Settings.MasterVolume,
+            ["BuildVersion"] = BuildInfo.DisplayVersion,
+            ["UpdateStatus"] = Settings.UpdateStatus,
             ["MasterGain"] = AudioServer.GetBusVolumeLinear(master),
             ["MasterMuted"] = AudioServer.IsBusMute(master),
             ["Display"] = DisplayServer.GetName(),

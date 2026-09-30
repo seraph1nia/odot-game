@@ -10,9 +10,8 @@ internal sealed partial class Runner
     // This slice catches application-lifetime regressions that direct clients bypass:
     // stale screen input, duplicated/restarted music, menu focus and a nonterminating Exit.
     // Two small solo routes reuse existing picking/protocol helpers without replaying battles.
-    private async Task MenuUiScenario(bool exported, CancellationToken token)
+    private async Task MenuUiScenario(string? executable, CancellationToken token)
     {
-        string? executable = exported ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null;
         foreach (string size in new[] { "1100x820", "1280x720" })
         {
             var worker = new Runner(options with { EngineArgs = ["--resolution", size] }, token, _evidence, _scope);

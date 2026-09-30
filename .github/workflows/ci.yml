@@ -45,7 +45,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Export Linux roles and verify packages
-        run: mise run ci-linux-package
+        run: |
+          mise run ci-linux-package
+          git tag v0.1.0-beta.1
+          mise run package-linux --tag v0.1.0-beta.1
+          mise run verify-installed-linux --tag v0.1.0-beta.1
   windows-package:
     needs: source
     runs-on: windows-2025
@@ -60,7 +64,22 @@ jobs:
       - name: Install declared locked SDK and Godot .NET
         shell: pwsh
         run: mise install --locked dotnet godot-dotnet
+      - name: Acquire checksum-pinned Inno Setup compiler
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:RUNNER_TEMP "innosetup-6.7.3.exe"
+          Invoke-WebRequest "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" -OutFile $setup
+          $actual = (Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
+          if ($actual -ne "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732") { throw "Inno Setup checksum mismatch: $actual" }
+          $directory = Join-Path $env:RUNNER_TEMP "inno"
+          $process = Start-Process -Wait -PassThru $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=$directory"
+          if ($process.ExitCode -ne 0) { throw "Inno Setup installation failed: $($process.ExitCode)" }
+          "ISCC_PATH=$(Join-Path $directory 'ISCC.exe')" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - name: Verify native source, export and standalone offline solo
         shell: pwsh
         # A cold Windows asset import exceeds the local 15-second startup default.
-        run: mise run ci-windows --startup-timeout-ms 60000
+        run: |
+          mise run ci-windows --startup-timeout-ms 60000
+          git tag v0.1.0-beta.1
+          mise run package-windows --tag v0.1.0-beta.1 --startup-timeout-ms 60000
+          mise run verify-installed-windows --tag v0.1.0-beta.1 --startup-timeout-ms 60000

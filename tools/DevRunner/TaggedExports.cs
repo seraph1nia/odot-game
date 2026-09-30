@@ -5,6 +5,18 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
+    private async Task ReleasePreflight()
+    {
+        ReleaseVersion version = ReleaseVersion.FromTag(options.ReleaseTag);
+        string commit = await Capture("git", "rev-parse", "--verify", "refs/tags/" + version.Tag + "^{commit}");
+        string head = await Capture("git", "rev-parse", "HEAD");
+        if (commit != head) throw new InvalidOperationException("Check out the requested tag before building its release.");
+        string dirty = await Capture("git", "status", "--porcelain", "--untracked-files=all");
+        if (dirty.Length != 0) throw new InvalidOperationException("Release builds require a clean exact tag checkout.");
+        ReleaseIdentity identity = ReleaseIdentity.Create(version.Tag, commit, options.ExportTarget, options.Production, options.SteamAppId);
+        Console.WriteLine($"Release preflight passed: {identity.Version}, {identity.Channel}, {identity.Target}, {identity.SourceCommit}.");
+    }
+
     private async Task TaggedExport()
     {
         ReleaseVersion version = ReleaseVersion.FromTag(options.ReleaseTag);

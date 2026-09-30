@@ -49,6 +49,15 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                 case "ci-source": await CiSource(); break;
                 case "ci-linux-package": await CiLinuxPackage(); break;
                 case "ci-windows": await WindowsCi(); break;
+                case "release-preflight": await ReleasePreflight(); break;
+                case "package-linux" when OperatingSystem.IsLinux(): await PackageRelease(); break;
+                case "package-windows" when OperatingSystem.IsWindows(): await PackageRelease(); break;
+                case "verify-installed-linux" when OperatingSystem.IsLinux(): await VerifyInstalledLinux(); break;
+                case "verify-installed-windows" when OperatingSystem.IsWindows(): await VerifyInstalledWindows(); break;
+                case "package-linux": throw new VerificationPrerequisiteException("package-linux requires native Linux x86_64.");
+                case "package-windows": throw new VerificationPrerequisiteException("package-windows requires native Windows x86_64.");
+                case "verify-installed-linux": throw new VerificationPrerequisiteException("verify-installed-linux requires native Linux x86_64.");
+                case "verify-installed-windows": throw new VerificationPrerequisiteException("verify-installed-windows requires native Windows x86_64.");
                 default: throw new ArgumentException($"Unknown command: {options.Command}");
             }
         }
@@ -209,6 +218,11 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             WindowsStandaloneEnvironment(environment);
         }
         if (_scope?.Graphical == true && role is "menu" or "solo") environment!["ODOT_STEAM_DISABLED"] = "1";
+        if (options.Command is "verify-installed-linux" or "verify-installed-windows")
+        {
+            environment ??= new Dictionary<string, string?>();
+            environment["ODOT_STEAM_DISABLED"] = "1";
+        }
         bool steamDisabled = (environment?.GetValueOrDefault("ODOT_STEAM_DISABLED") ?? Environment.GetEnvironmentVariable("ODOT_STEAM_DISABLED")) == "1";
         if (OperatingSystem.IsLinux() && System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64
             && SteamOverlayLaunch.IsEligible(options.Command, role, headless || args.Contains("--headless"), _scope?.Graphical == true, steamDisabled))

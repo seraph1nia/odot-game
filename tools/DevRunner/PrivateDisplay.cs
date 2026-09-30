@@ -87,6 +87,8 @@ internal sealed partial class Runner
     {
         PrivateDisplay.CheckPrerequisites();
         if (selection == "exported-package") CheckPackages();
+        if (selection == "installed-linux" && (options.InstalledClient is null || !File.Exists(options.InstalledClient)))
+            throw new InvalidOperationException("The installed Linux client is missing; run the checked-in install verification task.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deadline.CancelAfter(options.Timeout);
         await using var display = new ScenarioScope("display-" + (selection == "exported-package" ? "package" : "source"), _evidence);
@@ -102,6 +104,7 @@ internal sealed partial class Runner
             "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", _evidence.Directory, "--worker-token", token,
             "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
         if (selection is not null) args.AddRange(["--scenario", selection]);
+        if (options.InstalledClient is not null) args.AddRange(["--installed-client", options.InstalledClient]);
         if (options.Port is not null) args.AddRange(["--port", options.Port.Value.ToString(CultureInfo.InvariantCulture)]);
         try
         {
@@ -125,16 +128,17 @@ internal sealed partial class Runner
         await File.WriteAllTextAsync(Path.Combine(_evidence.Directory, options.Scenario == "exported-package" ? "package-renderer.txt" : "source-renderer.txt"), info, cancellation);
         await using var wm = new Child("private-openbox", "openbox", ["--sm-disable"], _root, evidenceDirectory: _evidence.Directory, quiet: true);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(options.Timeout);
-        string[] selected = options.Scenario is null ? ScenarioNames.Ui.Where(n => n != "exported-package").ToArray() : [options.Scenario];
+        string[] selected = options.Scenario is null ? ScenarioNames.Ui.Where(n => n is not ("exported-package" or "installed-linux")).ToArray() : [options.Scenario];
         var scenarios = selected.Select(name => new Scenario(name, UiRisk(name), token => _evidence.Measure(name, "ui", async () =>
         {
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
-            if (name == "launcher") await worker.MenuUiScenario(false, token);
+            if (name == "launcher") await worker.MenuUiScenario(null, token);
+            else if (name == "installed-linux") await worker.MenuUiScenario(options.InstalledClient, token);
             else
             {
                 await worker.UiScenario(name, token);
-                if (name == "exported-package") await worker.MenuUiScenario(true, token);
+                if (name == "exported-package") await worker.MenuUiScenario(Path.Combine(_root, "dist", "client", "odot.x86_64"), token);
             }
             await owned.DisposeAsync(); owned.CheckErrors();
         }))).ToArray();

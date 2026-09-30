@@ -1,0 +1,176 @@
+name: Build published release
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ github.event.release.tag_name }}
+  INNO_VERSION: 6.7.3
+  INNO_SHA256: 9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+      - uses: jdx/mise-action@v3
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared tools
+        run: mise install --locked dotnet godot-dotnet
+      - name: Provide private-display software graphics
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
+      - name: Validate public release and exact tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STEAM_APP_ID: ${{ vars.ODOT_STEAM_APP_ID }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = false || { echo 'Repository must be public before distribution.' >&2; exit 1; }
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = false
+          test "$(gh release view "$TAG" --json assets --jq '.assets | length')" = 0 || { echo 'Release already has assets; published versions are never overwritten.' >&2; exit 1; }
+          args=(--tag "$TAG" --target linux-x64)
+          precedence=${TAG%%+*}
+          if [[ "$precedence" != *-* ]]; then
+            test -n "$STEAM_APP_ID" || { echo 'Stable releases require repository variable ODOT_STEAM_APP_ID.' >&2; exit 1; }
+            args+=(--steam-app-id "$STEAM_APP_ID")
+          fi
+          mise run release-preflight "${args[@]}"
+          preview=false; [[ "$precedence" == *-* ]] && preview=true
+          test "$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)" = "$preview" || { echo 'GitHub prerelease flag must agree with the SemVer tag.' >&2; exit 1; }
+      - name: Verify source gates
+        run: mise run ci-source
+
+  linux-package:
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+      - uses: jdx/mise-action@v3
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared tools
+        run: mise install --locked dotnet godot-dotnet
+      - name: Provide private-display software graphics
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
+      - name: Build and verify installed Linux package
+        env:
+          STEAM_APP_ID: ${{ vars.ODOT_STEAM_APP_ID }}
+        run: |
+          args=(--tag "$TAG")
+          precedence=${TAG%%+*}
+          if [[ "$precedence" != *-* ]]; then args+=(--steam-app-id "$STEAM_APP_ID"); fi
+          mise run package-linux "${args[@]}"
+          mise run verify-installed-linux "${args[@]}"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release-assets
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            dist/releases/${{ env.VERSION }}/odot-${{ env.VERSION }}-linux-x64.tar.gz
+            dist/releases/${{ env.VERSION }}/odot-${{ env.VERSION }}-linux-x64-install.sh
+            dist/releases/${{ env.VERSION }}/build-info.linux-x64.json
+
+  windows-package:
+    needs: source
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+      - uses: jdx/mise-action@v3
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared SDK and Godot .NET
+        shell: pwsh
+        run: mise install --locked dotnet godot-dotnet
+      - name: Acquire checksum-pinned Inno Setup compiler
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:RUNNER_TEMP "innosetup-$env:INNO_VERSION.exe"
+          Invoke-WebRequest "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" -OutFile $setup
+          $actual = (Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
+          if ($actual -ne $env:INNO_SHA256) { throw "Inno Setup checksum mismatch: $actual" }
+          $directory = Join-Path $env:RUNNER_TEMP "inno"
+          $process = Start-Process -Wait -PassThru $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=$directory"
+          if ($process.ExitCode -ne 0) { throw "Inno Setup installation failed: $($process.ExitCode)" }
+          "ISCC_PATH=$(Join-Path $directory 'ISCC.exe')" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: Build and verify installed Windows package
+        shell: pwsh
+        env:
+          STEAM_APP_ID: ${{ vars.ODOT_STEAM_APP_ID }}
+        run: |
+          $arguments = @("--tag", $env:TAG)
+          if (-not $env:TAG.Split('+')[0].Contains("-")) { $arguments += @("--steam-app-id", $env:STEAM_APP_ID) }
+          mise run package-windows -- @arguments
+          mise run verify-installed-windows -- @arguments
+          "VERSION=$($env:TAG.Substring(1))" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-assets
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            dist/releases/${{ env.VERSION }}/odot-${{ env.VERSION }}-windows-x64-setup.exe
+            dist/releases/${{ env.VERSION }}/build-info.windows-x64.json
+
+  publish-assets:
+    needs: [linux-package, windows-package]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-release-assets'
+          path: assets
+          merge-multiple: true
+      - name: Assemble public metadata and checksums
+        run: |
+          version=${TAG#v}
+          cd assets
+          test -f "odot-$version-linux-x64.tar.gz"
+          test -f "odot-$version-linux-x64-install.sh"
+          test -f "odot-$version-windows-x64-setup.exe"
+          jq -s '
+            if (.[0].Version == .[1].Version and .[0].SourceCommit == .[1].SourceCommit and .[0].Repository == .[1].Repository)
+            then {Version: .[0].Version, SourceCommit: .[0].SourceCommit, Channel: .[0].Channel, Repository: .[0].Repository, Targets: map({Target, EngineVersion, SdkVersion, RuntimeVersion, SteamMode, SteamAppId})}
+            else error("platform build identities disagree") end
+          ' build-info.linux-x64.json build-info.windows-x64.json > build-info.json
+          rm build-info.linux-x64.json build-info.windows-x64.json
+          sha256sum "odot-$version-linux-x64.tar.gz" "odot-$version-linux-x64-install.sh" "odot-$version-windows-x64-setup.exe" build-info.json > SHA256SUMS
+          test "$(find . -maxdepth 1 -type f | wc -l)" = 5
+      - name: Attach verified bytes to the existing published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" assets/* --repo "$GITHUB_REPOSITORY"

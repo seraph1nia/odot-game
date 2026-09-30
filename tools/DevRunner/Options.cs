@@ -4,7 +4,7 @@ namespace DevRunner;
 internal sealed record Options(string Command, string Host, string Bind, int? Port, int StartupTimeout, int Timeout, string[] EngineArgs, string? SessionFile,
     int Jobs = 2, string? Scenario = null, string? EvidenceDirectory = null, string? WorkerToken = null,
     bool Production = false, uint? SteamAppId = null, bool Offline = false, bool Exported = false, int Guests = 1,
-    string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64")
+    string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64", string? InstalledClient = null)
 {
     public static Options Parse(string[] args)
     {
@@ -23,7 +23,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         string? steamRole = null;
         ulong? lobby = null;
         string? releaseTag = null;
-        string exportTarget = command == "ci-windows" ? "windows-x64" : "linux-x64";
+        string exportTarget = command is "ci-windows" or "package-windows" ? "windows-x64" : "linux-x64";
+        string? installedClient = null;
         var engineArgs = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
@@ -42,10 +43,11 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--scenario": scenario = Value(); break;
                 case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
                 case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;
-                case "--production" when command == "export-client": production = true; break;
-                case "--steam-app-id" when command == "export-client": steamAppId = uint.Parse(Value(), CultureInfo.InvariantCulture); break;
-                case "--tag" when command == "export-client": releaseTag = Value(); break;
-                case "--target" when command is "export-client" or "check-steam-extension": exportTarget = Value(); break;
+                case "--production" when command is "export-client" or "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight": production = true; break;
+                case "--steam-app-id" when command is "export-client" or "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight": steamAppId = uint.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--tag" when command is "export-client" or "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight": releaseTag = Value(); break;
+                case "--installed-client" when command == "_ui-worker": installedClient = Value(); break;
+                case "--target" when command is "export-client" or "check-steam-extension" or "release-preflight": exportTarget = Value(); break;
                 case "--offline" when command == "check-steam-extension": offline = true; break;
                 case "--exported" when command is "check-steam-extension" or "test-steam": exported = true; break;
                 case "--role" when command == "test-steam": steamRole = Value(); break;
@@ -74,11 +76,13 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             Game.Distribution.ReleaseVersion release = Game.Distribution.ReleaseVersion.FromTag(releaseTag);
             production |= !release.IsPreview;
         }
+        if (command is "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight" && releaseTag is null)
+            throw new ArgumentException(command + " requires --tag vVERSION.");
         SteamPackaging.ValidateAppId(production, steamAppId);
         _ = DesktopExport.For(exportTarget);
         if (command == "test-steam" && (steamRole is not ("host" or "guest") || lobby == 0 || steamRole == "host" && lobby is not null))
             throw new ArgumentException("test-steam requires --role host or guest; --lobby ID belongs to guest. Two machines/accounts must run the paired command.");
         return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
-            production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget);
+            production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient);
     }
 }
