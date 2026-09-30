@@ -2,8 +2,9 @@ name: Verify and build
 
 on:
   push:
+    branches: [main]
   pull_request:
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
@@ -50,38 +51,5 @@ jobs:
           mise run package-linux --tag v0.1.0-beta.1 --startup-timeout-ms 60000
           mise run ci-linux-package
           mise run verify-installed-linux --tag v0.1.0-beta.1 --startup-timeout-ms 60000
-  windows-package:
-    needs: source
-    runs-on: windows-2025
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
-        with:
-          version: 2026.9.17
-          install: false
-          cache: true
-      - name: Install declared locked SDK and Godot .NET
-        shell: pwsh
-        run: mise install --locked dotnet godot-dotnet
-      - name: Acquire checksum-pinned Inno Setup compiler
-        shell: pwsh
-        run: |
-          $setup = Join-Path $env:RUNNER_TEMP "innosetup-6.7.3.exe"
-          Invoke-WebRequest "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" -OutFile $setup
-          $actual = (Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
-          if ($actual -ne "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732") { throw "Inno Setup checksum mismatch: $actual" }
-          $directory = Join-Path $env:RUNNER_TEMP "inno"
-          $process = Start-Process -Wait -PassThru $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=$directory"
-          if ($process.ExitCode -ne 0) { throw "Inno Setup installation failed: $($process.ExitCode)" }
-          "ISCC_PATH=$(Join-Path $directory 'ISCC.exe')" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-      - name: Verify native source, export and standalone offline solo
-        shell: pwsh
-        # A cold Windows asset import exceeds the local 15-second startup default.
-        run: |
-          $ErrorActionPreference = "Stop"
-          $PSNativeCommandUseErrorActionPreference = $true
-          git tag v0.1.0-beta.1
-          mise run package-windows --tag v0.1.0-beta.1 --startup-timeout-ms 60000
-          mise run ci-windows --startup-timeout-ms 60000
-          mise run verify-installed-windows --tag v0.1.0-beta.1 --startup-timeout-ms 60000
+  # Windows packaging is temporarily disabled in ordinary PR/main CI.
+  # The published-release workflow remains responsible for Windows artifacts.
