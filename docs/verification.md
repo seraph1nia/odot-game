@@ -97,3 +97,149 @@ Updated captures include [empty landscape](images/source-empty.png), [empty lobb
 A replaced-server check produced the expired-session refusal, exposed the visible fresh-session action, and successfully joined the new lobby. A second normal four-client run readied without building and rendered the shared defeat/fallen-roster screen. The current defeat/victory, paused/reconnecting, lobby, observation and Ready/Unready captures all use the bottom controls; earlier square/sidebar images have been replaced.
 
 The frozen transfer snapshot placed enemy 116 (6 health) in P2 at distance 11.9333; projecting that authoritative destination put its red marker at approximately pixel (671, 174) in the inspected capture. A pixel-region check confirmed the red marker there, and P2's defender cooldown/visible shot remained consistent with that snapshot. Final source selection-marker audits covered every actual slot at both resolutions.
+
+## Background music and settings verification
+
+On 2026-09-30, `mise run prepare` compiled and imported the music with Godot
+4.7.2 .NET. The unchanged source WAV is 39,118,090 bytes (SHA-256 recorded in
+`Assets/Music/README.md`); its hash matches the supplied download. The checked-in
+import settings use Detect from WAV (`edit/loop_mode=0`) and QOA
+(`compress/mode=2`), with trim/normalize/downsample disabled. An external resource
+probe confirmed stereo, 44,100 Hz, QOA format 3, forward loop 1, begin sample
+1,548,939 and end sample 6,195,530. The imported resource is 7,900,059 bytes
+(7.53 MiB), including 7,899,640 audio-data bytes. These metadata checks establish
+bounds/format, independently of listening observations.
+
+Rendered source checks used an external SceneTree probe and ordinary injected
+mouse/key events. Both tabs, dropdowns, slider, numeric value and Close were
+reachable at 1100×820, 1280×720, 1600×900 and 1920×1080; an 800×600 manually
+resized window retained accessible settings/bottom controls and displayed a
+custom size. Fullscreen reached the native 3200×1800 monitor size, disabled the
+resolution selector, and returned to the retained 1280×720 window. Root window
+size/mode APIs handle these changes; physical display modes are not switched.
+
+Recovery checks restarted graphical clients with missing, malformed, individually
+invalid, partially valid, oversized and valid-fullscreen configurations. Invalid
+fields recovered independently; valid volume/height values survived invalid
+neighboring fields. Oversized saved dimensions recovered to 1100×820. Replacing
+`settings.cfg` with a directory exercised unreadable settings and failed writes:
+startup used valid defaults, the new live volume continued working, and the menu
+showed a save-error message. Godot itself logged the malformed ConfigFile parse
+error, while startup remained successful. Preferences and resume credentials
+used separate paths. Verification used an isolated `XDG_DATA_HOME` under `/tmp`.
+
+The requested default was updated to Master 50 during implementation; fresh
+startup restored 0.5 linear Master gain before autoplay. Native bus probes also
+verified 0/50/100, explicit mute at zero, and an advancing music position during
+mute/restore. Normal graphical shutdown was checked with verbose engine output
+and exited without leaked music/playback resources after disposing the temporary
+managed source-stream reference. Probe-only resource references are not the
+normal client lifecycle.
+
+Restart restored a manually resized 800×600 preference. An explicit
+`--resolution 1280x720 --windowed` launch used that size; audio edits and closing
+retained the saved 800×600 display preference for the next normal launch. Godot's
+`OS.GetCmdlineArgs()` omits consumed display options and the hosted .NET argv is
+empty, so the supported Linux target reads its own original `/proc/self/cmdline`
+for override detection. Other OS override detection is unverified and needs a
+platform-specific source of original arguments before those exports are offered.
+
+An actual game-bus recording made with Godot's `AudioEffectRecord`, using a normal
+seek to 138 seconds, crossed the loop end and continued near 40 seconds rather
+than playing the outro/repeating the intro. The owner listened to
+`/tmp/odot-settings-check/source-loop.wav` and confirmed the transition was
+seamless, without a click or gap. This listening result is separate from the
+imported-boundary assertions above; no custom playback scheduling was added.
+
+A separate rootful Xwayland desktop with an actual 800×600 virtual monitor
+verified the no-presets-fit case: the client chose 768×536 after decoration
+allowance, offered only that custom size, and kept both the settings dialog and
+bottom controls in the rendered window. The existing desktop monitor/settings
+were not changed. The ordinary desktop's window manager may clamp a requested
+window position into its usable area; preference restoration does not call a
+position setter.
+
+A second running graphical client retained its own bus gain and window size
+while the first saved a new volume. Ordinary Esc/button/Close checks verified
+opening, closing, held-key echo rejection, and dropdown-first dismissal. In a
+real two-client battle, snapshots/ticks advanced in both clients with settings
+open, while the number of match acknowledgments stayed unchanged. Clicking a
+menu-covered world location and an underlying Farm control sent no purchase,
+spent no gold, and preserved the selected plot when the dialog closed.
+
+The final `mise run ci` passed in 126.10 seconds: locked restore, formatting, build/import,
+17 core tests, real ENet lifecycle/ownership/outcome checks, client/server exports,
+and the ordinary exported build/production/recruit smoke checks.
+
+Shared pause/resume, source disconnect/reconnect, and the terminal outcome each
+retained the same playing AudioStreamPlayer instance. Settings remained usable
+through those transitions, and city inspection retained the music instance.
+A verbose normal exit confirmed cleanup. Headless source-server and client
+probes each reported zero AudioStreamPlayers, zero ClientSettings nodes and no
+cached music resource, with DisplayServer `headless`; deliberately invalid
+preferences remained byte-for-byte unchanged and were not parsed.
+
+Representative captures: [source Graphics at 1280×720](images/settings-graphics.png) and
+[exported Audio at 1280×720, Master 50](images/settings-audio.png). Further temporary input, recovery,
+small-monitor, combat and outcome records are in `/tmp/odot-settings-check/`.
+
+A fresh copy excluded `.godot`, bin/obj, Git, sessions and output directories.
+With the original project and Downloads directory hidden in a temporary mount
+namespace, `mise run prepare` completed in 7.61 seconds and new Linux client/server
+exports completed in 9.28/9.34 seconds. After the final cleanup/export-filter
+adjustments, fresh client/server exports completed in 10.21/8.98 seconds.
+The generated QOA audio was recreated from the vendored source/import settings.
+This checks preparation independently of
+existing caches and original downloaded files.
+
+The normal `mise run dev --port 17659` log confirmed one headless server and two
+connected graphical clients with distinct fresh sessions. Owned SIGTERM shutdown
+cleaned up its children and released the port. This check kept mise using its
+installed tool directory while isolating Godot preferences with `XDG_DATA_HOME`.
+Preference restoration never sets window positions.
+
+The fresh client pack is 8,523,840 bytes and contains the 7,900,059-byte QOA
+resource plus its 185-byte import mapping. The packed resource's SHA-256 is
+`651e0a6adb0958c7ad122528d2a490f6d9874906cd903fb9d454d0ec5d161a1b`,
+matching the fresh imported resource. The dedicated-server pack is 623,308 bytes
+and contains no music entries: its export filter explicitly excludes
+`Assets/Music/*`, since Godot's dedicated-server resource stripping alone retained
+audio. The ordinary exported server accepted the graphical client's session.
+
+The fresh graphical export ran without `--path`, with the original project,
+Downloads, and fresh source copy hidden. Native mouse/key events opened the
+top-left Settings button and both tabs, changed 1100×820 to 1280×720, selected
+Fullscreen and returned to Windowed, closed/reopened through Esc, and used Close.
+Restart restored 1280×720 and Master 50. A private PulseAudio null-sink capture
+routed only this game's output: Master 0 produced zero-valued PCM, and restoring
+50 produced audible PCM while the player continued. No microphone or other
+application audio was captured.
+
+The nested rootful Xwayland display has no window manager, so its fullscreen
+request changed the menu/saved mode while retaining physical window dimensions.
+Native-monitor fullscreen sizing was observed in the source desktop check above.
+Godot also logged embedded-window focus/tree signal connection diagnostics during
+these exported mode transitions; menu and restart checks still passed. These
+backend diagnostics and native Wayland behavior remain follow-up checks.
+
+The same normal export ran through its first and second natural authored loop
+boundaries (approximately 140.49 and 245.85 seconds after playback begins).
+Private game-output captures are
+`/tmp/odot-settings-check/export-natural-loop-1.wav` and
+`/tmp/odot-settings-check/export-natural-loop-2.wav`, each containing 6.32 seconds
+of nonzero PCM. The owner listened to both and confirmed both transitions sound
+seamless, without a click or gap. Together with the imported/packed boundary
+checks and the source listening result, this verifies playback of the intro once
+and the repeating authored section, excluding the outro. Listening observations
+are distinct from metadata assertions.
+
+All owned verification clients, server, nested display, and temporary audio sink
+were shut down after the checks. Generated preferences, sessions, caches, logs,
+and test tools remain outside the tracked change.
+
+Platform/device coverage is Linux X11 on this machine, including a nested
+Xwayland display. Windows, macOS, native Wayland, other audio devices, and
+cross-monitor moves were not exercised. Some exported shutdowns reported one
+resource still in use (and two ObjectDB instances) despite successful exit and
+explicit player stop; source normal shutdown was clean in the observed run.
+This remaining cleanup diagnostic is recorded separately from functional checks.

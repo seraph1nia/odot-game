@@ -21,3 +21,40 @@ The bottom panel keeps city resources/health/army and inspection tabs on the lef
 ![The nine hex plots and bottom controls](images/source-building.png)
 
 ![Paused combat after reconnecting in the exported client](images/export-paused-resume.png)
+
+## Music and local settings
+
+Press **Esc** or click **Settings** in the top-left to open Graphics and Audio.
+Press Esc again or **Close** to return; Esc dismisses an open dropdown first.
+Opening settings blocks gameplay input in your window while the shared match and
+network updates continue. Use **Pause whole match** separately to pause everyone.
+Music continues while connecting, during pauses/outcomes, and through reconnects.
+
+Graphics offers **Windowed** and **Fullscreen**. Windowed resolution changes the
+window's size, with 1100×820, 1280×720, 1600×900, and 1920×1080 offered when they
+fit your monitor's usable area. Fullscreen uses the current monitor's native size;
+the windowed selector is disabled until you return to Windowed, restoring your
+previous size. Manual resizing is shown as a custom size. Saved sizes that no
+longer fit fall back to a usable size. Explicit engine launch arguments such as
+`--resolution`, `--fullscreen`, and `--windowed` take precedence for that launch;
+those overrides do not become saved preferences until you edit display settings.
+
+Audio provides a live **Master volume** slider from **0–100**. Zero mutes all
+audio; raising it restores music at its ongoing position. First-launch defaults
+are Windowed 1100×820 and Master 50, with the music itself mixed at -12 dB.
+The bundled Echoes of Valhalla track plays its intro once and repeats its authored
+loop through Godot's WAV playback.
+
+Preferences are stored separately from multiplayer credentials in
+`user://settings.cfg` (on a standard Linux desktop,
+`~/.local/share/godot/app_userdata/Odot - Nine Tiles/settings.cfg`). Display
+selections, completed slider edits, menu closing, and pending changes on orderly
+exit save them. Restart restores valid values; reconnect retains the current
+ones. Invalid/missing fields use defaults. A failed save displays a message in
+the menu while your current settings keep working.
+
+Two running local clients keep independent live preferences. The last successful
+save becomes the shared OS user's defaults for later launches; it never updates
+the other running window. Servers and headless clients ignore graphical settings
+and do not create music players. Music provenance and import details are recorded
+in [the asset README](../src/Game/Assets/Music/README.md).

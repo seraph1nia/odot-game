@@ -36,6 +36,7 @@ public partial class Tabletop(Main game) : Node3D
     private string _rosterKey = "";
     private long _revision = -1;
     private string _matchId = "";
+    private ClientSettings _settings = null!;
 
     public override void _Ready()
     {
@@ -58,6 +59,11 @@ public partial class Tabletop(Main game) : Node3D
             theme.SetStylebox(state, "Button", style);
         }
         root.Theme = theme;
+        _settings = new ClientSettings { Name = "ClientSettings" }; AddChild(_settings); _settings.Initialize(root, theme);
+        using var music = GD.Load<AudioStreamWav>("res://Assets/Music/LVS04_11_Echoes_of_Valhalla_bpm82_loop.wav");
+        var musicPlayer = new AudioStreamPlayer { Name = "BackgroundMusic", Stream = music, Bus = "Master", VolumeDb = -12, Autoplay = true };
+        musicPlayer.TreeExiting += musicPlayer.Stop;
+        AddChild(musicPlayer);
         _panel = new PanelContainer { Name = "BottomPanel", MouseFilter = Control.MouseFilterEnum.Stop };
         root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -220;
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 8); _panel.AddChild(box);
@@ -126,7 +132,7 @@ public partial class Tabletop(Main game) : Node3D
         if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
         FrameCamera();
         Vector2 mouse = GetViewport().GetMousePosition();
-        int hover = game.Connected && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
+        int hover = game.Connected && !_settings.BlocksWorldHover(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
         if (hover != _hover) { _hover = hover; UpdateMarkers(); }
     }
     private void UpdateUi()
@@ -363,6 +369,11 @@ public partial class Tabletop(Main game) : Node3D
     }
     public override void _UnhandledInput(InputEvent input)
     {
+        if (!_settings.IsOpen && input.IsActionPressed("ui_cancel", false))
+        {
+            _settings.Open(); GetViewport().SetInputAsHandled(); return;
+        }
+        if (_settings.IsOpen) return;
         if (!game.Connected || input is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
         int selected = Pick(mouse.Position);
         if (selected >= 0) _slot = selected;
