@@ -2,16 +2,16 @@
 config_version=5
 
 [application]
-config/name="Odot - Coin Room"
+config/name="Odot - Nine Tiles"
 run/main_scene="res://Scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 run/flush_stdout_on_print=true
 
 [display]
-window/size/viewport_width=840
-window/size/viewport_height=660
-window/size/window_width_override=840
-window/size/window_height_override=660
+window/size/viewport_width=1100
+window/size/viewport_height=820
+window/size/window_width_override=1100
+window/size/window_height_override=820
 window/stretch/mode="canvas_items"
 
 [dotnet]

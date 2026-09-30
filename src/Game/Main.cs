@@ -1,304 +1,288 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Game.Core;
 using Godot;
-using Point = Game.Core.Point;
 
-public partial class Main : Node2D
+public partial class Main : Node
 {
-    private const int ProtocolVersion = 1;
     private readonly ConcurrentQueue<string> _commands = new();
-    private readonly Dictionary<int, ulong> _lastInput = new();
+    private readonly Dictionary<int, int> _bindings = [];
+    private readonly Dictionary<int, string> _credentials = [];
+    private readonly Dictionary<int, CommandLedger> _ledgers = [];
+    private readonly Dictionary<int, (ulong Second, int Count)> _rates = [];
     private ENetMultiplayerPeer? _peer;
-    private World? _world;
-    private WorldSnapshot? _state;
+    private Match? _match;
+    public MatchSnapshot? State { get; private set; }
+    public int PlayerId { get; private set; }
+    public bool Connected { get; private set; }
+    public string Status { get; private set; } = "Connecting";
+    public string Feedback { get; private set; } = "";
     private bool _server;
     private bool _automated;
     private bool _supervised;
-    private bool _connected;
     private bool _finished;
-    private int _localId;
-    private string _status = "Connecting";
+    private bool _resettingRpcNode;
+    private bool _clientSignals;
+    private int _version = WireJson.ProtocolVersion;
     private ulong _started;
     private int _connectionTimeout = 10000;
-    private int _botCoinTarget;
-    private Point _botDirection;
-    private readonly Font _font = ThemeDB.FallbackFont;
-    private static readonly Vector2 RoomOffset = new(20, 150);
+    private int _port = 7000;
+    private string _host = "127.0.0.1";
+    private SessionFile? _session;
+    private readonly Dictionary<long, Command> _sent = [];
+    private int _broadcastTick;
+    private long _broadcastRevision = -1;
 
     public override void _Ready()
     {
-        try
-        {
-            Setup();
-        }
-        catch (Exception error)
-        {
-            Emit(new("error", Message: error.Message));
-            GD.PrintErr(error.Message);
-            GetTree().Quit(1);
-        }
+        try { Setup(); }
+        catch (Exception error) { Emit(new("error", Message: error.Message)); GD.PrintErr(error.Message); GetTree().Quit(1); }
     }
-
     private void Setup()
     {
-        AddMovementAction("move_left", Key.A, Key.Left);
-        AddMovementAction("move_right", Key.D, Key.Right);
-        AddMovementAction("move_up", Key.W, Key.Up);
-        AddMovementAction("move_down", Key.S, Key.Down);
         string[] args = OS.GetCmdlineUserArgs();
         _server = OS.HasFeature("dedicated_server");
-        string host = "127.0.0.1";
         string bind = "127.0.0.1";
-        int port = 7000;
-        int seed = 42;
+        string? sessionPath = null;
         bool roleSet = false;
         for (int i = 0; i < args.Length; i++)
         {
-            string Value() => ++i < args.Length ? args[i] : throw new ArgumentException($"Missing value for {args[i - 1]}.");
+            string Value() => ++i < args.Length ? args[i] : throw new ArgumentException("Missing argument value.");
             switch (args[i])
             {
                 case "--server":
                 case "--client":
                     if (roleSet) throw new ArgumentException("Specify exactly one role: --server or --client.");
-                    _server = args[i] == "--server";
-                    roleSet = true;
-                    break;
-                case "--host": host = Value(); break;
+                    _server = args[i] == "--server"; roleSet = true; break;
+                case "--host": _host = Value(); break;
                 case "--bind": bind = Value(); break;
-                case "--port": port = int.Parse(Value()); break;
-                case "--seed": seed = int.Parse(Value()); break;
+                case "--port": _port = int.Parse(Value()); break;
+                case "--session-file": sessionPath = Value(); break;
+                case "--protocol-version": _version = int.Parse(Value()); break;
                 case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value()); break;
                 case "--automated": _automated = true; break;
                 case "--supervised": _supervised = true; break;
                 default: throw new ArgumentException($"Unknown game argument: {args[i]}");
             }
         }
-        if (port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Port must be 1..65535 and timeout must be positive.");
-        _peer = new ENetMultiplayerPeer();
+        if (_port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Invalid port or timeout.");
         if (_server)
         {
-            _world = new World(seed);
-            _peer.SetBindIP(bind);
-            Error result = _peer.CreateServer(port, 16, 2);
-            if (result != Error.Ok) throw new InvalidOperationException($"Cannot bind server to {bind}:{port}: {result}");
+            _match = new(); _peer = new(); _peer.SetBindIP(bind);
+            Error result = _peer.CreateServer(_port, 16, 2);
+            if (result != Error.Ok) throw new InvalidOperationException($"Cannot bind server to {bind}:{_port}: {result}");
             Multiplayer.MultiplayerPeer = _peer;
             Multiplayer.PeerDisconnected += id =>
             {
-                _world.RemovePlayer((int)id);
-                _lastInput.Remove((int)id);
-                Emit(new("left", (int)id));
+                int peer = (int)id;
+                if (_bindings.Remove(peer, out int player)) { _match.SetConnected(player, false); Emit(new("left", peer, _match.Snapshot(), PlayerId: player)); }
+                _rates.Remove(peer);
             };
-            _status = $"Server on {bind}:{port}";
-            Emit(new("ready", State: _world.Snapshot(), Message: _status));
+            Emit(new("ready", State: _match.Snapshot(), Message: $"Server on {bind}:{_port}"));
         }
         else
         {
-            Multiplayer.ConnectedToServer += () => RpcId(1, MethodName.Hello, ProtocolVersion);
-            Multiplayer.ConnectionFailed += () => FailConnection("connection-failed", "Unable to connect to server.");
-            Multiplayer.ServerDisconnected += () => FailConnection("server-disconnected", "The server disconnected.");
-            Error result = _peer.CreateClient(host, port, 2);
-            if (result != Error.Ok) throw new InvalidOperationException($"Cannot connect to {host}:{port}: {result}");
-            Multiplayer.MultiplayerPeer = _peer;
-            _started = Time.GetTicksMsec();
-            Emit(new("connecting", Message: $"{host}:{port}"));
+            string endpoint = $"{_host}:{_port}";
+            string filename = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(endpoint)))[..16];
+            _session = new(sessionPath ?? ProjectSettings.GlobalizePath($"user://sessions/{filename}.json"), endpoint);
+            _session.Load();
+            BindClientSignals();
+            Connect();
+            if (DisplayServer.GetName() != "headless") GetTree().Root.CallDeferred(Node.MethodName.AddChild, new Tabletop(this));
         }
         if (_automated || _supervised)
-        {
-            _ = Task.Run(() =>
-            {
-                string? line;
-                while ((line = Console.ReadLine()) is not null) _commands.Enqueue(line);
-            });
-        }
+            _ = Task.Run(() => { string? line; while ((line = Console.ReadLine()) is not null) _commands.Enqueue(line); });
     }
-
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void Hello(int version)
+    private void OnConnected() => RpcId(1, MethodName.Hello, _version, _session?.Value?.Token ?? "");
+    private void OnConnectionFailed() => FailConnection("connection-failed", "Unable to connect to server.");
+    private void OnServerDisconnected() => FailConnection("server-disconnected", "The server disconnected. Reconnect to the same running server to recover your city.");
+    private void BindClientSignals()
     {
-        if (!_server || _world is null) return;
-        int id = Multiplayer.GetRemoteSenderId();
-        if (id <= 1 || _world.Players.ContainsKey(id)) return;
-        if (version != ProtocolVersion)
-        {
-            RpcId(id, MethodName.Rejected, "Protocol version mismatch.");
-            return;
-        }
-        _world.AddPlayer(id);
-        _lastInput[id] = Time.GetTicksMsec();
-        RpcId(id, MethodName.InitialState, JsonSerializer.Serialize(_world.Snapshot(), WireJson.Options));
-        Emit(new("joined", id, _world.Snapshot()));
+        Multiplayer.ConnectedToServer += OnConnected;
+        Multiplayer.ConnectionFailed += OnConnectionFailed;
+        Multiplayer.ServerDisconnected += OnServerDisconnected;
+        _clientSignals = true;
     }
-
+    private void ResetRpcNode()
+    {
+        // Godot 4.7.2 export templates clear RPC path-cache signals without their bound node ID.
+        // A real tree exit untracks this RPC node correctly before replacing the transport.
+        // The client view is a sibling, so its controls and frozen scene remain intact.
+        if (_clientSignals)
+        {
+            Multiplayer.ConnectedToServer -= OnConnected;
+            Multiplayer.ConnectionFailed -= OnConnectionFailed;
+            Multiplayer.ServerDisconnected -= OnServerDisconnected;
+            _clientSignals = false;
+        }
+        Node parent = GetParent();
+        _resettingRpcNode = true;
+        parent.RemoveChild(this); parent.AddChild(this);
+        GetTree().CurrentScene = this;
+        _resettingRpcNode = false;
+        BindClientSignals();
+    }
+    public void Connect(bool fresh = false)
+    {
+        if (_server || Connected) return;
+        if (fresh) _session?.Clear();
+        if (_peer is not null) ResetRpcNode();
+        Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); _peer?.Close(); _peer?.Dispose();
+        _peer = new();
+        Error result = _peer.CreateClient(_host, _port, 2);
+        if (result != Error.Ok) throw new InvalidOperationException($"Cannot connect: {result}");
+        Multiplayer.MultiplayerPeer = _peer; _finished = false; Status = "Connecting"; _started = Time.GetTicksMsec();
+        Emit(new("connecting", Message: $"{_host}:{_port}"));
+    }
+    private bool Allowed(int peer)
+    {
+        ulong second = Time.GetTicksMsec() / 1000;
+        var rate = _rates.GetValueOrDefault(peer);
+        rate = rate.Second == second ? (second, rate.Count + 1) : (second, 1);
+        _rates[peer] = rate; return rate.Count <= 64;
+    }
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Hello(int version, string credential)
+    {
+        if (!_server || _match is null) return;
+        int peer = Multiplayer.GetRemoteSenderId();
+        if (peer <= 1 || !Allowed(peer) || _bindings.ContainsKey(peer)) return;
+        string? refusal = null;
+        int player = 0;
+        if (version != WireJson.ProtocolVersion) refusal = "Protocol version mismatch.";
+        else if (credential.Length > 128) refusal = "Invalid or expired session. Fresh join is available only in a lobby.";
+        else if (credential.Length != 0)
+        {
+            player = _credentials.FirstOrDefault(kv => kv.Value == credential).Key;
+            if (player == 0 || !_match.Players.ContainsKey(player)) refusal = "Invalid or expired session. Fresh join is available only in a lobby.";
+            else if (_bindings.ContainsValue(player)) refusal = "Session already connected.";
+        }
+        else
+        {
+            City? city = _match.Join();
+            if (city is null) refusal = "Roster locked or lobby full. Resume an existing session.";
+            else { player = city.Id; _credentials[player] = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)); _ledgers[player] = new(); }
+        }
+        if (refusal is not null) { RpcId(peer, MethodName.Rejected, refusal); return; }
+        _bindings.Add(peer, player); _match.SetConnected(player, true);
+        RpcId(peer, MethodName.Welcome, player, _credentials[player], JsonSerializer.Serialize(_match.Snapshot(), WireJson.Options));
+        Emit(new("joined", peer, _match.Snapshot(), PlayerId: player));
+    }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void Rejected(string reason) => FailConnection("connection-failed", reason);
-
+    private void Rejected(string reason) { if (!_server && Multiplayer.GetRemoteSenderId() == 1) FailConnection("connection-failed", reason); }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void InitialState(string json)
+    private void Welcome(int player, string token, string json)
     {
         if (_server || Multiplayer.GetRemoteSenderId() != 1) return;
-        _state = JsonSerializer.Deserialize<WorldSnapshot>(json, WireJson.Options);
-        _localId = Multiplayer.GetUniqueId();
-        _connected = true;
-        _status = "Connected";
-        Emit(new("connected", Multiplayer.GetUniqueId(), _state));
+        MatchSnapshot state = JsonSerializer.Deserialize<MatchSnapshot>(json, WireJson.Options)!;
+        _session!.Welcome(state.MatchId, token); State = state; PlayerId = player; Connected = true; Status = "Connected";
+        Emit(new("connected", Multiplayer.GetUniqueId(), state, PlayerId: player));
     }
-
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered)]
-    private void Move(float x, float y)
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Request(string json)
     {
-        if (!_server || _world is null) return;
-        int id = Multiplayer.GetRemoteSenderId();
-        if (_world.SetInput(id, new(x, y))) _lastInput[id] = Time.GetTicksMsec();
+        if (!_server || _match is null) return;
+        int peer = Multiplayer.GetRemoteSenderId();
+        if (!_bindings.TryGetValue(peer, out int player)) return;
+        CommandResult result;
+        if (!Allowed(peer)) result = new(0, false, "Command rate exceeded.");
+        else if (json.Length > 2048) result = new(0, false, "Command too large.");
+        else
+        {
+            try
+            {
+                Command? command = JsonSerializer.Deserialize<Command>(json, WireJson.Options);
+                result = command is null ? new(0, false, "Malformed command.") : _ledgers[player].Execute(command, () => _match.Apply(player, command));
+            }
+            catch (JsonException) { result = new(0, false, "Malformed command."); }
+        }
+        RpcId(peer, MethodName.Acknowledged, JsonSerializer.Serialize(result, WireJson.Options), JsonSerializer.Serialize(_match.Snapshot(), WireJson.Options));
     }
-
-    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered, TransferChannel = 1)]
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void Acknowledged(string json, string state)
+    {
+        if (_server || !Connected || Multiplayer.GetRemoteSenderId() != 1) return;
+        CommandResult result = JsonSerializer.Deserialize<CommandResult>(json, WireJson.Options)!;
+        Feedback = result.Message; AcceptState(state);
+        Emit(new("ack", Multiplayer.GetUniqueId(), State, result.Message, PlayerId, result));
+    }
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable, TransferChannel = 1)]
     private void Snapshot(string json)
     {
-        if (_server || !_connected || Multiplayer.GetRemoteSenderId() != 1) return;
-        WorldSnapshot? state = JsonSerializer.Deserialize<WorldSnapshot>(json, WireJson.Options);
-        if (state is null || state.Tick <= (_state?.Tick ?? -1)) return;
-        _state = state;
-        if (_automated) Emit(new("snapshot", Multiplayer.GetUniqueId(), state));
+        if (_server || !Connected || Multiplayer.GetRemoteSenderId() != 1) return;
+        if (AcceptState(json) && (_automated || _supervised)) Emit(new("snapshot", Multiplayer.GetUniqueId(), State, PlayerId: PlayerId));
     }
-
+    private bool AcceptState(string json)
+    {
+        MatchSnapshot? state = JsonSerializer.Deserialize<MatchSnapshot>(json, WireJson.Options);
+        if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
+        State = state; return true;
+    }
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0)
+    {
+        if (!Connected || State is null) return 0;
+        long sequence = _session!.Reserve();
+        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, city == 0 ? PlayerId : city, slot, building);
+        _sent[sequence] = request;
+        SendRequest(request); return sequence;
+    }
+    private void SendRequest(Command request) => RpcId(1, MethodName.Request, JsonSerializer.Serialize(request, WireJson.Options));
     public override void _PhysicsProcess(double delta)
     {
-        while (_commands.TryDequeue(out string? command)) HandleCommand(command);
-        if (_server && _world is not null)
+        for (int n = 0; n < 32 && _commands.TryDequeue(out string? command); n++) HandleCommand(command);
+        if (_server && _match is not null)
         {
-            ulong now = Time.GetTicksMsec();
-            foreach ((int id, ulong timestamp) in _lastInput)
-                if (now - timestamp > 500) _world.SetInput(id, Point.Zero);
-            _world.Step();
-            if (_world.Tick % 3 == 0)
+            _match.Step();
+            if (++_broadcastTick >= 3 || _broadcastRevision != _match.Revision && _match.Phase != Phase.Combat)
             {
-                _state = _world.Snapshot();
-                Rpc(MethodName.Snapshot, JsonSerializer.Serialize(_state, WireJson.Options));
+                _broadcastTick = 0; _broadcastRevision = _match.Revision;
+                State = _match.Snapshot(); Rpc(MethodName.Snapshot, JsonSerializer.Serialize(State, WireJson.Options));
             }
         }
-        else if (_connected)
-        {
-            Point input = _automated ? BotInput() : KeyboardInput();
-            RpcId(1, MethodName.Move, input.X, input.Y);
-        }
-        else if (_status == "Connecting" && Time.GetTicksMsec() - _started > (ulong)_connectionTimeout)
-        {
+        else if (!Connected && Status == "Connecting" && Time.GetTicksMsec() - _started > (ulong)_connectionTimeout)
             FailConnection("connection-failed", "Connection deadline expired.");
-        }
-        QueueRedraw();
     }
-
-    private Point KeyboardInput()
+    private void HandleCommand(string text)
     {
-        if (!DisplayServer.WindowIsFocused()) return Point.Zero;
-        Vector2 direction = Input.GetVector("move_left", "move_right", "move_up", "move_down");
-        return new(direction.X, direction.Y);
-    }
-
-    private static void AddMovementAction(string name, params Key[] keys)
-    {
-        if (InputMap.HasAction(name)) return;
-        InputMap.AddAction(name);
-        foreach (Key key in keys) InputMap.ActionAddEvent(name, new InputEventKey { PhysicalKeycode = key });
-    }
-
-    private Point BotInput()
-    {
-        if (_state is null) return Point.Zero;
-        PlayerState? me = _state.Players.FirstOrDefault(p => p.Id == _localId);
-        if (me is null) return Point.Zero;
-        if (_botCoinTarget > 0)
+        try
         {
-            if (_state.CoinGeneration >= _botCoinTarget)
+            string[] parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return;
+            switch (parts[0])
             {
-                _botCoinTarget = 0;
-                _botDirection = Point.Zero;
-                Emit(new("bot-stopped", Multiplayer.GetUniqueId(), _state));
-                return Point.Zero;
+                case "click" when !_server && DisplayServer.GetName() != "headless":
+                    Vector2 position = new(float.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
+                    Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
+                    Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = true });
+                    Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = false });
+                    break;
+                case "disconnect" when !_server: FailConnection("server-disconnected", "Connection closed locally. Reconnect to resume your city."); break;
+                case "quit": GetTree().Quit(); break;
+                case "reconnect": Connect(); break;
+                case "fresh": Connect(true); break;
+                case "stale-ready" when Connected:
+                    SendRequest(new(_session!.Reserve(), State!.MatchId, State.Phase, 1, "ready", PlayerId)); break;
+                case "raw" when Connected: RpcId(1, MethodName.Request, text[4..]); break;
+                case "retry" when Connected:
+                    Command? saved = _sent.GetValueOrDefault(long.Parse(parts[1]));
+                    if (saved is not null) SendRequest(saved); else Feedback = "Original request unavailable in this process; use raw to resend its identity.";
+                    break;
+                case "build": SendAction("build", int.Parse(parts[1]), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3]) : 0); break;
+                case "upgrade": case "recruit": SendAction(parts[0], int.Parse(parts[1])); break;
+                default: SendAction(parts[0]); break;
             }
-            return (_state.Coin - me.Position).Limited();
         }
-        return _botDirection;
+        catch (Exception e) when (e is ArgumentException or FormatException or IndexOutOfRangeException) { Emit(new("error", Message: "Invalid automation command.")); }
     }
-
-    private void HandleCommand(string command)
-    {
-        string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0) return;
-        switch (parts[0])
-        {
-            case "collect": _botCoinTarget = (_state?.CoinGeneration ?? 0) + 1; break;
-            case "stop": _botCoinTarget = 0; _botDirection = Point.Zero; break;
-            case "move" when parts.Length == 3:
-                _botDirection = new(float.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
-                break;
-            case "invalid": RpcId(1, MethodName.Move, float.NaN, float.PositiveInfinity); break;
-            case "quit": GetTree().Quit(); break;
-            default: Emit(new("error", Message: $"Invalid bot command: {command}")); break;
-        }
-    }
-
     private void FailConnection(string type, string message)
     {
         if (_finished) return;
-        _finished = true;
-        _connected = false;
-        _status = type == "connection-failed" ? "Connection failed" : "Server disconnected";
+        _finished = true; Connected = false; Status = type == "connection-failed" ? "Connection failed" : "Disconnected"; Feedback = message;
         Emit(new(type, Message: message));
-        Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer();
-        if (_peer is not null) _peer.Close();
+        ResetRpcNode(); Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); _peer?.Close();
         if (_automated) GetTree().Quit(type == "connection-failed" ? 1 : 0);
     }
-
     private static void Emit(GameEvent value) => GD.Print(WireJson.EventPrefix + JsonSerializer.Serialize(value, WireJson.Options));
-
-    public override void _Draw()
-    {
-        if (DisplayServer.GetName() == "headless") return;
-        Color ink = new("e9efff");
-        Color muted = new("7e91b5");
-        Color accent = new("a9ef74");
-        DrawString(_font, new(20, 36), "ODOT  /  COIN ROOM", fontSize: 24, modulate: ink);
-        DrawString(_font, new(20, 64), "A small room. A shared world. One more coin.", fontSize: 15, modulate: muted);
-        DrawString(_font, new(20, 99), _status.ToUpperInvariant(), fontSize: 13, modulate: _connected ? accent : muted);
-        DrawString(_font, new(20, 128), "WASD / ARROWS     Move     |     Focus a window to control its player", fontSize: 14, modulate: ink);
-        DrawRect(new(RoomOffset, new(World.Width, World.Height)), new("101b2e"));
-        for (int x = 40; x < World.Width; x += 40)
-            DrawLine(RoomOffset + new Vector2(x, 0), RoomOffset + new Vector2(x, World.Height), new("19263c"));
-        for (int y = 40; y < World.Height; y += 40)
-            DrawLine(RoomOffset + new Vector2(0, y), RoomOffset + new Vector2(World.Width, y), new("19263c"));
-        DrawRect(new(RoomOffset, new(World.Width, World.Height)), new("304566"), false, 2);
-        if (_state is not null)
-        {
-            DrawCircle(RoomOffset + new Vector2(_state.Coin.X, _state.Coin.Y), 17, new Color(0.66f, 0.94f, 0.45f, 0.14f));
-            DrawCircle(RoomOffset + new Vector2(_state.Coin.X, _state.Coin.Y), World.CoinRadius, accent);
-            int row = 0;
-            foreach (PlayerState player in _state.Players)
-            {
-                bool local = player.Id == _localId;
-                Color color = PlayerColor(row);
-                Vector2 pos = RoomOffset + new Vector2(player.Position.X, player.Position.Y);
-                if (local) DrawCircle(pos, 18, new Color(color.R, color.G, color.B, 0.22f));
-                DrawCircle(pos, World.PlayerRadius, color);
-                DrawString(_font, pos + new Vector2(-12, -22), local ? "YOU" : "P" + (row + 1), fontSize: 12, modulate: ink);
-                DrawString(_font, new(500 + row * 155, 98), $"{(local ? "YOU" : "P" + (row + 1))}   {player.Score:00}", fontSize: 20, modulate: color);
-                row++;
-            }
-        }
-        DrawString(_font, new(20, 651), "FIND THE GREEN COIN     /     EVERY PICKUP COUNTS", fontSize: 12, modulate: muted);
-    }
-
-    private static Color PlayerColor(int id) => (id % 3) switch
-    {
-        0 => new("79baff"),
-        1 => new("ffae8a"),
-        _ => new("bb9dff")
-    };
-
-    public override void _ExitTree()
-    {
-        _peer?.Close();
-        _peer?.Dispose();
-    }
+    public override void _ExitTree() { if (!_resettingRpcNode) { _peer?.Close(); _peer?.Dispose(); } }
 }

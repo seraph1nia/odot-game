@@ -10,3 +10,5 @@
 **/*.csproj.old
 **/export_credentials.cfg
 .DS_Store
+
+.sessions/

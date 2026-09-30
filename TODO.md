@@ -15,3 +15,9 @@
 * trade routes
 * readycheck -> timer
 * speler kleuren
+* settings (geluid, beeld, resolutie)
+* multiplayer, lobby, server state, etc
+* single player campaign
+* jev achtig model als keuze maker
+* gebruik gameboy/telefoon als interface voor city building of trading
+* geluid?

@@ -20,6 +20,8 @@ internal sealed class Child : IAsyncDisposable
     private bool _disposed;
 
     public string Name { get; }
+    public int PlayerId { get; private set; }
+    public int PeerId { get; private set; }
     public Task Exited { get; }
     public int ExitCode => _process.ExitCode;
     public bool HasExited => _process.HasExited;
@@ -82,6 +84,7 @@ internal sealed class Child : IAsyncDisposable
                 {
                     lock (_gate)
                     {
+                        if (value.Type == "connected") { PlayerId = value.PlayerId; PeerId = value.PeerId; }
                         _history.Add(value);
                         if (_history.Count > 512) _history.RemoveAt(0);
                     }

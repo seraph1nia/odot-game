@@ -1,3 +1,4 @@
+using Game.Core;
 using System.IO.Compression;
 using System.Security.Cryptography;
 
@@ -91,12 +92,24 @@ internal sealed partial class Runner
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deadline.CancelAfter(options.StartupTimeout * 2);
-        int port = FreePort();
-        await using var server = StartGame("exported-server", true, true, port, Path.Combine(_root, "dist", "server", "odot.x86_64"));
-        await server.WaitFor(e => e.Type == "ready", "exported server readiness", options.StartupTimeout, deadline.Token);
-        await using var client = StartGame("exported-client", false, true, port, Path.Combine(_root, "dist", "client", "odot.x86_64"), "--automated");
-        await client.WaitFor(e => e.Type == "connected", "exported client connection", options.StartupTimeout, deadline.Token);
-        Require(true, "exported client and dedicated server start and connect without editor files");
+        _testSessions = Path.Combine(Path.GetTempPath(), "odot-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_testSessions);
+        try
+        {
+            int port = FreePort();
+            await using var server = StartGame("exported-server", true, true, port, Path.Combine(_root, "dist", "server", "odot.x86_64"));
+            await server.WaitFor(e => e.Type == "ready", "exported server readiness", options.StartupTimeout, deadline.Token);
+            await using var client = StartGame("exported-client", false, true, port, Path.Combine(_root, "dist", "client", "odot.x86_64"), "--automated");
+            await client.WaitFor(e => e.Type == "connected", "exported client connection", options.StartupTimeout, deadline.Token);
+            await Action(client, "start", deadline.Token);
+            await Action(client, "build 0 farm", deadline.Token);
+            await Action(client, "build 1 barracks", deadline.Token);
+            await Action(client, "ready", deadline.Token);
+            GameEvent recruited = await Action(client, "recruit 1", deadline.Token);
+            Require(State(recruited).Players.Single().Soldiers.Length == 1 && State(recruited).Players.Single().Food == 0,
+                "exported roles start, construct, produce and recruit through the normal protocol");
+        }
+        finally { Directory.Delete(_testSessions, true); _testSessions = null; }
     }
 
     private async Task Ci()

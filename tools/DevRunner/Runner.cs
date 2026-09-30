@@ -15,7 +15,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         switch (options.Command)
         {
             case "help":
-                Console.WriteLine("Commands: dev, server, client, prepare, test-network, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS\nGraphical tasks also accept repeated --engine-arg VALUE.");
+                Console.WriteLine("Commands: dev, server, client, prepare, test-network, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nGraphical tasks also accept repeated --engine-arg VALUE.");
                 break;
             case "prepare": await Prepare(); break;
             case "dev": await Interactive(); break;
@@ -108,6 +108,12 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             args.AddRange(options.EngineArgs);
         }
         args.AddRange(["--", server ? "--server" : "--client", "--supervised", "--port", port.ToString(), server ? "--bind" : "--host", server ? options.Bind : options.Host]);
+        if (!server && !extra.Contains("--session-file"))
+        {
+            string session = _testSessions is not null ? Path.Combine(_testSessions, name + ".json")
+                : options.SessionFile ?? Path.Combine(_root, ".sessions", $"{name}-{port}.json");
+            args.AddRange(["--session-file", session]);
+        }
         args.AddRange(extra);
         return new Child(name, exported ?? "godot", args, _root, game: true, quiet: headless,
             workingDirectory: exported is null ? _root : Path.GetDirectoryName(exported));
@@ -116,14 +122,20 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
     private async Task Interactive()
     {
         await Prepare();
-        int port = options.Port ?? 7000;
-        await using var server = StartGame("server", true, true, port);
-        await server.WaitFor(e => e.Type == "ready", "server readiness", options.StartupTimeout, cancellation);
-        await using var a = StartGame("client-a", false, false, port);
-        await using var b = StartGame("client-b", false, false, port);
-        await Task.WhenAny(server.Exited, a.Exited, b.Exited).WaitAsync(cancellation);
-        int code = new[] { server, a, b }.First(p => p.HasExited).ExitCode;
-        if (code != 0) throw new InvalidOperationException($"A supervised game process exited with {code}.");
+        _testSessions = Path.Combine(Path.GetTempPath(), "odot-dev-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_testSessions);
+        try
+        {
+            int port = options.Port ?? 7000;
+            await using var server = StartGame("server", true, true, port);
+            await server.WaitFor(e => e.Type == "ready", "server readiness", options.StartupTimeout, cancellation);
+            await using var a = StartGame("client-a", false, false, port);
+            await using var b = StartGame("client-b", false, false, port);
+            await Task.WhenAny(server.Exited, a.Exited, b.Exited).WaitAsync(cancellation);
+            int code = new[] { server, a, b }.First(p => p.HasExited).ExitCode;
+            if (code != 0) throw new InvalidOperationException($"A supervised game process exited with {code}.");
+        }
+        finally { Directory.Delete(_testSessions, true); _testSessions = null; }
     }
 
     private async Task SingleRole()
@@ -141,8 +153,8 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         return ((IPEndPoint)socket.LocalEndPoint!).Port;
     }
 
-    private static WorldSnapshot State(GameEvent e) => e.State ?? throw new InvalidOperationException($"{e.Type} has no state.");
-    private static bool HasState(GameEvent e) => e.Type is "snapshot" or "connected" && e.State is not null;
+    private static MatchSnapshot State(GameEvent e) => e.State ?? throw new InvalidOperationException($"{e.Type} has no state.");
+    private static bool HasState(GameEvent e) => e.Type is "snapshot" or "connected" or "ack" && e.State is not null;
     private static void Require(bool condition, string expectation)
     {
         if (!condition) throw new InvalidOperationException(expectation);
