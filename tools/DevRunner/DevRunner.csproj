@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="DevRunner.Tests" />
     <ProjectReference Include="../../src/Game.Core/Game.Core.csproj" />
   </ItemGroup>
 </Project>

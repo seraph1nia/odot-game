@@ -1,6 +1,7 @@
 namespace DevRunner;
 
-internal sealed record Options(string Command, string Host, string Bind, int? Port, int StartupTimeout, int Timeout, string[] EngineArgs, string? SessionFile)
+internal sealed record Options(string Command, string Host, string Bind, int? Port, int StartupTimeout, int Timeout, string[] EngineArgs, string? SessionFile,
+    int Jobs = 2, string? Scenario = null, string? EvidenceDirectory = null, string? WorkerToken = null)
 {
     public static Options Parse(string[] args)
     {
@@ -11,6 +12,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         int startup = 15000;
         int timeout = 180000;
         string? sessionFile = null;
+        int jobs = 2;
+        string? scenario = null, evidence = null, workerToken = null;
         var engineArgs = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
@@ -24,13 +27,28 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--timeout-ms": timeout = int.Parse(Value()); break;
                 case "--session-file": sessionFile = Value(); break;
                 case "--engine-arg": engineArgs.Add(Value()); break;
+                case "--jobs": jobs = int.Parse(Value()); break;
+                case "--scenario": scenario = Value(); break;
+                case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
+                case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;
                 case "--help": return new("help", host, bind, port, startup, timeout, [], sessionFile);
                 default: throw new ArgumentException($"Unknown runner argument: {args[i]}");
             }
         }
-        if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0)
-            throw new ArgumentException("Port must be 1..65535 and deadlines must be positive.");
+        if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
+            throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
-        return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile);
+        if (scenario is not null)
+        {
+            string[] names = command == "test-network" ? ScenarioNames.Network : command is "test-ui" or "_ui-worker" ? ScenarioNames.Ui : [];
+            if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
+        }
+        if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
+            throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
+        if (args.Contains("--jobs") && command != "test-network") throw new ArgumentException("--jobs belongs to test-network.");
+        if (engineArgs.Count > 0 && command is not ("dev" or "client")) throw new ArgumentException("--engine-arg belongs to desktop dev/client tasks.");
+        if (command is "test-network" or "test-ui" or "_ui-worker" or "ci" && (host != "127.0.0.1" || bind != "127.0.0.1"))
+            throw new ArgumentException("Verification owns loopback peers; use dev/client/server for other endpoints.");
+        return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken);
     }
 }

@@ -7,7 +7,6 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
-    private string? _testSessions;
     private static MatchSnapshot Latest(Child child) => State(child.History().Last(e => e.State is not null));
     private async Task<GameEvent> Action(Child child, string command, CancellationToken token, bool accepted = true)
     {
@@ -48,32 +47,41 @@ internal sealed partial class Runner
     private async Task NetworkTests()
     {
         using var suite = CancellationTokenSource.CreateLinkedTokenSource(cancellation); suite.CancelAfter(options.Timeout);
-        CancellationToken token = suite.Token;
-        _testSessions = Path.Combine(Path.GetTempPath(), "odot-network-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(_testSessions);
+        var scenarios = ScenarioNames.Network.Where(n => options.Scenario is null || options.Scenario == n).Select(name =>
+            new Scenario(name, "Preserved real ENet gameplay/lifecycle integration", token => _evidence.Measure(name, "network", async () =>
+            {
+                await using var owned = new ScenarioScope(name, _evidence);
+                var worker = new Runner(options, token, _evidence, owned);
+                switch (name)
+                {
+                    case "authority-resume-victory": await worker.AuthorityResumeVictory(options.Port ?? owned.Port(), token); break;
+                    case "redistribution": await worker.Redistribution(owned.Port(), token); break;
+                    case "defeat": await worker.Defeat(owned.Port(), token); break;
+                    case "failure-cases": await worker.FailureCases(token); break;
+                }
+                await owned.DisposeAsync(); owned.CheckErrors();
+            }))).ToArray();
         try
         {
-            await AuthorityResumeVictory(options.Port ?? FreePort(), token);
-            await Redistribution(FreePort(), token);
-            await Defeat(FreePort(), token);
-            await FailureCases(token);
-            Console.WriteLine("Network verification passed.");
+            Console.WriteLine($"Network coverage: {(options.Scenario is null ? "full" : "selected")}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
+            await _evidence.Measure("network", "suite", () => ScenarioScheduler.Run(scenarios, options.Jobs, suite.Token));
+            Console.WriteLine(options.Scenario is null ? "Network verification passed (all four groups)." : $"Selected network scenario passed: {options.Scenario}.");
         }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new TimeoutException($"Network suite exceeded {options.Timeout} ms; children were cleaned up."); }
-        finally { Directory.Delete(_testSessions, true); _testSessions = null; }
     }
     private async Task AuthorityResumeVictory(int port, CancellationToken token)
     {
-        await using var server = StartGame("test-server", true, true, port);
-        await server.WaitFor(e => e.Type == "ready", "server readiness", options.StartupTimeout, token);
+        var started = await StartServer("test-server", port, token, options.Port is null);
+        await using var server = started.Server; port = started.Port;
         await using var a = StartGame("test-a", false, true, port, null, "--automated");
         GameEvent ca = await a.WaitFor(e => e.Type == "connected", "A connected", options.StartupTimeout, token);
-        string bPath = Path.Combine(_testSessions!, "resume-b.json");
+        string bPath = Path.Combine(_scope!.Directory, "resume-b.json");
         await using var b = StartGame("test-b", false, true, port, null, "--automated", "--session-file", bPath);
         GameEvent cb = await b.WaitFor(e => e.Type == "connected", "B connected", options.StartupTimeout, token);
         Require(ca.PlayerId != cb.PlayerId && ca.PeerId != cb.PeerId, "stable IDs and distinct ENet peers");
-        await using (var concurrent = StartGame("concurrent", false, true, port, null, "--automated", "--session-file", bPath))
+        await using (var concurrent = ExpectedFailure(StartGame("concurrent", false, true, port, null, "--automated", "--session-file", bPath)))
             await concurrent.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("already connected"), "concurrent claim refusal", options.StartupTimeout, token);
-        await using (var protocol = StartGame("protocol", false, true, port, null, "--automated", "--protocol-version", "1"))
+        await using (var protocol = ExpectedFailure(StartGame("protocol", false, true, port, null, "--automated", "--protocol-version", "1")))
             await protocol.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("Protocol"), "old protocol refusal", options.StartupTimeout, token);
         await Action(a, "start", token); await Observe(b, s => s.Phase == Phase.Building, "B sees start", token);
         await Action(a, "ready", token);
@@ -81,14 +89,14 @@ internal sealed partial class Runner
         await Action(a, "unready", token);
         await Action(a, $"build 0 farm {cb.PlayerId}", token, false); await Action(a, "build 9 farm", token, false);
         await a.Send("raw {bad"); await a.WaitFor(e => e.Type == "ack" && e.Result!.Sequence == 0 && !e.Result.Accepted, "malformed rejection", options.StartupTimeout, token);
-        string invalidPath = Path.Combine(_testSessions!, "invalid.json");
+        string invalidPath = Path.Combine(_scope!.Directory, "invalid.json");
         File.WriteAllText(invalidPath, JsonSerializer.Serialize(new { Endpoint = $"{options.Host}:{port}", MatchId = State(ca).MatchId, Token = "INVALID", NextSequence = 1 }));
-        await using (var invalid = StartGame("invalid-session", false, true, port, null, "--automated", "--session-file", invalidPath))
+        await using (var invalid = ExpectedFailure(StartGame("invalid-session", false, true, port, null, "--automated", "--session-file", invalidPath)))
             await invalid.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("expired"), "invalid credential refusal", options.StartupTimeout, token);
         await Action(a, "unknown", token, false);
         await Economy(a, token); await Economy(b, token);
         await Action(a, "build 3 mine", token, false); await Action(a, "recruit 1", token, false);
-        await using (var late = StartGame("late", false, true, port, null, "--automated"))
+        await using (var late = ExpectedFailure(StartGame("late", false, true, port, null, "--automated")))
             await late.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("locked"), "late join refusal", options.StartupTimeout, token);
         await Advance([a, b], token);
         MatchSnapshot before = Latest(b);
@@ -133,15 +141,16 @@ internal sealed partial class Runner
         // A credential from a stopped match must not silently create a new city.
         await using var replacement = StartGame("replacement-server", true, true, port);
         await replacement.WaitFor(e => e.Type == "ready", "replacement server", options.StartupTimeout, token);
-        await using var staleSession = StartGame("stale-session", false, true, port, null, "--automated", "--session-file", bPath);
+        await using var staleSession = ExpectedFailure(StartGame("stale-session", false, true, port, null, "--automated", "--session-file", bPath));
         await staleSession.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("expired"), "expired session refusal", options.StartupTimeout, token);
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        await using var server = StartGame("transfer-server", true, true, port); await server.WaitFor(e => e.Type == "ready", "transfer server", options.StartupTimeout, token);
+        var started = await StartServer("transfer-server", port, token);
+        await using var server = started.Server; port = started.Port;
         await using var a = StartGame("transfer-a", false, true, port, null, "--automated");
         await using var b = StartGame("transfer-b", false, true, port, null, "--automated");
-        string cPath = Path.Combine(_testSessions!, "observer.json");
+        string cPath = Path.Combine(_scope!.Directory, "observer.json");
         await using var c = StartGame("transfer-c", false, true, port, null, "--automated", "--session-file", cPath);
         foreach (Child p in new[] { a, b, c }) await p.WaitFor(e => e.Type == "connected", "three-player lobby", options.StartupTimeout, token);
         int deadId = c.PlayerId;
@@ -166,7 +175,8 @@ internal sealed partial class Runner
     }
     private async Task Defeat(int port, CancellationToken token)
     {
-        await using var server = StartGame("defeat-server", true, true, port); await server.WaitFor(e => e.Type == "ready", "defeat server", options.StartupTimeout, token);
+        var started = await StartServer("defeat-server", port, token);
+        await using var server = started.Server; port = started.Port;
         await using var client = StartGame("defeat-client", false, true, port, null, "--automated"); await client.WaitFor(e => e.Type == "connected", "defeat client", options.StartupTimeout, token);
         await Action(client, "start", token); await Advance([client], token); await Advance([client], token); await Advance([client], token);
         MatchSnapshot lost = await Observe(client, s => s.Phase == Phase.Defeat, "ordinary losing strategy", token);
@@ -176,11 +186,13 @@ internal sealed partial class Runner
     {
         using var occupied = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp); occupied.Bind(new IPEndPoint(IPAddress.Loopback, 0));
         int port = ((IPEndPoint)occupied.LocalEndPoint!).Port;
-        await using (var client = StartGame("unavailable-client", false, true, port, null, "--automated", "--connect-timeout-ms", "1000"))
+        await using (var client = ExpectedFailure(StartGame("unavailable-client", false, true, port, null, "--automated", "--connect-timeout-ms", "1000")))
         { await client.WaitFor(e => e.Type == "connection-failed", "unavailable server", 5000, token); Require(await client.WaitExit(token) != 0, "bounded unavailable server failure"); }
-        await using (var server = StartGame("occupied-server", true, true, port))
+        await using (var server = ExpectedFailure(StartGame("occupied-server", true, true, port), bindFailure: true))
         { await server.WaitFor(e => e.Type == "error", "occupied port", 5000, token); Require(await server.WaitExit(token) != 0 && occupied.IsBound, "collision leaves port owner intact"); }
-        await using var readiness = StartGame("readiness-server", true, true, FreePort()); await readiness.WaitFor(e => e.Type == "ready", "readiness test", options.StartupTimeout, token);
+        var retried = await StartServer("readiness-server", port, token);
+        await using var readiness = retried.Server;
+        Require(retried.Port != port && occupied.IsBound, "automatic bind collision retries without touching endpoint owner");
         try { await readiness.WaitFor(e => e.Type == "missing", "missing readiness", 200, token); throw new Exception("Missing readiness passed."); } catch (TimeoutException) { Require(true, "missing readiness deadline"); }
         await readiness.Send("quit"); await readiness.WaitExit(token);
         try { await readiness.WaitFor(e => e.Type == "missing", "exited child", 1000, token); throw new Exception("Exited child passed."); } catch (InvalidOperationException e) when (e.Message.Contains("exited before", StringComparison.Ordinal)) { Require(true, "exited child fails pending expectation"); }

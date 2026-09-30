@@ -1,10 +1,10 @@
 # Cooperative POC verification
 
-Verified on 2026-09-30 on Linux x86_64 using .NET SDK 10.0.401 and Godot 4.7.2 .NET. Graphical checks used real X11 windows under KDE Wayland with the Compatibility renderer and an AMD Radeon RX 6800. Windows/macOS runtime checks and the remote GitHub Actions runner have not been executed.
+Verified on 2026-09-30 on Linux x86_64 using .NET SDK 10.0.401 and Godot 4.7.2 .NET. Historical desktop checks below used real X11 windows under KDE Wayland with the Compatibility renderer and an AMD Radeon RX 6800. The current recurring workflow uses private Xvfb displays and Mesa software graphics, as recorded in the final section. Windows/macOS runtime checks and the remote GitHub Actions runner have not been executed.
 
 ## Rules and real processes
 
-`mise run test` passes 17 cases. They cover one-to-four-player initialization, snapshot serialization, fixed rosters, atomic owned-slot spending, recruitment and upgrades, disconnected production, ready/unready, unique turn guards, retry identity, bounded deterministic combat, weak defense, simultaneous damage/deaths, immediate enemy conservation and remainder distribution, original-roster future allocations, persistent soldier/city damage, nine production turns, victory/defeat precedence and pause without catch-up. A pause/disconnect/resume regression proves that an already eligible ready check resolves once on resume.
+The core xUnit suite passes 17 cases. They cover one-to-four-player initialization, snapshot serialization, fixed rosters, atomic owned-slot spending, recruitment and upgrades, disconnected production, ready/unready, unique turn guards, retry identity, bounded deterministic combat, weak defense, simultaneous damage/deaths, immediate enemy conservation and remainder distribution, original-roster future allocations, persistent soldier/city damage, nine production turns, victory/defeat precedence and pause without catch-up. A pause/disconnect/resume regression proves that an already eligible ready check resolves once on resume.
 
 The final real ENet suite passes using separate headless Godot processes and standard balance. It verifies:
 
@@ -243,3 +243,190 @@ cross-monitor moves were not exercised. Some exported shutdowns reported one
 resource still in use (and two ObjectDB instances) despite successful exit and
 explicit player stop; source normal shutdown was clean in the observed run.
 This remaining cleanup diagnostic is recorded separately from functional checks.
+
+## Linux testing workflow: before-change baseline
+
+On 2026-09-30, the unchanged clean working tree at
+`c474363cfed39891f7ef5437b375dd6f77ba2c99` passed `mise run ci` on
+CachyOS Linux x86_64 using the locked Godot .NET 4.7.2 and SDK 10.0.401.
+Mise reported **130.17 seconds** including supervisor bootstrap, formatting,
+repeated preparation, 17 xUnit cases (115 ms assertion execution), all four
+sequential network groups, Linux client/server exports and headless exported
+ordinary-protocol smoke. No graphical client was launched by this baseline.
+The console record is in ignored `logs/test-workflow-baseline/ci.log`.
+
+Process-log creation/last-write timestamps give approximate phase bounds:
+pre-network preparation/bootstrap/rules 15.45 seconds; network peers from
+12:11:45.063 to 12:13:30.583 CEST, **105.52 seconds**; subsequent template
+checking/exports/exported smoke about 9.2 seconds. Approximate network group
+bounds are authority/resume/victory 40.70 seconds, redistribution 33.43 seconds,
+defeat 29.25 seconds and failure cases 2.14 seconds. These are filesystem-based
+estimates, not instrumented phase measurements, and include owned-peer cleanup
+gaps. Existing build/import and export-template caches were available; the final
+fresh-source result must report that preparation difference and added UI cost
+separately. This single baseline is reusable while those inputs remain unchanged;
+additional complete runs are not required solely to collect benchmark samples.
+
+### Targeted implementation checks
+
+The owned Xvfb configuration was exercised with inherited `DISPLAY` and
+`WAYLAND_DISPLAY` removed. `glxinfo -B` reported Mesa 26.2.3, llvmpipe
+(LLVM 22.1.8), OpenGL 4.6 and no hardware acceleration. Source clients report
+X11 and the same software renderer; assertions additionally check the actual
+Dummy audio driver. This is rendering/input-state evidence, not audible
+playback, native compositor or GPU-performance verification.
+
+The selected `failure-cases` network scenario passed in 2.89 seconds, preserving
+unavailable-server, occupied-port, missing-readiness and exited-child assertions
+and verifying automatic bind retry without disturbing the occupied socket.
+Cheap xUnit checks passed 17 core cases and 19 runner cases; runner assertion
+execution took 179 ms. These include worker bounds/serial scheduling,
+first-failure cancellation with awaited sibling cleanup, selection validation,
+owned data/child cleanup, stale UI request ids, missing controls/captures,
+unexpected engine errors, export barriers and orphaned-wrapper group cleanup.
+
+The individually selected `settings` slice passed in 5.75 seconds (9.05 seconds
+including private-display startup): actual modal input blocked a farm purchase,
+actual slider/key input changed Master 50 to 51, and restarting the client
+preserved its identity and preference in owned `user://` storage. Inspected
+1100×820 checkpoints contain the settings controls and loaded landscape.
+Evidence is in ignored `logs/20260930-110055-2eee2b0a/`.
+
+Graphical implementation checks exposed a real WAV/playback shutdown diagnostic.
+Supervised graphical quit now stops/releases the player and observes two mixer
+cycles before exiting, with a bounded deadline and errors still treated as
+failures. This follows the asynchronous fade/deletion behavior in
+[Godot's audio server](https://github.com/godotengine/godot/blob/master/servers/audio/audio_server.cpp)
+and the buffered threaded
+[Dummy driver](https://github.com/godotengine/godot/blob/master/servers/audio/audio_driver_dummy.cpp).
+The final settings check exited without that resource error. Display cleanup also
+awaits/drains its owned process group before deleting temporary shader caches,
+covering Xvfb's delayed exit after the wrapper's cleanup trap.
+
+### Final fresh-source gate and comparison
+
+The implemented working-tree code on top of baseline revision
+`c474363cfed39891f7ef5437b375dd6f77ba2c99` passed `mise run ci` from the owned
+fresh-source copy `/tmp/odot-workflow-clean-lIYgj3`, with inherited `DISPLAY` and
+`WAYLAND_DISPLAY` removed. The copy initially contained no `.godot`, `bin`, `obj`
+or `dist` outputs. Host NuGet/tool/template caches remained available. The sorted
+source-file hash manifest has SHA-256
+`0d57ab3a2747390e68ac72869fe8a15097b60151b655c17242be81a241205936`;
+every copied source/lock file matched its before hash after verification. Final
+documentation edits follow this run and do not change tested code.
+
+Mise measured **112.32 seconds**, including supervisor bootstrap; the CI runner
+measured **109.21 seconds**. The trace contains exactly one explicit solution
+restore, build and source import. Godot's separate release publishing remains
+part of each export. Evidence is retained in ignored `logs/test-workflow-after/`
+(copied from the fresh run), with console output in `logs/workflow-clean-ci.log`
+and source hashes in `logs/workflow-clean-before.sha256` and
+`logs/workflow-clean-hashes.log`. Verified exports were copied back to `dist/`.
+
+| Phase | Elapsed seconds | Coverage/overlap |
+| --- | ---: | --- |
+| Locked restore / formatting / build / source import | 1.06 / 7.18 / 1.60 / 3.82 | Serial preparation |
+| Gameplay / runner xUnit commands | 1.18 / 1.32 | 17 / 19 cases, overlapping network; assertion times 128 / 207 ms |
+| Complete network set | 63.00 | Two workers; all four preserved groups |
+| Complete source UI set | 16.72 | Three serial slices, including display startup/cleanup |
+| Client / server export | 4.46 / 3.54 | Sequential after successful source gates |
+| Headless exported-role smoke | 1.01 | Ordinary build/production/recruit protocol |
+| Graphical exported-package smoke | 6.55 | Includes separate private-display startup/cleanup |
+
+The authority and redistribution groups began together and took 40.75 and
+33.63 seconds. Defeat began when redistribution finished and took 29.34 seconds;
+failure cases began when authority finished and took 2.87 seconds. The network
+critical path therefore fell from the approximate serial baseline of 105.52
+seconds to 63.00 seconds (about 40% less elapsed time). Gameplay rules and core
+tests are unchanged; review of the network diff confirms every prior assertion
+is retained, with added owned-error checking and automatic bind-race coverage.
+No simulation acceleration was used. This is one observed boundary comparison,
+not a repeated-sample benchmark: baseline network bounds came from filesystem
+timestamps, and fresh preparation differs from the baseline's generated caches.
+
+New graphical gates add 23.27 seconds including their two display lifecycles.
+Despite that added coverage, measured total time was 17.85 seconds below the
+130.17-second baseline. Bootstrap, formatting, imports, templates and host load
+can vary; this result does not promise the same reduction on other machines.
+
+### Expensive-slice value and observed cost
+
+Each UI slice owns a fresh server, one graphical client and one headless observer;
+settings also restarts its own graphical client. Ordinary input produces server
+acknowledgments and independently observed state. All final 1100×820 screenshots
+were inspected: imported landscape/materials and controls are visible, economy
+shows an upgraded farm/barracks/recruit, settings shows Master 51, reconnect
+restores the connected city, and the package shows its purchased farm.
+
+| Selected slice | Risk missed by cheaper coverage | Final slice seconds |
+| --- | --- | ---: |
+| economy | World/control picking and input-to-authority routing; numerical/protocol checks cannot click rendered objects | 4.64 |
+| reconnect | Actual recovery button and retained scene/identity; headless resume lacks the presentation/control boundary | 3.32 |
+| settings | Modal click leakage and owned preference persistence through actual slider/key input and restart | 5.46 |
+| exported-package | Packed UI/model/music-resource omissions and input; source checks cannot establish export completeness | 3.24 |
+
+Slice times include peer setup/cleanup, but exclude roughly 3.1–3.3 seconds of
+display lifecycle and standalone source preparation. These are observed local
+costs, not deadlines. Maintenance centers on shared selectors/observations and
+the normal protocol fixtures; the package slice reuses the economy helpers.
+Extend these cases only for a concrete uncovered risk, rather than adding every
+building, volume or display option. Prior battle/pause/transfer/outcome screenshots
+and listening observations above remain historical targeted evidence. Current
+recurring graphical smoke does not replay those complete matches or listen to
+music; complete normal-protocol battles/outcomes remain network assertions.
+
+### Ownership, faults and desktop distinction
+
+Selected source slices ran independently before the final gate. Unknown options,
+missing controls/captures, stale response ids, unexpected engine errors, scheduler
+failure attribution/cancellation and export barriers have cheap fixture coverage.
+Additional representative investigations exercised the same checked-in commands:
+
+- An intentional Xvfb executable startup failure returned nonzero in 3.16 seconds
+  with an owned-display readiness diagnostic and no desktop fallback
+  (`logs/workflow-display-fault.log`).
+- An intentional source-import failure returned nonzero before any scenario peers
+  or network checks started (`logs/workflow-prepare-fault.log`).
+- A 4-second selected authority/network deadline returned nonzero; its scenario
+  cleanup completed at 4.45 seconds with several peers active. A 700-ms graphical
+  deadline completed display cleanup at 0.73 seconds. Unrelated processes remained
+  alive and all listed runtime directories were removed
+  (`logs/workflow-network-timeout.log`, `logs/workflow-ui-timeout.log`).
+- SIGTERM during selected settings with server, client and observer connected
+  returned 130, removed both scenario/display runtime directories and preserved
+  an unrelated process (`logs/workflow-interrupt.log`). Group cleanup fixtures
+  also cover a wrapper that exits before its descendants.
+- Selecting exported-package before exports existed failed clearly without
+  creating packages or build/import caches (`logs/workflow-missing-package.log`).
+
+These are diagnostic fault injections, not additional recurring game suites.
+Final CI left no live owned display-group members or scenario runtime directories.
+The developer's normal `settings.cfg` matched its saved SHA-256 before and after
+selected settings, desktop dev and final CI; only owned preferences were edited.
+Separate engine/supervisor logs identify each peer, including intentional
+occupied-port errors, without logging resume credentials.
+
+`dev` separately opened two normal `Odot - Nine Tiles (DEBUG)` windows on host
+display `:0`, while the private reconnect slice completed in 3.43 seconds without
+adding desktop windows. Its desktop client list remained the same two windows;
+focus could move to the user's ordinary application during the run. During all
+final source UI slices, a read-only X11 observer recorded the same host pointer
+coordinates (3239,1426), focus (0x200000) and empty X11 client list before/after;
+normal Wayland desktop applications remained running. The observer only queried
+state and injected no desktop input. Test input uses Godot events inside its
+private X11 connection. Those checks establish desktop isolation on this host;
+physical device interaction and native compositor behavior are separate coverage.
+
+Source and exported graphical clients reported X11, Dummy audio, loaded music
+and llvmpipe with OpenGL 4.6. Both exited without the prior WAV/playback resource
+error after supervised mixer draining. The authored WAV/QOA import format is
+unchanged; current tests assert resource loading, gain/settings and lifecycle,
+not audible quality or loop boundaries. Historical normal-close diagnostics
+above are not erased by this supervised-quit verification.
+
+The Ubuntu 24.04 workflow explicitly provisions Xvfb/Xauthority/X11/Mesa/Openbox
+and executes the same required `mise run ci`, retaining its 15-minute job limit,
+locked toolchain and read-only permissions. No checks silently skip, and no
+upload/publish/deploy steps were added. The hosted Actions job was not run from
+this workspace. Windows/macOS, native Wayland/GPU behavior, physical input and
+new listening checks were not executed as part of this change.

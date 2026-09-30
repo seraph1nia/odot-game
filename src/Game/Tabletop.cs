@@ -88,6 +88,8 @@ public partial class Tabletop(Main game) : Node3D
         _pause = Button(match, "Pause match", () => game.SendAction(game.State?.Paused == true ? "resume" : "pause"));
         _reconnect = Button(match, "Reconnect to my city", () => game.Connect());
         _fresh = Button(match, "Join lobby · fresh session", () => game.Connect(true));
+        foreach (var (button, name) in new[] { (_mine, "Mine"), (_farm, "Farm"), (_barracks, "Barracks"), (_upgrade, "Upgrade"), (_recruit, "Recruit"),
+            (_ready, "Ready"), (_pause, "Pause"), (_start, "Start"), (_reconnect, "Reconnect"), (_fresh, "Fresh") }) button.Name = name;
         var footer = new HBoxContainer(); footer.AddThemeConstantOverride("separation", 20); box.AddChild(footer);
         _status = Text(footer, "Connecting", 13); _status.SizeFlagsStretchRatio = 0.32f;
         _feedback = Text(footer, "", 13); _feedback.SizeFlagsStretchRatio = 0.68f; _feedback.CustomMinimumSize = new(0, 32);
@@ -109,6 +111,65 @@ public partial class Tabletop(Main game) : Node3D
     }
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
+    internal void StopAudio()
+    {
+        var player = GetNodeOrNull<AudioStreamPlayer>("BackgroundMusic");
+        if (player is null) return;
+        player.Stop(); player.Stream = null;
+        player.QueueFree();
+    }
+    internal object ObserveUi(string id, string? screenshot, int colors)
+    {
+        var targets = new Dictionary<string, object>();
+        void ControlTarget(string name, Control control, Rect2? local = null)
+        {
+            Rect2 rect = local is { } area ? new Rect2(control.GetGlobalTransformWithCanvas() * area.Position, area.Size) : control.GetGlobalRect();
+            Vector2 point = rect.GetCenter();
+            if (control.GetViewport() is Window window && window != GetWindow()) point += window.Position;
+            point = GetViewport().GetFinalTransform() * point;
+            targets[name] = new { X = point.X, Y = point.Y, Visible = control.IsVisibleInTree(), Enabled = control is not BaseButton button || !button.Disabled };
+        }
+        foreach (Button button in new[] { _start, _farm, _barracks, _upgrade, _recruit, _ready, _reconnect }) ControlTarget(button.Name, button);
+        ControlTarget("Settings", _settings.SettingsButton);
+        if (_settings.IsOpen)
+        {
+            ControlTarget("AudioTab", _settings.Categories.GetTabBar(), _settings.Categories.GetTabBar().GetTabRect(1));
+            ControlTarget("Volume", _settings.VolumeSlider);
+            ControlTarget("CloseSettings", _settings.Dialog.GetOkButton());
+        }
+        for (int slot = 0; slot < 9; slot++)
+        {
+            Vector3 point = Center(_focus) + SlotPosition(slot);
+            if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds) && bounds[slot] is { } box) point = Center(_focus) + box.GetCenter();
+            Vector2 screen = GetViewport().GetFinalTransform() * _camera.UnprojectPosition(point);
+            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null, Enabled = game.Connected };
+        }
+        int master = AudioServer.GetBusIndex("Master");
+        using AudioStream? music = GetNode<AudioStreamPlayer>("BackgroundMusic").Stream;
+        return new
+        {
+            Id = id,
+            Revision = _revision,
+            SelectedSlot = _slot,
+            Connected = game.Connected,
+            SettingsOpen = _settings.IsOpen,
+            MasterVolume = _settings.MasterVolume,
+            MasterGain = AudioServer.GetBusVolumeLinear(master),
+            MasterMuted = AudioServer.IsBusMute(master),
+            Display = DisplayServer.GetName(),
+            AudioDriver = AudioServer.GetDriverName(),
+            UserDataPath = ProjectSettings.GlobalizePath("user://"),
+            Renderer = RenderingServer.GetVideoAdapterName(),
+            Models = _assets.Count,
+            Materials = _materials.Count,
+            MusicLoaded = music is not null,
+            Width = GetWindow().Size.X,
+            Height = GetWindow().Size.Y,
+            Targets = targets,
+            Screenshot = screenshot,
+            Colors = colors
+        };
+    }
     private static Vector3 Center(int id) => new((id - 1) * 40, 0, 0);
     private static Vector3 SlotPosition(int slot) => VillageLayout.Slot(slot);
     public override void _Process(double delta)

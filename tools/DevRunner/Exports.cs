@@ -92,39 +92,45 @@ internal sealed partial class Runner
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deadline.CancelAfter(options.StartupTimeout * 2);
-        _testSessions = Path.Combine(Path.GetTempPath(), "odot-export-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_testSessions);
-        try
-        {
-            int port = FreePort();
-            await using var server = StartGame("exported-server", true, true, port, Path.Combine(_root, "dist", "server", "odot.x86_64"));
-            await server.WaitFor(e => e.Type == "ready", "exported server readiness", options.StartupTimeout, deadline.Token);
-            await using var client = StartGame("exported-client", false, true, port, Path.Combine(_root, "dist", "client", "odot.x86_64"), "--automated");
-            await client.WaitFor(e => e.Type == "connected", "exported client connection", options.StartupTimeout, deadline.Token);
-            await Action(client, "start", deadline.Token);
-            await Action(client, "build 0 farm", deadline.Token);
-            await Action(client, "build 1 barracks", deadline.Token);
-            await Action(client, "ready", deadline.Token);
-            GameEvent recruited = await Action(client, "recruit 1", deadline.Token);
-            Require(State(recruited).Players.Single().Soldiers.Length == 1 && State(recruited).Players.Single().Food == 0,
-                "exported roles start, construct, produce and recruit through the normal protocol");
-        }
-        finally { Directory.Delete(_testSessions, true); _testSessions = null; }
+        await using var owned = new ScenarioScope("export-smoke", _evidence);
+        var worker = new Runner(options, deadline.Token, _evidence, owned);
+        var started = await worker.StartServer("exported-server", owned.Port(), deadline.Token, exported: Path.Combine(_root, "dist", "server", "odot.x86_64"));
+        await using var server = started.Server;
+        await using var client = worker.StartGame("exported-client", false, true, started.Port, Path.Combine(_root, "dist", "client", "odot.x86_64"), "--automated");
+        await client.WaitFor(e => e.Type == "connected", "exported client connection", options.StartupTimeout, deadline.Token);
+        await Action(client, "start", deadline.Token);
+        await Action(client, "build 0 farm", deadline.Token);
+        await Action(client, "build 1 barracks", deadline.Token);
+        await Action(client, "ready", deadline.Token);
+        GameEvent recruited = await Action(client, "recruit 1", deadline.Token);
+        Require(State(recruited).Players.Single().Soldiers.Length == 1 && State(recruited).Players.Single().Food == 0,
+            "exported roles start, construct, produce and recruit through the normal protocol");
+        await owned.DisposeAsync(); owned.CheckErrors();
     }
 
     private async Task Ci()
     {
+        PrivateDisplay.CheckPrerequisites();
         await Preflight();
         await Execute("restore", "dotnet", "restore", "Odot.slnx", "--locked-mode");
         await Execute("format", "dotnet", "format", "Odot.slnx", "--verify-no-changes", "--no-restore");
-        await Prepare();
-        await Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo");
-        await NetworkTests();
-        // Keep these calls sequential. Any failed check above must prevent both exports.
-        await PrepareTemplates();
-        await Export(false);
-        await Export(true);
-        await ExportSmoke();
+        await BuildAndImport();
+        await VerificationGate.Run(async () =>
+        {
+            await Task.WhenAll(Execute("rules", "dotnet", "test", "tests/Game.Core.Tests/Game.Core.Tests.csproj", "--no-restore", "--no-build", "--nologo"),
+                Execute("tooling", "dotnet", "test", "tests/DevRunner.Tests/DevRunner.Tests.csproj", "--no-restore", "--no-build", "--nologo"), NetworkTests());
+            await UiTests(null);
+        }, async () =>
+        {
+            // Keep these calls sequential. Any failed check above must prevent both exports.
+            await PrepareTemplates();
+            await Export(false);
+            await Export(true);
+        }, async () =>
+        {
+            await _evidence.Measure("export-smoke", "suite", ExportSmoke);
+            await UiTests("exported-package");
+        });
         Console.WriteLine("CI checks and Linux exports passed. Outputs remain in dist/; nothing was uploaded or published.");
     }
 }

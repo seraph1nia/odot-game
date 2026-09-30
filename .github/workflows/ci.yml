@@ -20,5 +20,9 @@ jobs:
           cache: true
       - name: Install declared tools
         run: mise install --locked dotnet godot-dotnet
+      - name: Provide private-display software graphics
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Verify, then export Linux client and server
         run: mise run ci

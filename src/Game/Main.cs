@@ -33,6 +33,7 @@ public partial class Main : Node
     private readonly Dictionary<long, Command> _sent = [];
     private int _broadcastTick;
     private long _broadcastRevision = -1;
+    private Tabletop? _tabletop;
 
     public override void _Ready()
     {
@@ -67,6 +68,12 @@ public partial class Main : Node
             }
         }
         if (_port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Invalid port or timeout.");
+        if (System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA") is { } owned)
+        {
+            string data = Path.GetFullPath(ProjectSettings.GlobalizePath("user://"));
+            if (!data.StartsWith(Path.GetFullPath(owned).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                throw new InvalidOperationException("Verification user:// is outside its owned data directory.");
+        }
         if (_server)
         {
             _match = new(); _peer = new(); _peer.SetBindIP(bind);
@@ -89,7 +96,11 @@ public partial class Main : Node
             _session.Load();
             BindClientSignals();
             Connect();
-            if (DisplayServer.GetName() != "headless") GetTree().Root.CallDeferred(Node.MethodName.AddChild, new Tabletop(this));
+            if (DisplayServer.GetName() != "headless")
+            {
+                _tabletop = new Tabletop(this);
+                GetTree().Root.CallDeferred(Node.MethodName.AddChild, _tabletop);
+            }
         }
         if (_automated || _supervised)
             _ = Task.Run(() => { string? line; while ((line = Console.ReadLine()) is not null) _commands.Enqueue(line); });
@@ -251,6 +262,12 @@ public partial class Main : Node
             if (parts.Length == 0) return;
             switch (parts[0])
             {
+                case "ui-probe" when _supervised && !_server && DisplayServer.GetName() != "headless":
+                    _ = ProbeUi(parts[1], parts.Length > 2 ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[2])) : null); break;
+                case "key" when _supervised && !_server && DisplayServer.GetName() != "headless":
+                    Key key = Enum.Parse<Key>(parts[1], true);
+                    Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = true });
+                    Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false }); break;
                 case "click" when !_server && DisplayServer.GetName() != "headless":
                     Vector2 position = new(float.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
                     Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
@@ -258,7 +275,8 @@ public partial class Main : Node
                     Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = false });
                     break;
                 case "disconnect" when !_server: FailConnection("server-disconnected", "Connection closed locally. Reconnect to resume your city."); break;
-                case "quit": GetTree().Quit(); break;
+                case "quit":
+                    if (_tabletop is not null) _ = QuitGraphical(); else GetTree().Quit(); break;
                 case "reconnect": Connect(); break;
                 case "fresh": Connect(true); break;
                 case "stale-ready" when Connected:
@@ -284,5 +302,48 @@ public partial class Main : Node
         if (_automated) GetTree().Quit(type == "connection-failed" ? 1 : 0);
     }
     private static void Emit(GameEvent value) => GD.Print(WireJson.EventPrefix + JsonSerializer.Serialize(value, WireJson.Options));
+    private async Task QuitGraphical()
+    {
+        _tabletop!.StopAudio();
+        // Dummy audio uses a large buffer. Observe two actual mixer cycles,
+        // then let main-thread cleanup run before the audio server is destroyed.
+        ulong deadline = Time.GetTicksMsec() + 1000;
+        double previous = AudioServer.GetTimeSinceLastMix();
+        int cycles = 0;
+        while (cycles < 2 && Time.GetTicksMsec() < deadline)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            double current = AudioServer.GetTimeSinceLastMix();
+            if (current < previous) cycles++;
+            previous = current;
+        }
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (cycles < 2) Emit(new("error", Message: "Audio mixer did not drain within the shutdown deadline."));
+        GetTree().Quit(cycles >= 2 ? 0 : 1);
+    }
+    private async Task ProbeUi(string id, string? screenshot)
+    {
+        try
+        {
+            // Let presentation and embedded-window layout consume the latest snapshot.
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            int colors = 0;
+            if (screenshot is not null)
+            {
+                using ViewportTexture texture = GetViewport().GetTexture();
+                using Image image = texture.GetImage();
+                var samples = new HashSet<string>();
+                for (int y = 0; y < image.GetHeight(); y += Math.Max(1, image.GetHeight() / 20))
+                    for (int x = 0; x < image.GetWidth(); x += Math.Max(1, image.GetWidth() / 20)) samples.Add(image.GetPixel(x, y).ToHtml());
+                colors = samples.Count;
+                Error result = image.SavePng(screenshot);
+                if (result != Error.Ok) throw new InvalidOperationException($"Frame capture failed: {result}");
+            }
+            GD.Print("ODOT_UI " + JsonSerializer.Serialize(_tabletop!.ObserveUi(id, screenshot, colors), WireJson.Options));
+        }
+        catch (Exception error) { GD.Print("ODOT_UI " + JsonSerializer.Serialize(new { Id = id, Error = error.Message }, WireJson.Options)); }
+    }
     public override void _ExitTree() { if (!_resettingRpcNode) { _peer?.Close(); _peer?.Dispose(); } }
 }

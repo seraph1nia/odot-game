@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Connect friends to a player-authoritative cooperative session through Steam's lobby, invitation, identity, and relay services with supported stable dependencies.
+Connect friends to a player-authoritative cooperative session through GodotSteam GDExtension's native lobby, invitation, identity, and multiplayer peer APIs, with maintained pinned dependencies and AppID 480 development support.
 
 ## ADDED Requirements
 
@@ -56,9 +56,31 @@ The original hosting player SHALL remain the sole gameplay authority for the lif
 - **THEN** remaining guests report that the hosted game ended and do not start an authoritative simulation
 
 ### Requirement: Supported stable integration dependencies
-The selected production Steam integration SHALL use pinned non-prerelease dependencies with available source, documented licensing, and verified ongoing upstream maintenance. Beta bindings and paused or abandoned transport adapters SHALL NOT be required to develop or run the game. The selected integration SHALL work with the project's supported stock engine/.NET build and exported Linux client. Its native redistribution requirements SHALL be documented and reproducible without runtime downloads; multiplayer acceptance SHALL remain incomplete if this compatibility has not been demonstrated.
+Steam integration SHALL use the official GodotSteam GDExtension and its native `SteamMultiplayerPeer`, with pinned upstream non-prerelease dependencies, available source, documented licensing, and verified ongoing maintenance. Small C# interop helpers or minimal GDScript glue MAY manage initialization, callbacks, lobbies, native peer setup, identity lookup, and shutdown. Gameplay delivery SHALL use Godot's multiplayer API and RPCs through that peer. The project SHALL NOT implement its own Steam-to-Godot transport wrapper, require beta C# bindings or paused/abandoned peer adapters, or automatically switch to a different SDK. The extension SHALL work with the supported stock engine/.NET build and ordinary Linux export templates; its native redistribution SHALL be documented and reproducible without runtime downloads. Development MAY use the assessed extension after recording its publisher's unstable designation, preliminary compatibility evidence, and unresolved lifecycle checks. That development selection SHALL NOT count as resolved release stability or complete multiplayer acceptance; failed required checks SHALL remain incomplete.
 
 #### Scenario: Reject an unsupported integration candidate
 - **WHEN** a proposed dependency is beta-only, paused, abandoned, or cannot run in the supported exported client
-- **THEN** it is excluded from the production integration and an eligible stable SDK path is evaluated
+- **THEN** it is excluded from the required integration and the unmet extension gate is reported without silently selecting another SDK
 - **AND** a failed or skipped experiment is not recorded as completed Steam support
+
+#### Scenario: Use the native peer from C#
+- **WHEN** a supported development or exported Linux build hosts through GodotSteam
+- **THEN** its small helpers initialize the extension and assign its native peer to Godot multiplayer after successful host creation
+- **AND** ordinary RPC commands and snapshots use that peer without a project-owned Steam transport implementation
+
+### Requirement: Development AppID and release separation
+Steam-enabled development runs and development exports SHALL default to AppID 480 and SHALL permit an explicit configured AppID override. Initial development SHALL NOT require owning a production AppID. Local solo/ENet/headless paths SHALL remain usable without Steam initialization. Lobby validation SHALL check this game's identifier and protocol as well as host/session metadata so unrelated projects sharing AppID 480 are refused. Production packaging SHALL require the game's own configured AppID, SHALL NOT silently default to 480, and SHALL exclude development-only AppID files/settings. Explicit development launches with invitation arguments SHALL be distinguished from evidence that Steam itself cold-launched this game's executable.
+
+#### Scenario: Develop with the default AppID
+- **WHEN** two Steam-connected developers launch compatible development builds without an AppID override
+- **THEN** the extension initializes with AppID 480 and hosting/invitation joining use the game's identified private lobby
+- **AND** a lobby for another development game sharing AppID 480 is refused before gameplay admission
+
+#### Scenario: Prepare a production package
+- **WHEN** production packaging has no configured game AppID or still uses the development default
+- **THEN** it fails with an actionable configuration error rather than publishing a package identified as AppID 480
+
+#### Scenario: Exercise development invitation launch arguments
+- **WHEN** a development process is explicitly launched with a valid invitation's `+connect_lobby` arguments
+- **THEN** it exercises normal invitation routing
+- **AND** this result is recorded as launch-argument coverage rather than a real Steam cold-launch invitation pass

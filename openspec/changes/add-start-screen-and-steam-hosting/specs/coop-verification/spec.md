@@ -77,9 +77,14 @@ Verification SHALL document and automate graphical start-screen navigation, solo
 ## ADDED Requirements
 
 ### Requirement: Real Steam multiplayer acceptance
-A separate Steam acceptance run SHALL use compatible exported clients and distinct authenticated Steam accounts on separate machines. It SHALL verify private lobby creation, native overlay invitations, accepted invitations both while running and from launch, admission/ownership, shared gameplay, guest reconnect during pause, fresh-join refusal after start, and original-host exit. At least one connection SHALL run across different NAT-protected networks without manual port forwarding and record actual relay-route evidence. Local substitutes and mocked invitation callbacks SHALL NOT count as proof of Steam transport, overlay, identity, or relay behavior. Completion SHALL record dependency versions, engine/runtime, account/machine prerequisites without secrets, executed scenarios, and remaining limitations.
+A separate Steam acceptance run SHALL use compatible exported clients and distinct authenticated Steam accounts on separate machines. It SHALL verify private lobby creation, native overlay invitations, accepted invitations both while running and from launch, admission/ownership, shared gameplay, guest reconnect during pause, fresh-join refusal after start, and original-host exit. Development sessions SHALL default to AppID 480; genuine Steam cold-launch verification of this game's executable SHALL use its own configured AppID/launch registration and SHALL remain explicitly incomplete when unavailable. At least one connection SHALL run across different NAT-protected networks without manual port forwarding and record actual relay-route evidence. Local substitutes, explicit development launch arguments, and mocked invitation callbacks SHALL NOT count as proof of actual Steam transport, overlay, identity, relay behavior, or Steam launching the executable. Completion SHALL record extension provenance/hash, version and stability qualifications, engine/runtime, account/machine prerequisites without secrets, executed scenarios, and remaining limitations.
 
 #### Scenario: Steam acceptance covers an exported session
 - **WHEN** two exported clients on different networks complete the Steam invitation and gameplay route
 - **THEN** the record identifies the original host and guest, matching accepted gameplay state, real Steam relay connectivity, paused reconnect, and host-ended feedback
 - **AND** a missing or failed part remains explicitly incomplete
+
+#### Scenario: AppID 480 session passes before game launch registration exists
+- **WHEN** two development exports verify real invitations, shared gameplay, reconnect, and relay connectivity using AppID 480 without this game's own registered launch configuration
+- **THEN** those observed checks are recorded as passing independently of production AppID setup
+- **AND** genuine Steam cold-launch acceptance remains incomplete rather than being inferred from launch-argument tests

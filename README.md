@@ -4,7 +4,7 @@ A small cooperative city-defense POC in C# and Godot. Each player builds on nine
 
 ## Setup
 
-Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Linux graphical clients need OpenGL 3.3 and a display; automated tests and servers need neither graphics nor audio.
+Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Linux graphical clients need OpenGL 3.3 and a display. Rules/network tests and servers are headless; graphical verification uses an owned virtual display and software OpenGL without a physical screen, GPU or audio device.
 
 ```sh
 mise trust
@@ -16,11 +16,24 @@ Tools are declared in `mise.toml` and resolved in `mise.lock`: Godot **.NET** 4.
 
 The initial host configurations cover Linux x86_64, Windows x86_64, and macOS Intel/Apple Silicon. CI verifies Linux only. Node/OpenSpec remain available for planning; neither is a gameplay dependency. Mise's core .NET backend uses its upstream installer; SDK archive metadata in the lock comes from Microsoft's release manifest. Refresh that metadata when deliberately changing SDK versions.
 
+Private-display UI verification currently supports Linux x86_64. Install its OS packages yourself; runner tasks report missing prerequisites and never install them or fall back to desktop windows:
+
+```sh
+# CachyOS / Arch
+sudo pacman -S --needed xorg-server-xvfb xorg-xauth xorg-xdpyinfo mesa-utils mesa libglvnd openbox
+# Ubuntu 24.04
+sudo apt-get install xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
+mise run check-ui-prerequisites
+```
+
+The runner needs `setsid` from util-linux (normally present), and verifies Mesa software OpenGL >= 3.3 on its own X11 display. Executable preflight starts neither Godot nor a display. Graphical clients use Dummy audio; native compositor, GPU performance, physical input and listening still need targeted manual checks.
+
 ## Source layout
 
 - `src/Game`: Godot scenes, C# networking/bootstrap, tabletop and controls; open `project.godot` in the .NET editor.
 - `src/Game.Core`: Numerical match rules with no engine dependency.
 - `tests/Game.Core.Tests`: Fast rules tests.
+- `tests/DevRunner.Tests`: Cheap scheduler, ownership, selection, UI-response and gate regressions.
 - `tools/DevRunner`: C# process supervision, integration checks and export preparation.
 - `openspec`: Change planning and capability specifications.
 
@@ -44,6 +57,11 @@ mise run server --bind 127.0.0.1 --port 7001
 mise run client --host 127.0.0.1 --port 7001 --session-file .sessions/player-a.json
 mise run test
 mise run test-network
+mise run test-network --scenario redistribution
+mise run test-network --jobs 1
+mise run test-ui --scenario economy
+mise run test-ui --scenario reconnect
+mise run test-ui --scenario settings
 mise run ci
 ```
 
@@ -60,21 +78,30 @@ Run `prepare` first for direct engine commands. Headless is a display mode: auto
 
 ## Verification and exports
 
-`test` runs only core rules tests without Godot. `test-network` launches separate real ENet peers and verifies sender ownership, economy/upgrades/recruitment, readiness, automatic battles, pause, client-process restart/resume, duplicate spending, locked-roster/protocol/session rejection, three-wave victory, actual city elimination and enemy redistribution, future allocations, observer resume and defeat. Actions use the ordinary protocol and standard balance; no RPC awards resources or alters health. Failure cases cover unavailable/stopped servers, occupied ports, missing readiness and child exit.
+`test` runs cheap xUnit gameplay and runner tests without Godot. `test-network` launches separate real headless ENet peers and preserves ownership, economy, readiness, battle, pause/resume, retry, transfer, observer and victory/defeat coverage. Stable scenario ids are `authority-resume-victory`, `redistribution`, `defeat` and `failure-cases`. Independent cases run with two workers by default; `--jobs 1` runs the same assertions serially. `--scenario NAME` runs only that case and reports selected coverage. `--port` pins the authority case, so it is rejected with other selected cases. Failure checks include unavailable/stopped servers, occupied ports, automatic bind retry, readiness deadlines and child exit; unrelated owners are preserved.
 
-The runner logs each process separately under ignored `logs/` and prints failed conditions with process output. Startup readiness has a 15-second deadline; the suite defaults to 180 seconds. Override with `--startup-timeout-ms` and `--timeout-ms` on network/dev tasks. Network tests default to a dynamically selected loopback UDP port; pass `--port` for a specific endpoint. An occupied explicit port fails without killing its owner. Graphical clients show connecting, connected, connection-failed and server-disconnected status.
+`test-ui` runs three small source slices serially on an owned Xvfb display: `economy` checks picking/purchase/upgrade/recruit input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking plus one persisted volume change. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
 
-`ci` performs locked restore, formatting checks, compilation/import, core tests and the network suite **before** exporting Linux x86_64 client and dedicated-server builds. It fails immediately on a failed check and checks that the exported programs start. GitHub Actions runs the same task on pushes and pull requests with read-only permissions. Outputs stay in the runner workspace: **no artifact uploads, releases, publishing or deployment**.
+The runner logs each process separately under ignored `logs/` and prints failed conditions with process output. Startup readiness has a 15-second deadline; network and UI suites each default to 180 seconds. Override with `--startup-timeout-ms` and `--timeout-ms` on network/UI tasks; dev also accepts the startup deadline. Network tests default to a dynamically selected loopback UDP port; pass `--port` for a specific endpoint. An occupied explicit port fails without killing its owner. Graphical clients show connecting, connected, connection-failed and server-disconnected status.
+
+Standalone network/source UI tasks prepare safely. `ci` restores the solution, checks formatting and compiles/imports once, overlaps cheap rules/tooling checks with all bounded network cases, then requires all source UI slices **before** Linux client/server exports. Exports remain ordered. Headless exported-role smoke and the minimal private-display exported-package slice gate final success. A failed source gate prevents both exports. GitHub Actions provisions graphics prerequisites and runs the same task on pushes/PRs with read-only repository permissions. Outputs stay in the workspace: **no uploads, releases, publishing or deployment**.
 
 ```sh
 mise run prepare-templates
 mise run export-client
 mise run export-server
+mise run test-ui --scenario exported-package
 ```
 
 Matching .NET export templates are downloaded explicitly, checksum-verified and installed in Godot's user template directory. This is engine data, separate from mise tools and NuGet dependencies. Repeating preparation is safe. Exports go to ignored `dist/client` and `dist/server`. Individual export tasks are available for local iteration; CI applies the test gate before invoking them. Windows/macOS clients are desktop targets, with Linux the first export/CI platform.
 
-See [POC verification](docs/verification.md) for the checks performed and desktop hosts still needing runtime verification.
+The selected `exported-package` slice uses existing exports without source preparation or implicit rebuilding, and fails clearly if either executable is missing. It checks packed resources, one real UI purchase and a rendered checkpoint rather than repeating every source flow. Every verification scenario owns temporary XDG preferences/cache, sessions, ports and explicit engine logs; restart reuses its client's owned state. Evidence remains in ignored `logs/<run-id>/`, with phase/scenario JSON timings, renderer information, logs and PNGs. Owned runtime/display state is removed on success, failure, timeout or interruption. Diagnostic selected runs are partial coverage, not full-suite passes.
+
+During development, run applicable cheap `test` checks frequently and choose the affected network/UI slice when it adds useful evidence. Run full `ci` before and after a substantial feature/change, reusing an unchanged successful baseline; an edit or checklist item is not a new full-suite boundary. Do not repeat passed checks on unchanged inputs. Documentation-only edits need documentation/plan consistency checks. CI still requires every gate on its normal triggers.
+
+Add expensive tests only for a meaningful regression/risk that cheaper or existing checks miss. Document that gap and expected runtime/setup/maintenance cost alongside the scenario. Prefer a small independent vertical slice or an extension to an existing case. A simple option does not automatically warrant E2E coverage; avoid feature/option matrices and graphical duplication of full headless match flows. The initial slices protect actual picking/control routing, visible reconnect recovery, modal/persistence boundaries and packed-resource loading.
+
+The verified workflow includes 17 gameplay and 19 runner xUnit cases. In the recorded boundary runs, network elapsed time fell from about 105.52 seconds serially to 63.00 seconds with two workers. Fresh-source full CI took 112.32 seconds, including the added source/package UI gates. These are single-run observations with preparation/cache differences, not a portable benchmark; see [POC verification](docs/verification.md) for phase timings and limitations. [AGENTS.md](AGENTS.md) carries the same execution/admission policy for coding agents.
 
 ## Reconnect and local sessions
 

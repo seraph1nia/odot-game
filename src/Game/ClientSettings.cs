@@ -19,6 +19,11 @@ public partial class ClientSettings : Node
     private bool _launchDisplayOverride, _displayEdited, _changingDisplay, _initialized, _dirty;
 
     public bool IsOpen => _dialog.Visible;
+    internal Button SettingsButton => _button;
+    internal AcceptDialog Dialog => _dialog;
+    internal TabContainer Categories { get; private set; } = null!;
+    internal HSlider VolumeSlider => _volume;
+    internal int MasterVolume => _masterVolume;
     public bool BlocksWorldHover(Vector2 mouse) => IsOpen || _button.GetGlobalRect().HasPoint(mouse);
 
     public void Initialize(Control ui, Theme theme)
@@ -43,6 +48,7 @@ public partial class ClientSettings : Node
         AddChild(_dialog);
         var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 12); _dialog.AddChild(content);
         var tabs = new TabContainer { Name = "Categories", SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 180) }; content.AddChild(tabs);
+        Categories = tabs;
         var graphics = Page(tabs, "Graphics");
         Label(graphics, "Display mode");
         _mode = new OptionButton { Name = "DisplayMode", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; graphics.AddChild(_mode);

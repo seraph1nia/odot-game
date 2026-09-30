@@ -50,8 +50,8 @@ hide = true
 run = ["dotnet restore tools/DevRunner/DevRunner.csproj --locked-mode", "dotnet build tools/DevRunner/DevRunner.csproj --no-restore --nologo"]
 
 [tasks.test]
-description = "Run the engine-independent gameplay rules tests"
-run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet test tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo"]
+description = "Run cheap gameplay and runner xUnit checks without Godot"
+run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet test tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo", "dotnet test tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore --nologo"]
 
 [tasks.dev]
 description = "Start a server and two playable client windows"
@@ -90,6 +90,17 @@ depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-network"
 raw_args = true
 
+[tasks.test-ui]
+description = "Run named graphical checks on an owned private Linux display"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-ui"
+raw_args = true
+
+[tasks.check-ui-prerequisites]
+description = "Check private-display executable prerequisites without launching Godot"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll check-ui-prerequisites"
+
 [tasks.prepare-templates]
 description = "Download and verify matching .NET export templates"
 depends = ["runner"]
@@ -106,6 +117,6 @@ depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll export-server"
 
 [tasks.ci]
-description = "Verify formatting/rules/network, then build Linux deliverables"
+description = "Verify rules/network/private UI, export Linux roles and check packages"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci"
