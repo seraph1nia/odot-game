@@ -490,6 +490,15 @@ public partial class Main : Node, IGameSession
                     Key key = Enum.Parse<Key>(parts[1], true);
                     Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = true });
                     Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false }); break;
+                case "key-down" or "key-up" when _supervised && Application is not null:
+                    Key heldKey = Enum.Parse<Key>(parts[1], true);
+                    Input.ParseInputEvent(new InputEventKey { Keycode = heldKey, PhysicalKeycode = heldKey, Pressed = parts[0] == "key-down" }); break;
+                case "wheel" when _supervised && Application is not null:
+                    Vector2 cursor = new(float.Parse(parts[1], CultureInfo.InvariantCulture), float.Parse(parts[2], CultureInfo.InvariantCulture));
+                    MouseButton wheel = parts[3] == "up" ? MouseButton.WheelUp : MouseButton.WheelDown;
+                    Input.ParseInputEvent(new InputEventMouseMotion { Position = cursor, GlobalPosition = cursor });
+                    Input.ParseInputEvent(new InputEventMouseButton { Position = cursor, GlobalPosition = cursor, ButtonIndex = wheel, Pressed = true, Factor = 1 });
+                    Input.ParseInputEvent(new InputEventMouseButton { Position = cursor, GlobalPosition = cursor, ButtonIndex = wheel, Pressed = false }); break;
                 case "click" when Application is not null:
                     Vector2 position = new(float.Parse(parts[1], CultureInfo.InvariantCulture), float.Parse(parts[2], CultureInfo.InvariantCulture));
                     Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });

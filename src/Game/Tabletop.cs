@@ -3,20 +3,25 @@ using Godot;
 
 namespace Game;
 
-// Entirely client-side presentation. Every interaction submits an ordinary command.
+// Client-side presentation. Gameplay interactions submit ordinary commands.
 public partial class Tabletop(IGameSession game, GameApplication application) : Node3D
 {
-    private const string Assets = "res://Assets/KayKit/";
-    private readonly Dictionary<string, PackedScene> _assets = [];
+    private readonly LandscapeAssets _landscapeAssets = new();
+    private readonly Dictionary<int, VillageLandscape> _landscapes = [];
     private readonly Dictionary<int, UnitView> _units = [];
+    private readonly Dictionary<int, UnitHealthBar> _healthBars = [];
+    private Control _healthRoot = null!;
+    private HBoxContainer _resourceRow = null!, _vitalRow = null!;
+    private readonly Dictionary<string, Label> _values = [];
     private readonly Dictionary<int, Node3D> _boards = [];
     private readonly Dictionary<int, string> _boardKeys = [];
     private readonly Dictionary<int, Aabb?[]> _buildingBounds = [];
-    private readonly Dictionary<string, Aabb> _modelBounds = [];
     private readonly Dictionary<string, StandardMaterial3D> _materials = [];
     private readonly Dictionary<float, ArrayMesh> _outlines = [];
     private readonly Dictionary<int, Label3D> _cityLabels = [];
     private Camera3D _camera = null!;
+    private TabletopCamera _navigation = null!;
+    private Button _resetView = null!;
     private Label _phase = null!;
     private Label _status = null!;
     private Label _stats = null!;
@@ -61,19 +66,36 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         AddChild(new DirectionalLight3D { RotationDegrees = new(-55, -25, 0), LightEnergy = 0.35f, ShadowEnabled = true, DirectionalShadowMaxDistance = 65 });
         _camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Current = true, Far = 180 };
         AddChild(_camera);
+        _navigation = new(_camera);
         _selection = Outline(this, 1.02f, "f3d995"); _selection.Visible = false;
         _hoverMarker = Outline(this, 0.97f, "e7eee0"); _hoverMarker.Visible = false;
         var canvas = new CanvasLayer(); AddChild(canvas);
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; canvas.AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         root.Theme = application.Theme;
+        _healthRoot = new Control { Name = "UnitHealth", MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
+        root.AddChild(_healthRoot); _healthRoot.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         _settings = application.Settings;
-        _panel = new PanelContainer { Name = "BottomPanel", CustomMinimumSize = new(0, 270), MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
-        root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -270;
+        _panel = new PanelContainer { Name = "BottomPanel", CustomMinimumSize = new(0, 300), MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
+        root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -300;
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 8); _panel.AddChild(box);
         var columns = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; columns.AddThemeConstantOverride("separation", 24); box.AddChild(columns);
         var city = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.32f }; columns.AddChild(city);
-        Text(city, "ODOT  /  THE COUNTRYSIDE", 16);
-        _stats = Text(city, "Waiting for the village…", 14); _stats.CustomMinimumSize = new(0, 52);
+        var heading = new HBoxContainer(); city.AddChild(heading);
+        Text(heading, "ODOT", 16);
+        _resetView = Button(heading, "Reset view", () => { _navigation.Reset(); GetViewport().GuiReleaseFocus(); });
+        _resetView.Name = "ResetView";
+        _resetView.TooltipText = "Scroll to zoom toward the cursor · WASD / arrows to pan · Reset view for the overview";
+        _stats = Text(city, "Waiting for the village…", 14); _stats.CustomMinimumSize = Vector2.Zero;
+        _resourceRow = new HBoxContainer(); _resourceRow.AddThemeConstantOverride("separation", 10); city.AddChild(_resourceRow);
+        _vitalRow = new HBoxContainer(); _vitalRow.AddThemeConstantOverride("separation", 10); city.AddChild(_vitalRow);
+        foreach (var (name, meaning, row) in new[] { ("Gold", "Gold", _resourceRow), ("Food", "Food", _resourceRow), ("Wood", "Wood", _resourceRow), ("City", "Health", _vitalRow), ("Army", "Army", _vitalRow) })
+        {
+            var item = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }; row.AddChild(item);
+            Texture2D? icon = UiAssets.Icon(meaning);
+            if (icon is not null) item.AddChild(new TextureRect { Texture = icon, CustomMinimumSize = new(18, 18), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore });
+            _values[name] = Text(item, name, 13);
+            _values[name].AutowrapMode = TextServer.AutowrapMode.Off;
+        }
         _roster = new HBoxContainer(); city.AddChild(_roster);
         var context = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.4f }; columns.AddChild(context);
         _detail = Text(context, "Click a plot or building in the world", 15); _detail.CustomMinimumSize = new(0, 64);
@@ -114,6 +136,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _invite = Button(match, "Invite friends", application.RequestInvite); _invite.Name = "Invite";
         var footer = new HBoxContainer(); footer.AddThemeConstantOverride("separation", 20); box.AddChild(footer);
         _return = Button(footer, "Return to menu", application.ReturnToMenu); _return.Name = "ReturnToMenu"; _return.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        foreach (var (button, meaning) in new[] { (_start, "Start"), (_ready, "Ready"), (_return, "ReturnToMenu"), (_upgrade, "Upgrade") }) UiAssets.Decorate(button, meaning);
         _status = Text(footer, "Connecting", 13); _status.SizeFlagsStretchRatio = 0.32f;
         _feedback = Text(footer, "", 13); _feedback.SizeFlagsStretchRatio = 0.68f; _feedback.CustomMinimumSize = new(0, 32);
     }
@@ -130,14 +153,14 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     }
     private Button Button(Node parent, string text, Action action)
     {
-        var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; parent.AddChild(button);
+        var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; UiAssets.Decorate(button, text); parent.AddChild(button);
         button.Pressed += () => { if (!application.IsModalOpen) action(); }; return button;
     }
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _return }.Concat(_construction.Values).Concat(_recruitment.Values).Concat(_research.Values))
+        foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _return, _resetView }.Concat(_construction.Values).Concat(_recruitment.Values).Concat(_research.Values))
             application.ObserveControl(targets, button.Name, button);
         foreach (Button tab in _roster.GetChildren().OfType<Button>()) application.ObserveControl(targets, tab.Name, tab);
         for (int slot = 0; slot < 9; slot++)
@@ -145,16 +168,32 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             Vector3 point = Center(_focus) + SlotPosition(slot);
             if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds) && bounds[slot] is { } box) point = Center(_focus) + box.GetCenter();
             Vector2 screen = GetViewport().GetFinalTransform() * _camera.UnprojectPosition(point);
-            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null, Enabled = game.Connected && !application.IsModalOpen };
+            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null && !_camera.IsPositionBehind(point) && WorldArea().HasPoint(_camera.UnprojectPosition(point)), Enabled = game.Connected && !application.IsModalOpen };
         }
+        if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) fields["Landscape"] = landscape.Observe(_camera, WorldArea());
+        fields["Placements"] = _boards.TryGetValue(_focus, out Node3D? placementBoard) ? new[] { placementBoard.GetNodeOrNull<Node3D>("Buildings"), placementBoard.GetNodeOrNull<Node3D>("Stockpiles") }.OfType<Node3D>().SelectMany(root => root.FindChildren("*", "Node3D", true, false).OfType<Node3D>())
+            .Where(n => n.HasMeta("foot") && n.GetParent()?.Name != "Scenery").Select(n =>
+            {
+                Vector3 contact = n.GetParent<Node3D>().GlobalTransform * LandscapeAssets.Contact(n) - Center(_focus);
+                Vector3 anchor = n.GlobalPosition - Center(_focus);
+                float support = VillageLayout.Surface(anchor);
+                if (n.Name.ToString().StartsWith("Slot", StringComparison.Ordinal) && placementBoard.GetNodeOrNull<Node3D>("Buildings/Upgrade" + n.Name.ToString()[4..]) is { } basis && basis.GetMeta("asset").AsString().EndsWith("tower_base_blue.gltf", StringComparison.Ordinal)) support = LandscapeAssets.TowerDeck(basis);
+                return new { Name = n.Name.ToString(), Asset = n.GetMeta("asset").AsString(), X = anchor.X, Y = anchor.Y, Z = anchor.Z, Support = support, Contact = new[] { contact.X, contact.Y, contact.Z } };
+            }).ToArray() : [];
+        fields["Camera"] = _navigation.Observe(Center(_focus) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
         fields["Revision"] = _revision;
         fields["SelectedSlot"] = _slot;
-        fields["Models"] = _assets.Count;
-        fields["LoadedModels"] = _assets.Keys.Order().ToArray();
+        fields["Models"] = _landscapeAssets.Paths.Count();
+        fields["LoadedModels"] = _landscapeAssets.Paths.Order().ToArray();
         fields["Materials"] = _materials.Count;
         fields["PhaseText"] = _phase.Text;
         fields["StatusText"] = _status.Text;
-        fields["StatsText"] = _stats.Text;
+        fields["StatsText"] = _stats.Text + "\n" + string.Join("    ", _values.Values.Select(v => v.Text));
+        fields["ResourceIcons"] = _resourceRow.GetChildren().OfType<HBoxContainer>().ToDictionary(n => n.GetChildren().OfType<Label>().Single().Text.Split(' ')[0], n => n.GetChildren().OfType<TextureRect>().FirstOrDefault()?.Texture?.ResourcePath ?? "");
+        fields["ResourceRowsSingleLine"] = _values.Values.All(label => label.Size.Y <= label.GetThemeFont("font").GetHeight(label.GetThemeFontSize("font_size")) + 1);
+        fields["HudHeight"] = _panel.Size.Y;
+        fields["HudTop"] = (GetViewport().GetFinalTransform() * _panel.Position).Y;
+        fields["HealthBars"] = _healthBars.OrderBy(p => p.Key).Select(p => p.Value.Observe(p.Key, GetViewport().GetFinalTransform())).ToArray();
         fields["FeedbackText"] = _feedback.Text;
         fields["DetailText"] = _detail.Text;
         fields["RosterText"] = string.Join(" | ", _roster.GetChildren().OfType<Button>().Select(button => button.Text));
@@ -178,7 +217,9 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (state is not null && state.MatchId != _matchId)
         {
             foreach (Node3D n in _boards.Values.Concat<Node3D>(_units.Values)) n.QueueFree();
-            _boards.Clear(); _units.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _cityLabels.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
+            ClearBars();
+            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _cityLabels.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
+            _navigation.Reset(); _frameFocus = -1;
             _matchId = state.MatchId; _revision = -1; _focus = game.PlayerId; _slot = -1; _hover = -1; _rosterKey = "";
         }
         if (state is not null && state.Revision != _revision)
@@ -195,6 +236,9 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
         UpdateUnits(delta);
         FrameCamera();
+        _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
+        if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) landscape.Cover(_camera, WorldArea(), TabletopCamera.Travel);
+        UpdateHealthBars();
         Vector2 mouse = GetViewport().GetMousePosition();
         int hover = game.Connected && !application.BlocksWorldInput(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
         if (hover != _hover) { _hover = hover; UpdateMarkers(); }
@@ -213,10 +257,13 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             foreach (Node n in _roster.GetChildren()) { _roster.RemoveChild(n); n.QueueFree(); }
             if (s is not null) foreach (CityState city in s.Players)
             {
-                int id = city.Id; Button tab = Button(_roster, $"P{id}{(id == game.HostPlayerId ? " · Host" : "")}{(id == game.PlayerId ? " · You" : "")}\n{(city.Eliminated ? "Fallen" : !city.Connected ? "Away" : city.Ready ? "Ready" : "Here")}", () => { _focus = id; _slot = -1; _hover = -1; _rosterKey = ""; }); tab.Name = "City" + id; tab.AddThemeFontSizeOverride("font_size", 13); tab.TooltipText = id == _focus ? "Viewing this city" : "Inspect city";
+                int id = city.Id; Button tab = Button(_roster, $"P{id}{(id == game.HostPlayerId ? " · Host" : "")}{(id == game.PlayerId ? " · You" : "")}\n{(city.Eliminated ? "Fallen" : !city.Connected ? "Away" : city.Ready ? "Ready" : "Here")}", () => { _focus = id; _slot = -1; _hover = -1; _rosterKey = ""; }); tab.Name = "City" + id; UiAssets.Decorate(tab, "City"); tab.ToggleMode = true; tab.ButtonPressed = id == _focus; tab.AddThemeFontSizeOverride("font_size", 13); tab.TooltipText = id == _focus ? "Viewing this city" : "Inspect city";
             }
         }
-        _stats.Text = focus is null ? "Up to four players. Start when everyone joins." : $"P{focus.Id}{(_focus == game.PlayerId ? " • YOUR CITY" : " • OBSERVING")}\nGold {focus.Gold}    Food {focus.Food}    Wood {focus.Wood}\nCity {HealthPoints.Format(focus.Health)}/{s!.Rules.CityHealth}    Army {focus.Soldiers.Length}";
+        _stats.Text = focus is null ? "Up to four players. Start when everyone joins." : $"P{focus.Id}{(_focus == game.PlayerId ? " • YOUR CITY" : " • OBSERVING")}";
+        _resourceRow.Visible = _vitalRow.Visible = focus is not null;
+        _values["Gold"].Text = $"Gold {focus?.Gold ?? 0}"; _values["Food"].Text = $"Food {focus?.Food ?? 0}"; _values["Wood"].Text = $"Wood {focus?.Wood ?? 0}";
+        _values["City"].Text = $"City {HealthPoints.Format(focus?.Health ?? 0)}/{s?.Rules.CityHealth ?? 100}"; _values["Army"].Text = $"Army {focus?.Soldiers.Length ?? 0}";
         bool live = game.Connected && s is not null;
         bool edit = CanEdit() && _slot >= 0;
         SlotState slot = _slot >= 0 && focus is not null ? focus.Slots[_slot] : new(Building.Empty, 0);
@@ -228,21 +275,23 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (explanation.Length != 0) _detail.Text += "\n" + explanation;
         _buildActions.Visible = _slot < 0 || slot.Type == Building.Empty;
         _buildingActions.Visible = _slot >= 0 && slot.Type != Building.Empty;
-        static string Cost(ResourceCost cost) => $"{cost.Gold}g/{cost.Wood}w";
+
         foreach ((Building type, Button button) in _construction)
         {
             BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
-            button.Text = $"{type} · {Cost(build?.Construction ?? default)}";
+            button.Text = (type switch { Building.ArcheryRange => "Archery range", Building.ArrowTower => "Arrow tower", Building.CatapultTower => "Catapult tower", _ => type.ToString() }) + "\n ";
+            button.AddThemeFontSizeOverride("font_size", 13);
+            UiAssets.Cost(button, build?.Construction ?? default);
             button.Disabled = !edit || slot.Type != Building.Empty || build is null || !build.Construction.CanPay(me!.Gold, me.Wood, me.Food);
         }
-        _upgrade.Text = $"Upgrade · {Cost(definition?.Upgrade ?? default)}";
+        _upgrade.Text = "Upgrade\n "; UiAssets.Cost(_upgrade, definition?.Upgrade ?? default);
         _upgrade.Disabled = !edit || slot.Level != 1 || definition is null || !definition.Upgrade.CanPay(me!.Gold, me.Wood, me.Food);
         foreach ((UnitType type, Button button) in _recruitment)
         {
             UnitDefinition? unit = s?.UnitCatalog.FirstOrDefault(u => u.Type == type);
             ResourceCost cost = unit?.Recruitment ?? default;
             cost = cost with { Food = Math.Max(1, cost.Food - Math.Max(0, slot.Level - 1)) };
-            button.Text = $"{type} · {cost.Food}f{(cost.Gold > 0 ? $"/{cost.Gold}g" : "")}";
+            button.Text = type + "\n "; UiAssets.Cost(button, cost);
             button.Visible = definition?.Recruits?.Contains(type) == true;
             button.Disabled = !edit || !button.Visible || !cost.CanPay(me!.Gold, me.Wood, me.Food);
             if (unit is not null) button.TooltipText = $"{unit.Class} · HP {HealthPoints.Format(HealthPoints.Ranked(unit.Profile.Health, focus?.Research.For(unit.Class) ?? 0))} · damage {HealthPoints.Format(HealthPoints.Ranked(unit.Profile.Damage, focus?.Research.For(unit.Class) ?? 0))} · range {unit.Profile.Range:0.##}" + (unit.Profile.VictimCap > 1 ? $" · up to {unit.Profile.VictimCap} targets within {unit.Profile.SplashRadius:0.##}" : "");
@@ -252,7 +301,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         {
             int rank = focus?.Research.For(type) ?? 0;
             int price = rank == 0 ? 10 : 15;
-            button.Text = $"{type} {rank}/2 · {price}g";
+            button.Text = $"{type} {rank}/2\n "; UiAssets.Cost(button, new(price));
             button.Disabled = !edit || slot.Type != Building.Blacksmith || rank >= slot.Level || rank >= 2 || me!.Gold < price;
         }
         _ready.Text = me?.Ready == true ? "Unready · edit city" : s?.Phase == Phase.Preparation ? "Ready for battle" : "Ready · production";
@@ -263,9 +312,13 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _invite.Visible = game.HostPlayerId == game.PlayerId && game.HostPlayerId != 0; _invite.Disabled = !live || !game.CanInvite;
         _invite.TooltipText = game.CanInvite ? "Invite friends through Steam" : "Invitations are unavailable for this session.";
         _pause.Text = s?.Paused == true ? "Resume whole match" : "Pause whole match";
+        UiAssets.Decorate(_pause, s?.Paused == true ? "Resume" : "Pause");
+        UiAssets.Decorate(_ready, me?.Ready == true ? "Unready" : "Ready");
         _pause.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation or Phase.Combat);
         _reconnect.Visible = !game.Connected; _reconnect.Disabled = game.Status == "Connecting";
         _fresh.Visible = !game.Connected && game.Status != "Connecting" && (s is null || s.Phase == Phase.Lobby || game.Feedback.Contains("expired", StringComparison.Ordinal));
+        foreach (Button button in _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Append(_upgrade))
+            if (button.GetNodeOrNull<RichTextLabel>("Cost") is { } cost) cost.Modulate = button.Disabled ? new Color(1, 1, 1, 0.6f) : Colors.White;
     }
     private void UpdateMarkers()
     {
@@ -281,6 +334,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == _focus) return;
         foreach ((int id, Node3D board) in _boards) board.Visible = id == _focus;
         foreach (UnitView unit in _units.Values) unit.Visible = unit.State.Deployed && unit.State.Destination == _focus;
+        if (_frameFocus != _focus) _navigation.Reset();
         _frameSize = size; _framePanelHeight = hud; _frameFocus = _focus;
         Vector3 center = Center(Math.Max(1, _focus));
         float pitch = Mathf.DegToRad(34), azimuth = Mathf.DegToRad(28);
@@ -299,6 +353,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _camera.Size = Math.Max((maxY - minY + 1.2f) * size.Y / usable, (maxX - minX + 1.2f) * size.Y / size.X);
         target = center + right * ((minX + maxX) / 2) + up * ((minY + maxY) / 2 - _camera.Size * hud / size.Y / 2);
         _camera.Position = target + direction * 45; _camera.LookAt(target);
+        _navigation.Fit();
     }
     private void UpdateWorld(MatchSnapshot state)
     {
@@ -308,20 +363,18 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             {
                 board = new Node3D { Position = Center(city.Id) }; AddChild(board); _boards[city.Id] = board;
                 board.Name = $"City{city.Id}"; board.Visible = city.Id == _focus;
-                CreateLandscape(board);
+                _landscapes[city.Id] = new VillageLandscape(board, _landscapeAssets);
                 _buildingBounds[city.Id] = new Aabb?[9];
-                Model(board, "Medieval/building_home_A_blue.gltf", new(0, 0, 1), 1.8f);
-                Model(board, "Medieval/building_tower_A_blue.gltf", new(-3, 0, 0), 1.4f);
                 Label(board, new(6, 1.5f, 3.2f), "Gold / Food / Wood", 18);
                 Box(board, Vector3.Zero, new(0.06f, 0.06f, 1), "e8c44a").Name = "DefenderShot";
-                Label3D title = Label(board, new(0, 2.7f, 1), "CITY", 26); _cityLabels[city.Id] = title;
+                Label3D title = Label(board, VillageLandscape.Home + new Vector3(0, 2.7f, 0), "CITY", 26); _cityLabels[city.Id] = title;
             }
             var beam = board.GetNode<MeshInstance3D>("DefenderShot");
             UnitState? target = state.Enemies.Where(e => e.Deployed && e.Destination == city.Id).OrderBy(e => e.Position).ThenBy(e => e.Id).FirstOrDefault();
             beam.Visible = !city.Eliminated && target is not null && city.DefenderCooldown > state.Rules.AttackTicks - 8;
             if (beam.Visible)
             {
-                Vector3 from = new(-3, 1.1f, 0); Vector3 to = new((float)target!.Lateral, 0.4f, -(float)target.Position);
+                Vector3 from = VillageLandscape.Defender + new Vector3(0, 1.1f, 0); Vector3 to = new((float)target!.Lateral, 0.4f, -(float)target.Position);
                 beam.Position = (from + to) / 2; beam.LookAt(board.ToGlobal(to)); ((BoxMesh)beam.Mesh).Size = new(0.06f, 0.06f, from.DistanceTo(to));
             }
             _cityLabels[city.Id].Text = $"P{city.Id}{(city.Id == game.PlayerId ? " • YOU" : "")}  ♥ {HealthPoints.Format(city.Health)}\n{(city.Eliminated ? "FALLEN" : "Home · Defender")}";
@@ -339,15 +392,20 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                     string path = $"Medieval/building_{name}_blue.gltf";
                     Node3D model = Model(buildings, path, SlotPosition(i), 1.7f);
                     model.Name = $"Slot{i}";
-                    Aabb bounds = model.Transform * model.GetChild<Node3D>(0).Transform * _modelBounds[path];
+                    Aabb bounds = LandscapeAssets.Bounds(model);
                     if (slot.Level == 2)
                     {
                         string prop = slot.Type switch { Building.Farm => "building_grain", Building.Mine => "building_scaffolding", Building.Lumbermill => "resource_lumber", Building.ArcheryRange => "target", Building.Arcanum => "building_stage_C", Building.Blacksmith or Building.Barracks => "weaponrack", _ => "building_tower_base_blue" };
                         Vector3 position = SlotPosition(i) + new Vector3(0.75f, 0, 0.6f);
                         float size = 0.7f;
-                        if (slot.Type is Building.ArrowTower or Building.CatapultTower) { position = SlotPosition(i); size = 1.9f; model.Position += new Vector3(0, 0.35f, 0); bounds.Position += new Vector3(0, 0.35f, 0); }
+                        if (slot.Type is Building.ArrowTower or Building.CatapultTower) { position = SlotPosition(i); size = 1.9f; }
                         Node3D addition = Model(buildings, $"Medieval/{prop}.gltf", position, size); addition.Name = "Upgrade" + i;
-                        bounds = bounds.Merge(addition.Transform * addition.GetChild<Node3D>(0).Transform * _modelBounds[$"Medieval/{prop}.gltf"]);
+                        if (slot.Type is Building.ArrowTower or Building.CatapultTower)
+                        {
+                            model.Position = new Vector3(model.Position.X, LandscapeAssets.TowerDeck(addition), model.Position.Z);
+                            bounds = LandscapeAssets.Bounds(model);
+                        }
+                        bounds = bounds.Merge(LandscapeAssets.Bounds(addition));
                     }
                     _buildingBounds[city.Id][i] = bounds;
                     if (slot.Type == Building.Farm)
@@ -373,7 +431,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         foreach (var (name, count, path, row) in new[] { ("Gold", gold, "Resource/Gold_Bars.gltf", 0), ("Food", food, "Medieval/sack.gltf", 1), ("Wood", wood, "Resource/Wood_Log_Stack.gltf", 2) })
         {
             var resource = new Node3D { Name = name }; piles.AddChild(resource);
-            for (int n = 0; n < count; n++) Model(resource, path, new(5.8f + n % 3 * 0.48f, 0, 1.5f + row * 1.7f + n / 3 * 0.5f), 0.45f);
+            for (int n = 0; n < count; n++) Model(resource, path, VillageLayout.Hex(2, row + 1) + new Vector3((n % 3 - 1) * .48f, 0, (n / 3 - .5f) * .5f), 0.45f);
         }
         _stockpileKeys[city.Id] = key;
     }
@@ -388,7 +446,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (_playbackGeneration != _playback.Generation)
         {
             foreach (UnitView view in _units.Values) view.QueueFree();
-            _units.Clear(); _effects.Clear(); _playbackGeneration = _playback.Generation;
+            _units.Clear(); ClearBars(); _effects.Clear(); _playbackGeneration = _playback.Generation;
         }
         _playback.Advance(delta, game.Connected);
         _windmills.RemoveAll(w => !GodotObject.IsInstanceValid(w.Node));
@@ -403,7 +461,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         foreach (UnitState unit in current.Values) View(unit);
         foreach (CombatEvent entry in _playback.Drain())
         {
-            _effects.Combat(entry, _focus, _playback.VisualSeconds, audible);
+            _effects.Combat(entry, _focus, _playback.VisualSeconds, audible, entry.Tower is { } tower && _buildingBounds.GetValueOrDefault(tower.City)?[tower.Slot] is { } towerBounds ? Center(tower.City) + new Vector3(towerBounds.GetCenter().X, towerBounds.End.Y - .2f, towerBounds.GetCenter().Z) : null);
             if (entry.Unit is not null && (entry.Type is CombatEventType.Death or CombatEventType.Hit || entry.Type == CombatEventType.Impact && entry.Unit.Type == UnitType.Crossbowman))
                 View(entry.Unit).Event(entry, _playback.VisualSeconds);
         }
@@ -416,27 +474,26 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus);
         }
     }
-    private Node3D Model(Node3D parent, string path, Vector3 position, float size)
+    private void ClearBars()
     {
-        if (!_assets.TryGetValue(path, out PackedScene? scene)) _assets[path] = scene = GD.Load<PackedScene>(Assets + path);
-        var wrapper = new Node3D { Position = position }; parent.AddChild(wrapper);
-        Node3D model = scene.Instantiate<Node3D>(); wrapper.AddChild(model);
-        if (!_modelBounds.TryGetValue(path, out Aabb aabb))
-        {
-            Aabb? bounds = null;
-            void Visit(Node3D n, Transform3D transform)
-            {
-                Transform3D t = transform * n.Transform;
-                if (n is MeshInstance3D mesh) { Aabb b = t * mesh.GetAabb(); bounds = bounds is null ? b : bounds.Value.Merge(b); }
-                foreach (Node3D child in n.GetChildren().OfType<Node3D>()) Visit(child, t);
-            }
-            Visit(model, Transform3D.Identity);
-            _modelBounds[path] = aabb = bounds ?? new Aabb(Vector3.Zero, Vector3.One);
-        }
-        float factor = size / Math.Max(aabb.Size.X, Math.Max(aabb.Size.Y, aabb.Size.Z));
-        model.Scale *= factor; model.Position -= new Vector3(aabb.GetCenter().X, aabb.Position.Y, aabb.GetCenter().Z) * factor;
-        return wrapper;
+        foreach (UnitHealthBar bar in _healthBars.Values) { _healthRoot.RemoveChild(bar); bar.QueueFree(); }
+        _healthBars.Clear();
     }
+    private void UpdateHealthBars()
+    {
+        foreach (int id in _healthBars.Keys.ToArray())
+            if (!_units.TryGetValue(id, out UnitView? view) || view.Dead || !view.Visible || !view.State.Deployed)
+            { UnitHealthBar bar = _healthBars[id]; _healthRoot.RemoveChild(bar); bar.QueueFree(); _healthBars.Remove(id); }
+        _healthRoot.Size = new(_frameSize.X, Math.Max(0, _frameSize.Y - _panel.Size.Y));
+        Rect2 world = new(Vector2.Zero, _healthRoot.Size);
+        foreach (var (id, view) in _units)
+        {
+            if (view.Dead || !view.Visible || !view.State.Deployed) continue;
+            if (!_healthBars.TryGetValue(id, out UnitHealthBar? bar)) { bar = new UnitHealthBar { Name = "Health" + id }; _healthBars[id] = bar; _healthRoot.AddChild(bar); }
+            bar.Sample(view, _camera, world);
+        }
+    }
+    private Node3D Model(Node3D parent, string path, Vector3 position, float size) => _landscapeAssets.Place(parent, path, position, size);
     private MeshInstance3D Box(Node3D parent, Vector3 position, Vector3 size, string color)
     {
         if (!_materials.TryGetValue(color, out StandardMaterial3D? material)) _materials[color] = material = new StandardMaterial3D { AlbedoColor = new(color), Roughness = 0.9f };
@@ -445,38 +502,6 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private static Label3D Label(Node3D parent, Vector3 position, string text, int fontSize)
     {
         var label = new Label3D { Position = position, Text = text, FontSize = fontSize, PixelSize = 0.018f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Modulate = new("f9f2d5"), OutlineModulate = new("233a3f"), OutlineSize = 6 }; parent.AddChild(label); return label;
-    }
-    private Node3D Terrain(Node3D parent, string name, Vector3 position, float rotation = 0)
-    {
-        string path = $"Medieval/{name}.gltf";
-        if (!_assets.TryGetValue(path, out PackedScene? scene)) _assets[path] = scene = GD.Load<PackedScene>(Assets + path);
-        Node3D model = scene.Instantiate<Node3D>();
-        model.Position = position; model.Scale = Vector3.One * VillageLayout.TerrainScale; model.RotationDegrees = new(0, rotation, 0); parent.AddChild(model);
-        // Grass/river bottoms don't need to cast shadows; hills and buildings still do.
-        foreach (MeshInstance3D mesh in model.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()) mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-        return model;
-    }
-    private void CreateLandscape(Node3D board)
-    {
-        var scenery = new Node3D { Name = "Scenery" }; board.AddChild(scenery);
-        for (int row = -5; row <= 5; row++) for (int column = -3; column <= 3; column++)
-        {
-            bool slope = column == -3 && row >= 2;
-            string name = column == 3 ? "hex_river_B" : slope ? "hex_grass_sloped_low" : "hex_grass";
-            Terrain(scenery, name, VillageLayout.Hex(column, row), column == 3 ? (Math.Abs(row) % 2 == 1 ? 60 : 240) : slope ? 180 : 0);
-        }
-        // Tall clusters stay at the far left rim, away from plots and the battle approach.
-        foreach ((int column, int row) in new[] { (-3, -4), (-3, -1), (-3, 2), (-3, 4) })
-            Terrain(scenery, "hills_A_trees", VillageLayout.Hex(column, row) + new Vector3(0, row >= 2 ? 0.5f : 0, 0), row * 60);
-        foreach ((int column, int row) in new[] { (2, -4), (2, -1), (-2, 5) }) Terrain(scenery, "trees_A_small", VillageLayout.Hex(column, row), row * 60);
-        foreach ((int column, int row) in new[] { (-2, -3), (2, -3), (2, 4), (-2, 1) }) Terrain(scenery, "rock_single_C", VillageLayout.Hex(column, row));
-        Terrain(scenery, "hill_single_A", VillageLayout.Hex(2, 5));
-        Terrain(scenery, "mountain_A", VillageLayout.Hex(-3, 5), 120);
-        Terrain(scenery, "mountain_B", VillageLayout.Hex(-3, -5), 240);
-        Node3D bridge = Model(scenery, "Medieval/building_bridge_A.gltf", VillageLayout.Hex(3, 1), 3.2f); bridge.RotationDegrees = new(0, 90, 0);
-        Model(scenery, "Medieval/barrel.gltf", new(2.4f, 0, 1.6f), 0.45f);
-        Model(scenery, "Medieval/sack.gltf", new(2.8f, 0, 1.9f), 0.35f);
-        for (int slot = 0; slot < 9; slot++) Outline(scenery, 0.92f, "e0dbaf").Position = SlotPosition(slot) + new Vector3(0, 0.018f, 0);
     }
     private MeshInstance3D Outline(Node3D parent, float scale, string color)
     {
@@ -514,14 +539,41 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (selected >= 0) return selected;
         return -1;
     }
+    private Rect2 WorldArea() => new(Vector2.Zero, new Vector2(GetViewport().GetVisibleRect().Size.X, _panel.Position.Y));
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMWindowFocusOut || what == NotificationApplicationFocusOut) _navigation?.Interrupt();
+    }
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventKey key)
+        {
+            _navigation.ObserveKey(key);
+            if (key.IsActionPressed("ui_focus_next") || key.IsActionPressed("ui_focus_prev")) _navigation.Interrupt();
+        }
+        if (@event is InputEventMouseButton { Pressed: true } mouse && !WorldArea().HasPoint(mouse.Position)) _navigation.Interrupt();
+        if (application.IsModalOpen || !GetWindow().HasFocus()) _navigation.Interrupt();
+    }
     public override void _UnhandledInput(InputEvent @event)
     {
         if (!application.IsModalOpen && @event.IsActionPressed("ui_cancel", false))
         {
             _settings.Open(); GetViewport().SetInputAsHandled(); return;
         }
-        if (application.IsModalOpen) return;
-        if (!game.Connected || @event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
+        if (application.IsModalOpen || !GetWindow().HasFocus()) return;
+        if (Focus() is not null && @event is InputEventKey key && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit) && _navigation.Press(key))
+        { GetViewport().SetInputAsHandled(); return; }
+        if (Focus() is not null && @event is InputEventMouseButton { Pressed: true } wheel
+            && wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown
+            && WorldArea().HasPoint(wheel.Position) && !application.BlocksWorldInput(wheel.Position))
+        {
+            _navigation.ZoomAt(wheel.Position, wheel.ButtonIndex == MouseButton.WheelUp, wheel.Factor > 0 ? wheel.Factor : 1);
+            GetViewport().SetInputAsHandled(); return;
+        }
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
+        if (!WorldArea().HasPoint(mouse.Position) || application.BlocksWorldInput(mouse.Position)) return;
+        if (GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit)) GetViewport().GuiReleaseFocus();
+        if (!game.Connected) return;
         int selected = Pick(mouse.Position);
         if (selected >= 0) _slot = selected;
     }

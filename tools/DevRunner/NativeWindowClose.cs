@@ -6,6 +6,46 @@ namespace DevRunner;
 // The observed main window and PID property identify the child; titles are never matched.
 internal static class NativeWindowClose
 {
+    public static void Focus(Child child, Options options, ulong window)
+    {
+        PrivateDisplay.ValidateWorker(options);
+        if (child.HasExited || window == 0) throw new InvalidOperationException("Owned child has no live observed window.");
+        nint display = XOpenDisplay(0);
+        if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");
+        try
+        {
+            ulong[] values = Property(display, window, XInternAtom(display, "_NET_WM_PID", 0), 6);
+            if (values.Length != 1 || values[0] != (ulong)child.ProcessId)
+                throw new InvalidOperationException("Observed main window does not belong to the owned child PID.");
+            _ = XSetInputFocus(display, window, 1, 0);
+            _ = XFlush(display);
+        }
+        finally { _ = XCloseDisplay(display); }
+    }
+    public static IDisposable Defocus(Child child, Options options, ulong window)
+    {
+        // Validate ownership before creating the temporary focus recipient.
+        Focus(child, options, window);
+        nint display = XOpenDisplay(0);
+        if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");
+        ulong recipient = XCreateSimpleWindow(display, XDefaultRootWindow(display), 0, 0, 1, 1, 0, 0, 0);
+        if (recipient == 0) { _ = XCloseDisplay(display); throw new InvalidOperationException("Cannot create owned focus window."); }
+        var attributes = new WindowAttributes { OverrideRedirect = 1 };
+        _ = XChangeWindowAttributes(display, recipient, 1UL << 9, ref attributes);
+        _ = XMapWindow(display, recipient);
+        _ = XSetInputFocus(display, recipient, 1, 0);
+        _ = XFlush(display);
+        return new FocusRecipient(display, recipient);
+    }
+    private sealed class FocusRecipient(nint display, ulong window) : IDisposable
+    {
+        public void Dispose() { _ = XDestroyWindow(display, window); _ = XCloseDisplay(display); }
+    }
+    [StructLayout(LayoutKind.Explicit, Size = 112)]
+    private struct WindowAttributes
+    {
+        [FieldOffset(88)] public int OverrideRedirect;
+    }
     public static void Request(Child child, Options options, ulong window)
     {
         PrivateDisplay.ValidateWorker(options);
@@ -77,4 +117,16 @@ internal static class NativeWindowClose
     private static extern int XSendEvent(nint display, ulong window, int propagate, nint mask, ref ClientMessage message);
     [DllImport("libX11.so.6")]
     private static extern int XFlush(nint display);
+    [DllImport("libX11.so.6")]
+    private static extern ulong XDefaultRootWindow(nint display);
+    [DllImport("libX11.so.6")]
+    private static extern int XSetInputFocus(nint display, ulong window, int revert, ulong time);
+    [DllImport("libX11.so.6")]
+    private static extern ulong XCreateSimpleWindow(nint display, ulong parent, int x, int y, uint width, uint height, uint borderWidth, ulong border, ulong background);
+    [DllImport("libX11.so.6")]
+    private static extern int XChangeWindowAttributes(nint display, ulong window, ulong mask, ref WindowAttributes attributes);
+    [DllImport("libX11.so.6")]
+    private static extern int XMapWindow(nint display, ulong window);
+    [DllImport("libX11.so.6")]
+    private static extern int XDestroyWindow(nint display, ulong window);
 }

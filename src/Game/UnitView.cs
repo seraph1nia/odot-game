@@ -140,7 +140,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         _skeleton.SetBonePosePosition(root, new(0, rootPose.Y, 0));
         _marker.Visible = !Dead;
         string role = state.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
-        _label.Text = $"{(state.Faction == Faction.Skeletons ? "E" : "")}{role}{HealthPoints.Format(state.Health)}";
+        _label.Text = $"{(state.Faction == Faction.Skeletons ? "E" : "")}{role}";
         _shot.Visible = !Dead && _shotAt >= 0 && seconds - _shotAt < 0.12;
         _shot.Position = new(0, 0.5f, 0.25f + (float)Math.Max(0, seconds - _shotAt) * 12);
     }
@@ -165,6 +165,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             State.Destination,
             State.Deployed,
             State.Health,
+            MaximumHealth = State.Profile.Health,
             HumanHealth = HealthPoints.Format(State.Health),
             State.AttackSequence,
             Dead,

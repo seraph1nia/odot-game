@@ -10,13 +10,14 @@ public sealed class WorldTests
     private static void Act(Match m, int id, string action, int slot = -1, Building building = Building.Empty) => Assert.True(m.Apply(id, Cmd(m, id, action, slot, building)).Accepted);
     private static Match Started(int count = 1, Rules? rules = null)
     {
-        var m = new Match(rules);
+        var m = new Match(rules, combatSeed: 123);
         for (int i = 0; i < count; i++) Assert.NotNull(m.Join());
         Act(m, 1, "start"); return m;
     }
     private static void Ready(Match m)
     {
         foreach (City c in m.Players.Values.Where(c => !c.Eliminated && c.Connected)) Act(m, c.Id, "ready");
+        for (int tick = 0; tick < 48 && m.Phase == Phase.Preparation && m.Players.Values.Where(c => !c.Eliminated && c.Connected).All(c => c.Ready); tick++) m.Step();
     }
     private static void Battle(Match m) { Ready(m); Ready(m); Ready(m); Ready(m); Assert.Equal(Phase.Combat, m.Phase); }
 
@@ -96,11 +97,11 @@ public sealed class WorldTests
     {
         using Match a = Started(); using Match b = Started(); Battle(a); Battle(b);
         int health = a.Enemies.Sum(e => e.Health);
-        a.Step(); b.Step(); Assert.True(a.Enemies.Sum(e => e.Health) < health); Assert.False(a.Players[1].Eliminated);
+        a.Step(); b.Step(); Assert.Equal(health, a.Enemies.Sum(e => e.Health)); Assert.True(a.Players[1].Defender.PendingImpact); Assert.False(a.Players[1].Eliminated);
         for (int i = 0; i < 600; i++)
         {
-            a.Step(); b.Step(); Assert.Equal(a.Snapshot().Enemies, b.Snapshot().Enemies);
-            Assert.All(a.Enemies, e => Assert.InRange(e.Position, 0, Match.LaneLength));
+            a.Step(); b.Step(); Assert.Equal(JsonSerializer.Serialize(a.Snapshot().Enemies), JsonSerializer.Serialize(b.Snapshot().Enemies));
+            Assert.All(a.Enemies.Where(e => e.Deployed), e => Assert.InRange(e.Hex!.Position.Cell, 1, 21));
         }
         Assert.True(a.Enemies.Sum(e => e.Health) < health);
         Assert.True(a.Enemies.Sum(e => e.Health) >= health - 1200); // One low damage shot per second.
@@ -110,7 +111,7 @@ public sealed class WorldTests
     {
         using Match m = Started(2, new Rules { DefenderDamage = 0, SoldierDamage = 10, MeleeWindupTicks = 1 }); Battle(m);
         CombatFixture.Soldier(m, 1000, 1, 2, 0.25);
-        CombatFixture.Change(m, m.Enemies[0].Id, e => e with { Position = 0.80, Lateral = 0 });
+        CombatFixture.Change(m, m.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 7) });
         CombatFixture.Steps(m, 2);
         Assert.Empty(m.Players[1].Soldiers); Assert.DoesNotContain(m.Enemies, e => e.Id == 1); Assert.False(m.Players[1].Eliminated);
     }
@@ -121,7 +122,11 @@ public sealed class WorldTests
         foreach (UnitState enemy in m.Enemies.Where(e => e.Destination != 1)) m.Combat.Remove(enemy.Id); m.Players[1].Health = 2; m.SetConnected(3, false);
         int[] ids = m.Enemies.Select(e => e.Id).ToArray(); foreach (UnitState e in m.Enemies) CombatFixture.Change(m, e.Id, u => u with { Health = 7 }); CombatFixture.AtCityEdge(m);
         CombatFixture.Steps(m, 2); Assert.True(m.Players[1].Eliminated); Assert.Equal(3, m.Enemies.Count(e => e.Destination == 2)); Assert.Equal(2, m.Enemies.Count(e => e.Destination == 3));
-        Assert.Equal(ids, m.Enemies.Select(e => e.Id)); Assert.All(m.Enemies, e => { Assert.Equal(7, e.Health); Assert.Equal(e.Profile.CadenceTicks - 1, e.Cooldown); Assert.Equal(Match.LaneLength, e.Position); Assert.False(e.Deployed); });
+        Assert.Equal(ids, m.Enemies.Select(e => e.Id)); Assert.All(m.Enemies, e =>
+        {
+            Assert.Equal(7, e.Health); Assert.Equal(e.Profile.CadenceTicks - 1, e.Cooldown); Assert.True(e.Deployed); Assert.False(e.PendingImpact);
+            Assert.Contains(e.Hex!.Position.Cell, m.Combat.Board.Front(Faction.Skeletons).Concat(m.Combat.Board.Rear(Faction.Skeletons)));
+        });
         m.Players[2].Health = 2; CombatFixture.AtCityEdge(m, resetRecovery: true);
         CombatFixture.Steps(m, 2); Assert.All(m.Enemies, e => Assert.Equal(3, e.Destination)); Assert.Equal(5, m.Enemies.Count);
     }
@@ -147,10 +152,10 @@ public sealed class WorldTests
         }
         Assert.Equal(Phase.Victory, m.Phase); Assert.Equal(15, m.TurnSerial); Assert.Equal(9, m.ProductionCount); Assert.Equal(80, m.Players[1].Health);
         MatchSnapshot outcome = m.Snapshot(); m.Step(); Assert.Equal(outcome.Tick, m.Tick); Assert.False(m.Apply(1, Cmd(m, 1, "ready")).Accepted);
-        using var defeat = Started(new Rules { DefenderDamage = 10, WaveOne = 1, MeleeWindupTicks = 1 });
+        using var defeat = Started(new Rules { DefenderDamage = 10, WaveOne = 1, MeleeWindupTicks = 1, Combat = new() { Defender = new(1, 59) } });
         Battle(defeat); defeat.Players[1].Health = 2;
         CombatFixture.AtCityEdge(defeat); defeat.Combat.Seed(defeat.Enemies[0] with
-        { TargetId = 1, TargetCity = true, PendingImpact = true, ImpactTick = 1, ReadyTick = 60, AttackSequence = 1 }); defeat.Step();
+        { TargetId = 1, TargetCity = true, PendingImpact = true, ImpactTick = 2, ReadyTick = 60, AttackSequence = 1 }); defeat.Step(); defeat.Step();
         Assert.Empty(defeat.Enemies); Assert.Equal(Phase.Defeat, defeat.Phase);
     }
     private static Match Started(Rules rules) => Started(1, rules);
@@ -188,7 +193,7 @@ public sealed class WorldTests
             while (m.Players[1].Food >= m.Rules.RecruitCost) Act(m, 1, "recruit", 1);
             Ready(m);
             int steps = 0; while (m.Phase == Phase.Combat && steps++ < 6000) m.Step();
-            Assert.NotEqual(Phase.Combat, m.Phase); Assert.False(m.Players[1].Eliminated);
+            Assert.NotEqual(Phase.Combat, m.Phase); Assert.False(m.Players[1].Eliminated, $"Basic opening lost wave {wave} at tick {m.Tick}, seed {m.CombatSeed}; enemies={m.Enemies.Count}, soldiers={m.Players[1].Soldiers.Count}.");
         }
         Assert.Equal(Phase.Victory, m.Phase);
     }

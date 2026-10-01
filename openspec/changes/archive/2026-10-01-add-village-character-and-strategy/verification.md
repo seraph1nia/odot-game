@@ -169,7 +169,8 @@ run. All 155 provenance hashes and strict OpenSpec validation pass.
 
 All 37 task outcomes are implemented and verified. The final design records the
 measured 30-wood tuning; recruitment scenarios match their unlock buildings.
-The change remains active and unarchived. Local Linux X11/software OpenGL and
+All six delta capabilities were synced to main specs and the completed change
+was archived on 2026-10-01. Local Linux X11/software OpenGL and
 Dummy audio evidence does not establish Windows runtime, native GPU/compositor
 performance, physical input or listening quality. Real two-account Steam checks
 remain separate and unexecuted; no publishing or developer preference changes

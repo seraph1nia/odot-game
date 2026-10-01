@@ -19,7 +19,8 @@ public partial class GameApplication(Main session) : Node
     private ConfirmationDialog _join = null!;
     private Action? _joinAccepted, _joinDeclined;
     private bool _exiting;
-    private int _sceneryModels;
+    private readonly LandscapeAssets _landscapeAssets = new();
+    private VillageLandscape _landscape = null!;
 
     public Action? HostRequested { get; set; }
     public Action? InviteRequested { get; set; }
@@ -69,12 +70,14 @@ public partial class GameApplication(Main session) : Node
             ClipText = true,
             TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis
         };
-        _steamStatus.AddThemeColorOverride("font_color", new("233d39"));
+        _steamStatus.AddThemeColorOverride("font_color", ApplicationTheme.Ink);
         root.AddChild(_steamStatus);
         _steamStatus.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide);
         _steamStatus.OffsetLeft = 14; _steamStatus.OffsetRight = -14; _steamStatus.OffsetTop = -46; _steamStatus.OffsetBottom = -14;
         _join = new ConfirmationDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Transient = true, Exclusive = false, Theme = Theme, DialogCloseOnEscape = true };
         AddChild(_join);
+        UiAssets.Decorate(_join.GetOkButton(), "AcceptJoin");
+        UiAssets.Decorate(_join.GetCancelButton(), "DeclineJoin");
         _join.Confirmed += AcceptJoin;
         _join.Canceled += DeclineJoin;
         Friends = new SteamFriendsDialog { Name = "SteamFriends", Theme = Theme, FocusFallback = FocusCurrent };
@@ -87,7 +90,7 @@ public partial class GameApplication(Main session) : Node
     private Button Button(Node parent, string name, string text, Action action)
     {
         var button = new Button { Name = name, Text = text, CustomMinimumSize = new(0, 42), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        parent.AddChild(button); button.Pressed += () => { if (!_exiting && !IsModalOpen) action(); }; return button;
+        UiAssets.Decorate(button, name); parent.AddChild(button); button.Pressed += () => { if (!_exiting && !IsModalOpen) action(); }; return button;
     }
     private static void SetFocusOrder(params Button[] buttons)
     {
@@ -244,6 +247,9 @@ public partial class GameApplication(Main session) : Node
         ObserveControl(targets, "SteamStatus", _steamStatus);
         if (Settings.IsOpen)
         {
+            ObserveControl(targets, "GraphicsTab", Settings.Categories.GetTabBar(), Settings.Categories.GetTabBar().GetTabRect(0));
+            ObserveControl(targets, "DisplayMode", Settings.DisplaySelector);
+            ObserveControl(targets, "Resolution", Settings.ResolutionSelector);
             ObserveControl(targets, "AudioTab", Settings.Categories.GetTabBar(), Settings.Categories.GetTabBar().GetTabRect(1));
             ObserveControl(targets, "AboutTab", Settings.Categories.GetTabBar(), Settings.Categories.GetTabBar().GetTabRect(2));
             ObserveControl(targets, "Volume", Settings.VolumeSlider);
@@ -261,11 +267,22 @@ public partial class GameApplication(Main session) : Node
         var fields = new Dictionary<string, object?>
         {
             ["Id"] = id,
+            ["UiProvenanceBundled"] = Godot.FileAccess.FileExists(UiAssets.Root + "manifest.json") && Godot.FileAccess.FileExists(UiAssets.Root + "UPSTREAM-README.txt") && Godot.FileAccess.FileExists(UiAssets.Root + "README.md"),
+            ["PanelTexture"] = (Theme.GetStylebox("panel", "PanelContainer") as StyleBoxTexture)?.Texture?.ResourcePath,
+            ["ButtonTextures"] = ApplicationTheme.ButtonStates.Select(state => (Theme.GetStylebox(state, "Button") as StyleBoxTexture)?.Texture?.ResourcePath).ToArray(),
+            ["FocusBorder"] = (Theme.GetStylebox("focus", "Button") as StyleBoxFlat)?.BorderWidthTop,
+            ["SliderTexture"] = Theme.GetIcon("grabber", "HSlider").ResourcePath,
             ["Screen"] = Screen,
             ["Revision"] = -1L,
             ["SelectedSlot"] = -1,
             ["Connected"] = session.Connected,
             ["SettingsOpen"] = Settings.IsOpen,
+            ["ResolutionFocused"] = Settings.ResolutionSelector.GetPopup().GetFocusedItem(),
+            ["ResolutionSelected"] = Settings.ResolutionSelector.Selected,
+            ["DropdownOpen"] = Settings.DisplaySelector.GetPopup().Visible || Settings.ResolutionSelector.GetPopup().Visible,
+            ["DropdownTexture"] = (Settings.DisplaySelector.GetPopup().GetThemeStylebox("panel") as StyleBoxTexture)?.Texture?.ResourcePath,
+            ["TabTextures"] = new[] { Settings.Categories.GetTabBar().GetThemeStylebox("tab_selected"), Settings.Categories.GetTabBar().GetThemeStylebox("tab_unselected") }.OfType<StyleBoxTexture>().Select(box => box.Texture.ResourcePath).ToArray(),
+            ["DialogTexture"] = ((Settings.IsOpen ? Settings.Dialog : _join.Visible ? _join : Friends).GetThemeStylebox("panel", "AcceptDialog") as StyleBoxTexture)?.Texture?.ResourcePath,
             ["JoinConfirmationOpen"] = _join.Visible,
             ["FriendsOpen"] = Friends.IsOpen,
             ["FriendCount"] = Friends.FriendCount,
@@ -279,7 +296,8 @@ public partial class GameApplication(Main session) : Node
             ["AudioDriver"] = AudioServer.GetDriverName(),
             ["UserDataPath"] = ProjectSettings.GlobalizePath("user://"),
             ["Renderer"] = RenderingServer.GetVideoAdapterName(),
-            ["Models"] = _sceneryModels,
+            ["Models"] = _landscapeAssets.Paths.Count(),
+            ["Landscape"] = _landscape.Observe(_menuCamera, GetViewport().GetVisibleRect()),
             ["Materials"] = 0,
             ["MusicLoaded"] = _music.Stream is not null,
             ["MusicPlaying"] = _music.Playing,
@@ -287,6 +305,7 @@ public partial class GameApplication(Main session) : Node
             ["MusicPosition"] = _music.GetPlaybackPosition(),
             ["Width"] = GetWindow().Size.X,
             ["Height"] = GetWindow().Size.Y,
+            ["WindowFocused"] = GetWindow().HasFocus(),
             ["NativeWindow"] = DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle, GetWindow().GetWindowId()),
             ["Targets"] = targets,
             ["Screenshot"] = screenshot,
@@ -304,7 +323,19 @@ public partial class GameApplication(Main session) : Node
         Vector2 point = rect.GetCenter();
         if (control.GetViewport() is Window window && window != GetWindow()) point += window.Position;
         point = GetViewport().GetFinalTransform() * point;
-        targets[name] = new { X = point.X, Y = point.Y, Visible = control.IsVisibleInTree(), Enabled = control is not BaseButton button || !button.Disabled };
+        Vector2 scale = GetViewport().GetFinalTransform().Scale;
+        targets[name] = new
+        {
+            X = point.X,
+            Y = point.Y,
+            Width = rect.Size.X * scale.X,
+            Height = rect.Size.Y * scale.Y,
+            Visible = control.IsVisibleInTree(),
+            Enabled = control is not BaseButton button || !button.Disabled,
+            Icon = (control as Button)?.Icon?.ResourcePath ?? "",
+            Text = (control as Button)?.Text ?? "",
+            CostText = control.GetNodeOrNull<RichTextLabel>("Cost")?.GetParsedText() ?? ""
+        };
     }
 
     private void CreateBackground()
@@ -314,18 +345,11 @@ public partial class GameApplication(Main session) : Node
         _environment = new WorldEnvironment { Environment = _menuEnvironment }; _scenery.AddChild(_environment);
         _scenery.AddChild(new DirectionalLight3D { RotationDegrees = new(-55, -25, 0), LightEnergy = 0.35f, ShadowEnabled = true });
         _menuCamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 28, Position = new(18, 22, 30), Current = true }; _scenery.AddChild(_menuCamera); _menuCamera.LookAt(Vector3.Zero);
-        for (int row = -3; row <= 3; row++) for (int column = -2; column <= 2; column++)
-            SceneryModel(column == 2 ? "hex_river_B" : "hex_grass", VillageLayout.Hex(column, row), VillageLayout.TerrainScale);
-        SceneryModel("building_home_A_blue", VillageLayout.Hex(-2, 2), 0.8f);
-        SceneryModel("building_tower_A_blue", VillageLayout.Hex(-2, 3), 0.7f);
-        SceneryModel("building_windmill_blue", VillageLayout.Hex(1, -3), 0.8f);
-        SceneryModel("trees_A_small", VillageLayout.Hex(-2, -2), VillageLayout.TerrainScale);
-        SceneryModel("trees_A_small", VillageLayout.Hex(1, -2), VillageLayout.TerrainScale);
-        SceneryModel("rock_single_C", VillageLayout.Hex(0, 3), VillageLayout.TerrainScale);
+        _landscape = new VillageLandscape(_scenery, _landscapeAssets);
+        _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);
     }
-    private void SceneryModel(string model, Vector3 position, float scale)
+    public override void _Process(double delta)
     {
-        using PackedScene asset = GD.Load<PackedScene>($"res://Assets/KayKit/Medieval/{model}.gltf");
-        var node = asset.Instantiate<Node3D>(); node.Position = position; node.Scale = Vector3.One * scale; _scenery.AddChild(node); _sceneryModels++;
+        if (_scenery.Visible) _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);
     }
 }

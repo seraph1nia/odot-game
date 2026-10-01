@@ -1,0 +1,230 @@
+{
+  "source": "https://moonpunchstudio.itch.io/trio-ui-kit-free",
+  "version": "2.2",
+  "archive": "TrioUIKit_FreeSample_v2.2.zip",
+  "archiveSha256": "db8103aa47880b4c784a272867cc0257e5bc32ddcfd1c8fccee04ed0699e2f33",
+  "theme": "Cozy",
+  "permission": "User confirmed permission to bundle assets in this repository on 2026-10-01; plans to keep assets in a private repository. See README.md.",
+  "nineSlice": {
+    "panels": 20,
+    "buttons": [
+      14,
+      14,
+      14,
+      18
+    ],
+    "healthTrack": 17,
+    "healthFill": 11
+  },
+  "files": [
+    {
+      "path": "cozy/panel_plain.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/panel_plain.svg",
+      "sha256": "cbab43882560747b27a63d68bd153b32c02ed3b5ca888c9b964ee545950f9683"
+    },
+    {
+      "path": "cozy/panel_small.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/panel_small.svg",
+      "sha256": "f91b7633378207a4a8421b4aaef3614ed1b56b4ed1122d93a2bcdcc1787129be"
+    },
+    {
+      "path": "cozy/button_rect_normal.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/button_rect_normal.svg",
+      "sha256": "472034543a1aaee0ce91ce11d4597711faf7be11340edc26fe5d88d84f27d393"
+    },
+    {
+      "path": "cozy/button_rect_hover.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/button_rect_hover.svg",
+      "sha256": "18f88fc14a6ed61c5e10e19a01c451edae430fdf29322f5bb3a16079d4306b24"
+    },
+    {
+      "path": "cozy/button_rect_pressed.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/button_rect_pressed.svg",
+      "sha256": "e38d03af444b39b4ec52bc04374fb86620862aebf8ad8bb716765bb40bde89d1"
+    },
+    {
+      "path": "cozy/button_rect_disabled.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/button_rect_disabled.svg",
+      "sha256": "229a17233a0f61ed31c6f183fef4caca5772ae648425d8790094870d6215af2a"
+    },
+    {
+      "path": "cozy/bar_hp.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/bar_hp.svg",
+      "sha256": "a20eb610053c0ba4da8f705011c875eeb372b8ada6cb85ccc59a09b0be7bea93"
+    },
+    {
+      "path": "cozy/arrow_left.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/arrow_left.svg",
+      "sha256": "2826a391ee26c37b3c9ed9bf3c29d3e738f2e67f44ff9026310dea6836710016"
+    },
+    {
+      "path": "cozy/arrow_down.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/arrow_down.svg",
+      "sha256": "80647e41ed3ec776bc149089b5720325987c037dfe3a2e61e8a57fb47f6bfe48"
+    },
+    {
+      "path": "cozy/arrow_up.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/arrow_up.svg",
+      "sha256": "8cd8629546a3aa9ffea17646e65b042c3acbc7f0fa9c4701b878cf5ec5c25a0c"
+    },
+    {
+      "path": "cozy/arrow_right.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/arrow_right.svg",
+      "sha256": "6057b43d1c36deafefd77a647fce2517f2e1155e7f818ba39c82d44d922d3058"
+    },
+    {
+      "path": "cozy/close_button.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/close_button.svg",
+      "sha256": "1b5c9847dbf12b743b7713470b40f837bbb877281b2092f796efeaf210716cbd"
+    },
+    {
+      "path": "icons/icon_gear.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_gear.svg",
+      "sha256": "678db0a1d59f13beb1d1bba52bf16c0d86f14a884cc6209845e673ec86fcff99"
+    },
+    {
+      "path": "icons/icon_play.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_play.svg",
+      "sha256": "b480fe73cf22cb4e1916b46c0222724c991428f735f8e9465b18ea442f6af7a3"
+    },
+    {
+      "path": "icons/icon_heart.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_heart.svg",
+      "sha256": "33d359c26b898dab1f5959e66d410b44c2992807482ba18fe5e4761c5399eb6f"
+    },
+    {
+      "path": "icons/icon_sound_on.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_sound_on.svg",
+      "sha256": "7d10702b1728d716133c44056c1527c88447385ee42be0d6d26a0a80a4643c9e"
+    },
+    {
+      "path": "icons/icon_gold_pile.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_gold_pile.svg",
+      "sha256": "e4de83c794b53c52b0793f5e2f7aa45191fdc9e2511bfbaede814e3aa7ee1438"
+    },
+    {
+      "path": "icons/icon_bread.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_bread.svg",
+      "sha256": "f0d8c6e653f7fc0435a40e43e2b5cd7a4be411055cbdc9698d865df49a74f1bd"
+    },
+    {
+      "path": "icons/icon_sword.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_sword.svg",
+      "sha256": "b94e139bcfe77a0c08cd2a8b3990d53af97a8e1eb70f647786cb67002a5cb13a"
+    },
+    {
+      "path": "icons/icon_axe.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_axe.svg",
+      "sha256": "67ccd7b50238bb67b4e757ebc8178ecae1b538738bec78437ed757eb0bbc89d9"
+    },
+    {
+      "path": "icons/icon_bow.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_bow.svg",
+      "sha256": "96b5f8ae8cc24c69276e3f2cb193941bee3f6c853b09363ae5dc65cdbebeb8ec"
+    },
+    {
+      "path": "icons/icon_staff_magic.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_staff_magic.svg",
+      "sha256": "7f4ff4a482eab112ab5ec164bb4b62d6c559ff712dcd44d76f842fc6cd83021b"
+    },
+    {
+      "path": "icons/icon_helmet.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_helmet.svg",
+      "sha256": "6abc84f9410061e17d56713081414f4c53eda48522a31798811c9fe9a4ab202f"
+    },
+    {
+      "path": "icons/icon_home.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_home.svg",
+      "sha256": "059afbb0bf33ce45c8e1f5a72dac09873a8666934f27047764242af6ea120529"
+    },
+    {
+      "path": "icons/icon_map.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_map.svg",
+      "sha256": "d06deefa968585fb8b933a3fb6e17987a15fc33288f14d18bda35ac3bb06f1b3"
+    },
+    {
+      "path": "icons/icon_crown.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_crown.svg",
+      "sha256": "e23643684853032370363b07d138ef85f9499b6ce045a02c69e376dd91201cfd"
+    },
+    {
+      "path": "icons/icon_buff.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_buff.svg",
+      "sha256": "826fa83da06c575cba0cfa13e5995104bd94e8466d645b65c7fcacc25ed70155"
+    },
+    {
+      "path": "icons/icon_question.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_question.svg",
+      "sha256": "05a8c89909ace126acfc9adc2030eef16891ae3d75d419038afcab0bcc9a6620"
+    },
+    {
+      "path": "icons/icon_shield.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/icons/icon_shield.svg",
+      "sha256": "acacdc1dbad397919dc4acfda8bc743e211ce5b05a600ab8338b4ee53b4eb452"
+    },
+    {
+      "path": "derived/button_normal.svg",
+      "derivedFrom": "cozy/button_rect_normal.svg",
+      "transformation": "Remove baked PLAY text; geometry and colors unchanged.",
+      "sha256": "59cb961216d1787325599491f0d1a785a0f8f19703bf850b5d9209edb15ea902"
+    },
+    {
+      "path": "derived/button_hover.svg",
+      "derivedFrom": "cozy/button_rect_hover.svg",
+      "transformation": "Remove baked PLAY text; geometry and colors unchanged.",
+      "sha256": "61c0b914dd30929f2673e1b8d157543e66927d82fec01be6a7708c7132d55e40"
+    },
+    {
+      "path": "derived/button_pressed.svg",
+      "derivedFrom": "cozy/button_rect_pressed.svg",
+      "transformation": "Remove baked PLAY text; geometry and colors unchanged.",
+      "sha256": "bb72835006ee0cbfe510df5a745b28c2693da7d7604691290cdbc8b3c9f29a7e"
+    },
+    {
+      "path": "derived/button_disabled.svg",
+      "derivedFrom": "cozy/button_rect_disabled.svg",
+      "transformation": "Remove baked PLAY text; geometry and colors unchanged.",
+      "sha256": "1b1a5b6d78ce793e45b9589dd74d447dcaec506bb8af4f0f38687275e330ca91"
+    },
+    {
+      "path": "derived/health_track.svg",
+      "derivedFrom": "cozy/bar_hp.svg",
+      "transformation": "Separate track and full-width fill/highlight for authoritative variable progress.",
+      "sha256": "60b6b97b8f76596769d12ad193b1e652f1c89b55cd388331b9bfc2f3043f0692"
+    },
+    {
+      "path": "derived/health_fill.svg",
+      "derivedFrom": "cozy/bar_hp.svg",
+      "transformation": "Separate track and full-width fill/highlight for authoritative variable progress.",
+      "sha256": "db8db1fda2e6307d695c511b7763f6c0038079ed48be5e99ad8a275e35e8fe8b"
+    },
+    {
+      "path": "UPSTREAM-README.txt",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/README.txt",
+      "sha256": "2e3b60bb475f71cbd2f4cc418a252d9183763a49ee97360e06586e1cb5c83a0d"
+    },
+    {
+      "path": "derived/dropdown_arrow.svg",
+      "derivedFrom": "cozy/arrow_down.svg",
+      "transformation": "Set raster dimensions for native widget icon; retain viewBox and geometry.",
+      "sha256": "f57639a35a9f5b895ed78a2e29ece454e647f37a4b02b606bdee663cd919b089"
+    },
+    {
+      "path": "derived/close.svg",
+      "derivedFrom": "cozy/close_button.svg",
+      "transformation": "Set raster dimensions for native widget icon; retain viewBox and geometry.",
+      "sha256": "470e0923a898d9d9fc78c48effd9e52e369496bd5fc3ce553c904d6575965616"
+    },
+    {
+      "path": "cozy/slider.svg",
+      "archivePath": "TrioUIKit_FreeSample_v2.2/cozy/slider.svg",
+      "sha256": "52d96a16c7eb01ebad7eacb6e2141593316fdbf45ad78b4367c4ccbf9de407ce"
+    },
+    {
+      "path": "derived/slider_knob.svg",
+      "derivedFrom": "cozy/slider.svg",
+      "transformation": "Extract knob circles and gradients; crop viewBox and rasterize at 20px.",
+      "sha256": "6d6c7763331858ac0f365b1cbfe0f5f2387c42e96381eaa04f64fc06a5ee6610"
+    }
+  ]
+}

@@ -11,6 +11,12 @@ internal static class VillageLayout
     public const float RowStep = Radius * 1.5f;
     public static float Height(int column, int row) => column == 3 ? -0.4f : row >= 4 ? 1.0f : row >= 3 ? 0.5f : 0;
     public static Vector3 Hex(int column, int row) => new(column * HalfWidth * 2 + (Math.Abs(row) % 2) * HalfWidth, Height(column, row), row * RowStep);
+    public static float Surface(Vector3 point)
+    {
+        int row = (int)Math.Round(point.Z / RowStep);
+        int column = (int)Math.Round((point.X - (Math.Abs(row) % 2) * HalfWidth) / (HalfWidth * 2));
+        return Height(column, row);
+    }
     public static Vector3 Slot(int slot) => Hex(slot % 3 - 1, slot / 3 + 2);
     public static bool Contains(int slot, Vector3 point)
     {

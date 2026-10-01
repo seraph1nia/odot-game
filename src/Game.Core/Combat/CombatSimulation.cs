@@ -3,85 +3,108 @@ using EcsWorld = Arch.Core.World;
 
 namespace Game.Core;
 
-// The only mutable soldier/enemy store. Buffers below live for one fixed step only.
-internal sealed class CombatSimulation(Rules rules) : IDisposable
+// ECS is the only unit store. Reservations are a derived index.
+internal sealed class CombatSimulation : IDisposable
 {
-    public const double Width = 3.4;
-    public const double Radius = 0.20;
-    public const double Tolerance = 1e-6;
-    public const int HistoryTicks = 120;
-    public const int HistoryLimit = 4096;
-    private readonly EcsWorld _world = EcsWorld.Create();
+    public const double Width = 3.4, Radius = .20, Tolerance = 1e-6;
+    public const int HistoryTicks = 120, HistoryLimit = 4096;
+    private readonly CombatConfiguration _configuration;
+    private readonly HexBoard _board;
+    private readonly HexOccupancy _occupancy;
+    private readonly HexRouting _routing;
+    private readonly ulong _seed;
+    private readonly EcsWorld _world;
     private readonly Dictionary<int, Entity> _entities = [];
     private readonly List<CombatEvent> _events = [];
+    private readonly SortedDictionary<int, AdmissionBound> _admissions = [];
     private readonly QueryDescription _units = new QueryDescription().WithAll<UnitIdentity>();
-    private int _nextId = 1;
+    private int _nextId = 1, _wave = 1;
     private long _tick;
+    public CombatSimulation(Rules rules, CombatConfiguration? configuration = null, ulong seed = 0)
+    {
+        _configuration = configuration ?? new(rules); _board = _configuration.Board;
+        _occupancy = new(_board); _routing = new(_board, _occupancy); _seed = seed;
+        _world = EcsWorld.Create();
+    }
     public long EventSequence { get; private set; }
     public bool IsDisposed { get; private set; }
+    public bool HasDeaths => All().Any(u => u.Hex!.Lifecycle == UnitLifecycle.Dying);
     internal bool RegistryReleased => !ReferenceEquals(EcsWorld.Worlds[_world.Id], _world);
-
-    public WeaponProfile Profile(UnitType type, int rank = 0)
-    {
-        WeaponProfile profile = Catalogs.Units(rules).Single(u => u.Type == type).Profile;
-        return profile with { Health = HealthPoints.Ranked(profile.Health, rank), Damage = HealthPoints.Ranked(profile.Damage, rank) };
-    }
+    internal HexBoard Board => _board;
+    internal CombatReservations Reservations => _occupancy.Snapshot();
+    internal AdmissionBound[] Admissions => _admissions.Values.ToArray();
+    public WeaponProfile Profile(UnitType type, int rank = 0) => _configuration.Unit(type, rank).Legacy();
+    private ref HexUnitState Spatial(int id) => ref _world.Get<HexUnitState>(_entities[id]);
+    private ref CombatDecisionState Decision(int id) => ref _world.Get<CombatDecisionState>(_entities[id]);
+    private CombatDecisionKey Key(int id, int city, long sequence, int generation, CombatPurpose purpose, CombatActorKind kind = CombatActorKind.Unit)
+        => new(_seed, _configuration.Fingerprint, _wave, city, kind, id, sequence, generation, purpose);
+    private CombatDecisionState NewDecision(int id, int city, long sequence)
+        => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
 
     public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        int id = _nextId++;
-        WeaponProfile profile = Profile(type, rank);
+        if (destination <= 0 || origin <= 0 || !Enum.IsDefined(faction)) throw new ArgumentException("Invalid unit identity.");
+        int id = _nextId; _nextId = checked(_nextId + 1); WeaponProfile profile = Profile(type, rank);
         Entity entity = _world.Create(new UnitIdentity(id, type, owner, origin, destination, faction, rank), new UnitHealth(profile.Health),
-            new UnitBody(faction == Faction.Skeletons ? Match.LaneLength : 0, 0, false, FacingForward: faction == Faction.Skeletons ? -1 : 1),
-            new UnitTarget(), new UnitAttack(), profile);
-        _entities.Add(id, entity);
-        return id;
+            new HexUnitState(id, destination, faction, UnitLifecycle.Queued, default), NewDecision(id, destination, 0), new UnitTarget(), new UnitAttack(), profile);
+        _entities.Add(id, entity); return id;
     }
-
     public void Research(int city, UnitClass @class, int rank)
     {
         foreach (UnitState unit in Soldiers(city).Where(u => u.Class == @class))
         {
-            Entity entity = _entities[unit.Id];
-            ref UnitIdentity identity = ref _world.Get<UnitIdentity>(entity);
-            identity = identity with { Rank = rank };
-            _world.Get<WeaponProfile>(entity) = Profile(unit.Type, rank);
+            ref UnitIdentity identity = ref _world.Get<UnitIdentity>(_entities[unit.Id]); identity = identity with { Rank = rank };
+            _world.Get<WeaponProfile>(_entities[unit.Id]) = Profile(unit.Type, rank);
         }
     }
-
-    public UnitState[] Snapshot()
+    private UnitState[] All()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        var ids = new List<int>(_entities.Count);
-        _world.Query(in _units, (ref UnitIdentity identity) => ids.Add(identity.Id));
-        ids.Sort();
+        var ids = new List<int>(_entities.Count); _world.Query(in _units, (ref UnitIdentity identity) => ids.Add(identity.Id)); ids.Sort();
         return ids.Select(Read).ToArray();
     }
+    public UnitState[] Snapshot() => All().Where(u => u.Hex!.Lifecycle != UnitLifecycle.Dying).ToArray();
+    public UnitState[] Dying() => All().Where(u => u.Hex!.Lifecycle == UnitLifecycle.Dying).ToArray();
     public UnitState[] Soldiers(int city) => Snapshot().Where(u => u.Owner == city && u.Faction == Faction.Adventurers).ToArray();
     public UnitState[] Enemies() => Snapshot().Where(u => u.Faction == Faction.Skeletons).ToArray();
     public CombatEvent[] Events() => _events.ToArray();
     public long OldestEventSequence => _events.Count == 0 ? EventSequence + 1 : _events[0].Sequence;
-
+    // Temporary derived presentation adapter; never read by numerical decisions.
+    private (double Forward, double Lateral) Anchor(HexPosition position)
+    {
+        if (position.Cell == 0) return default;
+        HexCell cell = _board.Cell(position.Cell); HexFootprint f = _board.Footprint(position.Footprint);
+        return (-cell.Coordinate.R * 2.598076211 - f.AnchorForward / 1000.0,
+            cell.Coordinate.Column * 3 + (cell.Coordinate.R & 1) * 1.5 + f.AnchorX / 1000.0);
+    }
     internal UnitState Read(int id)
     {
-        Entity entity = _entities[id];
-        UnitIdentity identity = _world.Get<UnitIdentity>(entity);
-        UnitBody body = _world.Get<UnitBody>(entity);
-        UnitTarget target = _world.Get<UnitTarget>(entity);
-        UnitAttack attack = _world.Get<UnitAttack>(entity);
-        return new(id, _world.Get<UnitHealth>(entity).Value, body.Forward, (int)Math.Max(0, attack.ReadyTick - _tick), identity.Origin, identity.Destination)
+        Entity entity = _entities[id]; UnitIdentity identity = _world.Get<UnitIdentity>(entity); HexUnitState hex = Spatial(id);
+        UnitTarget target = _world.Get<UnitTarget>(entity); UnitAttack attack = _world.Get<UnitAttack>(entity);
+        var from = Anchor(hex.Position); var to = hex.HoldsTransit ? Anchor(hex.Destination) : from;
+        double elapsed = hex.Lifecycle == UnitLifecycle.Dying ? hex.FrozenMoveTicks : Math.Clamp(_tick - hex.StartTick, 0, Math.Max(0, hex.EndTick - hex.StartTick));
+        double fraction = hex.HoldsTransit ? elapsed / Math.Max(1, hex.EndTick - hex.StartTick) : 0;
+        var aim = target.City ? (Forward: -2.598076211, Lateral: from.Lateral)
+            : _entities.ContainsKey(target.Id) ? Anchor(Spatial(target.Id).Position) : to;
+        double forward = aim.Forward - from.Forward, lateral = aim.Lateral - from.Lateral;
+        double length = Math.Sqrt(forward * forward + lateral * lateral);
+        bool moving = hex.Lifecycle == UnitLifecycle.Alive && hex.HoldsTransit;
+        return new(id, _world.Get<UnitHealth>(entity).Value, from.Forward + (to.Forward - from.Forward) * fraction,
+            checked((int)Math.Max(0, attack.ReadyTick - _tick)), identity.Origin, identity.Destination)
         {
+            Hex = hex,
+            Decision = Decision(id) with { Route = Decision(id).Route.ToArray(), Visited = Decision(id).Visited.ToArray() },
             Type = identity.Type,
             Faction = identity.Faction,
             Rank = identity.Rank,
             Owner = identity.Owner,
-            Lateral = body.Lateral,
-            Deployed = body.Deployed,
-            MoveForward = body.MoveForward,
-            MoveLateral = body.MoveLateral,
-            FacingForward = body.FacingForward,
-            FacingLateral = body.FacingLateral,
+            Lateral = from.Lateral + (to.Lateral - from.Lateral) * fraction,
+            Deployed = hex.Lifecycle != UnitLifecycle.Queued,
+            MoveForward = moving ? (to.Forward - from.Forward) * Match.StepsPerSecond / (hex.EndTick - hex.StartTick) : 0,
+            MoveLateral = moving ? (to.Lateral - from.Lateral) * Match.StepsPerSecond / (hex.EndTick - hex.StartTick) : 0,
+            FacingForward = length > 0 ? forward / length : identity.Faction == Faction.Adventurers ? 1 : -1,
+            FacingLateral = length > 0 ? lateral / length : 0,
             TargetId = target.Id,
             TargetCity = target.City,
             AttackSequence = attack.Sequence,
@@ -92,250 +115,330 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
             Profile = _world.Get<WeaponProfile>(entity)
         };
     }
-
-    // Internal seam used by the test assembly's fixture builder, never exposed on the protocol.
     internal void Seed(UnitState state)
     {
-        if (_entities.ContainsKey(state.Id)) Remove(state.Id);
+        HexUnitState hex = state.Hex ?? (state.Deployed ? throw new ArgumentException("Deployed fixtures require explicit hex state.", nameof(state))
+            : new(state.Id, state.Destination, state.Faction, UnitLifecycle.Queued, default));
+        if (hex.Id != state.Id || hex.City != state.Destination || hex.Faction != state.Faction) throw new ArgumentException("Fixture identity mismatch.", nameof(state));
+        // Validate a complete prospective index before replacing the ECS entity.
+        _occupancy.Rebuild(All().Where(u => u.Id != state.Id).Select(u => u.Hex!).Append(hex));
+        if (_entities.Remove(state.Id, out Entity old)) _world.Destroy(old);
         WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank);
         Entity entity = _world.Create(new UnitIdentity(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank), new UnitHealth(state.Health),
-            new UnitBody(state.Position, state.Lateral, state.Deployed, state.MoveForward, state.MoveLateral, state.FacingForward, state.FacingLateral),
-            new UnitTarget(state.TargetId, state.TargetCity),
-            new UnitAttack(state.AttackSequence, state.ActionStartTick, state.ImpactTick, Math.Max(state.ReadyTick, _tick + state.Cooldown), state.PendingImpact, state.TargetId, state.TargetCity), profile);
-        _entities.Add(state.Id, entity); _nextId = Math.Max(_nextId, state.Id + 1);
+            hex, state.Decision ?? NewDecision(state.Id, state.Destination, 0), new UnitTarget(state.TargetId, state.TargetCity),
+            new UnitAttack(state.AttackSequence, state.ActionStartTick, state.ImpactTick, Math.Max(state.ReadyTick, checked(_tick + state.Cooldown)), state.PendingImpact, state.TargetId, state.TargetCity), profile);
+        _entities.Add(state.Id, entity); _nextId = Math.Max(_nextId, checked(state.Id + 1));
     }
     internal void Remove(int id)
     {
-        if (_entities.Remove(id, out Entity entity)) _world.Destroy(entity);
+        if (!_entities.TryGetValue(id, out Entity entity)) return;
+        _occupancy.Release(Spatial(id).City, id); _entities.Remove(id); _world.Destroy(entity);
     }
-
-    public void BeginWave()
+    public void BeginWave(int wave = 1)
     {
-        _events.Clear();
+        if (HasDeaths) throw new InvalidOperationException("Cannot reform while prior deaths hold space.");
+        _wave = wave; _events.Clear(); _occupancy.Clear(); _admissions.Clear();
         foreach (UnitState unit in Snapshot())
         {
-            ref UnitBody body = ref _world.Get<UnitBody>(_entities[unit.Id]);
-            body = new(unit.Faction == Faction.Skeletons ? Match.LaneLength : 0, 0, false, FacingForward: unit.Faction == Faction.Skeletons ? -1 : 1);
+            Spatial(unit.Id) = new(unit.Id, unit.Destination, unit.Faction, UnitLifecycle.Queued, default, ActionSequence: unit.Hex!.ActionSequence);
+            Decision(unit.Id) = NewDecision(unit.Id, unit.Destination, checked(unit.Decision!.Sequence + 1));
             _world.Get<UnitTarget>(_entities[unit.Id]) = default;
-            _world.Get<UnitAttack>(_entities[unit.Id]) = new(unit.AttackSequence, 0, 0, _tick, false, 0, false);
+            _world.Get<UnitAttack>(_entities[unit.Id]) = new(unit.AttackSequence, 0, 0, Math.Max(_tick, unit.ReadyTick), false, 0, false);
         }
-        AdmitEntries();
+        AdmitEntries(initial: true);
     }
-
-    public void AdmitEntries()
+    public void AdmitEntries(bool initial = false)
     {
-        UnitState[] all = Snapshot();
-        var occupied = all.Where(u => u.Deployed).ToList();
-        foreach (UnitState unit in all.Where(u => !u.Deployed).OrderBy(u => u.Class != UnitClass.Melee).ThenBy(u => u.Id))
+        UnitState[] queued = Snapshot().Where(u => u.Hex!.Lifecycle == UnitLifecycle.Queued)
+            .OrderBy(u => initial ? u.Class == UnitClass.Melee : u.Class != UnitClass.Melee).ThenBy(u => u.Profile.Initiative)
+            .ThenBy(u => initial ? SeededDecision.Rank(Key(u.Id, u.Destination, u.Decision!.Sequence, 0, CombatPurpose.Formation)) : u.Decision!.SchedulingRank).ThenBy(u => u.Id).ToArray();
+        foreach (UnitState unit in queued)
         {
-            bool placed = false;
-            for (int row = 0; row < 6 && !placed; row++)
-                foreach (int column in new[] { 0, -1, 1, -2, 2, -3, 3 })
+            IEnumerable<int[]> bands = unit.Class != UnitClass.Melee ? [_board.Rear(unit.Faction).ToArray()]
+                : initial ? [_board.Front(unit.Faction).ToArray()] : [_board.Front(unit.Faction).ToArray(), _board.Rear(unit.Faction).ToArray()];
+            foreach (int[] band in bands)
+            {
+                HexPosition? position = band.Select((cell, preference) => new { cell, preference })
+                    .OrderBy(c => _occupancy.UsedCapacity(unit.Destination, c.cell)).ThenBy(c => c.preference)
+                    .SelectMany(c => _occupancy.Free(unit.Destination, unit.Faction, c.cell, unit.Profile.CapacityCost)
+                        .OrderBy(f => unit.Faction == Faction.Adventurers ? f.AnchorForward : -f.AnchorForward).ThenBy(f => f.Id)
+                        .Select(f => (HexPosition?)new HexPosition(c.cell, f.Id))).FirstOrDefault();
+                if (position is null) continue;
+                HexUnitState admitted = unit.Hex! with
                 {
-                    double fromHome = unit.Class == UnitClass.Melee ? Radius + 5 * 0.48 - row * 0.48 : Radius + row * 0.48;
-                    double forward = IsEnemy(unit) ? Match.LaneLength - fromHome : fromHome;
-                    var point = new BattlePoint(forward, column * 0.48);
-                    if (occupied.Any(other => other.Destination == unit.Destination && Point(other).Subtract(point).Length < 2 * Radius - Tolerance)) continue;
-                    _world.Get<UnitBody>(_entities[unit.Id]) = new(forward, point.Lateral, true, FacingForward: unit.Faction == Faction.Skeletons ? -1 : 1);
-                    occupied.Add(unit with { Position = forward, Lateral = point.Lateral, Deployed = true }); placed = true; break;
-                }
+                    Lifecycle = UnitLifecycle.Alive,
+                    Position = position.Value,
+                    Action = unit.ReadyTick > _tick ? UnitActionKind.Recovery : UnitActionKind.Waiting,
+                    EndTick = unit.ReadyTick
+                };
+                if (!_occupancy.TryPlace(admitted)) throw new InvalidOperationException("Placement lost its atomic reservation.");
+                Spatial(unit.Id) = admitted; break;
+            }
+        }
+        foreach (AdmissionBound bound in _admissions.Values.Where(b => b.AdmissionTick is null).ToArray())
+        {
+            UnitState? first = Snapshot().FirstOrDefault(u => u.Destination == bound.City && u.Faction == Faction.Skeletons && u.Deployed);
+            if (first is not null) _admissions[bound.City] = bound with { AdmissionTick = _tick, FirstUnitId = first.Id };
         }
     }
-
-    public void Step(long tick, IEnumerable<City> cities)
+    internal void TrackClearedAdmission(int city)
     {
-        _tick = tick;
-        _events.RemoveAll(e => e.Tick < tick - HistoryTicks);
-        AdmitEntries();
-        UnitState[] read = Snapshot();
-        var active = read.Where(u => u.Deployed && u.Health > 0).ToArray();
-        var positions = new Dictionary<int, BattlePoint>();
-        foreach (UnitState unit in active)
+        if (_admissions.TryGetValue(city, out AdmissionBound? previous) && previous.AdmissionTick is null) return;
+        UnitState[] current = All();
+        UnitState[] incoming = current.Where(u => u.Destination == city && u.Faction == Faction.Skeletons && u.Hex!.Lifecycle == UnitLifecycle.Queued).ToArray();
+        if (incoming.Length == 0 || current.Any(u => u.Destination == city && u.Faction == Faction.Skeletons && u.Hex!.IsTargetable)) return;
+        bool Fits(HexOccupancy index) => incoming.Any(u => _board.Rear(Faction.Skeletons).Any(cell => index.Free(city, Faction.Skeletons, cell, u.Profile.CapacityCost).Any()));
+        long bound = _tick;
+        if (!Fits(_occupancy))
         {
-            if (unit.PendingImpact)
+            long[] releases = current.Where(u => u.Destination == city && u.Faction == Faction.Skeletons && u.Hex!.Lifecycle == UnitLifecycle.Dying
+                && (_board.Rear(Faction.Skeletons).Contains(u.Hex.Position.Cell) || _board.Rear(Faction.Skeletons).Contains(u.Hex.Destination.Cell)))
+                .Select(u => u.Hex!.DeathEndTick).Distinct().Order().ToArray();
+            bool found = false;
+            foreach (long release in releases)
             {
-                positions[unit.Id] = Point(unit);
-                ref UnitBody waiting = ref _world.Get<UnitBody>(_entities[unit.Id]);
-                waiting = waiting with { MoveForward = 0, MoveLateral = 0 };
-                continue;
+                var predicted = new HexOccupancy(_board);
+                predicted.Rebuild(current.Where(u => u.Hex!.Lifecycle != UnitLifecycle.Dying || u.Hex.DeathEndTick > release).Select(u => u.Hex!));
+                if (!Fits(predicted)) continue;
+                bound = release; found = true; break;
             }
-            UnitState[] opponents = active.Where(u => u.Destination == unit.Destination && IsEnemy(u) != IsEnemy(unit)).ToArray();
-            UnitState? nearest = opponents.OrderBy(u => Point(u).Subtract(Point(unit)).LengthSquared).ThenBy(u => u.Id).FirstOrDefault();
-            UnitState? target = opponents.FirstOrDefault(u => u.Id == unit.TargetId) ?? nearest;
-            if (target is not null && nearest is not null && unit.Class == UnitClass.Melee && nearest.Id != target.Id
-                && Intercepts(Point(unit), Point(target), Point(nearest))) target = nearest;
-            bool cityTarget = target is null && IsEnemy(unit);
-            _world.Get<UnitTarget>(_entities[unit.Id]) = new(target?.Id ?? (cityTarget ? unit.Destination : 0), cityTarget);
-            BattlePoint from = Point(unit), goal = target is not null ? Point(target) : cityTarget ? new(0, unit.Lateral) : from;
-            BattlePoint direction = goal.Subtract(from).Normalized();
-            double distance = goal.Subtract(from).Length;
-            double step = Math.Min(unit.Profile.Speed / Match.StepsPerSecond, Math.Max(0, distance - unit.Profile.Range));
-            BattlePoint move = unit.PendingImpact ? default : direction.Scale(step);
-            BattlePoint chosen = Constrain(unit, move, active, positions);
-            if (step > 0 && !unit.PendingImpact && chosen.Length < step * 0.25 && FriendlyBlocker(unit, move, active))
-            {
-                double sign = unit.Id % 2 == 0 ? 1 : -1;
-                var tangent = new BattlePoint(-direction.Lateral, direction.Forward);
-                foreach (double side in new[] { sign, -sign })
-                {
-                    BattlePoint alternative = Constrain(unit, tangent.Scale(step * side), active, positions);
-                    if (alternative.Length > chosen.Length) chosen = alternative;
-                }
-            }
-            BattlePoint end = from.Add(chosen); positions[unit.Id] = end;
-            _world.Get<UnitBody>(_entities[unit.Id]) = new(end.Forward, end.Lateral, true,
-                chosen.Forward * Match.StepsPerSecond, chosen.Lateral * Match.StepsPerSecond,
-                direction.LengthSquared > 0 ? direction.Forward : unit.FacingForward, direction.LengthSquared > 0 ? direction.Lateral : unit.FacingLateral);
+            if (!found) throw new InvalidOperationException("Cleared protected entry has no finite first-admission bound.");
         }
-
-        UnitState[] moved = Snapshot().Where(u => u.Deployed).ToArray();
-        var current = moved.ToDictionary(u => u.Id);
-        var damage = new Dictionary<int, int>();
-        var cityDamage = new Dictionary<int, int>();
-        foreach (UnitState unit in moved)
-        {
-            Entity entity = _entities[unit.Id];
-            UnitTarget target = _world.Get<UnitTarget>(entity);
-            ref UnitAttack attack = ref _world.Get<UnitAttack>(entity);
-            bool inRange = target.City ? unit.Position <= unit.Profile.Range + Tolerance
-                : current.TryGetValue(target.Id, out UnitState? opponent) && Point(opponent).Subtract(Point(unit)).Length <= unit.Profile.Range + Tolerance;
-            if (!attack.Pending && tick >= attack.ReadyTick && target.Id != 0 && inRange)
-            {
-                attack = new(attack.Sequence + 1, tick, tick + unit.Profile.WindupTicks, tick + unit.Profile.CadenceTicks, true, target.Id, target.City);
-                UnitState? aimed = current.GetValueOrDefault(target.Id);
-                Emit(CombatEventType.AttackStarted, Read(unit.Id), target.Id, target.City,
-                    forward: target.City ? 0 : aimed?.Position ?? 0, lateral: target.City ? unit.Lateral : aimed?.Lateral ?? 0);
-            }
-            if (!attack.Pending || tick < attack.ImpactTick) continue;
-            bool valid = attack.TargetCity ? attack.TargetId == unit.Destination && unit.Position <= unit.Profile.Range + Tolerance
-                : current.TryGetValue(attack.TargetId, out UnitState? victim) && victim.Destination == unit.Destination && IsEnemy(victim) != IsEnemy(unit)
-                    && Point(victim).Subtract(Point(unit)).Length <= unit.Profile.Range + Tolerance;
-            if (valid)
-            {
-                Dictionary<int, int> hits = attack.TargetCity ? cityDamage : damage;
-                if (attack.TargetCity) hits[attack.TargetId] = checked(hits.GetValueOrDefault(attack.TargetId) + unit.Profile.Damage);
-                else foreach (int id in Victims(current[attack.TargetId], moved, unit.Profile.VictimCap, unit.Profile.SplashRadius))
-                    hits[id] = checked(hits.GetValueOrDefault(id) + unit.Profile.Damage);
-            }
-            UnitState? primary = attack.TargetCity ? null : current.GetValueOrDefault(attack.TargetId);
-            int[] victims = valid && !attack.TargetCity && primary is not null ? Victims(primary, moved, unit.Profile.VictimCap, unit.Profile.SplashRadius) : [];
-            Emit(CombatEventType.Impact, Read(unit.Id), attack.TargetId, attack.TargetCity, unit.Profile.Damage, valid,
-                primary?.Position ?? 0, primary?.Lateral ?? unit.Lateral, victims);
-            attack = attack with { Pending = false };
-        }
-        foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
-        {
-            city.DefenderCooldown = Math.Max(0, city.DefenderCooldown - 1);
-            UnitState? target = moved.Where(u => IsEnemy(u) && u.Destination == city.Id).OrderBy(u => u.Position).ThenBy(u => u.Id).FirstOrDefault();
-            if (target is null || city.DefenderCooldown != 0) continue;
-            damage[target.Id] = checked(damage.GetValueOrDefault(target.Id) + HealthPoints.FromWhole(rules.DefenderDamage));
-            city.DefenderCooldown = rules.AttackTicks;
-            Emit(CombatEventType.DefenderShot, target, target.Id, damage: HealthPoints.FromWhole(rules.DefenderDamage), landed: true);
-        }
-        foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
-            foreach (TowerState state in city.Towers.Values.OrderBy(t => t.Slot).ToArray())
-            {
-                TowerState tower = state;
-                UnitState? target = moved.Where(u => IsEnemy(u) && u.Destination == city.Id).OrderBy(u => u.Position).ThenBy(u => u.Id).FirstOrDefault();
-                TowerDefinition profile = Catalogs.Towers().Single(p => p.Type == tower.Type && p.Level == tower.Level);
-                int amount = profile.Damage;
-                if (!tower.PendingImpact && tick >= tower.ReadyTick && target is not null)
-                {
-                    tower = tower with { AttackSequence = tower.AttackSequence + 1, TargetId = target.Id, ActionStartTick = tick, ImpactTick = tick + profile.WindupTicks, ReadyTick = tick + profile.CadenceTicks, PendingImpact = true };
-                    EmitTower(CombatEventType.AttackStarted, tower, target, amount, false, []);
-                }
-                if (tower.PendingImpact && tick >= tower.ImpactTick)
-                {
-                    UnitState? primary = moved.FirstOrDefault(u => u.Id == tower.TargetId && IsEnemy(u) && u.Destination == city.Id);
-                    int[] victims = primary is null ? [] : Victims(primary, moved, profile.VictimCap, profile.SplashRadius);
-                    foreach (int id in victims) damage[id] = checked(damage.GetValueOrDefault(id) + amount);
-                    EmitTower(CombatEventType.Impact, tower, primary, amount, primary is not null, victims);
-                    tower = tower with { PendingImpact = false };
-                }
-                city.Towers[tower.Slot] = tower;
-            }
-        foreach ((int id, int amount) in damage.OrderBy(p => p.Key))
-        {
-            ref UnitHealth health = ref _world.Get<UnitHealth>(_entities[id]);
-            health = new(Math.Max(0, health.Value - amount));
-            if (amount > 0) Emit(CombatEventType.Hit, Read(id), damage: amount, landed: true);
-        }
-        foreach (City city in cities)
-            city.Health = Math.Max(0, city.Health - cityDamage.GetValueOrDefault(city.Id));
-        foreach (UnitState dead in Snapshot().Where(u => u.Health <= 0))
-        { Emit(CombatEventType.Death, dead); Remove(dead.Id); }
+        _admissions[city] = new(city, _tick, bound);
+    }
+    public void Cleanup(long tick)
+    {
+        _tick = tick; _events.RemoveAll(e => e.Tick < tick - HistoryTicks);
+        foreach (UnitState unit in Dying()) if (_occupancy.ExpireDeath(unit.Hex!, tick)) Remove(unit.Id);
         TrimHistory();
     }
-
+    public void Advance(long tick, IEnumerable<City> cities)
+    {
+        Cleanup(tick);
+        foreach (UnitState unit in Snapshot().Where(u => u.Hex!.Lifecycle == UnitLifecycle.Alive))
+        {
+            HexUnitState hex = unit.Hex!;
+            if (_occupancy.Arrive(hex, tick))
+            {
+                Spatial(unit.Id) = hex with { Position = hex.Destination, Destination = default, Transition = 0, Action = UnitActionKind.Waiting };
+                CombatDecisionState d = Decision(unit.Id);
+                Decision(unit.Id) = NewDecision(unit.Id, unit.Destination, checked(d.Sequence + 1)) with
+                {
+                    Generation = d.Generation,
+                    ObjectiveId = d.ObjectiveId,
+                    ObjectiveCity = d.ObjectiveCity,
+                    ObjectiveCell = d.ObjectiveCell,
+                    Route = d.Route.Skip(1).ToArray(),
+                    Visited = d.Visited.Append(hex.Position.Cell).Distinct().ToArray()
+                };
+            }
+            else if (hex.Action == UnitActionKind.Recovery && tick >= unit.ReadyTick)
+            { Spatial(unit.Id) = hex with { Action = UnitActionKind.Waiting }; Decision(unit.Id) = NewDecision(unit.Id, unit.Destination, checked(unit.Decision!.Sequence + 1)); }
+        }
+        UnitState[] alive = Snapshot().Where(u => u.Hex!.IsTargetable).ToArray(); var current = alive.ToDictionary(u => u.Id);
+        var damage = new SortedDictionary<int, int>(); var cityDamage = new SortedDictionary<int, int>();
+        void Add(SortedDictionary<int, int> accumulator, int id, int amount) => accumulator[id] = checked(accumulator.GetValueOrDefault(id) + amount);
+        foreach (UnitState unit in alive.Where(u => u.PendingImpact && tick >= u.ImpactTick))
+        {
+            UnitAttack attack = _world.Get<UnitAttack>(_entities[unit.Id]);
+            bool exposed = !alive.Any(u => u.Destination == unit.Destination && u.Faction == Faction.Adventurers);
+            UnitState? primary = current.GetValueOrDefault(attack.TargetId);
+            bool valid = attack.TargetCity ? unit.Faction == Faction.Skeletons && attack.TargetId == unit.Destination && exposed
+                    && _board.CityDistance(unit.Hex!.Position.Cell) <= unit.Profile.HexRange
+                : primary is not null && primary.Faction != unit.Faction && primary.Destination == unit.Destination && InRange(unit, primary);
+            int[] victims = valid && !attack.TargetCity ? Victims(primary!, alive, unit.Profile.VictimCap, unit.Profile.SplashHexRadius,
+                Key(unit.Id, unit.Destination, unit.Decision!.Sequence, 0, CombatPurpose.Splash)) : [];
+            if (valid && attack.TargetCity) Add(cityDamage, attack.TargetId, unit.Profile.Damage);
+            foreach (int id in victims) Add(damage, id, unit.Profile.Damage);
+            Emit(CombatEventType.Impact, unit, attack.TargetId, attack.TargetCity, unit.Profile.Damage, valid, primary, victims);
+            _world.Get<UnitAttack>(_entities[unit.Id]) = attack with { Pending = false };
+            Spatial(unit.Id) = unit.Hex! with { Action = UnitActionKind.Recovery };
+        }
+        foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
+        {
+            ResolveDefense(city, city.Defender, alive, damage);
+            foreach (TowerState tower in city.Towers.Values.OrderBy(t => t.Slot).ToArray()) ResolveDefense(city, tower, alive, damage);
+        }
+        foreach ((int id, int amount) in damage)
+        {
+            ref UnitHealth health = ref _world.Get<UnitHealth>(_entities[id]); int effective = Math.Min(health.Value, amount); health = new(health.Value - effective);
+            if (effective > 0) Emit(CombatEventType.Hit, Read(id), damage: effective, landed: true);
+        }
+        foreach (City city in cities) city.Health = Math.Max(0, city.Health - cityDamage.GetValueOrDefault(city.Id));
+        foreach (UnitState unit in Snapshot().Where(u => u.Health <= 0)) Kill(unit);
+        TrimHistory();
+    }
+    private void ResolveDefense(City city, TowerState tower, UnitState[] alive, SortedDictionary<int, int> damage)
+    {
+        if (!tower.PendingImpact || _tick < tower.ImpactTick) return;
+        bool defender = tower.Slot < 0;
+        TowerDefinition? profile = defender ? null : _configuration.Towers.Single(p => p.Type == tower.Type && p.Level == tower.Level);
+        int amount = profile?.Damage ?? _configuration.DefenderDamage;
+        UnitState? primary = alive.FirstOrDefault(u => u.Id == tower.TargetId && u.Faction == Faction.Skeletons && u.Destination == city.Id);
+        int[] victims = primary is null ? [] : Victims(primary, alive, profile?.VictimCap ?? 1, profile?.SplashHexRadius ?? 0,
+            Key(defender ? city.Id : tower.Slot + 1, city.Id, tower.AttackSequence, 0, CombatPurpose.Splash, defender ? CombatActorKind.Defender : CombatActorKind.Tower));
+        foreach (int id in victims) damage[id] = checked(damage.GetValueOrDefault(id) + amount);
+        EmitTower(CombatEventType.Impact, tower, primary, amount, primary is not null, victims);
+        if (defender) { city.Defender = tower with { PendingImpact = false }; if (primary is not null) Emit(CombatEventType.DefenderShot, primary, primary.Id, damage: amount, landed: true); }
+        else city.Towers[tower.Slot] = tower with { PendingImpact = false };
+    }
+    public void StartActions(IEnumerable<City> cities)
+    {
+        UnitState[] alive = Snapshot().Where(u => u.Hex!.IsTargetable).ToArray(); var moves = new List<(UnitState Actor, HexPosition To)>();
+        foreach (UnitState actor in alive.Where(u => u.Hex!.Action == UnitActionKind.Waiting && _tick >= u.ReadyTick))
+        {
+            UnitState[] opponents = alive.Where(u => u.Destination == actor.Destination && u.Faction != actor.Faction).ToArray();
+            UnitState? target = Select(opponents.Where(u => InRange(actor, u)), u => _board.Distance(actor.Hex!.Position.Cell, u.Hex!.Position.Cell),
+                Key(actor.Id, actor.Destination, actor.Decision!.Sequence, actor.Decision.Generation, CombatPurpose.Target));
+            bool city = opponents.Length == 0 && actor.Faction == Faction.Skeletons;
+            if (target is not null || city && _board.CityDistance(actor.Hex!.Position.Cell) <= actor.Profile.HexRange)
+            { StartAttack(actor, target, city); continue; }
+            if (opponents.Length == 0 && !city) continue;
+            CombatDecisionState d = Decision(actor.Id);
+            UnitState? objective = opponents.FirstOrDefault(u => u.Id == d.ObjectiveId);
+            bool unchanged = d.ObjectiveId != 0 && (d.ObjectiveCity ? city : objective is not null && d.ObjectiveCell == objective.Hex!.Position.Cell);
+            if (!unchanged) { d = d with { Generation = checked(d.Generation + 1), Route = [], Visited = [] }; Decision(actor.Id) = d; }
+            if (d.Route.Length > 0 && _occupancy.CanPlace(actor.Destination, actor.Faction, d.Route[0]))
+            { moves.Add((Read(actor.Id), d.Route[0])); continue; }
+            if (unchanged && d.ObservedRevision == _occupancy.Revision && _tick < d.RetryTick) continue;
+            CombatDecisionKey key = Key(actor.Id, actor.Destination, d.Sequence, d.Generation, CombatPurpose.Target);
+            IEnumerable<UnitState?> targets = city ? [null] : unchanged && objective is not null ? [objective] : opponents.Cast<UnitState?>();
+            Approach[] approaches = targets.Select(t => _routing.Find(actor, t, alive, key, unchanged ? d.Visited : [])).ToArray();
+            Approach[] feasible = approaches.Where(a => a.Route.Length > 0).ToArray();
+            Approach[] candidates = feasible.Length > 0 ? feasible : approaches;
+            int best = candidates.Min(a => feasible.Length > 0 ? a.Route.Length : a.StaticSteps);
+            candidates = candidates.Where(a => (feasible.Length > 0 ? a.Route.Length : a.StaticSteps) == best).ToArray();
+            int initiative = candidates.Min(a => a.City ? 0 : opponents.Single(u => u.Id == a.TargetId).Profile.Initiative);
+            candidates = candidates.Where(a => (a.City ? 0 : opponents.Single(u => u.Id == a.TargetId).Profile.Initiative) == initiative).OrderBy(a => a.TargetId).ToArray();
+            Approach chosen = candidates[SeededDecision.Choose(key, candidates.Length)];
+            Decision(actor.Id) = d with
+            {
+                ObjectiveId = chosen.TargetId,
+                ObjectiveCity = chosen.City,
+                ObjectiveCell = chosen.TargetCell,
+                Route = chosen.Route,
+                ObservedRevision = _occupancy.Revision,
+                RetryTick = checked(_tick + _configuration.RetryTicks)
+            };
+            _world.Get<UnitTarget>(_entities[actor.Id]) = new(chosen.TargetId, chosen.City);
+            if (chosen.Route.Length > 0) moves.Add((Read(actor.Id), chosen.Route[0]));
+        }
+        foreach (var move in moves.OrderBy(m => m.Actor.Profile.Initiative).ThenBy(m => m.Actor.Decision!.SchedulingRank).ThenBy(m => m.Actor.Id))
+        {
+            HexUnitState hex = move.Actor.Hex!; long sequence = checked(hex.ActionSequence + 1);
+            if (!_occupancy.TryMove(hex, move.To, sequence)) continue;
+            Spatial(hex.Id) = hex with
+            {
+                Action = UnitActionKind.Moving,
+                Destination = move.To,
+                Transition = _board.Transition(hex.Position, move.To).Id,
+                ActionSequence = sequence,
+                StartTick = _tick,
+                EndTick = checked(_tick + move.Actor.Profile.MoveTicks)
+            };
+        }
+        foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
+        {
+            StartDefense(city, city.Defender, alive);
+            foreach (TowerState tower in city.Towers.Values.OrderBy(t => t.Slot).ToArray()) StartDefense(city, tower, alive);
+        }
+        TrimHistory();
+    }
+    private void StartAttack(UnitState unit, UnitState? target, bool city)
+    {
+        Entity entity = _entities[unit.Id]; UnitAttack previous = _world.Get<UnitAttack>(entity); int targetId = target?.Id ?? unit.Destination;
+        _world.Get<UnitTarget>(entity) = new(targetId, city);
+        _world.Get<UnitAttack>(entity) = new(checked(previous.Sequence + 1), _tick, checked(_tick + unit.Profile.WindupTicks), checked(_tick + unit.Profile.CadenceTicks), true, targetId, city);
+        Spatial(unit.Id) = unit.Hex! with { Action = UnitActionKind.Windup, ActionSequence = checked(unit.Hex!.ActionSequence + 1), StartTick = _tick, EndTick = checked(_tick + unit.Profile.CadenceTicks) };
+        Emit(CombatEventType.AttackStarted, Read(unit.Id), targetId, city, primary: target);
+    }
+    private void StartDefense(City city, TowerState tower, UnitState[] alive)
+    {
+        if (tower.PendingImpact || _tick < tower.ReadyTick) return;
+        bool defender = tower.Slot < 0;
+        TowerDefinition? profile = defender ? null : _configuration.Towers.Single(p => p.Type == tower.Type && p.Level == tower.Level);
+        int windup = profile?.WindupTicks ?? _configuration.Defender.WindupTicks, cadence = profile?.CadenceTicks ?? _configuration.Defender.CadenceTicks;
+        UnitState? target = Select(alive.Where(u => u.Faction == Faction.Skeletons && u.Destination == city.Id), u => _board.CityDistance(u.Hex!.Position.Cell),
+            Key(defender ? city.Id : tower.Slot + 1, city.Id, tower.AttackSequence, 0, CombatPurpose.Target, defender ? CombatActorKind.Defender : CombatActorKind.Tower));
+        if (target is null) return;
+        tower = tower with
+        {
+            AttackSequence = checked(tower.AttackSequence + 1),
+            TargetId = target.Id,
+            ActionStartTick = _tick,
+            ImpactTick = checked(_tick + windup),
+            ReadyTick = checked(_tick + cadence),
+            PendingImpact = true
+        };
+        if (defender) city.Defender = tower; else city.Towers[tower.Slot] = tower;
+        EmitTower(CombatEventType.AttackStarted, tower, target, profile?.Damage ?? _configuration.DefenderDamage, false, []);
+    }
+    private static UnitState? Select(IEnumerable<UnitState> candidates, Func<UnitState, int> distance, CombatDecisionKey key)
+    {
+        UnitState[] values = candidates.ToArray(); if (values.Length == 0) return null;
+        int closest = values.Min(distance); values = values.Where(u => distance(u) == closest).ToArray();
+        int initiative = values.Min(u => u.Profile.Initiative); values = values.Where(u => u.Profile.Initiative == initiative).OrderBy(u => u.Id).ToArray();
+        return values[SeededDecision.Choose(key, values.Length)];
+    }
+    private bool InRange(UnitState actor, UnitState target)
+    { int distance = _board.Distance(actor.Hex!.Position.Cell, target.Hex!.Position.Cell); return distance >= 1 && distance <= actor.Profile.HexRange; }
+    private int[] Victims(UnitState primary, UnitState[] all, int cap, int radius, CombatDecisionKey key)
+    {
+        var result = new List<int> { primary.Id };
+        var remaining = all.Where(u => u.Id != primary.Id && u.Destination == primary.Destination && u.Faction == primary.Faction
+            && _board.Distance(primary.Hex!.Position.Cell, u.Hex!.Position.Cell) <= radius).ToList();
+        while (result.Count < cap && remaining.Count > 0)
+        {
+            UnitState victim = Select(remaining, u => _board.Distance(primary.Hex!.Position.Cell, u.Hex!.Position.Cell), key with { Generation = result.Count })!;
+            result.Add(victim.Id); remaining.Remove(victim);
+        }
+        return result.ToArray();
+    }
+    private void Kill(UnitState unit)
+    {
+        HexUnitState hex = unit.Hex!;
+        _world.Get<UnitHealth>(_entities[unit.Id]) = new(0);
+        _world.Get<UnitAttack>(_entities[unit.Id]) = _world.Get<UnitAttack>(_entities[unit.Id]) with { Pending = false };
+        if (hex.Lifecycle == UnitLifecycle.Queued) { Emit(CombatEventType.Death, unit with { Health = 0 }); Remove(unit.Id); return; }
+        Spatial(unit.Id) = hex with
+        {
+            Lifecycle = UnitLifecycle.Dying,
+            DeathStartTick = _tick,
+            DeathEndTick = checked(_tick + unit.Profile.DeathTicks),
+            FrozenMoveTicks = hex.HoldsTransit ? checked((int)(_tick - hex.StartTick)) : 0
+        };
+        Emit(CombatEventType.Death, Read(unit.Id));
+    }
     public void EliminateArmy(int city)
-    {
-        foreach (UnitState soldier in Soldiers(city))
-        { Emit(CombatEventType.Death, soldier with { Health = 0 }); Remove(soldier.Id); }
-        TrimHistory();
-    }
+    { foreach (UnitState soldier in Soldiers(city)) Kill(soldier); TrimHistory(); }
     public void Transfer(int id, int destination)
     {
-        Entity entity = _entities[id];
-        ref UnitIdentity identity = ref _world.Get<UnitIdentity>(entity); identity = identity with { Destination = destination };
-        _world.Get<UnitBody>(entity) = new(Match.LaneLength, 0, false, FacingForward: -1);
-        _world.Get<UnitTarget>(entity) = default;
-        ref UnitAttack attack = ref _world.Get<UnitAttack>(entity); attack = attack with { Pending = false, TargetId = 0, TargetCity = false };
+        HexUnitState hex = Spatial(id); if (hex.Lifecycle == UnitLifecycle.Dying) throw new InvalidOperationException("Dying units cannot transfer.");
+        _occupancy.Release(hex.City, id);
+        ref UnitIdentity identity = ref _world.Get<UnitIdentity>(_entities[id]); identity = identity with { Destination = destination };
+        Spatial(id) = new(id, destination, hex.Faction, UnitLifecycle.Queued, default, ActionSequence: hex.ActionSequence);
+        Decision(id) = NewDecision(id, destination, checked(Decision(id).Sequence + 1));
+        _world.Get<UnitTarget>(_entities[id]) = default;
+        _world.Get<UnitAttack>(_entities[id]) = _world.Get<UnitAttack>(_entities[id]) with { Pending = false, TargetId = 0, TargetCity = false };
     }
-    private void Emit(CombatEventType type, UnitState unit, int target = 0, bool city = false, int damage = 0, bool landed = false,
-        double forward = 0, double lateral = 0, int[]? victims = null)
-        => _events.Add(new(++EventSequence, _tick, type, unit, target, city, damage, landed) { ImpactForward = forward, ImpactLateral = lateral, Victims = victims ?? [] });
+    public void Step(long tick, IEnumerable<City> cities)
+    { City[] values = cities.ToArray(); Advance(tick, values); AdmitEntries(); StartActions(values); }
+    private void Emit(CombatEventType type, UnitState unit, int target = 0, bool city = false, int damage = 0, bool landed = false, UnitState? primary = null, int[]? victims = null)
+    {
+        EventSequence = checked(EventSequence + 1);
+        _events.Add(new(EventSequence, _tick, type, unit, target, city, damage, landed)
+        { ImpactForward = primary?.Position ?? 0, ImpactLateral = primary?.Lateral ?? unit.Lateral, Victims = victims ?? [] });
+    }
     private void EmitTower(CombatEventType type, TowerState tower, UnitState? target, int damage, bool landed, int[] victims)
-        => _events.Add(new(++EventSequence, _tick, type, null, tower.TargetId, false, damage, landed)
+    {
+        EventSequence = checked(EventSequence + 1);
+        _events.Add(new(EventSequence, _tick, type, null, tower.TargetId, false, damage, landed)
         { Tower = tower, ImpactForward = target?.Position ?? 0, ImpactLateral = target?.Lateral ?? 0, Victims = victims });
-    private static int[] Victims(UnitState primary, UnitState[] all, int cap, double radius)
-        => new[] { primary.Id }.Concat(all.Where(u => cap > 1 && u.Id != primary.Id && u.Health > 0 && u.Deployed
-            && u.Destination == primary.Destination && u.Faction == primary.Faction && Point(u).Subtract(Point(primary)).LengthSquared <= radius * radius)
-            .OrderBy(u => Point(u).Subtract(Point(primary)).LengthSquared).ThenBy(u => u.Id).Select(u => u.Id).Take(cap - 1)).ToArray();
+    }
     private void TrimHistory() { if (_events.Count > HistoryLimit) _events.RemoveRange(0, _events.Count - HistoryLimit); }
-    private static BattlePoint Point(UnitState unit) => new(unit.Position, unit.Lateral);
-    private static bool IsEnemy(UnitState unit) => unit.Faction == Faction.Skeletons;
-    private static bool Intercepts(BattlePoint from, BattlePoint to, BattlePoint blocker)
-    {
-        BattlePoint ray = to.Subtract(from), relative = blocker.Subtract(from);
-        if (ray.LengthSquared < 1e-12) return false;
-        double fraction = relative.Dot(ray) / ray.LengthSquared;
-        return fraction is > 0 and < 1 && relative.Subtract(ray.Scale(fraction)).Length < 2 * Radius;
-    }
-    private static bool FriendlyBlocker(UnitState unit, BattlePoint move, UnitState[] all)
-        => all.Any(other => other.Id != unit.Id && other.Destination == unit.Destination && IsEnemy(unit) == IsEnemy(other)
-            && Point(other).Subtract(Point(unit).Add(move)).Length < 2 * Radius + 0.01);
-
-    private static BattlePoint Constrain(UnitState unit, BattlePoint move, UnitState[] all, Dictionary<int, BattlePoint> positions)
-    {
-        BattlePoint from = Point(unit);
-        var bounded = new BattlePoint(Math.Clamp(from.Forward + move.Forward, Radius, Match.LaneLength - Radius),
-            Math.Clamp(from.Lateral + move.Lateral, -Width / 2 + Radius, Width / 2 - Radius)).Subtract(from);
-        bool Safe(double fraction)
-        {
-            BattlePoint delta = bounded.Scale(fraction);
-            foreach (UnitState other in all)
-            {
-                if (other.Id == unit.Id || other.Destination != unit.Destination) continue;
-                BattlePoint relative = from.Subtract(Point(other));
-                BattlePoint otherMove = positions.TryGetValue(other.Id, out BattlePoint end) ? end.Subtract(Point(other)) : default;
-                double envelope = 2 * Radius + delta.Length + otherMove.Length;
-                if (relative.LengthSquared > envelope * envelope) continue;
-                BattlePoint velocity = delta.Subtract(otherMove);
-                double closest = velocity.LengthSquared > 1e-18 ? Math.Clamp(-relative.Dot(velocity) / velocity.LengthSquared, 0, 1) : 0;
-                if (relative.Add(velocity.Scale(closest)).Length < 2 * Radius - Tolerance / 10) return false;
-            }
-            return true;
-        }
-        if (Safe(1)) return bounded;
-        double low = 0, high = 1;
-        for (int iteration = 0; iteration < 18; iteration++)
-        { double middle = (low + high) / 2; if (Safe(middle)) low = middle; else high = middle; }
-        return bounded.Scale(low);
-    }
-
     public void Dispose()
     {
         if (IsDisposed) return;
-        IsDisposed = true; _entities.Clear(); _events.Clear(); EcsWorld.Destroy(_world); GC.SuppressFinalize(this);
+        IsDisposed = true; _entities.Clear(); _events.Clear(); _admissions.Clear(); _occupancy.Clear(); EcsWorld.Destroy(_world); GC.SuppressFinalize(this);
     }
 }

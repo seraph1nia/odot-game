@@ -35,6 +35,7 @@ internal sealed partial class SteamFriendsDialog : AcceptDialog
         _rows = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; _scroll.AddChild(_rows);
         _status = new Label { Name = "InviteStatus", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new(400, 55) }; content.AddChild(_status);
         GetOkButton().Name = "CloseFriends";
+        UiAssets.Decorate(GetOkButton(), "Back");
         VisibilityChanged += () =>
         {
             if (Visible) return;

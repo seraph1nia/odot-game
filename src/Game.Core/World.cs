@@ -1,9 +1,13 @@
+using System.Buffers.Binary;
+using System.Security.Cryptography;
+
 namespace Game.Core;
 
 public enum Phase { Lobby, Building, Preparation, Combat, Victory, Defeat }
 public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, Blacksmith, ArrowTower, CatapultTower }
 public sealed record Rules
 {
+    public CombatSettings Combat { get; init; } = new();
     public int CityHealth { get; init; } = 100;
     public int StartingGold { get; init; } = 60;
     public int BaseGold { get; init; } = 10;
@@ -19,7 +23,7 @@ public sealed record Rules
     public int RecruitCost { get; init; } = 5;
     public int SoldierHealth { get; init; } = 10;
     public int SoldierDamage { get; init; } = 4;
-    public int DefenderDamage { get; init; } = 1;
+    public int DefenderDamage { get; init; } = 2;
     public int AttackTicks { get; init; } = 60;
     public int RangedHealth { get; init; } = 8;
     public int RangedDamage { get; init; } = 3;
@@ -30,7 +34,7 @@ public sealed record Rules
     public int BerserkerHealth { get; init; } = 8;
     public int BerserkerDamage { get; init; } = 6;
     public int MageHealth { get; init; } = 6;
-    public int MageDamage { get; init; } = 2;
+    public int MageDamage { get; init; } = 3;
     public int WaveOne { get; init; } = 4;
     public int WaveTwo { get; init; } = 6;
     public int WaveThree { get; init; } = 8;
@@ -39,6 +43,8 @@ public sealed record Rules
 public sealed record SlotState(Building Type, int Level);
 public sealed record UnitState(int Id, int Health, double Position, int Cooldown, int Origin = 0, int Destination = 0)
 {
+    public HexUnitState? Hex { get; init; }
+    public CombatDecisionState? Decision { get; init; }
     public UnitType Type { get; init; }
     public Faction Faction { get; init; }
     public UnitClass Class => Catalogs.Class(Type);
@@ -84,6 +90,7 @@ public sealed class City
     internal City(int id, Rules rules, CombatSimulation combat)
     {
         Id = id; Gold = rules.StartingGold; Wood = rules.StartingWood; Health = HealthPoints.FromWhole(rules.CityHealth); _combat = combat;
+        Defender = new(id, -1, Building.Empty, 1);
     }
     public int Id { get; }
     public bool Connected { get; set; } = true;
@@ -98,6 +105,7 @@ public sealed class City
     public SlotState[] Slots { get; } = Enumerable.Range(0, 9).Select(_ => new SlotState(Building.Empty, 0)).ToArray();
     public IReadOnlyList<UnitState> Soldiers => _combat.Soldiers(Id);
     public int DefenderCooldown { get; set; }
+    public TowerState Defender { get; set; }
     public CityState Snapshot() => new(Id, Connected, Ready, Gold, Food, Health, Slots.ToArray(), _combat.Soldiers(Id), DefenderCooldown) { Wood = Wood, Research = Research, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
 }
 
@@ -105,7 +113,7 @@ public sealed class Match : IDisposable
 {
     private readonly CombatSimulation _combat;
     internal CombatSimulation Combat => _combat;
-    public Match(Rules? rules = null, string? matchId = null)
+    public Match(Rules? rules = null, string? matchId = null, ulong? combatSeed = null)
     {
         Rules = rules ?? new(); Id = matchId ?? Guid.NewGuid().ToString("N");
         if (Rules.AttackTicks <= Rules.MeleeWindupTicks || Rules.AttackTicks <= Rules.RangedWindupTicks
@@ -120,12 +128,18 @@ public sealed class Match : IDisposable
         _ = HealthPoints.FromWhole(Rules.CityHealth);
         _ = HealthPoints.FromWhole(Rules.DefenderDamage);
         _ = Catalogs.Units(Rules);
-        _combat = new(Rules);
+        Configuration = new(Rules);
+        // Retain only copied authoring data as well as the frozen live catalog.
+        Rules = Rules with { Combat = Rules.Combat with { Board = Configuration.Board.Definition() } };
+        CombatSeed = combatSeed ?? BinaryPrimitives.ReadUInt64LittleEndian(RandomNumberGenerator.GetBytes(sizeof(ulong)));
+        _combat = new(Rules, Configuration, CombatSeed);
     }
     public const int StepsPerSecond = 60;
     public const double LaneLength = 12;
     public const double Reach = 0.55;
     public Rules Rules { get; }
+    public CombatConfiguration Configuration { get; }
+    public ulong CombatSeed { get; }
     public string Id { get; }
     public SortedDictionary<int, City> Players { get; } = [];
     public IReadOnlyList<UnitState> Enemies => _combat.Enemies();
@@ -154,7 +168,7 @@ public sealed class Match : IDisposable
         ResolveReady();
     }
     public MatchSnapshot Snapshot() => new(Id, Revision, Tick, Phase, Paused, Wave, Turn, TurnSerial, Rules, Players.Values.Select(p => p.Snapshot()).ToArray(), _combat.Enemies())
-    { ProductionCount = ProductionCount, BuildingCatalog = Catalogs.Buildings(Rules), TowerCatalog = Catalogs.Towers(), UnitCatalog = Catalogs.Units(Rules), EventSequence = _combat.EventSequence, OldestEventSequence = _combat.OldestEventSequence, CombatEvents = _combat.Events() };
+    { ProductionCount = ProductionCount, BuildingCatalog = Catalogs.Buildings(Rules), TowerCatalog = Catalogs.Towers(Rules), UnitCatalog = Catalogs.Units(Rules), EventSequence = _combat.EventSequence, OldestEventSequence = _combat.OldestEventSequence, CombatEvents = _combat.Events() };
 
     public CommandResult Apply(int sender, Command command)
     {
@@ -233,6 +247,7 @@ public sealed class Match : IDisposable
         if (Paused || Phase is not (Phase.Building or Phase.Preparation)) return;
         City[] required = Players.Values.Where(p => p.Connected && !p.Eliminated).ToArray();
         if (required.Length == 0 || required.Any(p => !p.Ready)) return;
+        if (Phase == Phase.Preparation && _combat.HasDeaths) return;
         foreach (City city in Players.Values) city.Ready = false;
         TurnSerial++;
         if (Phase == Phase.Preparation) { BeginWave(); Revision++; return; }
@@ -255,29 +270,34 @@ public sealed class Match : IDisposable
         foreach (City city in living)
         {
             city.DefenderCooldown = 0;
+            city.Defender = city.Defender with { TargetId = 0, PendingImpact = false, ReadyTick = Math.Max(Tick, city.Defender.ReadyTick) };
             foreach (TowerState tower in city.Towers.Values.ToArray()) city.Towers[tower.Slot] = tower with { TargetId = 0, PendingImpact = false, ReadyTick = Tick };
             for (int n = 0; n < Rules.Allocation(Wave); n++) Spawn(city.Id, city.Id, n);
         }
         int assigned = 0;
         foreach (int dead in _roster.Where(id => Players[id].Eliminated))
             for (int n = 0; n < Rules.Allocation(Wave); n++) Spawn(dead, living[assigned++ % living.Length].Id, n);
-        _combat.BeginWave();
+        _combat.BeginWave(Wave);
     }
     private void Spawn(int origin, int destination, int index) => _combat.Create(Catalogs.EnemyRole(Wave, index), 0, origin, destination, Faction.Skeletons);
 
     public void Step()
     {
-        if (Paused || Phase != Phase.Combat) return;
-        Tick++; Revision++;
-        _combat.Step(Tick, Players.Values);
+        if (Paused || Phase != Phase.Combat && !_combat.HasDeaths) return;
+        Tick = checked(Tick + 1); Revision++;
+        if (Phase != Phase.Combat) { _combat.Cleanup(Tick); ResolveReady(); return; }
+        _combat.Advance(Tick, Players.Values);
         foreach (City city in Players.Values.Where(c => c.Eliminated))
-        { city.Ready = false; _combat.EliminateArmy(city.Id); }
+        { city.Ready = false; city.Defender = city.Defender with { PendingImpact = false }; _combat.EliminateArmy(city.Id); }
         City[] survivors = Players.Values.Where(p => !p.Eliminated).ToArray();
         if (survivors.Length == 0) { Phase = Phase.Defeat; return; }
+        int[] cleared = survivors.Where(c => !Enemies.Any(e => e.Destination == c.Id)).Select(c => c.Id).ToArray();
         int next = 0;
         foreach (UnitState enemy in Enemies.Where(e => Players[e.Destination].Eliminated).OrderBy(e => e.Id))
             _combat.Transfer(enemy.Id, survivors[next++ % survivors.Length].Id);
-        if (Enemies.Count != 0) return;
+        foreach (int city in cleared) _combat.TrackClearedAdmission(city);
+        _combat.AdmitEntries();
+        if (Enemies.Count != 0) { _combat.StartActions(Players.Values); return; }
         if (Wave == 3) Phase = Phase.Victory;
         else { Wave++; Turn = 1; TurnSerial++; Phase = Phase.Building; }
     }

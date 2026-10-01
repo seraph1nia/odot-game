@@ -7,7 +7,7 @@ Verify the cooperative match's rules and real multiplayer lifecycle through the 
 ## Requirements
 
 ### Requirement: Engine-independent cooperative rules tests
-The rules task SHALL verify economy/ownership validation, recruitment, upgrades, exactly-once production, ready eligibility, three-turn wave cadence, persistent soldiers, city defense, simultaneous eliminations, current/future enemy redistribution with integer remainders, and victory/defeat. It SHALL additionally verify typed recruitment and invalid-type atomicity, range-based stopping, body spacing, crowded entry queues, target invalidation, fixed-tick windup/impact/recovery, event deduplication and bounded history, stable combat identities and session cleanup. Tests SHALL include a deterministic mixed-army case with at least thirty-two soldiers and thirty-two enemies and check progress, bounds and separation. It SHALL verify that pause freezes simulation, pending impacts and events and resume does not catch up. Tests SHALL run without Godot, Steam, or a display and fail with nonzero exit status on violations. Shared authority/session tests SHALL verify equivalent solo, host-local, and guest request validation, authenticated identity binding, command retry protection, and stale-session rejection without changing gameplay rules.
+The rules task SHALL verify economy/ownership validation, typed recruitment, multi-resource costs, building upgrades, bounded research, symmetric faction profiles, mage/tower splash, exactly-once production, ready eligibility, three-production wave cadence and income-free final preparation, persistent soldiers, city defense, simultaneous eliminations, current/future enemy redistribution with integer remainders, and victory/defeat. It SHALL additionally verify typed recruitment and invalid-type atomicity, range-based stopping, body spacing, crowded entry queues, target invalidation, fixed-tick windup/impact/recovery, event deduplication and bounded history, stable combat identities and session cleanup. Tests SHALL include a deterministic mixed-army case with at least thirty-two soldiers and thirty-two enemies and check progress, bounds and separation. It SHALL verify that pause freezes simulation, pending impacts and events and resume does not catch up. Tests SHALL run without Godot, Steam, or a display and fail with nonzero exit status on violations. Shared authority/session tests SHALL verify equivalent solo, host-local, and guest request validation, authenticated identity binding, command retry protection, and stale-session rejection without changing gameplay rules.
 
 #### Scenario: Redistribution regression
 - **WHEN** enemy transfer duplicates an enemy, restores its health, loses a remainder, or assigns an enemy to a fallen city
@@ -28,6 +28,10 @@ The rules task SHALL verify economy/ownership validation, recruitment, upgrades,
 #### Scenario: Timing or lifecycle regression
 - **WHEN** an attack damages twice, hits an invalid target, advances during pause, or an ended match leaks combat state into a fresh session
 - **THEN** a cheap rule or authority lifecycle test fails without launching an engine process
+
+#### Scenario: Fractional research has a small effect
+- **WHEN** a low-damage unit receives a five-percent research rank
+- **THEN** rule tests verify the intended small numerical increase without truncation to zero or rounding to a whole extra damage point
 
 ### Requirement: Real-process cooperative network verification
 The network task SHALL retain separate real headless dedicated-server/client scenarios and add a playing host with separate real guest processes using the normal session protocol over local networking. It SHALL validate at least two players, sender ownership, host-local validation, rejected actions, matching authoritative revisions, production and recruitment, automatic battles, and a terminal three-wave outcome. It SHALL cover a real guest disconnect and resumed process with a changed transport connection, pause/resume during combat, invalid credentials, duplicate/retried spending, current state restoration, original-host termination, and fresh hosting after leaving. A targeted three-player scenario SHALL validate immediate redistribution to two survivors and future wave allocation. Scenario actions SHALL use normal requests; no client-only test message SHALL award resources, kill cities, or set authoritative combat state. Local scenarios SHALL run without Steam accounts, internet access, or Steam initialization.
@@ -139,3 +143,16 @@ One independently selectable source graphical combat slice SHALL exercise the ac
 #### Scenario: Headless behavior stays graphical-independent
 - **WHEN** typed armies battle on a stripped dedicated-server export or an automated headless role
 - **THEN** the same state and attack rules advance without creating animated models, graphics, audio or a Steam session
+
+### Requirement: Recorded strategy and focused graphical coverage
+Verification SHALL compare checked-in ordinary-gameplay frontline, mixed-army, tower-heavy and research-heavy strategies in solo matches and retain a shared winning strategy across one through four players without privileged resource or casualty commands. Evidence SHALL record costs, production/spending stages, recruited archetypes, wave duration, casualties, remaining resources and city health. At least one reproducible ordinary strategy in each family SHALL win the default three-wave solo match; a no-investment strategy SHALL still lose. Cooperative success, elimination and redistribution assertions SHALL remain mandatory. These finite strategies SHALL NOT be reported as proof that every possible build is balanced. Graphical coverage SHALL extend existing selectable economy, combat, reconnect, settings and exported-package cases where practical; new expensive cases SHALL document their unique defect, missed cheaper coverage and expected cost before admission.
+
+#### Scenario: New option has no viable strategy
+- **WHEN** a default tower-heavy or research-heavy strategy cannot win despite correct ordinary actions
+- **THEN** implementation records the result and adjusts profiles or costs before reporting balanced completion
+- **AND** existing cooperative assertions are not removed to obtain a pass
+
+#### Scenario: Observe a graphical specialist attack
+- **WHEN** private-display combat coverage observes a Mage cast or a Catapult Tower impact
+- **THEN** it checks actual rendered poses/effects against current authoritative events and captures attributable frames
+- **AND** an overlapping snapshot or reconnect does not replay an old sound or effect

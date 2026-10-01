@@ -33,6 +33,8 @@ public partial class ClientSettings : Node
     internal AcceptDialog Dialog => _dialog;
     internal TabContainer Categories { get; private set; } = null!;
     internal HSlider VolumeSlider => _volume;
+    internal OptionButton DisplaySelector => _mode;
+    internal OptionButton ResolutionSelector => _resolution;
     internal Button CheckUpdateButton => _checkUpdate;
     internal Button DownloadUpdateButton => _downloadUpdate;
     internal string UpdateStatus => _updateStatus.Text;
@@ -53,12 +55,14 @@ public partial class ClientSettings : Node
         if (!sizeOverride && _window.Mode == Window.ModeEnum.Windowed) _window.Size = _windowedSize;
 
         _button = new Button { Name = "SettingsButton", Text = "Settings", Position = new(12, 12), TooltipText = "Settings (Esc)" };
+        UiAssets.Decorate(_button, "Settings");
         ui.AddChild(_button);
         _button.Pressed += Open;
         _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Close", DialogCloseOnEscape = true };
         // Let Godot route modal input and dropdown focus within the parent viewport.
         _window.GuiEmbedSubwindows = true;
         AddChild(_dialog);
+        UiAssets.Decorate(_dialog.GetOkButton(), "Back");
         var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 12); _dialog.AddChild(content);
         var tabs = new TabContainer { Name = "Categories", SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 180) }; content.AddChild(tabs);
         Categories = tabs;
@@ -95,6 +99,10 @@ public partial class ClientSettings : Node
         _updates = new(BuildInfo.Identity, target, new System.Net.Http.HttpClient(), url => OS.ShellOpen(url) == Error.Ok);
         _checkUpdate.Pressed += CheckUpdates;
         _downloadUpdate.Pressed += OpenUpdate;
+        tabs.SetTabIcon(1, UiAssets.Icon("Audio"));
+        tabs.SetTabIcon(2, UiAssets.Icon("Inspect"));
+        tabs.SetTabIconMaxWidth(1, 18);
+        tabs.SetTabIconMaxWidth(2, 18);
         _saveFeedback = Label(content, "");
         _dialog.VisibilityChanged += () =>
         {

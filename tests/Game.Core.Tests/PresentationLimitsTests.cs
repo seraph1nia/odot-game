@@ -7,6 +7,21 @@ namespace Game.Core.Tests;
 public sealed class PresentationLimitsTests
 {
     [Theory]
+    [InlineData(525, 1050, 0.5)]
+    [InlineData(1050, 1050, 1)]
+    [InlineData(0, 1050, 0)]
+    [InlineData(-10, 1050, 0)]
+    [InlineData(2000, 1050, 1)]
+    [InlineData(3, 6, 0.5)]
+    public void HealthBarsUseEffectiveMaximumInsteadOfFirstObservedHealth(int current, int maximum, double expected)
+        => Assert.Equal(expected, PresentationLimits.HealthFraction(current, maximum));
+    [Fact]
+    public void MissingMaximumHealthIsReported()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => PresentationLimits.HealthFraction(5, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PresentationLimits.HealthFraction(5, -1));
+    }
+    [Theory]
     [InlineData(0, 0)]
     [InlineData(1, 1)]
     [InlineData(19, 1)]

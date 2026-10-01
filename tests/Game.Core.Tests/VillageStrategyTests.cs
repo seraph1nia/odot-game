@@ -9,9 +9,9 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
     internal static CommandResult Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, UnitType unit = UnitType.Swordsman, UnitClass @class = UnitClass.Melee)
         => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, @class));
-    private static Match Start(int count = 1)
+    private static Match Start(int count = 1, ulong seed = 123)
     {
-        var match = new Match(); for (int n = 0; n < count; n++) match.Join();
+        var match = new Match(combatSeed: seed); for (int n = 0; n < count; n++) match.Join();
         Assert.True(Act(match, 1, "start").Accepted); return match;
     }
     [Fact]
@@ -72,17 +72,19 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         using var combat = new CombatSimulation(new()); int skeleton = combat.Create(type, 0, 1, 1, Faction.Skeletons, 2);
         Assert.Equal(city.Soldiers[^1].Profile, combat.Read(skeleton).Profile);
     }
-    [Theory]
-    [InlineData("frontline", 1)]
-    [InlineData("mixed", 1)]
-    [InlineData("towers", 1)]
-    [InlineData("research", 1)]
-    [InlineData("frontline", 2)]
-    [InlineData("frontline", 3)]
-    [InlineData("frontline", 4)]
-    public void OrdinaryStrategiesWinWithinBoundedSteps(string strategy, int players)
+    public static IEnumerable<object[]> StrategySeeds()
     {
-        using Match match = Start(players);
+        foreach (ulong seed in new ulong[] { 0, 1, 123 })
+        {
+            foreach (string strategy in new[] { "frontline", "mixed", "towers", "research" }) yield return [strategy, 1, seed];
+            foreach (int players in new[] { 2, 3, 4 }) yield return ["frontline", players, seed];
+        }
+    }
+    [Theory]
+    [MemberData(nameof(StrategySeeds))]
+    public void OrdinaryStrategiesWinWithinBoundedSteps(string strategy, int players, ulong seed)
+    {
+        using Match match = Start(players, seed);
         int ticks = 0, recruits = 0, preparations = 0;
         var recruitedRoles = new HashSet<UnitType>();
         var waveTicks = new Dictionary<int, int>();
@@ -92,6 +94,8 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
             {
                 Assert.True(ticks++ < 18000, "Strategy exceeded 300 seconds of fixed steps."); waveTicks[match.Wave] = waveTicks.GetValueOrDefault(match.Wave) + 1; match.Step(); continue;
             }
+            if (match.Phase == Phase.Preparation && match.Players.Values.Where(c => c.Connected && !c.Eliminated).All(c => c.Ready))
+            { match.Step(); continue; }
             foreach (City city in match.Players.Values.Where(c => !c.Eliminated))
             {
                 void TryBuild(int slot, Building building) { if (city.Slots[slot].Type == Building.Empty) Act(match, city.Id, "build", slot, building); }
@@ -127,7 +131,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
             if (match.Phase == Phase.Preparation) preparations++;
             foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated)) Assert.True(Act(match, city.Id, "ready").Accepted);
         }
-        output.WriteLine($"{strategy}/{players}: waveTicks={string.Join(',', waveTicks.OrderBy(p => p.Key).Select(p => p.Value))}; casualties={recruits - match.Players.Values.Sum(c => c.Soldiers.Count)}; {ticks} ticks; recruited={recruits}; surviving={match.Players.Values.Sum(c => c.Soldiers.Count)}; cityHP={string.Join(',', match.Players.Values.Select(c => HealthPoints.Format(c.Health)))}");
+        output.WriteLine($"{strategy}/{players}, seed={seed}, config={match.Configuration.Fingerprint}: waveTicks={string.Join(',', waveTicks.OrderBy(p => p.Key).Select(p => p.Value))}; casualties={recruits - match.Players.Values.Sum(c => c.Soldiers.Count)}; {ticks} ticks; recruited={recruits}; surviving={match.Players.Values.Sum(c => c.Soldiers.Count)}; cityHP={string.Join(',', match.Players.Values.Select(c => HealthPoints.Format(c.Health)))}");
         Assert.Equal(Phase.Victory, match.Phase); Assert.Equal(9, match.ProductionCount); Assert.Equal(3, preparations);
         if (strategy == "mixed") Assert.Equal(4, recruitedRoles.Count);
         if (strategy == "research") Assert.True(match.Players[1].Research.Melee >= 1);

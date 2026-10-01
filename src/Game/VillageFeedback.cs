@@ -55,7 +55,7 @@ internal sealed partial class VillageFeedback : Node3D
         for (int n = 0; n < 5; n++) Spawn(point, point + new Vector3((n - 2) * .18f, .7f, (n % 2) * .2f), seconds, .5, false);
         Sound(request.Action == "research" ? 1 : 0, audible);
     }
-    public void Combat(CombatEvent entry, int focus, double seconds, bool audible)
+    public void Combat(CombatEvent entry, int focus, double seconds, bool audible, Vector3? towerSource = null)
     {
         int city = entry.Tower?.City ?? entry.Unit?.Destination ?? 0;
         if (city != focus) return;
@@ -63,7 +63,7 @@ internal sealed partial class VillageFeedback : Node3D
         Vector3 impact = center + new Vector3((float)entry.ImpactLateral, .5f, -(float)entry.ImpactForward);
         if (entry.Type == CombatEventType.AttackStarted && (entry.Tower is not null || entry.Unit?.Class is UnitClass.Ranged or UnitClass.Magic))
         {
-            Vector3 source = entry.Tower is { } tower ? center + VillageLayout.Slot(tower.Slot) + new Vector3(0, 1.4f, 0)
+            Vector3 source = entry.Tower is { } tower ? towerSource ?? center + VillageLayout.Slot(tower.Slot) + new Vector3(0, 1.4f, 0)
                 : center + new Vector3((float)entry.Unit!.Lateral, .6f, -(float)entry.Unit.Position);
             Spawn(source, impact, seconds, Math.Max(.01, ((entry.Tower?.ImpactTick ?? entry.Unit!.ImpactTick) - entry.Tick) / (double)Match.StepsPerSecond), true);
         }

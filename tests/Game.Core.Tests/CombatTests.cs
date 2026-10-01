@@ -5,9 +5,10 @@ namespace Game.Core.Tests;
 
 public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
 {
+    private static readonly HexBoard TestBoard = new(HexBoardDefinition.Default());
     private static Match Battle(Rules? rules = null, int soldiers = 0, bool mixed = false, bool reverse = false)
     {
-        var match = new Match(rules, "combat-fixture"); match.Join();
+        var match = new Match(rules, "combat-fixture", combatSeed: 123); match.Join();
         int[] ids = Enumerable.Range(1, soldiers).ToArray();
         foreach (int id in reverse ? ids.Reverse() : ids)
         {
@@ -24,20 +25,20 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var combat = new CombatSimulation(rules ?? new Rules { DefenderDamage = 0 });
         int soldier = combat.Create(type, 1, 1, 1), enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        combat.Seed(combat.Read(soldier) with { Position = 2, Deployed = true });
-        combat.Seed(combat.Read(enemy) with { Position = type == UnitType.Crossbowman ? 4.5 : 2.55, Deployed = true });
+        combat.Seed(combat.Read(soldier) with { Hex = CombatFixture.At(combat.Read(soldier), 11, type == UnitType.Crossbowman ? 1 : 7), Deployed = true });
+        combat.Seed(combat.Read(enemy) with { Hex = CombatFixture.At(combat.Read(enemy), type == UnitType.Crossbowman ? 2 : 8, 7), Deployed = true });
         return combat;
     }
     private static void Separated(UnitState[] units)
     {
         foreach (UnitState unit in units.Where(u => u.Deployed))
         {
-            Assert.InRange(unit.Position, CombatSimulation.Radius, Match.LaneLength - CombatSimulation.Radius);
-            Assert.InRange(unit.Lateral, -CombatSimulation.Width / 2 + CombatSimulation.Radius, CombatSimulation.Width / 2 - CombatSimulation.Radius);
+            Assert.NotNull(unit.Hex); Assert.InRange(unit.Hex.Position.Cell, 1, 21);
             foreach (UnitState other in units.Where(u => u.Deployed && u.Destination == unit.Destination && u.Id > unit.Id))
             {
-                double distance = Math.Sqrt(Math.Pow(unit.Position - other.Position, 2) + Math.Pow(unit.Lateral - other.Lateral, 2));
-                Assert.True(distance >= 2 * CombatSimulation.Radius - CombatSimulation.Tolerance, $"Overlapping {unit.Id}/{other.Id}: {distance}");
+                if (unit.Hex.Position.Cell != other.Hex!.Position.Cell) continue;
+                Assert.Equal(unit.Faction, other.Faction);
+                Assert.Equal(0, TestBoard.Footprint(unit.Hex.Position.Footprint).Mask & TestBoard.Footprint(other.Hex.Position.Footprint).Mask);
             }
         }
     }
@@ -54,7 +55,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         {
             a.Step(); b.Step();
             UnitState[] units = a.Combat.Snapshot(); Separated(units);
-            Assert.Equal(units, b.Combat.Snapshot()); Assert.Equal(JsonSerializer.Serialize(a.Combat.Events()), JsonSerializer.Serialize(b.Combat.Events()));
+            Assert.Equal(JsonSerializer.Serialize(units), JsonSerializer.Serialize(b.Combat.Snapshot())); Assert.Equal(JsonSerializer.Serialize(a.Combat.Events()), JsonSerializer.Serialize(b.Combat.Events()));
             hadDeaths |= a.Enemies.Count < 32 || a.Players[1].Soldiers.Count < 32;
         }
         output.WriteLine($"Crowded mixed={mixed}: {steps} ticks, {a.Phase}, survivors={a.Combat.Snapshot().Length}");
@@ -118,10 +119,10 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void RangedUnitApproachesBeyondRangeAndStillShootsWhenReachedInMelee()
     {
         using var combat = Duel(type: UnitType.Crossbowman);
-        combat.Seed(combat.Read(2) with { Position = 5.2 }); combat.Step(1, []);
-        Assert.False(combat.Read(1).PendingImpact); Assert.True(combat.Read(1).MoveForward > 0); Assert.Empty(combat.Events());
+        combat.Seed(combat.Read(1) with { Hex = CombatFixture.At(combat.Read(1), 17, 1) }); combat.Step(1, []);
+        Assert.False(combat.Read(1).PendingImpact); Assert.Equal(UnitActionKind.Moving, combat.Read(1).Hex!.Action); Assert.Empty(combat.Events());
         using var close = Duel(type: UnitType.Crossbowman);
-        close.Seed(close.Read(2) with { Position = 2.55 });
+        close.Seed(close.Read(2) with { Hex = CombatFixture.At(close.Read(2), 8, 7) });
         for (int tick = 1; tick <= 19; tick++) { close.Step(tick, []); Separated(close.Snapshot()); }
         Assert.Equal(400, close.Read(1).Health); Assert.Equal(700, close.Read(2).Health);
         Assert.Equal(3, close.Read(1).Profile.Range);
@@ -130,7 +131,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void PauseFreezesPendingImpactAndEventIdentityAcrossResynchronization()
     {
         using Match match = Battle(new Rules { DefenderDamage = 0 }, 1);
-        CombatFixture.Change(match, match.Enemies[0].Id, e => e with { Position = 3.15, Lateral = 0 });
+        CombatFixture.Change(match, match.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 7) });
         match.Step(); Assert.True(match.Players[1].Soldiers[0].PendingImpact); Apply(match, "pause");
         string frozen = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
         CombatFixture.Steps(match, 1000); Assert.Equal(frozen, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));

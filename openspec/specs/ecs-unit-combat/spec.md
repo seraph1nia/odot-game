@@ -29,7 +29,7 @@ Each living city SHALL retain a bounded battle approach, with authoritative long
 - **AND** waiting arrivals remain accounted for in the active wave
 
 ### Requirement: Deterministic targets and timed attack resolution
-Combat SHALL advance at the declared fixed simulation rate with stable identity-based tie-breaking independent of unit storage traversal. Units SHALL retain a valid target while engaging it and reacquire when it dies, leaves their destination, or becomes invalid. Each attack SHALL have an identity, start tick, impact tick and recovery interval derived from the authoritative weapon profile. At impact the authority SHALL validate the attacker, target, destination and range, apply at most one hit for that attack, and accumulate all valid damage for the tick before removing casualties. A target that dies or transfers before impact SHALL NOT receive an orphaned hit. Hit reactions and visual projectiles SHALL NOT change attack timing or decide damage. Equivalent initial state and ordered requests on the same supported runtime SHALL produce equivalent ordered snapshots and events.
+Combat SHALL advance at the declared fixed simulation rate with stable identity-based tie-breaking independent of unit storage traversal. Units SHALL retain a valid target while engaging it and reacquire when it dies, leaves their destination, or becomes invalid. Each attack SHALL have an identity, start tick, impact tick and recovery interval derived from the authoritative weapon profile. At impact the authority SHALL validate the attacker, target, destination and range, apply at most one hit to each victim for that attack; single-target attacks SHALL have one victim and splash attacks SHALL use their configured bounded victim set, and accumulate all valid damage for the tick before removing casualties. A target that dies or transfers before impact SHALL NOT receive an orphaned hit. Hit reactions and visual projectiles SHALL NOT change attack timing or decide damage. Equivalent initial state and ordered requests on the same supported runtime SHALL produce equivalent ordered snapshots and events.
 
 #### Scenario: Simultaneous lethal strikes
 - **WHEN** two living opponents deliver lethal valid impacts on the same tick
@@ -42,6 +42,11 @@ Combat SHALL advance at the declared fixed simulation rate with stable identity-
 #### Scenario: Different storage traversal
 - **WHEN** identical units and requests are simulated with different internal insertion or traversal orders
 - **THEN** the ordered positions, health, targets, attack identities and outcome agree at each tick
+
+#### Scenario: Splash respects impact identity
+- **WHEN** one splash attack impacts three eligible victims
+- **THEN** each victim receives at most one hit for that attack identity on the authoritative impact tick
+- **AND** duplicate snapshots cannot cause another application of damage
 
 ### Requirement: Stable combat identities and session lifetime
 Soldiers and enemies SHALL have match-scoped stable identities that are never reused within the match. Surviving soldiers SHALL retain identity, type and remaining health between waves. Redistribution SHALL retain enemy identity, type, health, origin and remaining recovery while invalidating actions tied to the former destination. Combat state and event history SHALL have one authority owner per match and SHALL be released on session end or application exit. A fresh match SHALL start with independent units and events; delayed updates from an ended match SHALL NOT affect it. Presentation nodes and transient transport identities SHALL NOT serve as authoritative unit identities.

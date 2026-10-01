@@ -1,5 +1,39 @@
 # Cooperative POC verification
 
+## Deterministic hex combat implementation, 2026-10-01
+
+The full pre-combat-change baseline passed `mise run ci` in 392.77 seconds,
+including source checks, every network/source UI scenario, sequential exports,
+and headless/graphical package smoke. Evidence is retained under
+`logs/20261001-195415-e3ddb2d9/`, with `ci-summary.json` and
+`baseline-inputs.json`. Inputs: HEAD
+`a8d1838571cbbcbf31548079227559790cbb9d57`, 655 tracked/working source files with
+SHA256 `d7660219bb4c62651d161db3470a8899640dc60a46acdcec5548dbefcc7e1c13`,
+.NET SDK 10.0.401 and Godot 4.7.2.stable.mono.official.ed1daf0bf.
+This is baseline evidence, not acceptance of the new hex implementation.
+
+The preceding run `logs/20261001-194802-45e81d5c/` reached the aggregate
+180-second source UI deadline before launcher completion. The measured serial
+source UI suite takes 215.35 seconds; its default aggregate budget is now
+300 seconds. Selected network/UI slices retain 180 seconds and explicit timeout
+overrides are preserved. The successful rerun established the feature baseline
+after that repair.
+
+The current workspace sandbox denies local socket/named-pipe creation. Normal
+VSTest and the solution-wide semantic formatter cannot start under that
+restriction. `mise run test-in-process` runs the same locked xUnit framework,
+including its facts, theories and fixtures, inside the test assembly without a
+test-host socket; it restores in locked mode and introduces no dependency.
+Whitespace formatting can also run with explicit file selection. These checks
+do not replace the final required normal formatter, network/private-display
+checks or full CI. Record those as unexecuted until the environment permits them.
+
+The numerical gameplay gate currently uses combat seeds 0, 1 and 123 for the
+ordinary frontline, mixed, tower and research strategies and one-through-four
+player frontline strategy. Profile/layout values remain candidates until the
+role, reinforcement, crowded and rendered proofs pass. Later dated evidence
+below describes previous implementations rather than the new hex behavior.
+
 Verified on 2026-09-30 on Linux x86_64 using .NET SDK 10.0.401 and Godot 4.7.2 .NET. Historical desktop checks below used real X11 windows under KDE Wayland with the Compatibility renderer and an AMD Radeon RX 6800. The current recurring workflow uses private Xvfb displays and Mesa software graphics. Platform and remote-run coverage is recorded in the dated sections below.
 
 ## Rules and real processes
@@ -15,7 +49,7 @@ The final real ENet suite passes using separate headless Godot processes and sta
 - Three clients under-defend one city until it falls in actual combat. Surviving clients agree on conserved enemy IDs/remaining damage and changed destinations. The next wave allocates 18 enemies, 9 per survivor. The fallen player resumes as an observer and can pause/resume without reviving.
 - An ordinary no-building strategy ends in defeat; unavailable/stopped servers, occupied ports, missing readiness and exited children produce bounded feedback.
 
-There is no resource-grant, damage, kill-city or teleport RPC. Automated clients send normal requests through the same handlers as the UI. Suite default is 180 seconds, with a 15-second startup deadline and endpoint/timeout overrides. Network, export-smoke and dev sessions use separate owned temporary directories and clean them on exit. Diagnostics contain public identity/state and command results, never resume tokens.
+There is no resource-grant, damage, kill-city or teleport RPC. Automated clients send normal requests through the same handlers as the UI. Network/selected UI suites default to 180 seconds; full serial source UI and source/full CI default to 300 seconds, with a 15-second startup deadline and endpoint/timeout overrides. Network, export-smoke and dev sessions use separate owned temporary directories and clean them on exit. Diagnostics contain public identity/state and command results, never resume tokens.
 
 ## Clean source, CI and exports
 
@@ -957,7 +991,7 @@ for retained before/after records and measured UI cost.
 
 ## Village character and strategy acceptance (2026-10-01)
 
-The active change's [verification record](../openspec/changes/add-village-character-and-strategy/verification.md) records the full before baseline and final coverage. This change adds catalog-driven gold/food/wood spending and nine building choices, income-free Preparation, symmetric four-role factions, class research in hundredths, splash/towers and bounded presentation. Cheap coverage owns costs, rank arithmetic/retry/no-heal, role/building parity, preparation/disconnects, contact and finite ordinary strategy families. It avoids a graphical option matrix.
+The archived change's [verification record](../openspec/changes/archive/2026-10-01-add-village-character-and-strategy/verification.md) records the full before baseline and final coverage. This change adds catalog-driven gold/food/wood spending and nine building choices, income-free Preparation, symmetric four-role factions, class research in hundredths, splash/towers and bounded presentation. Cheap coverage owns costs, rank arithmetic/retry/no-heal, role/building parity, preparation/disconnects, contact and finite ordinary strategy families. It avoids a graphical option matrix.
 
 Existing graphical cases were extended for concrete rendering risks. Economy exercises ordinary Lumbermill/Blacksmith/research/preparation actions, all nine terrace plots, a structural Catapult upgrade and actual pile node counts; these could fail while numerical snapshots stay correct. Combat uses only first-wave Mage/Berserker plus an observed tower city to expose missing cast/axe rigs, projectile alignment, contact interpolation, audio/effect pool bounds and frozen ambient/death clocks. Reconnect baselines living views/piles/effects without historical cues. Settings checks synthesized cues' Master routing/mute and restores its owned chosen preference. Packed smoke loads every specialist rig/socket/role clip/weapon, a real Catapult and resource piles, then briefly samples tower/locomotion/shooting. Its standalone selection still consumes existing exports without source preparation or implicit rebuild.
 
@@ -968,3 +1002,32 @@ Selected execution costs: economy 21.57s (old 4.64s, +16.93s), combat 13.57s (pr
 All KayKit additions come from immutable official free-pack sources, with licenses, hashes and extracted-texture relationships in the asset manifest. Resource food uses medieval sacks rather than paid Resource Bits food. Sounds are original synthesized PCM (22,050Hz mono/16-bit, 0.12s cubic envelope and fixed-seed noise) and are instantiated only by graphical presentation. Dummy audio and software OpenGL assertions establish routing, lifecycle and mute, not physical listening quality, native compositor/GPU performance or Steam account acceptance. No dependencies/tools were upgraded and no package was published.
 
 Final full `mise run ci` passed in 220.54s, evidence `logs/20261001-071039-07264336`: 133 core tests, 107 runner tests, all six network scenarios (43.54s), all five source UI slices (92.21s), sequential Linux client/server exports, headless package smoke (1.09s) and graphical exported-package smoke (49.64s; 52.93s with display overhead). Source launcher now recruits at the appropriate buildings using ordinary production and retains its invitation/lifecycle assertions. Frame capture samples an 80-by-80 grid so modal text and narrow geometry are represented while retaining the existing minimum-colour/file/dimension checks. Strict change validation and all 155 asset hashes pass; documentation frames come from this final CI run.
+
+## Trio UI and overhead health verification
+
+`adopt-trio-ui-kit` uses the existing launcher, settings, economy, reconnect and combat slices. No new scenario or full graphical battle is added. Launcher/friends/join checkpoints report actual kit style paths and full control bounds at 1100×820 and 1280×720, retaining keyboard/modal/session/exit assertions. Settings retains native dropdown, audio and owned preference checks with kit tabs/dialog/slider styling. Economy verifies real gold/food icon assignments, explicit wood text, readable resource costs and world plots above the stable bottom HUD.
+
+Combat observations expose each live overhead bar's sampled current/effective maximum health, fraction, fill width, screen bounds, shared texture paths and input-transparent state. Existing first-wave sampling covers both factions, full/damaged bars, shared pause, casualty hiding, fresh-session cleanup and actual 1280×720 reprojection while paused. The native dropdown driver observes the first two Down selections before Enter because pointer-opened popups initially have no keyboard-focused item. Reconnect checks bars reconstructed from current living state without duplicate or historical damage playback. Package smoke uses the same assertions so source-only texture references cannot hide export omissions. Cheap tests cover wounded ranked fractions and clamping/invalid maximums; gameplay health values and wire schemas are unchanged.
+
+The free Cozy subset, original terms, user-confirmed repository permission and derived-button/bar operations are recorded in `src/Game/Assets/TrioUI/README.md` and `manifest.json`. No runtime downloads, paid assets or tool upgrades are required. Bounded bars share textures and use camera projection without per-unit render viewports. The HUD reservation is now 300px to accommodate textured borders and costs. Frame inspection checks border stretch, icon semantics, contrast and crowding; software X11/Dummy audio evidence does not establish native GPU/compositor, physical input or listening quality.
+
+Full after-CI passed in 224.90s, `logs/20261001-180607-c286409c/ci-summary.json`: 140 core / 108 runner tests, six network scenarios (43.61s), five source UI slices (98.91s), sequential Linux client/server exports, headless package smoke (1.09s) and graphical package smoke (50.02s; 53.33s including display overhead). Actual packed textures/provenance/bar fractions passed, and final exported menu/combat frames were inspected. Detailed iteration evidence and measured slice costs are retained in `openspec/changes/archive/2026-10-01-adopt-trio-ui-kit/verification.md`.
+
+## Tabletop camera navigation
+
+The camera uses the existing orthographic fit as its base. Wheel input anchors zoom to the reference ground plane beneath the cursor, with travel bounds taking priority at the edge. Held physical WASD/arrows pan in the camera's ground frame, with normalized diagonals and real frame delta independent of battle playback. Reset view restores all plots/full approach above the HUD; city/fresh-match transitions reset local adjustments, while resize and same-match reconnection retain them. Camera state is local, temporary presentation.
+
+Existing economy/settings/reconnect/combat/package slices are extended for projection and input regressions rather than adding a separate full battle. Supervised wheel and held-key events go through ordinary Godot input; helpers release held keys in finally. Window focus checks validate the observed child PID and touch only that child or a temporary owned focus-recipient window on the private X11 display. Modal, text/dropdown and HUD input retain priority. Bar health/world anchors freeze with paused playback while screen placement follows local camera movement. See [the change verification record](../openspec/changes/add-tabletop-camera-controls/verification.md) for before/after results, measured cost and captured frames.
+
+Full before/after CI passed in 227.54s / 244.03s, with final evidence in `logs/20261001-184547-db4a4966/ci-summary.json`: 140 core / 108 runner tests, all six network scenarios, five source UI slices, sequential Linux exports, headless smoke and graphical packed smoke. Final economy/reconnect/settings/combat slice times were 29.28s / 12.91s / 12.17s / 17.19s (before: 22.40s / 10.77s / 8.55s / 15.23s); package smoke was 51.70s (before: 51.04s). Source UI including display grew by 12.16s; timings are individual runs, not native performance measurements. Source resized/paused and packed navigation frames were inspected. Native GPU/compositor performance, physical input, listening quality, Windows runtime and paired Steam acceptance remain outside this local verification.
+
+
+## Continuous countryside and supporting hexes
+
+`fill-countryside-and-align-assets` reuses economy, launcher and exported-package cases. Economy observes instantiated footprint contacts on the three terrace levels, tower/base deck attachment, every plot's selection, foreign-city roof picking and complete coverage at overview, resize and camera limits. Launcher compares actual static positions/scales, central terrain transforms/rotations, nine plot outlines and bridge placement between menu and fresh solo; return after construction retains the passive starting landscape without match objects. Packed checks reuse these assertions and existing setup. No additional battle or option matrix is added.
+
+Five cheap runner tests cover bounded camera movement as well as rejecting undersized scenery ranges, invalid view points, sunken/floating/off-center contacts and mismatched menu placements/terrain/scales. Graphical observations read installed mesh transforms and ground footprints; PNG inspection complements geometry checks for joins, contact and unobstructed sightlines. Godot multimeshes batch repeated terrain into 8-by-8 regions for culling, using cached imported meshes/materials; coverage only grows when the viewport/envelope needs more rings and never determines overview scale. Headless roles still instantiate no scenery.
+
+Before CI passed in 246.02s, evidence `logs/20261001-185736-043325d8`. Iteration evidence and final measured slice costs are recorded in [the change verification record](../openspec/changes/archive/2026-10-01-fill-countryside-and-align-assets/verification.md). All graphical checks use owned Linux X11, software OpenGL and Dummy audio; they establish rendered input/projection/lifecycle behavior, not native GPU/compositor performance, physical input, audible quality, Windows execution or paired Steam acceptance.
+
+Full final `mise run ci --timeout-ms 300000` passed in 395.00s (`logs/20261001-194033-eb0b391f/ci-summary.json`): 140 core / 113 runner tests, all six network cases, all five source UI slices, sequential Linux exports and both package smokes. Source UI took 216.32s (before 113.31s), and graphical packed smoke took 100.48s (before 52.80s). The default 180-second source suite deadline was exceeded; the existing five-minute override retains all coverage. Individual economy/launcher costs grew from 29.57/37.86s to 59.21/75.29s. Filled pixels increase software-rendering cost even with batching; these runs do not measure native performance. Final source and packed menu/solo/navigation frames were inspected. Shared observations contain 18 static placements/83 core transforms, with 952 menu terrain instances and 2016–2444 gameplay instances in 26/43–57 spatial batches. The gameplay overview fit remains 43.32361.

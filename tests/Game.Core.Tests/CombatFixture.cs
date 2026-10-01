@@ -3,8 +3,18 @@ namespace Game.Core.Tests;
 // Deliberate fixture access replaces writable public army lists. No engine or wire hook.
 internal static class CombatFixture
 {
+    private static readonly int[] SiegeCells = [16, 17, 18];
+    private static readonly int[] MeleeFootprints = [11, 12, 13];
     public static void Soldier(Match match, int id, int city, int health, double forward, double lateral = 0, UnitType type = UnitType.Swordsman)
-        => match.Combat.Seed(new(id, health, forward, 0, city, city) { Type = type, Owner = city, Lateral = lateral });
+        => match.Combat.Seed(new(id, health, forward, 0, city, city)
+        {
+            Type = type,
+            Owner = city,
+            Lateral = lateral,
+            Hex = new(id, city, Faction.Adventurers, UnitLifecycle.Alive, new(17, type is UnitType.Swordsman or UnitType.Berserker ? 7 : 1))
+        });
+    public static HexUnitState At(UnitState unit, int cell, int footprint) => new(unit.Id, unit.Destination, unit.Faction, UnitLifecycle.Alive,
+        new(cell, footprint), ActionSequence: unit.Hex?.ActionSequence ?? 0);
     public static void Change(Match match, int id, Func<UnitState, UnitState> update) => match.Combat.Seed(update(match.Combat.Read(id)));
     public static void ClearEnemies(Match match)
     {
@@ -20,8 +30,7 @@ internal static class CombatFixture
                 int n = index++;
                 match.Combat.Seed(enemy with
                 {
-                    Position = CombatSimulation.Radius + n / 7 * 0.48,
-                    Lateral = (n % 7 - 3) * 0.48,
+                    Hex = At(enemy, SiegeCells[n % 3], MeleeFootprints[n / 3]),
                     Deployed = true,
                     Cooldown = resetRecovery ? 0 : enemy.Cooldown,
                     ReadyTick = resetRecovery ? match.Tick : enemy.ReadyTick,

@@ -85,6 +85,7 @@ internal sealed partial class Runner
             UiTarget target = UiProtocol.Target(menu, name);
             Require(target.X > 0 && target.X < menu.Width && target.Y > 0 && target.Y < menu.Height, name + " is accessible at " + size);
         }
+        Require(menu.Targets["Singleplayer"].Icon.EndsWith("icon_play.svg", StringComparison.Ordinal) && menu.Targets["Settings"].Icon.EndsWith("icon_gear.svg", StringComparison.Ordinal), "semantic play/settings icons on actual menu buttons");
         Require(!menu.Connected && menu.Revision == -1 && !client.History().Any(HasState), "start screen creates no match or connection");
         Require(menu.SteamStatus == "Open Steam to log in", "offline start screen explains Steam login");
         UiTarget identity = UiProtocol.Target(menu, "SteamStatus");
@@ -117,6 +118,8 @@ internal sealed partial class Runner
         MatchSnapshot solo = State(started);
         Require(solo.Players.Length == 1 && solo.Players[0].Slots.Length == 9 && solo.Players[0].Slots.All(s => s.Type == Building.Empty), "solo starts one fresh city with nine empty plots");
         UiObservation game = await WaitUi(client, p => p.Screen == "session" && p.Connected && p.Models > 0, "solo tabletop ready", token);
+        Countryside(game);
+        Require(LandscapeChecks.SameStartingArea(menu.Landscape, game.Landscape), "menu and fresh solo instantiate the same starting countryside");
         Require(game.MasterVolume == changed.MasterVolume && game.MusicInstance == menu.MusicInstance && game.MusicPlaying && game.MusicPosition >= menu.MusicPosition, "settings and same music continue into solo");
         await Pick(client, 0, token);
         UiTarget behind = UiProtocol.Target(await UiProtocol.Probe(client, options.StartupTimeout, token), "Farm");
@@ -164,6 +167,8 @@ internal sealed partial class Runner
         if (size == "1100x820") await DeclineConsent(client, token);
         await ReturnViaControl(client, token);
         UiObservation returned = await WaitUi(client, p => p.Screen == "menu" && !p.Connected, "Return to menu disposes solo", token);
+        Countryside(returned);
+        Require(LandscapeChecks.SameStartingArea(menu.Landscape, returned.Landscape) && returned.Placements.Length == 0, "return restores passive starting countryside without match buildings");
         Require(returned.MasterVolume == changed.MasterVolume && returned.MusicInstance == menu.MusicInstance && returned.MusicPlaying && returned.MusicPosition >= game.MusicPosition, "preferences and uninterrupted music survive return");
         await Click(client, "Singleplayer", token);
         GameEvent second = await client.WaitFor(e => e.Type == "ack" && e.Result?.Accepted == true && e.State?.Phase == Phase.Building && e.State.MatchId != solo.MatchId, "second fresh solo session", options.StartupTimeout, token);
@@ -237,6 +242,8 @@ internal sealed partial class Runner
         string path = Path.Combine(_scope!.EvidenceDirectory, name + ".png");
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
         UiProtocol.Frame(frame, path);
+        TrioPresentation(frame);
+        Countryside(frame);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.MusicLoaded && frame.MusicPlaying, "menu/solo frame uses bundled scenery and persistent music");
         Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "menu route uses owned software graphics and silent audio");
         Require(Path.GetFullPath(frame.UserDataPath).StartsWith(Path.Combine(_scope.Directory, client.Name, "data") + Path.DirectorySeparatorChar, StringComparison.Ordinal), "menu preferences belong to owned client storage");

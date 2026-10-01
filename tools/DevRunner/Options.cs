@@ -14,6 +14,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         int? port = null;
         int startup = 15000;
         int timeout = 180000;
+        bool explicitTimeout = false;
         string? sessionFile = null;
         int jobs = 2;
         int guests = 1;
@@ -35,7 +36,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--bind": bind = Value(); break;
                 case "--port": port = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--startup-timeout-ms": startup = int.Parse(Value(), CultureInfo.InvariantCulture); break;
-                case "--timeout-ms": timeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--timeout-ms": timeout = int.Parse(Value(), CultureInfo.InvariantCulture); explicitTimeout = true; break;
                 case "--session-file": sessionFile = Value(); break;
                 case "--engine-arg": engineArgs.Add(Value()); break;
                 case "--jobs": jobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
@@ -56,6 +57,9 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 default: throw new ArgumentException($"Unknown runner argument: {args[i]}");
             }
         }
+        // Full source UI is serial and includes the filled countryside at every
+        // checkpoint; its measured 216s cost exceeds a selected slice's budget.
+        if (!explicitTimeout && (command is "ci" or "ci-source" || command is "test-ui" or "_ui-worker" && scenario is null)) timeout = 300000;
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");

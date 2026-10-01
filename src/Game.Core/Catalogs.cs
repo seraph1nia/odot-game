@@ -24,7 +24,10 @@ public sealed record BuildingDefinition(Building Type, ResourceCost Construction
 {
     public int Output(int level) => level switch { 1 => LevelOneOutput, 2 => LevelTwoOutput, _ => 0 };
 }
-public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, double SplashRadius);
+public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, double SplashRadius)
+{
+    public int SplashHexRadius { get; init; }
+}
 public sealed record UnitDefinition(UnitType Type, UnitClass Class, ResourceCost Recruitment, WeaponProfile Profile);
 public readonly record struct ResearchRanks(int Melee = 0, int Ranged = 0, int Magic = 0)
 {
@@ -45,17 +48,13 @@ public static class Catalogs
         new(Building.ArrowTower, new(rules.BuildCost, 15), new(rules.UpgradeCost, 10)),
         new(Building.CatapultTower, new(30, 20), new(rules.UpgradeCost, 10))
     ];
-    public static TowerDefinition[] Towers() =>
-    [
-        new(Building.ArrowTower, 1, 200, 12, 60, 1, 0), new(Building.ArrowTower, 2, 300, 12, 60, 1, 0),
-        new(Building.CatapultTower, 1, 300, 30, 120, 3, .75), new(Building.CatapultTower, 2, 400, 30, 120, 3, .75)
-    ];
+    public static TowerDefinition[] Towers(Rules? rules = null) => CombatConfiguration.TowerProfiles(rules ?? new());
     public static UnitDefinition[] Units(Rules rules) =>
     [
-        new(UnitType.Swordsman, UnitClass.Melee, new(0, Food: rules.RecruitCost), new(HealthPoints.FromWhole(rules.SoldierHealth), HealthPoints.FromWhole(rules.SoldierDamage), Match.Reach, 1, rules.MeleeWindupTicks, rules.AttackTicks)),
-        new(UnitType.Berserker, UnitClass.Melee, new(0, Food: 6), new(HealthPoints.FromWhole(rules.BerserkerHealth), HealthPoints.FromWhole(rules.BerserkerDamage), Match.Reach, 1.1, 18, 72)),
-        new(UnitType.Crossbowman, UnitClass.Ranged, new(0, Food: rules.RangedRecruitCost), new(HealthPoints.FromWhole(rules.RangedHealth), HealthPoints.FromWhole(rules.RangedDamage), rules.RangedReach, 1, rules.RangedWindupTicks, rules.AttackTicks)),
-        new(UnitType.Mage, UnitClass.Magic, new(2, Food: 7), new(HealthPoints.FromWhole(rules.MageHealth), HealthPoints.FromWhole(rules.MageDamage), 3, 1, 24, 90) { VictimCap = 3, SplashRadius = .75 })
+        new(UnitType.Swordsman, UnitClass.Melee, new(0, Food: rules.RecruitCost), CombatConfiguration.Profile(rules, UnitType.Swordsman).Legacy()),
+        new(UnitType.Berserker, UnitClass.Melee, new(0, Food: 6), CombatConfiguration.Profile(rules, UnitType.Berserker).Legacy()),
+        new(UnitType.Crossbowman, UnitClass.Ranged, new(0, Food: rules.RangedRecruitCost), CombatConfiguration.Profile(rules, UnitType.Crossbowman).Legacy()),
+        new(UnitType.Mage, UnitClass.Magic, new(2, Food: 7), CombatConfiguration.Profile(rules, UnitType.Mage).Legacy())
     ];
     public static UnitClass Class(UnitType type) => type switch { UnitType.Swordsman or UnitType.Berserker => UnitClass.Melee, UnitType.Crossbowman => UnitClass.Ranged, UnitType.Mage => UnitClass.Magic, _ => throw new ArgumentOutOfRangeException(nameof(type)) };
     public static UnitType EnemyRole(int wave, int allocationIndex) => (wave switch
