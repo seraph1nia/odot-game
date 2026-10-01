@@ -16,6 +16,7 @@ internal sealed partial class Runner
         {
             var worker = new Runner(options with { EngineArgs = ["--resolution", size] }, token, _evidence, _scope);
             await worker.MenuRoute(size, executable, token);
+            await worker.FriendsUiScenario(size, executable, token);
         }
         var hosted = new Runner(options with { EngineArgs = ["--resolution", "1280x720"] }, token, _evidence, _scope);
         await hosted.HostedMenuRoute(executable, token);
@@ -133,21 +134,26 @@ internal sealed partial class Runner
         await Pick(client, 0, token);
         GameEvent farm = await ClickAck(client, "Farm", token);
         Require(State(farm).Players[0].Gold == solo.Rules.StartingGold - solo.Rules.BuildCost, "solo pointer purchase uses authoritative costs");
-        await ClickAck(client, "Upgrade", token);
         await Pick(client, 1, token);
         await ClickAck(client, "Barracks", token);
         int turn = Latest(client).TurnSerial;
         await ClickAck(client, "Ready", token);
         await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Building, "solo ordinary turn progression", token);
         await Pick(client, 1, token);
+        UiObservation recruitment = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        UiTarget meleeControl = UiProtocol.Target(recruitment, "Recruit");
+        Require(meleeControl.X > 0 && meleeControl.X < recruitment.Width && meleeControl.Y > 0 && meleeControl.Y < recruitment.Height, "Recruit fits at " + size);
         GameEvent recruit = await ClickAck(client, "Recruit", token);
         Require(State(recruit).Players[0].Soldiers.Length == 1, "solo explicit recruitment follows ordinary production");
-        UiObservation recruitment = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        foreach (string name in new[] { "Recruit", "RecruitRanged" })
-        {
-            UiTarget control = UiProtocol.Target(recruitment, name);
-            Require(control.X > 0 && control.X < recruitment.Width && control.Y > 0 && control.Y < recruitment.Height, name + " fits at " + size);
-        }
+        await Pick(client, 2, token);
+        await ClickAck(client, "ArcheryRange", token);
+        turn = Latest(client).TurnSerial;
+        await ClickAck(client, "Ready", token);
+        await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Building, "solo second ordinary production", token);
+        await Pick(client, 2, token);
+        recruitment = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        UiTarget rangedControl = UiProtocol.Target(recruitment, "RecruitRanged");
+        Require(rangedControl.X > 0 && rangedControl.X < recruitment.Width && rangedControl.Y > 0 && rangedControl.Y < recruitment.Height, "RecruitRanged fits at " + size);
         GameEvent ranged = await ClickAck(client, "RecruitRanged", token);
         Require(State(ranged).Players[0].Soldiers.Length == 2 && State(ranged).Players[0].Soldiers[1].Type == UnitType.Crossbowman, "ranged recruitment through actual solo controls at " + size);
         await ClickAck(client, "Pause", token);

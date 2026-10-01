@@ -7,12 +7,14 @@ public sealed class CombatPlaybackTests
     [Theory]
     [InlineData(UnitType.Swordsman, 12, 0.40)]
     [InlineData(UnitType.Crossbowman, 18, 0.43)]
+    [InlineData(UnitType.Berserker, 18, 0.7666666666666667)]
+    [InlineData(UnitType.Mage, 24, 0.26666666666666666)]
     public void StrikeMarkersSeekToAuthorityImpactAndRecovery(UnitType type, int windup, double marker)
     {
         UnitState unit = new(1, 8, 2, 0, 1, 1) { Type = type, ActionStartTick = 10, ImpactTick = 10 + windup, ReadyTick = 70 };
         Assert.Equal(0, CombatPlayback.AttackPose(unit, 10, 1.0667));
         Assert.Equal(marker, CombatPlayback.AttackPose(unit, 10 + windup, 1.0667), 12);
-        Assert.InRange(CombatPlayback.AttackPose(unit, 10 + windup / 2.0, 1.0667), 0.19, 0.22);
+        Assert.Equal(marker / 2, CombatPlayback.AttackPose(unit, 10 + windup / 2.0, 1.0667), 12);
         Assert.Equal(1.0667, CombatPlayback.AttackPose(unit, 70, 1.0667));
     }
     private static MatchSnapshot State(long revision, long tick, long sequence, CombatEvent[]? events = null, string match = "a", bool paused = false)
@@ -62,6 +64,16 @@ public sealed class CombatPlaybackTests
         Assert.Equal(40, playback.Tick); Assert.Equal(unit, Assert.Single(playback.Units()));
         playback.Accept(State(2, 43, 5) with { Enemies = [unit with { Destination = 2, Position = 12, Deployed = false }] });
         UnitState transferred = Assert.Single(playback.Units()); Assert.Equal(2, transferred.Destination); Assert.Equal(12, transferred.Position);
+    }
+    [Fact]
+    public void ContactArcUsesOneSafeFrameInsteadOfAnOverlappingChord()
+    {
+        UnitState a = new(1, 1000, 2, 0, 1, 1);
+        UnitState b = new(2, 1000, 2.4, 0, 1, 1);
+        var playback = new CombatPlayback(); playback.Accept(State(1, 0, 0) with { Enemies = [a, b] });
+        playback.Accept(State(2, 6, 0) with { Enemies = [a, b with { Position = 2, Lateral = .4 }] });
+        Assert.Equal(2.4, playback.Units()[1].Position); Assert.Equal(0, playback.Units()[1].Lateral);
+        playback.Advance(.1, true); Assert.Equal(2, playback.Units()[1].Position); Assert.Equal(.4, playback.Units()[1].Lateral);
     }
     [Fact]
     public void EntryWaitsForItsSnapshotClockAndSurvivorsBecomeIdleAfterWaveEnd()

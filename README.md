@@ -150,17 +150,20 @@ See [asset provenance and mapping](src/Game/Assets/KayKit/README.md). Assets are
 
 `mise run play` opens Single player, Multiplayer, Settings and Exit Game.
 Multiplayer creates a private Steam lobby for four players including its original
-host; Invite friends uses Steam's overlay. Single player needs no socket or
-Steam login. Explicit ENet/headless roles skip SDK initialization.
+host. **Invite friends** opens Odot's Steam friends picker. Choose a friend's
+Invite button to send a lobby invitation directly, then have them accept it in
+Steam. Names and presence come from Steam; Refresh reloads the list. "Invitation
+sent" means Steam accepted the send request; a friend appears in the roster only
+after joining. Watch and Remote Play are separate Steam features.
 
-On Linux, `mise run play` and the paired `test-steam` command preload the native
-Steam client's 64-bit overlay renderer into the game child before Godot creates
-its graphics device. Existing preloads are preserved; imports/builds, local
-`dev` roles and private-display checks are unaffected. Steam must be running and
-its overlay enabled. Test **Shift+Tab**, then **Invite friends** after hosting.
-If the overlay is unavailable, Invite shows feedback instead of silently doing
-nothing. Direct engine/export launches outside Steam need the same preload or a
-Steam launch; see [Valve's Linux FAQ](https://partner.steamgames.com/doc/store/application/platforms/linux#4).
+Both players need compatible Odot builds, separate signed-in Steam accounts, and
+**Odot already running** when testing AppID 480. Single player needs no socket or
+Steam login. Explicit ENet/headless roles skip SDK initialization. The picker
+works without Steam's overlay. Linux desktop launch commands still preload the
+native overlay renderer when available for other Steam UI; imports/builds,
+local `dev` roles and private-display checks are unaffected. See
+[Valve's Linux FAQ](https://partner.steamgames.com/doc/store/application/platforms/linux#4)
+for overlay support when launching outside Steam.
 
 The pinned official [GodotSteam GDExtension](src/Game/addons/godotsteam/README.odot.md)
 uses its native `SteamMultiplayerPeer` through small C# helpers and Godot RPCs.
@@ -180,11 +183,25 @@ mise run test-steam --role guest --lobby PUBLIC_LOBBY_ID --exported --timeout-ms
 ```
 
 The host command prints the public lobby ID; alternatively join using Invite
-friends and the overlay. Pairing tests ordinary shared actions, readiness,
+friends in Odot. Pairing tests ordinary shared actions, readiness,
 combat, channel acknowledgments and a paused checkpoint. Compare both records'
 match/revision/tick and native connection diagnostics; a direct route cannot
 count as relay proof. Missing prerequisites are unexecuted, never passed.
-The user excluded friend testing from this development milestone; the archived change retains the unexecuted Steam checklist. The paired commands remain available for optional future verification.
+To verify the direct picker invitation rather than joining by an ID, run this
+on two Linux machines/accounts (guest starts first, then host selects the agreed
+friend in Odot). Omit `--exported` to use source clients:
+
+```sh
+mise run test-steam --role guest --scenario direct-invite --exported --timeout-ms 600000
+mise run test-steam --role host --scenario direct-invite --exported --timeout-ms 600000
+```
+
+This selected case requires Steam's accepted send result on the host and actual
+warm invitation acceptance callback on the guest before ordinary authenticated
+admission and gameplay assertions. The runner never selects or invites a friend
+automatically. Real two-account direct invitation acceptance remains unexecuted
+until those records are captured; offline UI fixtures and API probes do not prove
+delivery. Earlier archived Steam acceptance limitations remain documented.
 The publisher labels this extension **unstable** despite its non-prerelease tag;
 that release qualification remains pending. See [verification](docs/verification.md)
 for prerequisites, own-AppID cold launch, packaging, coverage and limitations.

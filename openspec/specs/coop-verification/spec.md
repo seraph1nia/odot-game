@@ -7,7 +7,7 @@ Verify the cooperative match's rules and real multiplayer lifecycle through the 
 ## Requirements
 
 ### Requirement: Engine-independent cooperative rules tests
-The rules task SHALL verify economy/ownership validation, recruitment, upgrades, exactly-once production, ready eligibility, three-turn wave cadence, persistent soldiers, city defense, simultaneous eliminations, current/future enemy redistribution with integer remainders, and victory/defeat. It SHALL verify that pause freezes simulation and resume does not catch up. Tests SHALL run without Godot, Steam, or a display and fail with nonzero exit status on violations. Shared authority/session tests SHALL verify equivalent solo, host-local, and guest request validation, authenticated identity binding, command retry protection, and stale-session rejection without changing gameplay rules.
+The rules task SHALL verify economy/ownership validation, recruitment, upgrades, exactly-once production, ready eligibility, three-turn wave cadence, persistent soldiers, city defense, simultaneous eliminations, current/future enemy redistribution with integer remainders, and victory/defeat. It SHALL additionally verify typed recruitment and invalid-type atomicity, range-based stopping, body spacing, crowded entry queues, target invalidation, fixed-tick windup/impact/recovery, event deduplication and bounded history, stable combat identities and session cleanup. Tests SHALL include a deterministic mixed-army case with at least thirty-two soldiers and thirty-two enemies and check progress, bounds and separation. It SHALL verify that pause freezes simulation, pending impacts and events and resume does not catch up. Tests SHALL run without Godot, Steam, or a display and fail with nonzero exit status on violations. Shared authority/session tests SHALL verify equivalent solo, host-local, and guest request validation, authenticated identity binding, command retry protection, and stale-session rejection without changing gameplay rules.
 
 #### Scenario: Redistribution regression
 - **WHEN** enemy transfer duplicates an enemy, restores its health, loses a remainder, or assigns an enemy to a fallen city
@@ -20,6 +20,14 @@ The rules task SHALL verify economy/ownership validation, recruitment, upgrades,
 #### Scenario: Host and guest validation diverge
 - **WHEN** a host-local action bypasses an ownership, cost, phase, or retry check enforced for guests
 - **THEN** a shared authority test fails and identifies the differing behavior
+
+#### Scenario: Contact or range regression
+- **WHEN** units overlap, pass through opponents, become permanently blocked despite reachable targets, or shoot beyond their configured range
+- **THEN** a core rule test fails with the violated position, spacing, progress or range invariant
+
+#### Scenario: Timing or lifecycle regression
+- **WHEN** an attack damages twice, hits an invalid target, advances during pause, or an ended match leaks combat state into a fresh session
+- **THEN** a cheap rule or authority lifecycle test fails without launching an engine process
 
 ### Requirement: Real-process cooperative network verification
 The network task SHALL retain separate real headless dedicated-server/client scenarios and add a playing host with separate real guest processes using the normal session protocol over local networking. It SHALL validate at least two players, sender ownership, host-local validation, rejected actions, matching authoritative revisions, production and recruitment, automatic battles, and a terminal three-wave outcome. It SHALL cover a real guest disconnect and resumed process with a changed transport connection, pause/resume during combat, invalid credentials, duplicate/retried spending, current state restoration, original-host termination, and fresh hosting after leaving. A targeted three-player scenario SHALL validate immediate redistribution to two survivors and future wave allocation. Scenario actions SHALL use normal requests; no client-only test message SHALL award resources, kill cities, or set authoritative combat state. Local scenarios SHALL run without Steam accounts, internet access, or Steam initialization.
@@ -80,7 +88,7 @@ Network and graphical scenarios SHALL retain configurable endpoints, readiness a
 - **THEN** it reports the missing prerequisite without claiming a Steam pass or hiding a genuine attempted test failure
 
 ### Requirement: Recorded graphical and clean-checkout verification
-Verification SHALL document and automate graphical start-screen navigation, solo entry, hosted local lobby/gameplay, direct hex-plot and building selection, purchase/upgrade/recruit controls, model/material loading, settings input isolation, automatic battles and transfers, pause/reconnect feedback, return to menu, and application exit. Graphical E2E SHALL use real input through rendered controls and assert displayed feedback plus authoritative results; screenshots or protocol-only automation SHALL NOT substitute for those UI assertions. Verification SHALL include fresh-source preparation and Linux client/server export smoke for solo and playing-host flows. Unexecuted platform or graphical checks SHALL be recorded as limitations rather than passed. Expensive coverage SHALL follow the documented risk/cost admission policy. Records SHALL distinguish rules, headless networking, private-display graphics and actual native display, GPU, physical input and listening observations; software rendering and silent audio SHALL NOT be claimed as native compositor, GPU-performance or audible-playback verification.
+Verification SHALL document and automate graphical start-screen navigation, solo entry, hosted local lobby/gameplay, direct hex-plot and building selection, purchase/upgrade/recruit controls, model/material loading, settings input isolation, typed recruitment, rigged locomotion/melee/shooting/hit/death animation, contact positions, automatic battles and transfers, pause/reconnect feedback, return to menu, and application exit. Graphical E2E SHALL use real input through rendered controls and assert displayed feedback plus authoritative results; screenshots or protocol-only automation SHALL NOT substitute for those UI assertions. Verification SHALL include fresh-source preparation and Linux client/server export smoke for solo and playing-host flows. Unexecuted platform or graphical checks SHALL be recorded as limitations rather than passed. Expensive coverage SHALL follow the documented risk/cost admission policy. Records SHALL distinguish rules, headless networking, private-display graphics and actual native display, GPU, physical input and listening observations; software rendering and silent audio SHALL NOT be claimed as native compositor, GPU-performance or audible-playback verification.
 
 #### Scenario: Review the completed milestone
 - **WHEN** implementation is reported complete
@@ -97,6 +105,10 @@ Verification SHALL document and automate graphical start-screen navigation, solo
 #### Scenario: Exit via the displayed button
 - **WHEN** graphical E2E activates Exit Game on the start screen
 - **THEN** the actual process exits within its deadline and leaves no owned gameplay process
+
+#### Scenario: Rigged resources fail in a package
+- **WHEN** a required character, weapon, skeleton binding or clip is missing or unusable in the packed client
+- **THEN** graphical package verification fails rather than silently substituting a dummy or relying on source assets
 
 ### Requirement: Real Steam multiplayer acceptance
 A development milestone MAY close after passing local rules/authority, ENet process, source graphical, Linux export and single-account native compatibility checks when the owner explicitly defers friend testing. Its verification record SHALL identify the deferred real-Steam and release checks, and closure/archive SHALL NOT count as a Steam acceptance pass. When real Steam acceptance is requested, its separate run SHALL use compatible exported clients and distinct authenticated Steam accounts on separate machines. It SHALL verify private lobby creation, native overlay invitations, accepted invitations both while running and from launch, admission/ownership, shared gameplay, guest reconnect during pause, fresh-join refusal after start, and original-host exit. Development sessions SHALL default to AppID 480; genuine Steam cold-launch verification of this game's executable SHALL use its own configured AppID/launch registration and SHALL remain explicitly incomplete when unavailable. For that real Steam acceptance run, at least one connection SHALL run across different NAT-protected networks without manual port forwarding and record actual relay-route evidence. Local substitutes, explicit development launch arguments, and mocked invitation callbacks SHALL NOT count as proof of actual Steam transport, overlay, identity, relay behavior, or Steam launching the executable. Completion SHALL record extension provenance/hash, version and stability qualifications, engine/runtime, account/machine prerequisites without secrets, executed scenarios, and remaining limitations.
@@ -115,3 +127,15 @@ A development milestone MAY close after passing local rules/authority, ENet proc
 - **WHEN** local and single-account compatibility gates pass and the owner explicitly excludes friend testing from the milestone
 - **THEN** the development change can be synced and archived with the real-account, relay, own-AppID cold-launch and release-qualification checks recorded as deferred/unverified
 - **AND** the record does not claim those checks passed or require friend testing to close that milestone
+
+### Requirement: Bounded combat presentation coverage
+One independently selectable source graphical combat slice SHALL exercise the actual melee and ranged recruitment controls and ordinary combat progression. It SHALL assert active locomotion, attack states, coherent contact positions, shot/hit event consumption, a casualty death sequence, freeze/resume behavior and fresh-session cleanup with rendered checkpoints and current presentation observations. Cheap tests SHALL own numerical and exhaustive lifecycle invariants; real-process network coverage SHALL extend existing combat/reconnect checks to typed units and action state. The graphical slice SHALL use owned setup, a single ordered driver per child, bounded observable waits and cleanup under the existing private-display harness, and run with the unfiltered source UI suite before exports. Packed graphical smoke SHALL check required rigged assets and clip bindings without repeating full headless battles. Its documented admission SHALL identify defects cheaper coverage misses, expected setup/runtime/maintenance cost, measured results and remaining platform limitations.
+
+#### Scenario: Selected graphical combat slice
+- **WHEN** only the combat presentation slice is selected on a prepared supported machine
+- **THEN** it runs from its own fresh state, observes the required animation/contact milestones, retains non-secret PNG/log/timing evidence and releases its owned peers and display
+- **AND** it does not depend on another slice, require a full three-wave graphical match or manipulate authoritative state through a test-only command
+
+#### Scenario: Headless behavior stays graphical-independent
+- **WHEN** typed armies battle on a stripped dedicated-server export or an automated headless role
+- **THEN** the same state and attack rules advance without creating animated models, graphics, audio or a Steam session

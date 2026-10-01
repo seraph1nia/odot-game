@@ -22,8 +22,7 @@ internal sealed class SteamSessions : IDisposable
     private MultiplayerPeer? _nativePeer;
     private readonly Dictionary<int, string> _reportedConnections = [];
     private ulong _nextConnectionCheck;
-    private ulong _inviteDeadline;
-    private long _inviteGeneration;
+    private readonly SteamFriendInvitations _invitations;
     private ulong _nextIdentityCheck;
     private readonly bool _automaticInitialization;
     private bool _lastSteamRunning;
@@ -32,6 +31,8 @@ internal sealed class SteamSessions : IDisposable
     internal SteamSessions(Main session, GameApplication application)
     {
         _session = session; _application = application;
+        _invitations = new(application, _platform, () => new(_lobby, session.SessionGeneration,
+            !_disposed && _hosting && session.CanInvite, _platform.LoggedIn));
         application.HostRequested = Host;
         application.InviteRequested = Invite;
         session.SessionLeaving += Leave;
@@ -52,11 +53,14 @@ internal sealed class SteamSessions : IDisposable
             // so later warm invitations do not depend on a Host button retry.
             if (_platform.Initialized && _subscriptions.Count == 0)
             {
-                Subscribe("join_requested", Callable.From<ulong, ulong>((lobby, _) => OfferJoin(lobby)));
+                Subscribe("join_requested", Callable.From<ulong, ulong>((lobby, _) =>
+                {
+                    Emit("steam-invitation", "Accepted lobby invitation received from Steam.");
+                    OfferJoin(lobby);
+                }));
                 Subscribe("lobby_created", Callable.From<long, ulong>(OnCreated));
                 Subscribe("lobby_joined", Callable.From<ulong, long, bool, long>(OnJoined));
                 Subscribe("lobby_chat_update", Callable.From<ulong, ulong, ulong, long>(OnMemberChanged));
-                Subscribe("overlay_toggled", Callable.From<bool, bool, long>(OnOverlayToggled));
             }
             if (!available)
             { _application.SetSteamIdentity(null); Feedback(feedback); Emit("steam-availability", feedback); Emit("steam-unavailable", feedback); return false; }
@@ -100,15 +104,7 @@ internal sealed class SteamSessions : IDisposable
                 _nextIdentityCheck = Time.GetTicksMsec() + 1000;
                 RefreshIdentity();
             }
-            if (_inviteDeadline != 0 && Time.GetTicksMsec() >= _inviteDeadline)
-            {
-                _inviteDeadline = 0;
-                if (_inviteGeneration == _session.SessionGeneration && _hosting)
-                {
-                    _session.SetFeedback("Steam did not open invitations. Check that Shift+Tab opens its overlay, then try again.");
-                    Emit("steam-overlay", "Invitation overlay did not activate before the deadline.");
-                }
-            }
+            _invitations.Process();
             if (!_launchArgumentsRead && _platform.LoggedIn)
             {
                 _launchArgumentsRead = true;
@@ -297,34 +293,7 @@ internal sealed class SteamSessions : IDisposable
 
     private void Invite()
     {
-        if (_disposed || !_hosting || _lobby == 0 || !_session.CanInvite) return;
-        try
-        {
-            if (!_platform.OverlayEnabled)
-            {
-                _session.SetFeedback("Steam overlay is unavailable. Try again shortly, or enable it in Steam and restart the game.");
-                Emit("steam-overlay", "Overlay unavailable; invitation dialog was not requested.");
-                return;
-            }
-            _inviteGeneration = _session.SessionGeneration;
-            _inviteDeadline = Time.GetTicksMsec() + 5000;
-            _session.SetFeedback("Opening Steam invitations…");
-            _platform.InviteFriends(_lobby);
-            Emit("steam-overlay", "Invitation dialog requested.");
-        }
-        catch (Exception)
-        {
-            _inviteDeadline = 0;
-            _session.SetFeedback("Steam could not open invitations. Check that its overlay is enabled.");
-        }
-    }
-
-    private void OnOverlayToggled(bool active, bool userInitiated, long appId)
-    {
-        if (_disposed || !active || _inviteDeadline == 0 || _inviteGeneration != _session.SessionGeneration) return;
-        _inviteDeadline = 0;
-        _session.SetFeedback("");
-        Emit("steam-overlay", "Steam overlay activated after the invitation request.");
+        if (!_disposed && _hosting && _lobby != 0 && _session.CanInvite) _invitations.Open();
     }
 
     private void Feedback(string message, bool busy = false)
@@ -348,7 +317,7 @@ internal sealed class SteamSessions : IDisposable
     private void Leave()
     {
         if (_transitioning || _disposed) return;
-        _inviteDeadline = 0;
+        _invitations.Close();
         _session.CanInvite = false;
         ulong target = _operations.Cancel();
         if (_platform.Initialized)

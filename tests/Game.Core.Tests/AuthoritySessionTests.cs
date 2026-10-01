@@ -167,14 +167,14 @@ public sealed class AuthoritySessionTests
         using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, WaveOne = 1 });
         AdmissionResult player = Join(session, 2);
         Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 1, "start")).Accepted);
-        for (int sequence = 2; sequence <= 4; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
-        Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 5, "pause")).Accepted);
+        for (int sequence = 2; sequence <= 5; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
+        Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 6, "pause")).Accepted);
         session.Disconnect(2);
         Assert.Equal(player.PlayerId, Join(session, 3, player.Credential).PlayerId);
         Assert.True(session.Snapshot().Paused);
         long tick = session.Snapshot().Tick;
         session.Step(); Assert.Equal(tick, session.Snapshot().Tick);
-        Assert.True(Remote(session, 3, Cmd(session, player.PlayerId, 6, "resume")).Accepted);
+        Assert.True(Remote(session, 3, Cmd(session, player.PlayerId, 7, "resume")).Accepted);
         for (int steps = 0; steps < 1200 && session.Snapshot().Phase == Phase.Combat; steps++) session.Step();
         Assert.True(session.Snapshot().Players[0].Eliminated);
         session.Disconnect(3);
@@ -199,13 +199,13 @@ public sealed class AuthoritySessionTests
         Command purchase = Cmd(session, guest.PlayerId, 1, "build", 0, Building.Farm);
         CommandResult purchased = Remote(session, 2, purchase);
         Assert.True(purchased.Accepted);
-        for (int turn = 0; turn < 3; turn++)
+        for (int turn = 0; turn < 4; turn++)
         {
             Assert.True(session.ExecuteLocal(Cmd(session, 1, turn + 2, "ready")).Accepted);
             Assert.True(Remote(session, 2, Cmd(session, guest.PlayerId, turn + 2, "ready")).Accepted);
         }
         Assert.Equal(Phase.Combat, session.Phase);
-        Assert.True(session.ExecuteLocal(Cmd(session, 1, 5, "pause")).Accepted);
+        Assert.True(session.ExecuteLocal(Cmd(session, 1, 6, "pause")).Accepted);
         session.Disconnect(2);
         string disconnected = State(session);
         Assert.False(Join(session, 3, guest.Credential, "different-account").Accepted);
@@ -225,7 +225,7 @@ public sealed class AuthoritySessionTests
         Assert.Equal(purchased, Remote(session, 4, purchase));
         session.Step();
         Assert.Equal(paused, State(session));
-        Assert.True(session.ExecuteLocal(Cmd(session, 1, 6, "resume")).Accepted);
+        Assert.True(session.ExecuteLocal(Cmd(session, 1, 7, "resume")).Accepted);
         for (int steps = 0; steps < 1200 && session.Phase == Phase.Combat; steps++) session.Step();
         Assert.True(session.Snapshot().Players.Single(player => player.Id == guest.PlayerId).Eliminated);
         session.Disconnect(4);

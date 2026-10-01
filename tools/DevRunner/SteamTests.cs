@@ -54,6 +54,8 @@ internal sealed partial class Runner
 
     private async Task SteamPairSide(string? executable, CancellationToken token)
     {
+        bool directInvite = options.Scenario == "direct-invite";
+        if (directInvite) Console.WriteLine("Steam risk: direct-invite: actual friend selection/send and warm acceptance callback; fixtures cannot establish Steam delivery. Two owned clients on distinct accounts/machines; bounded by --timeout-ms.");
         Child client = StartGameRole("steam-" + options.SteamRole, "menu", false, 0, executable);
         await client.WaitFor(e => e.Type == "menu", "Steam application start screen", options.StartupTimeout, token);
         var startupEvents = new HashSet<GameEvent>(client.History(), ReferenceEqualityComparer.Instance);
@@ -62,11 +64,21 @@ internal sealed partial class Runner
             await client.Send("steam-host");
             GameEvent lobby = await client.WaitFor(e => !startupEvents.Contains(e) && e.Type is "steam-lobby" or "steam-unavailable", "Steam host availability/private lobby", options.StartupTimeout, token);
             if (lobby.Type == "steam-unavailable") throw new SteamPrerequisiteException("Steam pair unexecuted (prerequisite): " + lobby.Message);
-            Console.WriteLine("Ask your friend to run mise run test-steam --role guest --lobby " + lobby.Message + (options.Exported ? " --exported" : "") + "; or use Invite friends and accept through Steam.");
+            if (directInvite)
+            {
+                Console.WriteLine("Wait until your friend runs the guest command and has Odot open. Click Invite friends in Odot, then Invite next to the agreed friend's name. Only your explicit selection sends an invitation.");
+                await client.WaitFor(e => e.Type == "steam-invite" && e.Message == "Sent", "native direct invitation send accepted", options.Timeout, token);
+            }
+            else Console.WriteLine("Ask your friend to run mise run test-steam --role guest --lobby " + lobby.Message + (options.Exported ? " --exported" : "") + "; or use the Odot friends picker and accept through Steam.");
         }
         else
         {
             Console.WriteLine("Join through a Steam invitation, or the explicitly supplied development lobby argument. No invitation is sent by the runner.");
+            if (directInvite)
+            {
+                Console.WriteLine("Tell the host Odot is running, then accept their Steam lobby invitation. This case does not use a supplied lobby ID.");
+                await client.WaitFor(e => e.Type == "steam-invitation", "real warm accepted-invitation callback", options.Timeout, token);
+            }
             if (options.Lobby is { } lobby) await client.Send("steam-join " + lobby.ToString(CultureInfo.InvariantCulture));
         }
         await client.WaitFor(e => e.Type == "connected" || e.Type == "steam-unavailable" && !startupEvents.Contains(e), "authenticated native Steam admission", options.Timeout, token);

@@ -62,7 +62,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
-            string[] names = command == "test-network" ? ScenarioNames.Network : command is "test-ui" or "_ui-worker" ? ScenarioNames.Ui : [];
+            string[] names = command == "test-network" ? ScenarioNames.Network : command is "test-ui" or "_ui-worker" ? ScenarioNames.Ui : command == "test-steam" ? ["direct-invite"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
@@ -82,6 +82,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         _ = DesktopExport.For(exportTarget);
         if (command == "test-steam" && (steamRole is not ("host" or "guest") || lobby == 0 || steamRole == "host" && lobby is not null))
             throw new ArgumentException("test-steam requires --role host or guest; --lobby ID belongs to guest. Two machines/accounts must run the paired command.");
+        if (command == "test-steam" && scenario == "direct-invite" && lobby is not null)
+            throw new ArgumentException("direct-invite requires accepting an actual invitation; omit --lobby.");
         return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
             production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient);
     }

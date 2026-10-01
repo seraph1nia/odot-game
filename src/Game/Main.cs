@@ -14,6 +14,13 @@ public partial class Main : Node, IGameSession
     private readonly ConcurrentQueue<(long Generation, string Text)> _commands = new();
     private readonly List<(StringName Signal, Callable Handler)> _signals = [];
     private readonly Dictionary<long, Command> _sent = [];
+    private readonly ActionCues _actionCues = new();
+    public Command[] DrainActionCues() => _actionCues.Drain();
+    private void QueueCue(CommandResult result)
+    {
+        if (State is not null && _sent.TryGetValue(result.Sequence, out Command? request) && DisplayServer.GetName() != "headless")
+            _actionCues.Observe(request, result);
+    }
     private MultiplayerPeer? _peer;
     private MultiplayerPeer? _drainingPeer;
     private Action? _afterDrain;
@@ -28,6 +35,9 @@ public partial class Main : Node, IGameSession
     private string? _sessionPath;
     private bool _automated;
     private bool _supervised;
+    private SteamFriendsFixture? _friendsFixture;
+    private SteamFriendInvitations? _fixtureInvitations;
+    private Action? _originalInvite;
     private bool _finished;
     private bool _resettingRpcNode;
     private bool _exiting;
@@ -319,6 +329,7 @@ public partial class Main : Node, IGameSession
     public void Connect(bool fresh = false)
     {
         if (_role != SessionRole.Guest || Connected || _guestPeerFactory is null) return;
+        if (State is not null) _actionCues.Baseline(State.MatchId, _sent.Keys.DefaultIfEmpty().Max());
         if (fresh)
         {
             _session?.Clear(); State = null; PlayerId = 0; _sent.Clear(); Application?.ShowSession();
@@ -388,7 +399,7 @@ public partial class Main : Node, IGameSession
         // latest state while still delivering the result for this running match.
         if (received.Revision >= State.Revision) SetState(received);
         CommandResult result = JsonSerializer.Deserialize<CommandResult>(json, WireJson.Options)!;
-        Feedback = result.Message;
+        Feedback = result.Message; QueueCue(result);
         Emit(new("ack", Multiplayer.GetUniqueId(), State, result.Message, PlayerId, result));
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable, TransferChannel = 1)]
@@ -412,15 +423,16 @@ public partial class Main : Node, IGameSession
     }
     private void SetState(MatchSnapshot? state)
     {
+        if (State?.MatchId != state?.MatchId) _actionCues.Clear(state?.MatchId ?? "");
         State = state;
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, UnitClass researchClass = UnitClass.Melee)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
-        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, city == 0 ? PlayerId : city, slot, building, soldierType);
+        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, city == 0 ? PlayerId : city, slot, building, soldierType, researchClass);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -431,11 +443,14 @@ public partial class Main : Node, IGameSession
     }
     private void AcknowledgeLocal(CommandResult result)
     {
-        Feedback = result.Message; SetState(_authority!.Snapshot());
+        Feedback = result.Message; SetState(_authority!.Snapshot()); QueueCue(result);
         Emit(new("ack", 1, State, result.Message, PlayerId, result));
     }
 
-    public override void _Process(double delta) => _steam?.Process();
+    public override void _Process(double delta)
+    {
+        _steam?.Process(); _fixtureInvitations?.Process();
+    }
 
     public override void _PhysicsProcess(double delta)
     {
@@ -469,6 +484,7 @@ public partial class Main : Node, IGameSession
             {
                 case "ui" or "ui-probe" when _supervised && Application is not null:
                     _ = ProbeUi(parts.Length > 1 ? parts[1] : Guid.NewGuid().ToString("N"), parts.Length > 2 ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[2])) : null); break;
+                case "ui-steam-friends": ProbeSteamFriends(parts[1]); break;
                 case "ui-confirm-join": ProbeJoinConfirmation(parts[1]); break;
                 case "key" when _supervised && Application is not null:
                     Key key = Enum.Parse<Key>(parts[1], true);
@@ -498,6 +514,7 @@ public partial class Main : Node, IGameSession
                     break;
                 case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 case "upgrade": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "research": SendAction("research", int.Parse(parts[1], CultureInfo.InvariantCulture), researchClass: Enum.Parse<UnitClass>(parts[2], true)); break;
                 case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman); break;
                 default: SendAction(parts[0]); break;
             }
@@ -507,7 +524,7 @@ public partial class Main : Node, IGameSession
 
     // Exercise native consent controls offline on the runner's owned display.
     // Decisions still arrive through actual UI input; this creates no Steam operation.
-    private void ProbeJoinConfirmation(string id)
+    private void RequireOwnedUiWorker()
     {
         string? runtime = System.Environment.GetEnvironmentVariable("ODOT_UI_RUNTIME");
         string? worker = System.Environment.GetEnvironmentVariable("ODOT_UI_WORKER");
@@ -520,9 +537,32 @@ public partial class Main : Node, IGameSession
             || authority is null || System.IO.Path.GetFullPath(authority) != System.IO.Path.Combine(System.IO.Path.GetFullPath(runtime), "xauthority")
             || !System.IO.File.Exists(authority) || display is null || !System.Text.RegularExpressions.Regex.IsMatch(display, "^:[0-9]+$")
             || System.Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null)
-            throw new ArgumentException("Join confirmation probe requires an owned offline UI worker.");
+            throw new ArgumentException("Probe requires an owned offline UI worker.");
+    }
+
+    private void ProbeSteamFriends(string mode)
+    {
+        RequireOwnedUiWorker();
+        if (_role != SessionRole.PlayingHost || mode is not ("list" or "empty" or "failure" or "unavailable"))
+            throw new ArgumentException("Invalid friends fixture mode or role.");
+        if (_friendsFixture is null)
+        {
+            _originalInvite = Application!.InviteRequested;
+            _friendsFixture = new();
+            _fixtureInvitations = new(Application, _friendsFixture, () => new(42, SessionGeneration,
+                _role == SessionRole.PlayingHost && CanInvite, _friendsFixture?.LoggedIn == true));
+            Application.InviteRequested = _fixtureInvitations.Open;
+        }
+        _friendsFixture.Mode = mode;
+        CanInvite = true;
+        Emit(new("ui-friends-fixture", Message: mode));
+    }
+
+    private void ProbeJoinConfirmation(string id)
+    {
+        RequireOwnedUiWorker();
         long generation = SessionGeneration;
-        Application.OpenJoinConfirmation(() =>
+        Application!.OpenJoinConfirmation(() =>
         {
             if (generation != SessionGeneration) { Emit(new("ui-join-decision", Message: id + ":stale")); return; }
             ReturnToMenu();
@@ -552,6 +592,12 @@ public partial class Main : Node, IGameSession
             Rpc(MethodName.SessionEnded, _authority!.MatchId, "The host ended this session. Return to the menu to join another game.");
             if (peer is ENetMultiplayerPeer enet) enet.Host.Flush();
         }
+        if (_fixtureInvitations is not null)
+        {
+            _fixtureInvitations.Close(); _fixtureInvitations = null; _friendsFixture = null;
+            if (Application is not null) Application.InviteRequested = _originalInvite;
+            _originalInvite = null;
+        }
         if (_role != SessionRole.None) SessionLeaving?.Invoke();
         _authority?.End(); _authority = null;
         UnbindSignals();
@@ -570,7 +616,7 @@ public partial class Main : Node, IGameSession
         }
         _role = SessionRole.None; _guestPeerFactory = null; _authenticatedIdentity = null; _originalHostIdentity = ""; _expectedNativeMatch = null; _session = null;
         _sent.Clear(); _attempt = ""; _broadcastTick = 0; _broadcastRevision = -1;
-        Connected = false; PlayerId = 0; HostPlayerId = 0; CanInvite = false; _guestCanStart = false; State = null; Status = "Menu"; Feedback = "";
+        Connected = false; PlayerId = 0; HostPlayerId = 0; CanInvite = false; _guestCanStart = false; State = null; _actionCues.Clear(""); Status = "Menu"; Feedback = "";
     }
 
     private async Task DrainHostedPeer(MultiplayerPeer peer)
@@ -600,7 +646,7 @@ public partial class Main : Node, IGameSession
         if (generation != SessionGeneration) return false;
         Feedback = feedback; return true;
     }
-    private static void Emit(GameEvent value) => GD.Print(WireJson.EventPrefix + JsonSerializer.Serialize(value, WireJson.Options));
+    internal static void Emit(GameEvent value) => GD.Print(WireJson.EventPrefix + JsonSerializer.Serialize(value, WireJson.Options));
 
     public void RequestExit()
     {
@@ -650,8 +696,9 @@ public partial class Main : Node, IGameSession
                 using ViewportTexture texture = GetViewport().GetTexture();
                 using Image image = texture.GetImage();
                 var samples = new HashSet<string>();
-                for (int y = 0; y < image.GetHeight(); y += Math.Max(1, image.GetHeight() / 20))
-                    for (int x = 0; x < image.GetWidth(); x += Math.Max(1, image.GetWidth() / 20)) samples.Add(image.GetPixel(x, y).ToHtml());
+                // Include text and narrow geometry even when a modal covers most scenery.
+                for (int y = 0; y < image.GetHeight(); y += Math.Max(1, image.GetHeight() / 80))
+                    for (int x = 0; x < image.GetWidth(); x += Math.Max(1, image.GetWidth() / 80)) samples.Add(image.GetPixel(x, y).ToHtml());
                 colors = samples.Count;
                 Error result = image.SavePng(screenshot);
                 if (result != Error.Ok) throw new InvalidOperationException($"Frame capture failed: {result}");

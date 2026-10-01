@@ -9,6 +9,9 @@ internal sealed record UnitObservation
 {
     public int Id { get; init; }
     public UnitType Type { get; init; }
+    public Faction Faction { get; init; }
+    public UnitClass Class { get; init; }
+    public int Rank { get; init; }
     public int Destination { get; init; }
     public int Health { get; init; }
     public bool Deployed { get; init; }
@@ -34,6 +37,16 @@ internal sealed record UnitObservation
     public float BoneY { get; init; }
     public float BoneZ { get; init; }
 }
+internal sealed record EffectObservation
+{
+    public int Active { get; init; }
+    public int Voices { get; init; }
+    public int CueCount { get; init; }
+    public int Dropped { get; init; }
+    public string Bus { get; init; } = "";
+    public string[] Positions { get; init; } = [];
+}
+internal sealed record StockpileObservation(int Gold, int Food, int Wood);
 internal sealed record UiObservation
 {
     public string Id { get; init; } = "";
@@ -47,7 +60,11 @@ internal sealed record UiObservation
     public string FeedbackText { get; init; } = "";
     public string SteamStatus { get; init; } = "";
     public bool JoinConfirmationOpen { get; init; }
+    public bool FriendsOpen { get; init; }
+    public int FriendCount { get; init; }
+    public string InviteStatus { get; init; } = "";
     public string PhaseText { get; init; } = "";
+    public string StatsText { get; init; } = "";
     public string StatusText { get; init; } = "";
     public string DetailText { get; init; } = "";
     public string RosterText { get; init; } = "";
@@ -65,6 +82,7 @@ internal sealed record UiObservation
     public string UserDataPath { get; init; } = "";
     public string Renderer { get; init; } = "";
     public int Models { get; init; }
+    public string[] LoadedModels { get; init; } = [];
     public int Materials { get; init; }
     public bool MusicLoaded { get; init; }
     public int Width { get; init; }
@@ -78,6 +96,11 @@ internal sealed record UiObservation
     public double VisualSeconds { get; init; }
     public long EventCursor { get; init; }
     public int PlaybackGeneration { get; init; }
+    public EffectObservation Effects { get; init; } = new();
+    public StockpileObservation? Stockpiles { get; init; }
+    public float[] PlotHeights { get; init; } = [];
+    public int[] BuildingVariants { get; init; } = [];
+    public float[] AmbientAngles { get; init; } = [];
 }
 
 internal static class UiProtocol
@@ -108,11 +131,11 @@ internal sealed partial class Runner
 {
     private static string UiRisk(string name) => name switch
     {
-        "combat" => "Rig/pose, attack alignment, contact, cosmetic shots, death lifetime and pause cleanup; cheap rules tests cannot sample rendered skeletons. One first-wave slice, 60s bound.",
+        "combat" => "Eight imported role/faction rigs, sword/axe/cast poses, tower projectiles, contact and effect/audio/death pause cleanup; cheap tests cannot sample rendered bones, pools or voices. One first-wave slice, ordinary setup, 60s bound.",
         "economy" => "Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Visible recovery control and retained presentation/identity; headless resume cannot exercise the button.",
         "settings" => "Modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
-        "launcher" => "Application navigation, local session transitions and actual process exit; core/network checks miss visible controls.",
+        "launcher" => "Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit; cheap checks miss native controls. Steam remains disabled.",
         "exported-package" => "Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
         "installed-linux" => "Installed launcher, packed presentation and normal input; archive inventory alone cannot establish an installed graphical launch.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
@@ -158,11 +181,46 @@ internal sealed partial class Runner
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
         UiProtocol.Frame(frame, path);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.Materials > 0 && frame.MusicLoaded, "rendered UI/models/materials/music loaded on owned X11 display");
-        Require(frame.UnitBindings.Length == 5, "both rigged characters, required clips/hand bindings and three weapons imported");
+        Require(frame.UnitBindings.Length == 18, "eight faction/role rigs, required clips/hand bindings and ten weapons imported");
         Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "actual client uses silent Dummy audio and Mesa software rendering");
         Require(Path.GetFullPath(frame.UserDataPath).StartsWith(Path.Combine(_scope.Directory, "ui-client", "data") + Path.DirectorySeparatorChar, StringComparison.Ordinal), "effective user:// belongs to this client scope");
         await File.WriteAllTextAsync(Path.Combine(_scope.EvidenceDirectory, name + "-observation.json"), JsonSerializer.Serialize(frame, Evidence.JsonOptions), token);
         Console.WriteLine($"FRAME {name}: {frame.Width}x{frame.Height}, colors={frame.Colors}, renderer={frame.Renderer}; {path}");
+    }
+    private async Task EconomyDetails(Child client, Child observer, CancellationToken token)
+    {
+        await Pick(client, 3, token); await ClickAck(client, "Lumbermill", token);
+        await Action(observer, "build 0 catapulttower", token); await Action(observer, "build 1 lumbermill", token);
+        await ClickAck(client, "Ready", token); await Action(observer, "ready", token);
+        await Observe(client, s => s.Phase == Phase.Preparation, "economy third production remains spendable", token);
+        UiObservation preparation = await WaitUi(client, p => p.PhaseText.Contains("Preparation", StringComparison.Ordinal), "preparation label", token);
+        Require(preparation.Targets["Ready"].Enabled && preparation.StatsText.Contains("Wood 5", StringComparison.Ordinal), "ready-for-battle control and exact wood HUD");
+        await Action(observer, "build 2 arrowtower", token);
+        await Pick(client, 1, token); await ClickAck(client, "Recruit", token);
+        await ClickAck(client, "Ready", token); await Action(observer, "ready", token);
+        MatchSnapshot next = await Observe(client, s => s.Wave == 2 && s.Phase == Phase.Building || s.Phase == Phase.Defeat, "economy short first wave", token);
+        Require(next.Phase != Phase.Defeat, "ordinary economy setup reaches further controls");
+        await Action(client, "ready", token); await Action(observer, "ready", token);
+        await Observe(client, s => s.Wave == 2 && s.Turn == 2, "economy Blacksmith resources", token);
+        await Pick(client, 4, token); await ClickAck(client, "Blacksmith", token);
+        await Action(client, "ready", token); await Action(observer, "ready", token);
+        await Observe(client, s => s.Wave == 2 && s.Turn == 3, "economy research resources", token);
+        await Pick(client, 4, token); GameEvent researched = await ClickAck(client, "ResearchMelee", token);
+        await Observe(observer, s => s.Revision >= State(researched).Revision && s.Players.Single(p => p.Id == client.PlayerId).Research.Melee == 1, "observer sees class research", token);
+        await ClickAck(client, "Ready", token); await Action(observer, "ready", token);
+        await Observe(client, s => s.Wave == 2 && s.Phase == Phase.Preparation, "economy second preparation", token);
+        await Action(observer, "upgrade 0", token);
+        await Click(client, "City" + observer.PlayerId, token);
+        UiObservation upgraded = await WaitUi(client, p => p.BuildingVariants.Length == 9 && p.BuildingVariants[0] == 2, "actual Catapult structural upgrade", token);
+        Require(upgraded.PlotHeights.Length == 9 && upgraded.PlotHeights[0] < upgraded.PlotHeights[3] && upgraded.PlotHeights[3] < upgraded.PlotHeights[6], "three actual terrace heights");
+        CityState city = Latest(client).Players.Single(c => c.Id == observer.PlayerId);
+        Require(upgraded.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "actual resource node counts match authoritative tier thresholds");
+        for (int slot = 0; slot < 9; slot++) await Pick(client, slot, token);
+        await Pick(client, 0, token);
+        UiObservation foreign = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(!foreign.Targets["Upgrade"].Enabled, "foreign tower remains read only");
+        await Checkpoint(client, "economy-upgraded-roof", token);
+        await Click(client, "City" + client.PlayerId, token); await Pick(client, 4, token);
     }
     private async Task UiScenario(string name, CancellationToken token)
     {
@@ -191,24 +249,33 @@ internal sealed partial class Runner
                 Require(State(purchase).Players.Single(p => p.Id == client.PlayerId).Gold == gold - State(purchase).Rules.BuildCost, "UI purchase spends authoritative gold once");
                 if (!package)
                 {
-                    await Pick(client, 0, token);
-                    GameEvent upgrade = await ClickAck(client, "Upgrade", token);
-                    await Observe(observer, s => s.Revision >= State(upgrade).Revision && s.Players.Single(p => p.Id == client.PlayerId).Slots[0].Level == 2, "observer sees UI upgrade", token);
-                    await Pick(client, 1, token);
-                    await ClickAck(client, "Barracks", token);
-                    // Production is setup, not another UI flow under test.
-                    await Advance([client, observer], token);
-                    await Pick(client, 1, token);
-                    GameEvent recruit = await ClickAck(client, "Recruit", token);
+                    await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
+                    await Action(client, "ready", token); await Action(observer, "ready", token);
+                    await Observe(client, s => s.Turn == 2, "economy first production", token);
+                    await Pick(client, 2, token); await ClickAck(client, "ArcheryRange", token);
+                    await Pick(client, 1, token); GameEvent recruit = await ClickAck(client, "Recruit", token);
                     await Observe(observer, s => s.Revision >= State(recruit).Revision && s.Players.Single(p => p.Id == client.PlayerId).Soldiers.Length == 1, "observer sees UI recruitment", token);
-                    GameEvent ranged = await ClickAck(client, "RecruitRanged", token);
+                    await Action(client, "ready", token); await Action(observer, "ready", token);
+                    await Observe(client, s => s.Turn == 3, "economy second production", token);
+                    await Pick(client, 2, token); GameEvent ranged = await ClickAck(client, "RecruitRanged", token);
                     await Observe(observer, s => s.Revision >= State(ranged).Revision && s.Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Crossbowman), "observer sees UI ranged recruitment", token);
+                    for (int slot = 0; slot < 9; slot++) await Pick(client, slot, token);
+                    await EconomyDetails(client, observer, token);
                 }
                 await Checkpoint(client, package ? "packed-building" : "economy-building", token);
-                if (package) { await MixedArmy(client, observer, token, farmExists: true); await CombatCheckpoint(client, observer, token, shortCheck: true); }
+                if (package)
+                {
+                    await MixedArmy(client, observer, token, farmExists: true, towers: true);
+                    await Click(client, "City" + observer.PlayerId, token);
+                    UiObservation tower = await WaitUi(client, p => p.Effects.Active > 0 && p.Effects.Bus == "Master", "packed tower feedback", token);
+                    Require(tower.LoadedModels.Contains("Medieval/building_tower_catapult_blue.gltf") && tower.Stockpiles is not null && tower.Effects.Voices <= 8, "packed tower model, resource piles and bounded Master audio load from exports");
+                    await Checkpoint(client, "packed-catapult", token);
+                    await Click(client, "City" + client.PlayerId, token);
+                    await CombatCheckpoint(client, observer, token, shortCheck: true);
+                }
                 break;
             case "combat":
-                await MixedArmy(client, observer, token);
+                await SpecialistArmy(client, observer, token);
                 await CombatCheckpoint(client, observer, token);
                 break;
             case "reconnect":
@@ -226,7 +293,7 @@ internal sealed partial class Runner
                 await Observe(observer, s => s.Players.Single(p => p.Id == identity).Connected && s.Revision >= State(resumed).Revision, "observer sees restored identity", token);
                 UiObservation restored = await WaitUi(client, p => p.Units.Length == CombatPlayback.All(State(resumed)).Length && p.EventCursor == State(resumed).EventSequence,
                     "restored current unit baseline", token);
-                Require(restored.Units.All(u => !u.Dead && u.EffectSequence == 0), "reconnect baselines living poses without historical effects/corpses");
+                Require(restored.Units.All(u => !u.Dead && u.EffectSequence == 0) && restored.Effects.Active == 0 && restored.Effects.Voices == 0, "reconnect baselines living poses without historical effects/corpses");
                 Require(restored.Units.Any(u => u.Type == UnitType.Crossbowman && u.WeaponAttached), "reconnect preserves ranged rig and profile");
                 await Checkpoint(client, "restored-connection", token);
                 break;
@@ -251,6 +318,11 @@ internal sealed partial class Runner
                 await client.Send("key Right");
                 UiObservation changed = await WaitUi(client, p => p.MasterVolume != closed.MasterVolume, "representative volume change", token);
                 Require(Math.Abs(changed.MasterGain - changed.MasterVolume / 100f) < 0.001f && changed.MasterMuted == (changed.MasterVolume == 0), "Master state follows actual slider input (silent Dummy audio)");
+                await client.Send("key Home");
+                UiObservation muted = await WaitUi(client, p => p.MasterVolume == 0 && p.MasterMuted, "Master mute applies to effect bus", token);
+                Require(muted.Effects.Bus == "Master" && muted.Effects.Voices <= 8, "synthesized cues use the muted Master bus and bounded voices");
+                for (int volume = 0; volume < changed.MasterVolume; volume++) await client.Send("key Right");
+                await WaitUi(client, p => p.MasterVolume == changed.MasterVolume, "restore chosen owned test volume", token);
                 await Checkpoint(client, "settings-audio", token);
                 await Click(client, "CloseSettings", token);
                 await WaitUi(client, p => !p.SettingsOpen, "settings closed and saved", token);

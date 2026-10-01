@@ -41,7 +41,7 @@ Each living city SHALL receive the configured base gold income once per producti
 - **THEN** the request fails with an explanation and leaves authoritative resources and buildings unchanged
 
 ### Requirement: Manual recruitment and persistent soldiers
-A player SHALL recruit one soldier by explicitly activating one of their own barracks during an unpaused building phase while alive and not ready. Each successful recruitment SHALL deduct the barracks' configured food cost and immediately add a soldier to that city's army. Barracks SHALL NOT automatically recruit during production, and gold SHALL NOT substitute for food. Living soldiers SHALL retain their identities and remaining health between waves; dead soldiers SHALL NOT return automatically.
+A player SHALL recruit one soldier by explicitly activating one of their own barracks during an unpaused building phase while alive and not ready. The barracks SHALL offer Swordsman and Crossbowman recruitment explicitly. Each successful recruitment SHALL deduct the selected type's configured food cost, including the barracks upgrade reduction, and immediately add one soldier of that type to that city's army. Unknown soldier types SHALL be rejected atomically; requests without an explicit type SHALL select Swordsman. Barracks SHALL NOT automatically recruit during production, and gold SHALL NOT substitute for food. Living soldiers SHALL retain their identities, types and remaining health between waves; dead soldiers SHALL NOT return automatically.
 
 #### Scenario: Click a barracks to recruit
 - **WHEN** a player activates their barracks with enough food
@@ -55,6 +55,19 @@ A player SHALL recruit one soldier by explicitly activating one of their own bar
 #### Scenario: Army survives a battle
 - **WHEN** a wave ends with some soldiers alive and some killed
 - **THEN** only the surviving soldiers remain for the next building phase with their remaining health
+
+#### Scenario: Recruit each weapon type
+- **WHEN** a player with enough food explicitly recruits a Swordsman and a Crossbowman from their selected owned barracks
+- **THEN** one unit of each selected type is created with its configured combat profile and each request spends its displayed food cost once
+- **AND** the same barracks upgrade reduces both recruitment costs
+
+#### Scenario: Unknown recruitment type
+- **WHEN** a request contains an unknown soldier type or retries an already accepted typed recruitment
+- **THEN** an unknown type changes no resources or army state and an accepted retry creates no additional soldier or charge
+
+#### Scenario: Default recruitment remains melee
+- **WHEN** an otherwise valid current-protocol recruitment request omits its soldier type
+- **THEN** it creates one Swordsman for the configured melee cost
 
 ### Requirement: Simple building upgrades
 Each building SHALL have two levels. A player SHALL be able to spend gold to upgrade their own level-one building during an unpaused building phase while alive and not ready. Level-two mines and farms SHALL produce more of their respective resources; a level-two barracks SHALL reduce the food cost of manual recruitment. Buildings SHALL retain their upgrades between turns and waves. A maximum-level or unaffordable upgrade SHALL fail without spending resources.
@@ -85,7 +98,7 @@ Each wave SHALL be preceded by exactly three building/production turns. Connecte
 - **THEN** it waits without automatically resolving empty ready checks
 
 ### Requirement: Automatic battles and city defense
-Each city SHALL have an automatic battlefield with one soldier type and one enemy type. Soldiers SHALL fight without player orders. While alive, each city's built-in defender SHALL repeatedly attack living enemies assigned to that city at low damage even if its army has been wiped out. Enemies without a defending soldier SHALL attack city health. Army loss alone SHALL NOT eliminate the city. Building, recruitment, and upgrading SHALL be unavailable during combat. City health SHALL carry between waves without automatic healing.
+Each city SHALL have an automatic battlefield with Swordsman and Crossbowman soldier types and one melee enemy type. Swordsmen and enemies SHALL approach melee range and Crossbowmen SHALL approach their longer shooting range and hold while a valid target remains in range. Each type SHALL use its own authoritative health, damage, speed, range, windup and recovery profile. Ranged hits SHALL be single-target attacks with no friendly fire; their cosmetic projectile SHALL NOT require physical collision or impart knockback. Soldiers SHALL fight without player orders. While alive, each city's built-in defender SHALL repeatedly attack living enemies assigned to that city at low damage even if its army has been wiped out. Enemies without a defending soldier SHALL attack city health. Army loss alone SHALL NOT eliminate the city. Building, recruitment, and upgrading SHALL be unavailable during combat. City health SHALL carry between waves without automatic healing.
 
 #### Scenario: Exposed city fights back
 - **WHEN** the last soldier dies while enemies remain
@@ -94,6 +107,15 @@ Each city SHALL have an automatic battlefield with one soldier type and one enem
 #### Scenario: Remaining army needs no control
 - **WHEN** a wave begins with soldiers present
 - **THEN** they fight automatically and the server determines damage, deaths, and the battle result
+
+#### Scenario: Ranged support fires behind melee contact
+- **WHEN** a mixed army meets enemies with a valid shooting target beyond melee reach
+- **THEN** Crossbowmen stop at shooting range and attack while Swordsmen advance to melee contact
+- **AND** each hit resolves at its authoritative impact tick without requiring player orders or visual projectile collision
+
+#### Scenario: Ranged soldier is reached
+- **WHEN** an enemy reaches a Crossbowman after the melee screen is lost
+- **THEN** the enemy can damage that soldier at melee range and the Crossbowman continues using its shooting profile without passing through the enemy
 
 ### Requirement: Elimination and immediate enemy redistribution
 A city SHALL be eliminated when its health reaches zero. Its defender SHALL stop, its owner SHALL lose building/recruitment/readiness actions, and its surviving attackers SHALL immediately be divided among all remaining living cities, including disconnected ones. Transferred enemies SHALL retain their identity and remaining health, with no duplication or revival of killed enemies. Integer remainders SHALL be assigned in stable player order, with allocations differing by at most one. All cities eliminated in one combat step SHALL be excluded before that step's redistribution. A city that cleared its own enemies SHALL receive redistributed enemies while the shared wave remains active.

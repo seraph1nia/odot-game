@@ -21,24 +21,33 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
     public bool IsDisposed { get; private set; }
     internal bool RegistryReleased => !ReferenceEquals(EcsWorld.Worlds[_world.Id], _world);
 
-    public WeaponProfile Profile(UnitType type) => type switch
+    public WeaponProfile Profile(UnitType type, int rank = 0)
     {
-        UnitType.Swordsman => new(rules.SoldierHealth, rules.SoldierDamage, rules.RecruitCost, Match.Reach, 1, rules.MeleeWindupTicks, rules.AttackTicks),
-        UnitType.Crossbowman => new(rules.RangedHealth, rules.RangedDamage, rules.RangedRecruitCost, rules.RangedReach, 1, rules.RangedWindupTicks, rules.AttackTicks),
-        UnitType.Enemy => new(rules.EnemyHealth, rules.EnemyDamage, 0, Match.Reach, 0.8, rules.MeleeWindupTicks, rules.AttackTicks),
-        _ => throw new ArgumentOutOfRangeException(nameof(type))
-    };
+        WeaponProfile profile = Catalogs.Units(rules).Single(u => u.Type == type).Profile;
+        return profile with { Health = HealthPoints.Ranked(profile.Health, rank), Damage = HealthPoints.Ranked(profile.Damage, rank) };
+    }
 
-    public int Create(UnitType type, int owner, int origin, int destination)
+    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         int id = _nextId++;
-        WeaponProfile profile = Profile(type);
-        Entity entity = _world.Create(new UnitIdentity(id, type, owner, origin, destination), new UnitHealth(profile.Health),
-            new UnitBody(type == UnitType.Enemy ? Match.LaneLength : 0, 0, false, FacingForward: type == UnitType.Enemy ? -1 : 1),
+        WeaponProfile profile = Profile(type, rank);
+        Entity entity = _world.Create(new UnitIdentity(id, type, owner, origin, destination, faction, rank), new UnitHealth(profile.Health),
+            new UnitBody(faction == Faction.Skeletons ? Match.LaneLength : 0, 0, false, FacingForward: faction == Faction.Skeletons ? -1 : 1),
             new UnitTarget(), new UnitAttack(), profile);
         _entities.Add(id, entity);
         return id;
+    }
+
+    public void Research(int city, UnitClass @class, int rank)
+    {
+        foreach (UnitState unit in Soldiers(city).Where(u => u.Class == @class))
+        {
+            Entity entity = _entities[unit.Id];
+            ref UnitIdentity identity = ref _world.Get<UnitIdentity>(entity);
+            identity = identity with { Rank = rank };
+            _world.Get<WeaponProfile>(entity) = Profile(unit.Type, rank);
+        }
     }
 
     public UnitState[] Snapshot()
@@ -49,8 +58,8 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
         ids.Sort();
         return ids.Select(Read).ToArray();
     }
-    public UnitState[] Soldiers(int city) => Snapshot().Where(u => u.Owner == city && u.Type != UnitType.Enemy).ToArray();
-    public UnitState[] Enemies() => Snapshot().Where(u => u.Type == UnitType.Enemy).ToArray();
+    public UnitState[] Soldiers(int city) => Snapshot().Where(u => u.Owner == city && u.Faction == Faction.Adventurers).ToArray();
+    public UnitState[] Enemies() => Snapshot().Where(u => u.Faction == Faction.Skeletons).ToArray();
     public CombatEvent[] Events() => _events.ToArray();
     public long OldestEventSequence => _events.Count == 0 ? EventSequence + 1 : _events[0].Sequence;
 
@@ -64,6 +73,8 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
         return new(id, _world.Get<UnitHealth>(entity).Value, body.Forward, (int)Math.Max(0, attack.ReadyTick - _tick), identity.Origin, identity.Destination)
         {
             Type = identity.Type,
+            Faction = identity.Faction,
+            Rank = identity.Rank,
             Owner = identity.Owner,
             Lateral = body.Lateral,
             Deployed = body.Deployed,
@@ -86,8 +97,8 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
     internal void Seed(UnitState state)
     {
         if (_entities.ContainsKey(state.Id)) Remove(state.Id);
-        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type);
-        Entity entity = _world.Create(new UnitIdentity(state.Id, state.Type, state.Owner, state.Origin, state.Destination), new UnitHealth(state.Health),
+        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank);
+        Entity entity = _world.Create(new UnitIdentity(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank), new UnitHealth(state.Health),
             new UnitBody(state.Position, state.Lateral, state.Deployed, state.MoveForward, state.MoveLateral, state.FacingForward, state.FacingLateral),
             new UnitTarget(state.TargetId, state.TargetCity),
             new UnitAttack(state.AttackSequence, state.ActionStartTick, state.ImpactTick, Math.Max(state.ReadyTick, _tick + state.Cooldown), state.PendingImpact, state.TargetId, state.TargetCity), profile);
@@ -104,7 +115,7 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
         foreach (UnitState unit in Snapshot())
         {
             ref UnitBody body = ref _world.Get<UnitBody>(_entities[unit.Id]);
-            body = new(unit.Type == UnitType.Enemy ? Match.LaneLength : 0, 0, false, FacingForward: unit.Type == UnitType.Enemy ? -1 : 1);
+            body = new(unit.Faction == Faction.Skeletons ? Match.LaneLength : 0, 0, false, FacingForward: unit.Faction == Faction.Skeletons ? -1 : 1);
             _world.Get<UnitTarget>(_entities[unit.Id]) = default;
             _world.Get<UnitAttack>(_entities[unit.Id]) = new(unit.AttackSequence, 0, 0, _tick, false, 0, false);
         }
@@ -115,17 +126,17 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
     {
         UnitState[] all = Snapshot();
         var occupied = all.Where(u => u.Deployed).ToList();
-        foreach (UnitState unit in all.Where(u => !u.Deployed).OrderBy(u => u.Type == UnitType.Crossbowman).ThenBy(u => u.Id))
+        foreach (UnitState unit in all.Where(u => !u.Deployed).OrderBy(u => u.Class != UnitClass.Melee).ThenBy(u => u.Id))
         {
             bool placed = false;
             for (int row = 0; row < 6 && !placed; row++)
                 foreach (int column in new[] { 0, -1, 1, -2, 2, -3, 3 })
                 {
-                    double forward = unit.Type == UnitType.Enemy ? Match.LaneLength - Radius - row * 0.48
-                        : unit.Type == UnitType.Crossbowman ? Radius + row * 0.48 : Radius + 5 * 0.48 - row * 0.48;
+                    double fromHome = unit.Class == UnitClass.Melee ? Radius + 5 * 0.48 - row * 0.48 : Radius + row * 0.48;
+                    double forward = IsEnemy(unit) ? Match.LaneLength - fromHome : fromHome;
                     var point = new BattlePoint(forward, column * 0.48);
                     if (occupied.Any(other => other.Destination == unit.Destination && Point(other).Subtract(point).Length < 2 * Radius - Tolerance)) continue;
-                    _world.Get<UnitBody>(_entities[unit.Id]) = new(forward, point.Lateral, true, FacingForward: unit.Type == UnitType.Enemy ? -1 : 1);
+                    _world.Get<UnitBody>(_entities[unit.Id]) = new(forward, point.Lateral, true, FacingForward: unit.Faction == Faction.Skeletons ? -1 : 1);
                     occupied.Add(unit with { Position = forward, Lateral = point.Lateral, Deployed = true }); placed = true; break;
                 }
         }
@@ -151,7 +162,7 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
             UnitState[] opponents = active.Where(u => u.Destination == unit.Destination && IsEnemy(u) != IsEnemy(unit)).ToArray();
             UnitState? nearest = opponents.OrderBy(u => Point(u).Subtract(Point(unit)).LengthSquared).ThenBy(u => u.Id).FirstOrDefault();
             UnitState? target = opponents.FirstOrDefault(u => u.Id == unit.TargetId) ?? nearest;
-            if (target is not null && nearest is not null && unit.Type != UnitType.Crossbowman && nearest.Id != target.Id
+            if (target is not null && nearest is not null && unit.Class == UnitClass.Melee && nearest.Id != target.Id
                 && Intercepts(Point(unit), Point(target), Point(nearest))) target = nearest;
             bool cityTarget = target is null && IsEnemy(unit);
             _world.Get<UnitTarget>(_entities[unit.Id]) = new(target?.Id ?? (cityTarget ? unit.Destination : 0), cityTarget);
@@ -191,7 +202,9 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
             if (!attack.Pending && tick >= attack.ReadyTick && target.Id != 0 && inRange)
             {
                 attack = new(attack.Sequence + 1, tick, tick + unit.Profile.WindupTicks, tick + unit.Profile.CadenceTicks, true, target.Id, target.City);
-                Emit(CombatEventType.AttackStarted, Read(unit.Id), target.Id, target.City);
+                UnitState? aimed = current.GetValueOrDefault(target.Id);
+                Emit(CombatEventType.AttackStarted, Read(unit.Id), target.Id, target.City,
+                    forward: target.City ? 0 : aimed?.Position ?? 0, lateral: target.City ? unit.Lateral : aimed?.Lateral ?? 0);
             }
             if (!attack.Pending || tick < attack.ImpactTick) continue;
             bool valid = attack.TargetCity ? attack.TargetId == unit.Destination && unit.Position <= unit.Profile.Range + Tolerance
@@ -200,9 +213,14 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
             if (valid)
             {
                 Dictionary<int, int> hits = attack.TargetCity ? cityDamage : damage;
-                hits[attack.TargetId] = hits.GetValueOrDefault(attack.TargetId) + unit.Profile.Damage;
+                if (attack.TargetCity) hits[attack.TargetId] = checked(hits.GetValueOrDefault(attack.TargetId) + unit.Profile.Damage);
+                else foreach (int id in Victims(current[attack.TargetId], moved, unit.Profile.VictimCap, unit.Profile.SplashRadius))
+                    hits[id] = checked(hits.GetValueOrDefault(id) + unit.Profile.Damage);
             }
-            Emit(CombatEventType.Impact, Read(unit.Id), attack.TargetId, attack.TargetCity, unit.Profile.Damage, valid);
+            UnitState? primary = attack.TargetCity ? null : current.GetValueOrDefault(attack.TargetId);
+            int[] victims = valid && !attack.TargetCity && primary is not null ? Victims(primary, moved, unit.Profile.VictimCap, unit.Profile.SplashRadius) : [];
+            Emit(CombatEventType.Impact, Read(unit.Id), attack.TargetId, attack.TargetCity, unit.Profile.Damage, valid,
+                primary?.Position ?? 0, primary?.Lateral ?? unit.Lateral, victims);
             attack = attack with { Pending = false };
         }
         foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
@@ -210,10 +228,32 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
             city.DefenderCooldown = Math.Max(0, city.DefenderCooldown - 1);
             UnitState? target = moved.Where(u => IsEnemy(u) && u.Destination == city.Id).OrderBy(u => u.Position).ThenBy(u => u.Id).FirstOrDefault();
             if (target is null || city.DefenderCooldown != 0) continue;
-            damage[target.Id] = damage.GetValueOrDefault(target.Id) + rules.DefenderDamage;
+            damage[target.Id] = checked(damage.GetValueOrDefault(target.Id) + HealthPoints.FromWhole(rules.DefenderDamage));
             city.DefenderCooldown = rules.AttackTicks;
-            Emit(CombatEventType.DefenderShot, target, target.Id, damage: rules.DefenderDamage, landed: true);
+            Emit(CombatEventType.DefenderShot, target, target.Id, damage: HealthPoints.FromWhole(rules.DefenderDamage), landed: true);
         }
+        foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
+            foreach (TowerState state in city.Towers.Values.OrderBy(t => t.Slot).ToArray())
+            {
+                TowerState tower = state;
+                UnitState? target = moved.Where(u => IsEnemy(u) && u.Destination == city.Id).OrderBy(u => u.Position).ThenBy(u => u.Id).FirstOrDefault();
+                TowerDefinition profile = Catalogs.Towers().Single(p => p.Type == tower.Type && p.Level == tower.Level);
+                int amount = profile.Damage;
+                if (!tower.PendingImpact && tick >= tower.ReadyTick && target is not null)
+                {
+                    tower = tower with { AttackSequence = tower.AttackSequence + 1, TargetId = target.Id, ActionStartTick = tick, ImpactTick = tick + profile.WindupTicks, ReadyTick = tick + profile.CadenceTicks, PendingImpact = true };
+                    EmitTower(CombatEventType.AttackStarted, tower, target, amount, false, []);
+                }
+                if (tower.PendingImpact && tick >= tower.ImpactTick)
+                {
+                    UnitState? primary = moved.FirstOrDefault(u => u.Id == tower.TargetId && IsEnemy(u) && u.Destination == city.Id);
+                    int[] victims = primary is null ? [] : Victims(primary, moved, profile.VictimCap, profile.SplashRadius);
+                    foreach (int id in victims) damage[id] = checked(damage.GetValueOrDefault(id) + amount);
+                    EmitTower(CombatEventType.Impact, tower, primary, amount, primary is not null, victims);
+                    tower = tower with { PendingImpact = false };
+                }
+                city.Towers[tower.Slot] = tower;
+            }
         foreach ((int id, int amount) in damage.OrderBy(p => p.Key))
         {
             ref UnitHealth health = ref _world.Get<UnitHealth>(_entities[id]);
@@ -241,11 +281,19 @@ internal sealed class CombatSimulation(Rules rules) : IDisposable
         _world.Get<UnitTarget>(entity) = default;
         ref UnitAttack attack = ref _world.Get<UnitAttack>(entity); attack = attack with { Pending = false, TargetId = 0, TargetCity = false };
     }
-    private void Emit(CombatEventType type, UnitState unit, int target = 0, bool city = false, int damage = 0, bool landed = false)
-        => _events.Add(new(++EventSequence, _tick, type, unit, target, city, damage, landed));
+    private void Emit(CombatEventType type, UnitState unit, int target = 0, bool city = false, int damage = 0, bool landed = false,
+        double forward = 0, double lateral = 0, int[]? victims = null)
+        => _events.Add(new(++EventSequence, _tick, type, unit, target, city, damage, landed) { ImpactForward = forward, ImpactLateral = lateral, Victims = victims ?? [] });
+    private void EmitTower(CombatEventType type, TowerState tower, UnitState? target, int damage, bool landed, int[] victims)
+        => _events.Add(new(++EventSequence, _tick, type, null, tower.TargetId, false, damage, landed)
+        { Tower = tower, ImpactForward = target?.Position ?? 0, ImpactLateral = target?.Lateral ?? 0, Victims = victims });
+    private static int[] Victims(UnitState primary, UnitState[] all, int cap, double radius)
+        => new[] { primary.Id }.Concat(all.Where(u => cap > 1 && u.Id != primary.Id && u.Health > 0 && u.Deployed
+            && u.Destination == primary.Destination && u.Faction == primary.Faction && Point(u).Subtract(Point(primary)).LengthSquared <= radius * radius)
+            .OrderBy(u => Point(u).Subtract(Point(primary)).LengthSquared).ThenBy(u => u.Id).Select(u => u.Id).Take(cap - 1)).ToArray();
     private void TrimHistory() { if (_events.Count > HistoryLimit) _events.RemoveRange(0, _events.Count - HistoryLimit); }
     private static BattlePoint Point(UnitState unit) => new(unit.Position, unit.Lateral);
-    private static bool IsEnemy(UnitState unit) => unit.Type == UnitType.Enemy;
+    private static bool IsEnemy(UnitState unit) => unit.Faction == Faction.Skeletons;
     private static bool Intercepts(BattlePoint from, BattlePoint to, BattlePoint blocker)
     {
         BattlePoint ray = to.Subtract(from), relative = blocker.Subtract(from);

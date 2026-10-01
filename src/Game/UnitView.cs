@@ -26,18 +26,17 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
 
     public override void _Ready()
     {
-        bool ranged = State.Type == UnitType.Crossbowman;
-        Node3D model = UnitAssets.Instantiate(ranged ? "Rogue.glb" : "Knight.glb");
+        Node3D model = UnitAssets.Instantiate(UnitAssets.Character(State.Type, State.Faction));
         model.Scale = Vector3.One * 0.43f; AddChild(model);
-        (_player, _skeleton) = UnitAssets.Bind(model);
+        (_player, _skeleton) = UnitAssets.Bind(model, State.Type);
         // The character files include optional props; equip only our selected weapon.
         foreach (MeshInstance3D mesh in model.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
             if (mesh.Name.ToString().Contains("Sword", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Shield", StringComparison.Ordinal)
                 || mesh.Name.ToString().Contains("Crossbow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Dagger", StringComparison.Ordinal)
                 || mesh.Name.ToString().Contains("Bow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Arrow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Knife", StringComparison.Ordinal)
-                || mesh.Name.ToString().Contains("Throwable", StringComparison.Ordinal)) mesh.Visible = false;
+                || mesh.Name.ToString().Contains("Throwable", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Staff", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Axe", StringComparison.Ordinal)) mesh.Visible = false;
         var hand = new BoneAttachment3D { BoneName = "handslot.r" }; _skeleton.AddChild(hand);
-        hand.AddChild(UnitAssets.Instantiate(ranged ? "crossbow_2handed.gltf" : "sword_1handed.gltf"));
+        hand.AddChild(UnitAssets.Instantiate(UnitAssets.Weapon(State.Type, State.Faction)));
         var locomotion = new AnimationNodeBlendSpace1D { MinSpace = 0, MaxSpace = 1 };
         locomotion.AddBlendPoint(Locomotion("Idle"), 0, -1, "idle");
         locomotion.AddBlendPoint(Locomotion("Walking_A"), 0.8f, -1, "walk");
@@ -52,7 +51,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
                 || bone.Contains("hand", StringComparison.Ordinal) || bone.Contains("head", StringComparison.Ordinal)
                 || bone.Contains("neck", StringComparison.Ordinal)) hit.SetFilterPath(path, true);
         }
-        _attackClip.Animation = ranged ? "2H_Ranged_Shoot" : "1H_Melee_Attack_Slice_Horizontal";
+        _attackClip.Animation = UnitAssets.AttackClip(State.Type);
         var blend = new AnimationNodeBlendTree();
         blend.AddNode("locomotion", locomotion); blend.AddNode("locoseek", new AnimationNodeTimeSeek());
         blend.AddNode("attackclip", _attackClip); blend.AddNode("attackseek", new AnimationNodeTimeSeek());
@@ -74,20 +73,21 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             FontSize = 18,
             PixelSize = 0.012f,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            Modulate = new(State.Type == UnitType.Enemy ? "ea8272" : "93c5ef")
+            Modulate = new(State.Faction == Faction.Skeletons ? "ea8272" : "93c5ef")
         };
         AddChild(_label);
         _marker = new MeshInstance3D
         {
             Position = new(0, 0.015f, 0),
             Mesh = new CylinderMesh { TopRadius = 0.21f, BottomRadius = 0.21f, Height = 0.025f, RadialSegments = 12 },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new(State.Type == UnitType.Enemy ? "bb4b43" : "487ecc"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new(State.Faction == Faction.Skeletons ? "bb4b43" : "487ecc"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
         };
         AddChild(_marker);
         _shot = UnitAssets.Instantiate("arrow.gltf"); _shot.Scale = Vector3.One * 0.35f; _shot.Visible = false; AddChild(_shot);
     }
     public void Event(CombatEvent entry, double seconds)
     {
+        if (entry.Unit is null) return;
         _effectSequence = entry.Sequence;
         switch (entry.Type)
         {
@@ -108,8 +108,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         else if (_hitAt >= 0 && seconds - _hitAt < 0.15) { clip = "Hit_A"; pose = (seconds - _hitAt) * 2; }
         else if (state.AttackSequence > 0 && state.TargetId != 0 && tick >= state.ActionStartTick && tick < state.ReadyTick)
         {
-            clip = state.Type == UnitType.Crossbowman ? "2H_Ranged_Shoot" : "1H_Melee_Attack_Slice_Horizontal";
-            // KayKit marker: melee .40s, crossbow release .43s. Map windup to this marker,
+            clip = UnitAssets.AttackClip(state.Type);
+            // Role-specific measured KayKit markers map windup onto the attack pose,
             // then sample recovery through the rest of the clip by the next ready tick.
             double length = _player.GetAnimation(clip).Length;
             pose = CombatPlayback.AttackPose(state, tick, length);
@@ -139,7 +139,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         Vector3 rootPose = _skeleton.GetBonePosePosition(root);
         _skeleton.SetBonePosePosition(root, new(0, rootPose.Y, 0));
         _marker.Visible = !Dead;
-        _label.Text = $"{(state.Type == UnitType.Enemy ? "E" : state.Type == UnitType.Crossbowman ? "R" : "S")}{state.Health}";
+        string role = state.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
+        _label.Text = $"{(state.Faction == Faction.Skeletons ? "E" : "")}{role}{HealthPoints.Format(state.Health)}";
         _shot.Visible = !Dead && _shotAt >= 0 && seconds - _shotAt < 0.12;
         _shot.Position = new(0, 0.5f, 0.25f + (float)Math.Max(0, seconds - _shotAt) * 12);
     }
@@ -158,9 +159,13 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         {
             State.Id,
             State.Type,
+            State.Faction,
+            State.Class,
+            State.Rank,
             State.Destination,
             State.Deployed,
             State.Health,
+            HumanHealth = HealthPoints.Format(State.Health),
             State.AttackSequence,
             Dead,
             Visible,

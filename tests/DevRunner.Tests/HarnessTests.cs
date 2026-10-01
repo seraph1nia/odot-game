@@ -45,6 +45,9 @@ public sealed class HarnessTests
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-steam", "--role", "host", "--lobby", "100"]));
         var guest = Options.Parse(["test-steam", "--role", "guest", "--lobby", "100", "--exported"]);
         Assert.Equal("guest", guest.SteamRole); Assert.Equal(100UL, guest.Lobby); Assert.True(guest.Exported);
+        var direct = Options.Parse(["test-steam", "--role", "guest", "--scenario", "direct-invite"]);
+        Assert.Equal("direct-invite", direct.Scenario); Assert.Null(direct.Lobby);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-steam", "--role", "guest", "--scenario", "direct-invite", "--lobby", "100"]));
     }
 
     [Fact]

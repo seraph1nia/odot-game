@@ -23,7 +23,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 case "help":
                     Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports)\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
-                    Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
+                    Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] [--scenario direct-invite] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
                 case "prepare": await Prepare(); break;
                 case "check-steam-extension": await CheckSteamExtension(); break;
@@ -218,7 +218,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             environment ??= new Dictionary<string, string?>();
             WindowsStandaloneEnvironment(environment);
         }
-        if (_scope?.Graphical == true && role is "menu" or "solo") environment!["ODOT_STEAM_DISABLED"] = "1";
+        if (_scope?.Graphical == true) environment!["ODOT_STEAM_DISABLED"] = "1";
         if (options.Command is "verify-installed-linux" or "verify-installed-windows")
         {
             environment ??= new Dictionary<string, string?>();
@@ -236,7 +236,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                 environment["LD_PRELOAD"] = preload;
                 Console.WriteLine("Steam overlay renderer prepared for the game process.");
             }
-            else Console.WriteLine("Steam overlay renderer was not found in the native Steam installation. Launch through Steam to use invitations; Single player remains available.");
+            else Console.WriteLine("Steam overlay renderer was not found in the native Steam installation. The in-game friends picker does not require it.");
         }
         var child = new Child(name, exported ?? "godot", args, _root, game: true, quiet: headless || _scope is not null,
             workingDirectory: exported is null ? _root : Path.GetDirectoryName(exported), environment: environment, evidenceDirectory: _scope?.EvidenceDirectory ?? _evidence.Directory,

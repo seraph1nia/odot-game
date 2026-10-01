@@ -876,7 +876,7 @@ This change retains Godot, the current authority roles, six network scenarios an
 all existing cooperative assertions. It adds Arch 2.1.0 state ownership, typed
 recruitment and rigged C# presentation. Protocol v4 refuses older builds.
 The change’s detailed evidence ledger is
-[verification.md](../openspec/changes/add-arch-animated-unit-combat/verification.md).
+[verification.md](../openspec/changes/archive/2026-10-01-add-arch-animated-unit-combat/verification.md).
 
 Final `mise run ci` passed in 183.78s (185.12s including runner preparation),
 with evidence under `logs/20260930-205517-0bd9989c/`. It includes 80 core and
@@ -922,3 +922,49 @@ software-rendered skeleton/control behavior, not native compositor/GPU cadence,
 physical input, audible quality, Windows animation/export execution or real
 paired Steam/overlay/relay acceptance. Those native checks remain unexecuted for
 this change; previously recorded Windows qualification applies to earlier work.
+
+## Direct Steam friends picker verification
+
+The `add-direct-steam-friend-invites` change replaces overlay recipient selection
+with an Odot friends dialog and the pinned native lobby invitation API. Existing
+overlay qualification above is historical evidence, not a prerequisite for this
+picker. The host selects a Steam account; an accepted send request is distinct
+from invitation receipt, guest consent, native admission and relay routing.
+
+`mise run test-ui --scenario launcher` extends its existing menu/host checks with
+owned Steam-disabled fixtures at 1100×820 and 1280×720: duplicate names, a large
+scrolling list, actual selection, sent/rejected outcomes, empty/unavailable
+refresh, modal input, focus, incoming consent, session replacement and native
+exit. Cheap invitation-policy tests cover account identity, generation/lobby
+validation, removed friends and duplicate/reentrant sends. Fixtures cannot create
+a real lobby, send a real invitation or initialize Steam.
+
+Separate real acceptance uses `mise run test-steam --role guest|host --scenario
+direct-invite [--exported] --timeout-ms 600000` on two Linux machines/accounts.
+Start the guest first and keep both compatible AppID 480 builds running. The host
+manually selects the agreed friend in Odot; the guest accepts in Steam. The
+selected case requires the accepted send event and actual warm join callback,
+then retains the existing ordinary shared gameplay/native connection checks.
+`--lobby` is refused for this case so argument routing cannot count as delivery.
+No ordinary CI command sends live invitations. Real paired acceptance remains
+unexecuted for this change until two-account evidence is captured. Native GPU,
+physical input, listening quality, Windows runtime and production cold launch
+remain outside local software-rendered fixture evidence.
+
+See [change verification](../openspec/changes/archive/2026-10-01-add-direct-steam-friend-invites/verification.md)
+for retained before/after records and measured UI cost.
+
+
+## Village character and strategy acceptance (2026-10-01)
+
+The active change's [verification record](../openspec/changes/add-village-character-and-strategy/verification.md) records the full before baseline and final coverage. This change adds catalog-driven gold/food/wood spending and nine building choices, income-free Preparation, symmetric four-role factions, class research in hundredths, splash/towers and bounded presentation. Cheap coverage owns costs, rank arithmetic/retry/no-heal, role/building parity, preparation/disconnects, contact and finite ordinary strategy families. It avoids a graphical option matrix.
+
+Existing graphical cases were extended for concrete rendering risks. Economy exercises ordinary Lumbermill/Blacksmith/research/preparation actions, all nine terrace plots, a structural Catapult upgrade and actual pile node counts; these could fail while numerical snapshots stay correct. Combat uses only first-wave Mage/Berserker plus an observed tower city to expose missing cast/axe rigs, projectile alignment, contact interpolation, audio/effect pool bounds and frozen ambient/death clocks. Reconnect baselines living views/piles/effects without historical cues. Settings checks synthesized cues' Master routing/mute and restores its owned chosen preference. Packed smoke loads every specialist rig/socket/role clip/weapon, a real Catapult and resource piles, then briefly samples tower/locomotion/shooting. Its standalone selection still consumes existing exports without source preparation or implicit rebuild.
+
+No new network/UI scenario was added: existing names, one ordered child driver, fresh probe IDs, ordinary protocol assertions, owned X11/XDG/endpoints, frame captures and awaited cleanup remain. Iteration failures retained owned evidence and cleaned up. The interpolation regression also gained a cheap test: unsafe contact chords hold one common prior frame instead of overlapping bodies. A stable 270px HUD reservation prevents camera target shifts when contextual controls change.
+
+Selected execution costs: economy 21.57s (old 4.64s, +16.93s), combat 13.57s (previous animated-combat 13.76s), settings 7.35s. Preparation/display totals are recorded separately: economy 32.09s, combat 23.66s, settings 15.63s. Thus the additional specialist/tower assertion path replaces the old combat setup rather than repeating a full graphical battle. Core strategy logs record resource ledgers, recruits/casualties, health and per-wave steps; they prove these finite winning candidates, not exhaustive balance. Starting wood changed from seed 20 to 30 to retain the upgraded Farm/Barracks opening; remaining shared profiles stay symmetric.
+
+All KayKit additions come from immutable official free-pack sources, with licenses, hashes and extracted-texture relationships in the asset manifest. Resource food uses medieval sacks rather than paid Resource Bits food. Sounds are original synthesized PCM (22,050Hz mono/16-bit, 0.12s cubic envelope and fixed-seed noise) and are instantiated only by graphical presentation. Dummy audio and software OpenGL assertions establish routing, lifecycle and mute, not physical listening quality, native compositor/GPU performance or Steam account acceptance. No dependencies/tools were upgraded and no package was published.
+
+Final full `mise run ci` passed in 220.54s, evidence `logs/20261001-071039-07264336`: 133 core tests, 107 runner tests, all six network scenarios (43.54s), all five source UI slices (92.21s), sequential Linux client/server exports, headless package smoke (1.09s) and graphical exported-package smoke (49.64s; 52.93s with display overhead). Source launcher now recruits at the appropriate buildings using ordinary production and retains its invitation/lifecycle assertions. Frame capture samples an 80-by-80 grid so modal text and narrow geometry are represented while retaining the existing minimum-colour/file/dimension checks. Strict change validation and all 155 asset hashes pass; documentation frames come from this final CI run.

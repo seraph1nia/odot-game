@@ -4,7 +4,7 @@ using Godot;
 namespace Game;
 
 // Application-thread helper over the official extension, not a transport implementation.
-internal sealed class SteamPlatform : IDisposable
+internal sealed class SteamPlatform : IDisposable, ISteamFriends
 {
     private GodotObject? _steam;
     internal bool Initialized { get; private set; }
@@ -124,7 +124,35 @@ internal sealed class SteamPlatform : IDisposable
     internal bool SetLobbyData(ulong lobby, string key, string value) => Api.Call("setLobbyData", lobby, key, value).AsBool();
     internal void AllowRosterReentry(ulong lobby) => Api.Call("setLobbyJoinable", lobby, true);
     internal bool OverlayEnabled => Api.Call("isOverlayEnabled").AsBool();
-    internal void InviteFriends(ulong lobby) => Api.Call("activateGameOverlayInviteDialog", lobby);
+    public bool IsFriend(ulong id) => LoggedIn && Api.Call("getFriendRelationship", id).AsInt64() == 3;
+    public bool SendInvite(ulong lobby, ulong recipient) => Api.Call("inviteUserToLobby", lobby, recipient).AsBool();
+    public Game.Core.SteamFriend[] Friends()
+    {
+        const int immediateFriends = 4;
+        if (!LoggedIn) throw new InvalidOperationException("Steam is unavailable.");
+        int count = Api.Call("getFriendCount", immediateFriends).AsInt32();
+        if (count < 0) throw new InvalidOperationException("Steam friends are unavailable.");
+        var friends = new List<Game.Core.SteamFriend>();
+        for (int index = 0; index < count; index++)
+        {
+            ulong id = Api.Call("getFriendByIndex", index, immediateFriends).AsUInt64();
+            if (id == 0) continue;
+            string name = Api.Call("getFriendPersonaName", id).AsString();
+            long state = Api.Call("getFriendPersonaState", id).AsInt64();
+            string presence = state switch
+            {
+                1 => "Online",
+                2 => "Busy",
+                3 => "Away",
+                4 => "Snooze",
+                5 => "Looking to trade",
+                6 => "Looking to play",
+                _ => "Offline"
+            };
+            friends.Add(new(id, string.IsNullOrWhiteSpace(name) ? "Steam friend" : name, presence, state is >= 1 and <= 6));
+        }
+        return friends.ToArray();
+    }
     internal string LaunchCommandLine() => Api.Call("getLaunchCommandLine").AsString();
 
     internal object? ConnectionEvidence(MultiplayerPeer peer, int peerId, string role, string match)

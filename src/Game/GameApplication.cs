@@ -25,8 +25,9 @@ public partial class GameApplication(Main session) : Node
     public Action? InviteRequested { get; set; }
     public Theme Theme { get; private set; } = null!;
     public ClientSettings Settings { get; private set; } = null!;
+    internal SteamFriendsDialog Friends { get; private set; } = null!;
     public string Screen { get; private set; } = "menu";
-    public bool IsModalOpen => Settings.IsOpen || _join.Visible;
+    public bool IsModalOpen => Settings.IsOpen || _join.Visible || Friends.IsOpen;
 
     public override void _Ready()
     {
@@ -76,6 +77,8 @@ public partial class GameApplication(Main session) : Node
         AddChild(_join);
         _join.Confirmed += AcceptJoin;
         _join.Canceled += DeclineJoin;
+        Friends = new SteamFriendsDialog { Name = "SteamFriends", Theme = Theme, FocusFallback = FocusCurrent };
+        AddChild(Friends);
         GetTree().AutoAcceptQuit = false;
         GetWindow().CloseRequested += RequestExit;
         ShowMenu();
@@ -106,6 +109,7 @@ public partial class GameApplication(Main session) : Node
 
     public void ShowMenu(string feedback = "")
     {
+        Friends.Close();
         Settings.Close(false);
         if (_join.Visible) DeclineJoin();
         RemoveTabletop();
@@ -136,6 +140,7 @@ public partial class GameApplication(Main session) : Node
     public void SetSteamIdentity(string? name) => _steamStatus.Text = string.IsNullOrWhiteSpace(name) ? "Open Steam to log in" : name.Trim();
     public void ShowSession()
     {
+        Friends.Close();
         Settings.Close(false);
         if (_join.Visible) DeclineJoin();
         RemoveTabletop();
@@ -170,6 +175,7 @@ public partial class GameApplication(Main session) : Node
     public void OpenJoinConfirmation(Action accept, Action decline)
     {
         if (_exiting || _join.Visible) { decline(); return; }
+        Friends.Close();
         Settings.Close(false);
         _joinAccepted = accept; _joinDeclined = decline;
         _join.PopupCenteredClamped(new(500, 190), 0.9f);
@@ -197,6 +203,7 @@ public partial class GameApplication(Main session) : Node
     {
         if (_exiting) return;
         _exiting = true;
+        Friends.Close();
         Settings.Close(false);
         DeclineJoin();
         session.RequestExit();
@@ -214,7 +221,7 @@ public partial class GameApplication(Main session) : Node
         // Nonexclusive dialogs let the main window deliver native close requests.
         if (!IsModalOpen) return;
         if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true })
-            (_join.Visible ? _join : Settings.Dialog).GrabFocus();
+            (_join.Visible ? _join : Friends.IsOpen ? Friends : Settings.Dialog).GrabFocus();
         GetViewport().SetInputAsHandled();
     }
     public override void _UnhandledInput(InputEvent @event)
@@ -249,6 +256,7 @@ public partial class GameApplication(Main session) : Node
             ObserveControl(targets, "AcceptJoin", _join.GetOkButton());
             ObserveControl(targets, "DeclineJoin", _join.GetCancelButton());
         }
+        Friends.Observe(this, targets);
         int master = AudioServer.GetBusIndex("Master");
         var fields = new Dictionary<string, object?>
         {
@@ -259,6 +267,9 @@ public partial class GameApplication(Main session) : Node
             ["Connected"] = session.Connected,
             ["SettingsOpen"] = Settings.IsOpen,
             ["JoinConfirmationOpen"] = _join.Visible,
+            ["FriendsOpen"] = Friends.IsOpen,
+            ["FriendCount"] = Friends.FriendCount,
+            ["InviteStatus"] = Friends.Status,
             ["MasterVolume"] = Settings.MasterVolume,
             ["BuildVersion"] = BuildInfo.DisplayVersion,
             ["UpdateStatus"] = Settings.UpdateStatus,
@@ -280,7 +291,7 @@ public partial class GameApplication(Main session) : Node
             ["Targets"] = targets,
             ["Screenshot"] = screenshot,
             ["Colors"] = colors,
-            ["FocusedControl"] = GetViewport().GuiGetFocusOwner()?.Name.ToString() ?? "",
+            ["FocusedControl"] = Friends.IsOpen ? Friends.FocusedControl : GetViewport().GuiGetFocusOwner()?.Name.ToString() ?? "",
             ["FeedbackText"] = _feedback.Text,
             ["SteamStatus"] = _steamStatus.Text
         };

@@ -53,6 +53,17 @@ public sealed class CombatPlayback
         if (_previous is null || _current.Paused || _current.Tick <= _previous.Tick) return current;
         var previous = All(_previous).ToDictionary(u => u.Id);
         double fraction = Math.Clamp((Tick - _previous.Tick) / (_current.Tick - _previous.Tick), 0, 1);
+        // A straight chord between separated contact endpoints can cut inside the
+        // contact circle during tangential motion. Hold the common previous frame
+        // until a safe interpolation fraction (or the next endpoint) is available.
+        if (fraction < 1)
+        {
+            var points = current.Where(u => u.Deployed && previous.TryGetValue(u.Id, out UnitState? old) && old.Deployed && old.Destination == u.Destination)
+                .Select(u => (u.Id, u.Destination, Forward: previous[u.Id].Position + (u.Position - previous[u.Id].Position) * fraction,
+                    Lateral: previous[u.Id].Lateral + (u.Lateral - previous[u.Id].Lateral) * fraction)).ToArray();
+            if (points.Any(a => points.Any(b => b.Id > a.Id && b.Destination == a.Destination
+                && Math.Pow(a.Forward - b.Forward, 2) + Math.Pow(a.Lateral - b.Lateral, 2) < Math.Pow(2 * CombatSimulation.Radius - CombatSimulation.Tolerance, 2)))) fraction = 0;
+        }
         return current.Select(u =>
         {
             previous.TryGetValue(u.Id, out UnitState? old);
@@ -63,9 +74,13 @@ public sealed class CombatPlayback
         }).ToArray();
     }
     public static UnitState[] All(MatchSnapshot state) => state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).OrderBy(u => u.Id).ToArray();
+    // Imported clip sampling: axe hand descends at frame 23, cast hand reaches
+    // maximum forward extension at frame 8 (30 fps); sword/shot retain their markers.
+    public static double ImpactMarker(UnitType type) => type switch
+    { UnitType.Crossbowman => .43, UnitType.Berserker => 23 / 30.0, UnitType.Mage => 8 / 30.0, _ => .40 };
     public static double AttackPose(UnitState unit, double tick, double clipLength)
     {
-        double marker = unit.Type == UnitType.Crossbowman ? 0.43 : 0.40;
+        double marker = ImpactMarker(unit.Type);
         double pose = tick <= unit.ImpactTick ? marker * (tick - unit.ActionStartTick) / Math.Max(1, unit.ImpactTick - unit.ActionStartTick)
             : marker + (clipLength - marker) * (tick - unit.ImpactTick) / Math.Max(1, unit.ReadyTick - unit.ImpactTick);
         return Math.Clamp(pose, 0, clipLength);

@@ -9,7 +9,8 @@ internal static class VillageLayout
     public const float HalfWidth = TerrainScale;
     public const float Radius = 1.1547005f * TerrainScale;
     public const float RowStep = Radius * 1.5f;
-    public static Vector3 Hex(int column, int row) => new(column * HalfWidth * 2 + (Math.Abs(row) % 2) * HalfWidth, 0, row * RowStep);
+    public static float Height(int column, int row) => column == 3 ? -0.4f : row >= 4 ? 1.0f : row >= 3 ? 0.5f : 0;
+    public static Vector3 Hex(int column, int row) => new(column * HalfWidth * 2 + (Math.Abs(row) % 2) * HalfWidth, Height(column, row), row * RowStep);
     public static Vector3 Slot(int slot) => Hex(slot % 3 - 1, slot / 3 + 2);
     public static bool Contains(int slot, Vector3 point)
     {

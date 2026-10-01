@@ -25,7 +25,13 @@ internal sealed partial class Runner
         CityState city = state.Players.Single(p => p.Id == id);
         int slot = Array.FindIndex(city.Slots, s => s.Type == Building.Barracks);
         if (slot < 0) return;
-        int cost = state.Rules.RecruitCost - (city.Slots[slot].Level - 1);
+        int cost = state.UnitCatalog.Single(u => u.Type == UnitType.Swordsman).Recruitment.Food - (city.Slots[slot].Level - 1);
+        if (city.Slots[4].Type == Building.Empty && city.Gold >= 20 && city.Wood >= 10)
+            city = State(await Action(child, "build 4 farm", token)).Players.Single(p => p.Id == id);
+        if (city.Slots[0].Level == 1 && city.Gold >= 20 && city.Wood >= 10)
+        {
+            city = State(await Action(child, "upgrade 0", token)).Players.Single(p => p.Id == id);
+        }
         while (city.Food >= cost)
         {
             GameEvent ack = await Action(child, $"recruit {slot}", token);
@@ -34,12 +40,18 @@ internal sealed partial class Runner
     }
     private async Task Economy(Child child, CancellationToken token)
     {
-        await Action(child, "build 0 farm", token); await Action(child, "upgrade 0", token); await Action(child, "build 1 barracks", token);
+        await Action(child, "build 0 farm", token); await Action(child, "build 1 barracks", token); await Action(child, "build 2 lumbermill", token);
     }
     private async Task Advance(Child[] clients, CancellationToken token)
     {
         MatchSnapshot? resolved = null;
         foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
+        if (resolved!.Phase == Phase.Preparation)
+        {
+            MatchSnapshot preparation = resolved;
+            foreach (Child child in clients) await Observe(child, s => s.Phase == Phase.Preparation && s.TurnSerial == preparation.TurnSerial, "preparation synchronization", token);
+            foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
+        }
         MatchSnapshot target = resolved!;
         foreach (Child child in clients) await Observe(child, s => s.Revision >= target.Revision && s.TurnSerial >= target.TurnSerial && s.Phase == target.Phase, "resolved ready check", token);
     }
@@ -106,14 +118,16 @@ internal sealed partial class Runner
         await using (var late = ExpectedFailure(StartGame("late", false, true, port, null, "--automated")))
             await late.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("locked"), "late join refusal", options.StartupTimeout, token);
         await Advance([a, b], token);
+        await Advance([a, b], token);
+        await Action(b, "build 3 archeryrange", token);
         MatchSnapshot before = Latest(b);
-        CommandResult spent = (await Action(b, "recruit 1 crossbowman", token)).Result!;
-        var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 1, SoldierType: UnitType.Crossbowman);
+        CommandResult spent = (await Action(b, "recruit 3 crossbowman", token)).Result!;
+        var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 3, SoldierType: UnitType.Crossbowman);
         string replay = "raw " + JsonSerializer.Serialize(original, WireJson.Options);
         int army = Latest(b).Players.Single(p => p.Id == cb.PlayerId).Soldiers.Length;
         await b.Send(replay); GameEvent dup = await b.WaitFor(e => e.Type == "ack" && e.Result!.Sequence == spent.Sequence && e.State!.Players.Single(p => p.Id == cb.PlayerId).Soldiers.Length == army, "duplicate recruitment", options.StartupTimeout, token);
         Require(State(dup).Players.Single(p => p.Id == cb.PlayerId).Food == before.Players.Single(p => p.Id == cb.PlayerId).Food - 5, "recruitment spends exactly once");
-        await Advance([a, b], token); await Advance([a, b], token);
+        await Advance([a, b], token);
         await Action(a, "build 4 mine", token, false);
         await b.Send("quit"); Require(await b.WaitExit(token) == 0, "departing client exits");
         MatchSnapshot absent = await Observe(a, s => s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == cb.PlayerId).Connected, "retained disconnected city", token);
@@ -132,7 +146,8 @@ internal sealed partial class Runner
         await Action(a, "resume", token);
         for (int wave = 1; wave <= 3; wave++)
         {
-            MatchSnapshot cleared = await Observe(a, s => s.Phase is Phase.Building or Phase.Victory && (s.Wave > wave || s.Phase == Phase.Victory), "wave clear", token);
+            MatchSnapshot cleared = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase is Phase.Building or Phase.Victory && (s.Wave > wave || s.Phase == Phase.Victory), "wave clear", token);
+            Require(cleared.Phase != Phase.Defeat, "ordinary cooperative economy survives wave " + wave);
             await Observe(resumed, s => s.Revision >= cleared.Revision && s.Phase == cleared.Phase, "shared wave result", token);
             if (wave < 3)
             {
@@ -169,7 +184,7 @@ internal sealed partial class Runner
         UnitState[] transferred = fallen.Enemies.Where(e => e.Origin == deadId).ToArray();
         Require(transferred.Length > 0 && transferred.All(e => e.Destination != deadId) && transferred.Select(e => e.Id).Distinct().Count() == transferred.Length, "live enemies transferred immediately without duplication");
         Require(transferred.All(e => attackers.Any(old => old.Id == e.Id && old.Health >= e.Health)), "transfers preserve identity and damage");
-        Require(transferred.All(e => e.Type == UnitType.Enemy && e.Profile.Health == 10 && !e.PendingImpact && e.Cooldown == Math.Max(0, e.ReadyTick - fallen.Tick))
+        Require(transferred.All(e => e.Faction == Faction.Skeletons && attackers.Any(old => old.Id == e.Id && old.Type == e.Type && old.Profile == e.Profile && old.Rank == e.Rank) && !e.PendingImpact && e.Cooldown == Math.Max(0, e.ReadyTick - fallen.Tick))
             && transferred.Any(e => e.Cooldown > 0), "transfers retain profiles/recovery and cancel former windups");
         CombatContact(fallen);
         MatchSnapshot seen = await Observe(b, s => s.Revision == fallen.Revision, "matching transfer revision", token);

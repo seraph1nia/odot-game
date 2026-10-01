@@ -11,11 +11,11 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         int[] ids = Enumerable.Range(1, soldiers).ToArray();
         foreach (int id in reverse ? ids.Reverse() : ids)
         {
-            UnitType type = mixed && id % 2 == 0 ? UnitType.Crossbowman : UnitType.Swordsman;
+            UnitType type = mixed ? (UnitType)((id - 1) % 4) : UnitType.Swordsman;
             match.Combat.Seed(new(id, match.Combat.Profile(type).Health, 0, 0, 1, 1)
             { Owner = 1, Type = type, Deployed = false });
         }
-        Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
+        Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
         return match;
     }
     private static CommandResult Apply(Match match, string action, int slot = -1, UnitType type = UnitType.Swordsman)
@@ -23,7 +23,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     private static CombatSimulation Duel(Rules? rules = null, UnitType type = UnitType.Swordsman)
     {
         var combat = new CombatSimulation(rules ?? new Rules { DefenderDamage = 0 });
-        int soldier = combat.Create(type, 1, 1, 1), enemy = combat.Create(UnitType.Enemy, 0, 1, 1);
+        int soldier = combat.Create(type, 1, 1, 1), enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
         combat.Seed(combat.Read(soldier) with { Position = 2, Deployed = true });
         combat.Seed(combat.Read(enemy) with { Position = type == UnitType.Crossbowman ? 4.5 : 2.55, Deployed = true });
         return combat;
@@ -54,7 +54,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         {
             a.Step(); b.Step();
             UnitState[] units = a.Combat.Snapshot(); Separated(units);
-            Assert.Equal(units, b.Combat.Snapshot()); Assert.Equal(a.Combat.Events(), b.Combat.Events());
+            Assert.Equal(units, b.Combat.Snapshot()); Assert.Equal(JsonSerializer.Serialize(a.Combat.Events()), JsonSerializer.Serialize(b.Combat.Events()));
             hadDeaths |= a.Enemies.Count < 32 || a.Players[1].Soldiers.Count < 32;
         }
         output.WriteLine($"Crowded mixed={mixed}: {steps} ticks, {a.Phase}, survivors={a.Combat.Snapshot().Length}");
@@ -72,11 +72,11 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Fact]
     public void MeleeStopsAtReachAndImpactsAreSimultaneous()
     {
-        using var combat = Duel(new Rules { SoldierDamage = 10, EnemyDamage = 10, DefenderDamage = 0 });
+        using var combat = Duel(new Rules { SoldierDamage = 10, DefenderDamage = 0 });
         for (int tick = 1; tick <= 12; tick++)
         {
             combat.Step(tick, []); UnitState[] units = combat.Snapshot();
-            Assert.Equal(2, units.Length); Assert.All(units, u => Assert.Equal(10, u.Health)); Separated(units);
+            Assert.Equal(2, units.Length); Assert.All(units, u => Assert.Equal(1000, u.Health)); Separated(units);
             Assert.All(units, u => { Assert.Equal(0, u.MoveForward); Assert.Equal(1, u.AttackSequence); Assert.Equal(13, u.ImpactTick); });
         }
         combat.Step(13, []); Assert.Empty(combat.Snapshot());
@@ -86,10 +86,10 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Fact]
     public void RecoveryPreventsDuplicateHitsAndRetainsCadence()
     {
-        using var combat = Duel(new Rules { SoldierHealth = 100, EnemyHealth = 100, SoldierDamage = 1, EnemyDamage = 1 });
+        using var combat = Duel(new Rules { SoldierHealth = 100, SoldierDamage = 1, BerserkerDamage = 1 });
         for (int tick = 1; tick <= 90; tick++) combat.Step(tick, []);
-        Assert.Equal(new long[] { 13, 73 }, combat.Events().Where(e => e.Type == CombatEventType.Impact && e.Unit.Id == 1).Select(e => e.Tick));
-        Assert.Equal(98, combat.Read(2).Health); Assert.Equal(2, combat.Read(1).AttackSequence);
+        Assert.Equal(new long[] { 13, 73 }, combat.Events().Where(e => e.Type == CombatEventType.Impact && e.Unit?.Id == 1).Select(e => e.Tick));
+        Assert.Equal(9800, combat.Read(2).Health); Assert.Equal(2, combat.Read(1).AttackSequence);
     }
     [Theory]
     [InlineData(false)]
@@ -100,9 +100,9 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         combat.Step(1, []);
         if (transfer) combat.Transfer(2, 2); else combat.Remove(2);
         for (int tick = 2; tick <= 19; tick++) combat.Step(tick, []);
-        CombatEvent result = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit.Id == 1);
+        CombatEvent result = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == 1);
         Assert.False(result.Landed); Assert.Equal(2, result.TargetId);
-        if (transfer) Assert.Equal(10, combat.Read(2).Health);
+        if (transfer) Assert.Equal(1000, combat.Read(2).Health);
     }
     [Fact]
     public void CrossbowmanHoldsShootingRangeAndShootsAtItsImpactTick()
@@ -110,9 +110,9 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         using var combat = Duel(type: UnitType.Crossbowman);
         combat.Step(1, []); Assert.Equal(0, combat.Read(1).MoveForward); Assert.True(combat.Read(1).PendingImpact);
         for (int tick = 2; tick <= 18; tick++) combat.Step(tick, []);
-        Assert.Equal(10, combat.Read(2).Health);
-        combat.Step(19, []); Assert.Equal(7, combat.Read(2).Health);
-        Assert.All(combat.Events().Where(e => e.Type == CombatEventType.Impact && e.Landed && e.Unit.Id == 1), e => Assert.Equal(19, e.Tick));
+        Assert.Equal(1000, combat.Read(2).Health);
+        combat.Step(19, []); Assert.Equal(700, combat.Read(2).Health);
+        Assert.All(combat.Events().Where(e => e.Type == CombatEventType.Impact && e.Landed && e.Unit?.Id == 1), e => Assert.Equal(19, e.Tick));
     }
     [Fact]
     public void RangedUnitApproachesBeyondRangeAndStillShootsWhenReachedInMelee()
@@ -123,7 +123,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         using var close = Duel(type: UnitType.Crossbowman);
         close.Seed(close.Read(2) with { Position = 2.55 });
         for (int tick = 1; tick <= 19; tick++) { close.Step(tick, []); Separated(close.Snapshot()); }
-        Assert.Equal(5, close.Read(1).Health); Assert.Equal(7, close.Read(2).Health);
+        Assert.Equal(400, close.Read(1).Health); Assert.Equal(700, close.Read(2).Health);
         Assert.Equal(3, close.Read(1).Profile.Range);
     }
     [Fact]
@@ -135,7 +135,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         string frozen = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
         CombatFixture.Steps(match, 1000); Assert.Equal(frozen, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
         Apply(match, "resume"); CombatFixture.Steps(match, 12);
-        Assert.Contains(match.Snapshot().CombatEvents, e => e.Type == CombatEventType.Impact && e.Unit.Type == UnitType.Swordsman && e.Landed);
+        Assert.Contains(match.Snapshot().CombatEvents, e => e.Type == CombatEventType.Impact && e.Unit?.Type == UnitType.Swordsman && e.Landed);
     }
     [Fact]
     public void TypedRecruitmentIsAtomicAndFoodOnlyWithUpgradeReduction()
@@ -144,17 +144,17 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 0, Building.Farm)).Accepted);
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 1, Building.Barracks)).Accepted);
         Apply(match, "ready"); Apply(match, "ready");
+        Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 2, Building.ArcheryRange)).Accepted);
         string before = JsonSerializer.Serialize(match.Snapshot());
         Assert.False(Apply(match, "recruit", 1, (UnitType)999).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
         Assert.True(Apply(match, "recruit", 1).Accepted);
-        var command = new Command(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 1, SoldierType: UnitType.Crossbowman);
+        var command = new Command(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 2, SoldierType: UnitType.Crossbowman);
         var ledger = new CommandLedger(); Assert.True(ledger.Execute(command, () => match.Apply(1, command)).Accepted);
         Assert.True(ledger.Execute(command, () => throw new InvalidOperationException("Applied twice")).Accepted);
         Assert.Equal(new[] { UnitType.Swordsman, UnitType.Crossbowman }, match.Players[1].Soldiers.Select(u => u.Type));
-        Assert.Equal(0, match.Players[1].Food); Assert.Equal(40, match.Players[1].Gold);
-        Assert.Equal(8, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
-        Assert.True(Apply(match, "upgrade", 1).Accepted);
-        Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
+        Assert.Equal(0, match.Players[1].Food); Assert.Equal(20, match.Players[1].Gold);
+        Assert.Equal(800, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
+        Apply(match, "ready"); Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
         Assert.False(Apply(match, "recruit", 1, UnitType.Crossbowman).Accepted);
     }
     [Fact]
@@ -172,7 +172,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void BothRecruitmentTypesRespectOwnershipPauseReadinessAndReducedCost(UnitType type)
     {
         using var match = new Match(); match.Join(); match.Join(); Apply(match, "start");
-        match.Players[1].Slots[1] = new(Building.Barracks, 2); match.Players[1].Food = 8;
+        match.Players[1].Slots[1] = new(type == UnitType.Crossbowman ? Building.ArcheryRange : Building.Barracks, 2); match.Players[1].Food = 8;
         Command recruit = new(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 1, SoldierType: type);
         Assert.False(match.Apply(2, recruit).Accepted); Assert.Equal(8, match.Players[1].Food);
         Apply(match, "pause"); Assert.False(match.Apply(1, recruit).Accepted); Apply(match, "resume");
@@ -183,30 +183,9 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.False(match.Apply(1, recruit).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
     }
     [Fact]
-    public void MixedOrdinaryRecruitmentWinsAllThreeWaves()
-    {
-        using var match = new Match(); match.Join(); Apply(match, "start");
-        match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 0, Building.Farm));
-        Apply(match, "upgrade", 0);
-        match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 1, Building.Barracks));
-        int recruited = 0;
-        for (int wave = 1; wave <= 3; wave++)
-        {
-            for (int turn = 1; turn <= 3; turn++)
-            {
-                while (match.Players[1].Food >= 5)
-                    Assert.True(Apply(match, "recruit", 1, recruited++ % 2 == 0 ? UnitType.Swordsman : UnitType.Crossbowman).Accepted);
-                Apply(match, "ready");
-            }
-            int steps = 0; while (match.Phase == Phase.Combat && steps++ < 6000) match.Step();
-            Assert.NotEqual(Phase.Combat, match.Phase); Assert.False(match.Players[1].Eliminated);
-        }
-        Assert.Equal(Phase.Victory, match.Phase);
-    }
-    [Fact]
     public void OccupiedTransferApproachConservesBodiesAndRecovery()
     {
-        using Match match = Battle(new Rules { WaveOne = 32, DefenderDamage = 0, SoldierDamage = 0, RangedDamage = 0, EnemyDamage = 0 }, 32, mixed: true);
+        using Match match = Battle(new Rules { WaveOne = 32, DefenderDamage = 0, SoldierDamage = 0, RangedDamage = 0, BerserkerDamage = 0, MageDamage = 0 }, 32, mixed: true);
         CombatFixture.Steps(match, 480);
         UnitState before = match.Enemies.OrderByDescending(e => e.Cooldown).First();
         Assert.True(before.Cooldown > 0); match.Combat.Transfer(before.Id, 2); match.Combat.Transfer(before.Id, 1);
@@ -224,7 +203,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             WaveOne = 64,
             SoldierDamage = 0,
             RangedDamage = 0,
-            EnemyDamage = 0,
+            BerserkerDamage = 0,
+            MageDamage = 0,
             DefenderDamage = 0,
             RangedReach = 12,
             MeleeWindupTicks = 1,

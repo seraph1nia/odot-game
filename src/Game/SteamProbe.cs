@@ -14,7 +14,7 @@ internal static class SteamProbe
         // Verify the extension's typed overlay callback even in offline CI.
         // Local emission opens no overlay and sends no invitation.
         GodotObject steam = Engine.GetSingleton("Steam");
-        foreach (string method in new[] { "loggedOn", "getPersonaName", "isSteamRunning" })
+        foreach (string method in new[] { "loggedOn", "getPersonaName", "isSteamRunning", "getFriendCount", "getFriendByIndex", "getFriendPersonaName", "getFriendPersonaState", "getFriendRelationship", "inviteUserToLobby" })
             if (!steam.HasMethod(method)) throw new InvalidOperationException("The native Steam identity API is missing: " + method);
         bool overlaySignalObserved = false;
         var overlayCallback = Callable.From<bool, bool, long>((active, initiated, appId) =>
@@ -39,6 +39,11 @@ internal static class SteamProbe
                 Message: "Native login and persona lookup passed; account name omitted from diagnostics."), WireJson.Options));
             GD.Print(WireJson.EventPrefix + System.Text.Json.JsonSerializer.Serialize(new GameEvent("steam-overlay-probe",
                 Message: $"Overlay availability API returned {platform.OverlayEnabled}. No overlay was requested."), WireJson.Options));
+            Game.Core.SteamFriend[] friends = platform.Friends();
+            if (friends.Any(friend => friend.Id == 0 || !platform.IsFriend(friend.Id)))
+                throw new InvalidOperationException("Native friend enumeration/relationship lookup failed.");
+            GD.Print(WireJson.EventPrefix + System.Text.Json.JsonSerializer.Serialize(new GameEvent("steam-friends-probe",
+                Message: "Native friend count, IDs, names, presence and relationships queried; identities omitted. No invitation sent."), WireJson.Options));
             bool observed = false;
             var callback = Callable.From<long, ulong>((result, lobby) => observed = result == 1 && lobby == 0);
             if (platform.Api.Connect("lobby_created", callback) != Error.Ok)
