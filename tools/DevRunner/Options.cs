@@ -5,7 +5,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
     int Jobs = 2, string? Scenario = null, string? EvidenceDirectory = null, string? WorkerToken = null,
     bool Production = false, uint? SteamAppId = null, bool Offline = false, bool Exported = false, int Guests = 1,
     string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64", string? InstalledClient = null,
-    string? UiCheckpoint = null)
+    string? UiCheckpoint = null, int SimulationSpeed = 4, bool Trace = false, int UiJobs = 2)
 {
     public static Options Parse(string[] args)
     {
@@ -17,7 +17,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         int timeout = 180000;
         bool explicitTimeout = false;
         string? sessionFile = null;
-        int jobs = 2;
+        int jobs = 2, simulationSpeed = 4, uiJobs = 2;
+        bool trace = false;
         int guests = 1;
         string? scenario = null, evidence = null, workerToken = null;
         bool production = false, offline = false, exported = false;
@@ -41,6 +42,9 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--timeout-ms": timeout = int.Parse(Value(), CultureInfo.InvariantCulture); explicitTimeout = true; break;
                 case "--session-file": sessionFile = Value(); break;
                 case "--engine-arg": engineArgs.Add(Value()); break;
+                case "--simulation-speed": simulationSpeed = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--trace": trace = true; break;
+                case "--ui-jobs": uiJobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--jobs": jobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--guests" when command == "dev": guests = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--scenario": scenario = Value(); break;
@@ -64,7 +68,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         // slices need separate bounded headroom within the complete CI budget.
         if (!explicitTimeout && command is "ci" or "ci-source") timeout = 900000;
         else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario is null) timeout = 600000;
-        else if (!explicitTimeout && (command == "test-network" || command is "test-ui" or "_ui-worker" && scenario is "economy" or "exported-package")) timeout = 300000;
+        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario is "economy" or "exported-package")) timeout = 300000;
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");
@@ -78,7 +82,12 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             throw new ArgumentException("--checkpoint melee belongs to --scenario combat.");
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
-        if (args.Contains("--jobs") && command != "test-network") throw new ArgumentException("--jobs belongs to test-network.");
+        if (args.Contains("--jobs") && command is not ("test-network" or "test-ui" or "ci" or "ci-source")) throw new ArgumentException("--jobs belongs to network/UI/source verification.");
+        if (command == "test-ui" && jobs > 2 || uiJobs is < 1 or > 2) throw new ArgumentException("Graphical workers must be 1..2.");
+        if (args.Contains("--ui-jobs") && command is not ("ci" or "ci-source")) throw new ArgumentException("--ui-jobs belongs to CI source verification.");
+        if (simulationSpeed is < 1 or > 8) throw new ArgumentException("--simulation-speed must be 1..8.");
+        if ((args.Contains("--simulation-speed") || trace) && command is not ("test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package"))
+            throw new ArgumentException("Simulation pacing/trace belongs to owned verification.");
         if (engineArgs.Count > 0 && command is not ("dev" or "client" or "play")) throw new ArgumentException("--engine-arg belongs to desktop dev/client/play tasks.");
         if (command is "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows" && (host != "127.0.0.1" || bind != "127.0.0.1"))
             throw new ArgumentException("Verification owns loopback peers; use dev/client/server for other endpoints.");
@@ -96,6 +105,6 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (command == "test-steam" && scenario == "direct-invite" && lobby is not null)
             throw new ArgumentException("direct-invite requires accepting an actual invitation; omit --lobby.");
         return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
-            production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient, checkpoint);
+            production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient, checkpoint, simulationSpeed, trace, uiJobs);
     }
 }

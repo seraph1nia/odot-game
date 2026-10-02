@@ -41,22 +41,57 @@ internal sealed class Evidence
         {
             var measurement = new Measurement(name, kind, result, started, timer.Elapsed.TotalSeconds, condition);
             _results.Enqueue(measurement);
-            await File.WriteAllTextAsync(Path.Combine(Directory, name + ".json"), JsonSerializer.Serialize(measurement, JsonOptions));
+            await File.WriteAllTextAsync(Path.Combine(Directory, name + ".json"), DiagnosticText.Redact(JsonSerializer.Serialize(measurement, JsonOptions)));
             Console.WriteLine($"RESULT {kind}: {name} {result} {measurement.Seconds:F2}s{(condition is null ? "" : ": " + condition)}");
         }
     }
-    public async Task Summary(string command, string coverage, int jobs, string result, double seconds)
+    public async Task Summary(string command, string coverage, int jobs, string result, double seconds, int uiJobs = 1, int simulationSpeed = 1, bool trace = false)
     {
-        var report = new { Command = command, Coverage = coverage, Jobs = jobs, Result = result, Seconds = seconds, Measurements = _results.ToArray() };
+        long evidenceBytes = System.IO.Directory.EnumerateFiles(Directory, "*", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length);
+        var report = new { Command = command, Coverage = coverage, Jobs = jobs, UiJobs = uiJobs, RuleProcessBudget = 2, SetupSimulationSpeed = simulationSpeed, Trace = trace, Result = result, Seconds = seconds, EvidenceBytes = evidenceBytes, Measurements = _results.ToArray() };
         string name = command == "_ui-worker" ? "ui-" + (coverage.Contains("exported-package", StringComparison.Ordinal) ? "package" : "source") : command.TrimStart('_');
-        await File.WriteAllTextAsync(Path.Combine(Directory, name + "-summary.json"), JsonSerializer.Serialize(report, JsonOptions));
+        await File.WriteAllTextAsync(Path.Combine(Directory, name + "-summary.json"), DiagnosticText.Redact(JsonSerializer.Serialize(report, JsonOptions)));
         Console.WriteLine($"{command}: {coverage}; jobs={jobs}; {result}; {seconds:F2}s. Evidence: {Directory}");
     }
 }
 
+internal sealed class ScenarioAdmission(int jobs, int uiJobs) : IDisposable
+{
+    private readonly SemaphoreSlim _total = new(jobs, jobs);
+    private readonly SemaphoreSlim _ui = new(uiJobs, uiJobs);
+    private readonly object _gate = new();
+    private int _active, _graphical;
+    public int MaximumActive { get; private set; }
+    public int MaximumGraphical { get; private set; }
+    public int Jobs { get; } = jobs;
+    public int UiJobs { get; } = uiJobs;
+    public async Task<IDisposable> Enter(bool graphical, CancellationToken token)
+    {
+        if (graphical) await _ui.WaitAsync(token);
+        try { await _total.WaitAsync(token); }
+        catch { if (graphical) _ui.Release(); throw; }
+        lock (_gate)
+        {
+            MaximumActive = Math.Max(MaximumActive, ++_active);
+            if (graphical) MaximumGraphical = Math.Max(MaximumGraphical, ++_graphical);
+        }
+        return new AdmissionLease(() =>
+        {
+            lock (_gate) { _active--; if (graphical) _graphical--; }
+            _total.Release(); if (graphical) _ui.Release();
+        });
+    }
+    private sealed class AdmissionLease(Action release) : IDisposable
+    {
+        private Action? _release = release;
+        public void Dispose() => Interlocked.Exchange(ref _release, null)?.Invoke();
+    }
+    public void Dispose() { _total.Dispose(); _ui.Dispose(); }
+}
+
 internal static class ScenarioScheduler
 {
-    public static async Task Run(IReadOnlyList<Scenario> scenarios, int jobs, CancellationToken cancellation)
+    public static async Task Run(IReadOnlyList<Scenario> scenarios, int jobs, CancellationToken cancellation, ScenarioAdmission? admission = null, bool graphical = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jobs);
         using var siblings = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -73,7 +108,11 @@ internal static class ScenarioScheduler
                     if (failure is not null || siblings.IsCancellationRequested || next == scenarios.Count) return;
                     scenario = scenarios[next++];
                 }
-                try { await scenario.Execute(siblings.Token); }
+                try
+                {
+                    using IDisposable? lease = admission is null ? null : await admission.Enter(graphical, siblings.Token);
+                    await scenario.Execute(siblings.Token);
+                }
                 catch (Exception error)
                 {
                     lock (gate)
@@ -96,13 +135,18 @@ internal sealed class ScenarioScope : IAsyncDisposable
     private readonly List<Child> _children = [];
     private bool _disposed;
     private readonly List<int> _ports = [];
+    public IReadOnlyList<Child> Children => _children;
     public string Name { get; }
-    public string Directory { get; } = Path.Combine(Path.GetTempPath(), "odot-test-" + Guid.NewGuid().ToString("N"));
+    public string Directory { get; }
     public string EvidenceDirectory { get; }
     public bool Graphical { get; }
-    public ScenarioScope(string name, Evidence evidence, bool graphical = false)
+    public ScenarioScope(string name, Evidence evidence, bool graphical = false, string? runtimeRoot = null)
     {
         Name = name; Graphical = graphical;
+        // A graphical worker can be forcibly stopped after its cancellation bound.
+        // Its parent's owned group cleanup must then own its remaining data too.
+        string parent = runtimeRoot ?? (graphical ? Environment.GetEnvironmentVariable("ODOT_UI_RUNTIME") : null) ?? Path.GetTempPath();
+        Directory = Path.Combine(parent, "odot-test-" + Guid.NewGuid().ToString("N"));
         EvidenceDirectory = Path.Combine(evidence.Directory, name);
         System.IO.Directory.CreateDirectory(Directory);
         System.IO.Directory.CreateDirectory(EvidenceDirectory);
@@ -134,7 +178,10 @@ internal sealed class ScenarioScope : IAsyncDisposable
     {
         foreach (Child child in _children)
             if (child.HasUnexpectedEngineErrors || (!child.ExpectedFailure && child.ExitCode != 0))
+            {
+                child.DumpEvidence("Unexpected engine error or child exit");
                 throw new InvalidOperationException($"{Name}/{child.Name}: unexpected engine error or exit {child.ExitCode}.\n{child.Tail()}");
+            }
     }
     public async ValueTask DisposeAsync()
     {

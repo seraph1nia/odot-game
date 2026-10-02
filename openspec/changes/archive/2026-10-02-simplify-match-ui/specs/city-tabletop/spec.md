@@ -90,6 +90,78 @@ Graphical clients SHALL reset the fitted overview of the observed city on a non-
 - **AND** holding Space does not repeatedly reset or trigger a gameplay action
 
 
+### Requirement: Authoritative animated combat presentation
+Graphical clients SHALL show idle, locomotion, sword attack, ranged shooting, hit and death states appropriate to the unit type and authoritative action. Displayed positions SHALL map authoritative hex identities and fixed positions/footprints to declared anchors, and facing SHALL derive from authoritative targets and moves. Accepted movement SHALL sample its declared route and start/end ticks using the shared snapshot clock, including several allied units in a hex; queued or blocked units SHALL NOT walk. Presentation SHALL NOT extrapolate beyond authoritative time, move bodies through conflicting reserved routes, merge fixed positions or manufacture combat offsets. Adjacent-hex melee SHALL deliberately depict abstract tabletop attacks: the actual rigged swing and facing at its fixed anchor SHALL be accompanied by a short directional strike connection to the locked target and target-side impact feedback on a landed authoritative hit. This SHALL remain readable for near-side and far-side occupants of a shared adjacent hex without claiming physical blade contact. Misses SHALL NOT show landed-target feedback. Unlinked generic sparks or a swing with no readable attacker/target relationship SHALL NOT satisfy the melee contract. Attack presentation SHALL NOT stretch weapons or slide a unit away from its footprint anchor to imply contact. Root motion and animation callbacks SHALL NOT move authoritative units, apply damage or release capacity. Effects SHALL be keyed to match and action identity so repeated or stale snapshots do not replay a strike, shot or hit. A casualty SHALL stop all living presentation immediately and play its death pose from authoritative death start/end ticks and recorded final movement progress. Its non-interactive visual SHALL remain coherent with the retained authoritative death reservations and SHALL be removed at the sampled death-end deadline or immediately on session replacement. Current dying bodies SHALL be reconstructed from complete snapshots without requiring historical death events. Missing required assets or clips SHALL be reported as a presentation failure. Attack animations SHALL be aligned to authoritative impact timing, and any short visual projectile SHALL be cosmetic. Death SHALL take visual precedence over hit, hit over an idle pose, and hit playback SHALL NOT cancel a valid authoritative attack.
+
+#### Scenario: Stop and swing at contact
+- **WHEN** moving Swordsmen reach their authoritative positions in adjacent combat hexes
+- **THEN** they face their targets, stop locomotion and play a rigged sword attack with an explicit directional strike cue and target impact aligned with the authoritative hit
+- **AND** health changes follow the authority rather than an animation callback
+
+#### Scenario: One shot across repeated snapshots
+- **WHEN** a Crossbowman attack appears in multiple snapshots
+- **THEN** its shooting animation and cosmetic shot are triggered once for that action identity and later snapshots update their progress
+
+#### Scenario: Casualty finishes dying
+- **WHEN** a visible soldier or enemy is killed and disappears from the living army snapshot
+- **THEN** its death sequence plays from the recorded final position/progress without participating in targeting or living army counts, while its positions remain reserved until death end
+- **AND** its visual is freed at the authoritative death-end pose or immediately on session replacement
+
+#### Scenario: Pause freezes a posed battle
+- **WHEN** combat is paused during movement, an attack, a hit, a projectile or a death sequence
+- **THEN** the combat poses and effects freeze while connection and pause/resume controls remain responsive
+- **AND** resume continues their remaining progress without wall-clock catch-up
+
+#### Scenario: Reconnect to a current battle
+- **WHEN** a client receives its complete current state after reconnecting
+- **THEN** it reconstructs living units and unexpired dying bodies at their current hex positions and action/death progress without replaying historical hits, shots or death sounds, restarting deaths or reviving dead units
+- **AND** events from the former connection or another match cannot create duplicate visuals
+
+#### Scenario: Shared hex has separate visible positions
+- **WHEN** several allied units occupy one combat hex
+- **THEN** their models stand at distinct declared anchors matching their legal footprints
+- **AND** moving models sample reserved routes without displacing stationary neighbors
+
+#### Scenario: Retained death still needs visual clearance
+- **WHEN** a visible casualty retains its authoritative positions or transit reservations until death end
+- **THEN** living models remain clear of its frozen death pose throughout that interval
+- **AND** graphical clearance assertions include current visible dying bodies rather than filtering them out of the occupied battlefield
+
+#### Scenario: Frame rate does not order combat
+- **WHEN** compatible attacks and moves begin on the same authority tick
+- **THEN** clients sample each action from that tick irrespective of local frame rate
+- **AND** initiative does not add presentation-only delays that change the declared action timing
+
+#### Scenario: Overview retains readable unit roles
+- **WHEN** a player observes shared combat hexes at the supported overview scale
+- **THEN** input-transparent health bars and Roman level numerals remain readable above the models without overhead unit names or role codes, and clicking a unit exposes its role/name in inspection
+- **AND** the directional melee guide still identifies its locked target during windup
+
+#### Scenario: Far-side melee target is readable
+- **WHEN** an anchored melee occupant attacks an eligible far-side occupant in an adjacent shared hex
+- **THEN** the directional strike cue identifies the actual locked target and its landed impact at the declared tick
+- **AND** the miniature remains at its footprint anchor and the display reads as an abstract tabletop attack
+
+#### Scenario: Verify neighboring occupied cells before fixing scale
+- **WHEN** the initial board/action model reaches its early gameplay gate
+- **THEN** a checked-in short source combat check captures actual bundled rigs in two occupied adjacent cells with near/far targets and a simultaneous exchange
+- **AND** readable linked attacks, health/role identification and shared positions are inspected before board spacing/footprint layout and broad presentation integration are accepted
+
+### Requirement: Readable unit progression and wave rewards
+The graphical match view SHALL expose an observed army's unit levels as Roman numerals above the left part of their health bars, with full names, descriptions, faction, boss identification and level in click inspection and army details rather than overhead name/role codes. Displayed health and damage SHALL use authoritative resolved profiles. Army inspection SHALL show authoritative unit size, with normal units at size two and bosses at size six. Mixed-level soldiers SHALL remain distinguishable through Roman level markers or grouped army details without adding individual upgrade controls. The view SHALL show the latest completed wave's actual gold, food and wood reward for the observed city, including on the final victory screen. A summary SHALL identify its wave and SHALL NOT imply a second payment on repeated snapshots, city switches or reconnect. A fresh match SHALL clear the prior match's reward summary. Unit levels SHALL NOT require new character assets or modify unit size through visual scaling.
+
+#### Scenario: Observe a boss
+- **WHEN** the observed city receives a boss allocation or a transferred boss
+- **THEN** the overhead bar shows its Roman level and click inspection identifies it as a boss with its level, authoritative current/maximum health, damage per attack and size six
+
+#### Scenario: Restore the reward summary
+- **WHEN** a player reconnects after wave ten clears
+- **THEN** the current balances and latest summary show that city's actual wave-ten reward without playing another payment effect
+
+#### Scenario: View mixed-level survivors
+- **WHEN** level-one veterans and level-three recruits belong to the observed army
+- **THEN** army details distinguish their levels and use their own profiles rather than displaying all soldiers at the current building level
+
 ## ADDED Requirements
 
 ### Requirement: Mouse drag tabletop panning
@@ -127,7 +199,7 @@ Graphical match views SHALL show a narrow top-right two-column table with Resour
 - **AND** foreign-city spending stays unavailable and no historical earning animation is replayed
 
 ### Requirement: Clean plot and home markers
-Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Locked land text. Selecting a locked plot SHALL expose its exact purchase quote and existing explicit purchase action; hovering or selecting the marker SHALL NOT spend resources. The marker SHALL disappear after authoritative purchase. The visible home SHALL display a compact health bar with X% text instead of P1/You, heart and raw health labels. Its fill SHALL be authoritative current city health divided by authoritative maximum city health, clamped to zero through one; its integer percentage SHALL use that fraction rounded to the nearest whole percent. Full health SHALL display 100% and a fallen city SHALL display 0% with a distinguishable fallen state. Home bars SHALL follow camera/layout changes, freeze their health on transport loss, refresh from synchronization, and remain input-transparent. City ownership SHALL remain identifiable through the compact city selector. Unit health bars SHALL retain their existing behavior.
+Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Locked land text. Selecting a locked plot SHALL expose its exact purchase quote and existing explicit purchase action; hovering or selecting the marker SHALL NOT spend resources. The marker SHALL disappear after authoritative purchase. The visible home SHALL display a compact health bar with X% text instead of P1/You, heart and raw health labels. Its fill SHALL be authoritative current city health divided by authoritative maximum city health, clamped to zero through one; its integer percentage SHALL use that fraction rounded to the nearest whole percent. Full health SHALL display 100% and a fallen city SHALL display 0% with a distinguishable fallen state. Home bars SHALL follow camera/layout changes, freeze their health on transport loss, refresh from synchronization, and remain input-transparent. City ownership SHALL remain identifiable through the compact city selector. Unit health bars SHALL retain their authoritative health and lifecycle behavior while replacing overhead names/codes with Roman level markers and exposing full identity/stats through click inspection.
 
 #### Scenario: Purchase marked land
 - **WHEN** a player selects a gold-marked locked plot and explicitly confirms its affordable purchase action
@@ -138,3 +210,27 @@ Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Loc
 - **WHEN** a synchronized city has half its authoritative maximum health
 - **THEN** the home bar shows half fill and 50% without the former player/heart/raw-health label
 - **AND** the bar remains correctly positioned and does not consume plot input after camera movement
+
+### Requirement: Clickable unit inspection
+Every visible, deployed, living friendly and enemy unit in the observed city, including bosses, SHALL be selectable by a short left click on its model. Selecting a unit SHALL open one nonmodal centre-right popup with a visual preview of that unit, its readable name, short role description, level, faction and boss status where applicable, current/max health as X/Y plus a health bar, and damage per attack. Size SHALL remain inspectable including boss size six. Displayed numeric stats SHALL use the current authoritative resolved unit profile, including level/research/boss modifiers, with readable health/damage scaling; descriptions SHALL NOT imply unsupported mechanics. The popup SHALL refresh from observed authoritative state without changing combat, readiness, plot selection or spending. Shared pause and transport loss SHALL freeze its last observed values until synchronization updates them. Headless roles SHALL create no inspector or model preview.
+
+The popup SHALL remain inside the usable viewport below the resource panel and above the bottom HUD. Clicking inside it SHALL keep it open and block underlying world input. Clicking elsewhere SHALL dismiss it and preserve the clicked target's ordinary eligible action exactly once. Clicking another unit SHALL replace the contents directly. A completed camera drag SHALL NOT select a unit or open a popup; starting a drag SHALL dismiss an existing popup. Unit hit selection SHALL choose the nearest visible unit at the clicked location rather than a plot behind it, with stable tie-breaking. Death visuals and undeployed/reserve units SHALL NOT be world-click inspection targets. Selection SHALL clear on death/removal from the observed city, city change, session/fresh-match replacement, or opening a blocking modal. Reconnect SHALL refresh the same surviving unit's stats or clear invalid selection. Source and exported graphical clients SHALL offer the same interaction.
+
+#### Scenario: Inspect a wounded ranked unit
+- **WHEN** the player short-clicks a visible unit with current health 525 and authoritative maximum health 1050 in the integer wire scale
+- **THEN** the centre-right popup shows its model, name, description, level and resolved per-attack damage, with human-readable health 5.25/10.5 and half health fill
+- **AND** the overhead marker shows the unit's Roman level with no unit name/code and no gameplay command is submitted
+
+#### Scenario: Switch and dismiss inspection
+- **WHEN** the player clicks another living unit and then clicks a plot or HUD control outside the popup
+- **THEN** the first click replaces the popup with that unit's details and the outside click closes it
+- **AND** the plot/control receives its normal eligible action once without click-through behind the inspector
+
+#### Scenario: Drag over units
+- **WHEN** a player drags from a unit past the camera gesture threshold
+- **THEN** the camera pans, the inspector stays closed, and neither unit nor plot selection changes
+
+#### Scenario: Refresh and clear inspected state
+- **WHEN** the inspected unit receives synchronized damage, is paused or disconnected, and later dies or leaves the observed city
+- **THEN** the popup uses the new authoritative health, freezes values during pause/loss, and closes when selection becomes invalid
+- **AND** changing cities or replacing the match does not retain the old popup or preview

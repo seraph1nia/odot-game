@@ -51,7 +51,7 @@ run = ["dotnet restore tools/DevRunner/DevRunner.csproj --locked-mode", "dotnet 
 
 [tasks.test]
 description = "Run cheap gameplay and runner xUnit checks without Godot"
-run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet test tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo", "dotnet test tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore --nologo"]
+run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet build tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo", "dotnet build tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore --nologo", "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-rules"]
 
 [tasks.test-in-process]
 description = "Run the same locked xUnit suites without test-host sockets"
@@ -143,6 +143,7 @@ raw_args = true
 description = "Verify rules/network/private UI, export Linux roles and check packages"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci"
+raw_args = true
 
 [tasks.ci-windows]
 description = "Verify native Windows Steam/runtime exports and bounded offline solo (no publishing)"

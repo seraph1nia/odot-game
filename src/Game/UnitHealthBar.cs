@@ -9,7 +9,7 @@ internal sealed partial class UnitHealthBar : Control
     private readonly TextureRect _track = new() { Texture = UiAssets.Texture("derived/health_track.svg"), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = MouseFilterEnum.Ignore };
     private readonly Control _clip = new() { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore };
     private readonly TextureRect _fill = new() { Texture = UiAssets.Texture("derived/health_fill.svg"), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = MouseFilterEnum.Ignore };
-    private readonly Label _role = new() { MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Center };
+    private readonly Label _role = new() { MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Left };
     internal int Current { get; private set; }
     internal int Maximum { get; private set; }
     internal double Fraction { get; private set; }
@@ -19,7 +19,7 @@ internal sealed partial class UnitHealthBar : Control
         AddChild(_track); _track.Size = Size;
         AddChild(_clip); _clip.Position = new(1.5f, 1.5f); _clip.Size = Size - new Vector2(3, 3);
         _clip.AddChild(_fill); _fill.Size = _clip.Size;
-        _role.Position = new(0, 10); _role.Size = new(46, 16);
+        _role.Position = new(0, -17); _role.Size = new(46, 16);
         _role.AddThemeFontSizeOverride("font_size", 10);
         _role.AddThemeConstantOverride("outline_size", 3);
         _role.AddThemeColorOverride("font_outline_color", new("182d36"));
@@ -35,7 +35,7 @@ internal sealed partial class UnitHealthBar : Control
         Vector3 anchor = view.GlobalPosition + new Vector3(0, 1.35f, 0);
         Position = camera.UnprojectPosition(anchor) - new Vector2(Size.X / 2, Size.Y);
         Visible = view.Visible && !view.Dead && view.State.Deployed && !camera.IsPositionBehind(anchor)
-            && worldArea.Encloses(new Rect2(Position, Size + new Vector2(0, 17)));
+            && worldArea.Encloses(new Rect2(Position - new Vector2(0, 17), new Vector2(Math.Max(Size.X, _role.GetMinimumSize().X), Size.Y + 17)));
     }
     internal object Observe(int id, Transform2D transform)
     {

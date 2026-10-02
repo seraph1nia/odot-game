@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Game/VerificationPacing.cs" Link="VerificationPacing.cs" />
     <Compile Include="../../src/Game/SnapshotPayload.cs" Link="SnapshotPayload.cs" />
     <Compile Include="../../src/Game/ProgressionPresentation.cs" Link="ProgressionPresentation.cs" />
     <Compile Include="../../tools/DevRunner/CampaignStrategy.cs" Link="Verification/CampaignStrategy.cs" />

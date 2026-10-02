@@ -28,6 +28,7 @@ internal sealed partial class Runner
     }
     private async Task MeleeCheckpoint(Child client, Child observer, CancellationToken token)
     {
+        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         var board = new HexBoard(Latest(client).Rules.Combat.Board);
         MeleeCoverage covered = MeleeCoverage.None;
         var witnesses = new List<MeleeWitness>();

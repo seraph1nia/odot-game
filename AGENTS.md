@@ -57,8 +57,8 @@ One-off diagnostic scripts may inspect evidence but do not replace those checks.
 Network ids: `authority-resume-victory`, `redistribution`, `defeat`,
 `failure-cases`, `solo-session`, `playing-host-lifecycle`. Default concurrency is two independent scenarios;
 `--jobs 1` keeps the same coverage serially. Preserve endpoint owners on bind
-failures. UI source ids: `economy`, `reconnect`, `settings`, `launcher`; unfiltered source UI
-runs all four serially, including `launcher`. `test-ui --scenario exported-package` checks existing
+failures. UI source ids: `economy`, `reconnect`, `settings`, `launcher`, `combat`; unfiltered source UI
+runs all five with at most two independent owned displays; `--jobs 1` keeps the same coverage serially. `test-ui --scenario exported-package` checks existing
 exports without preparing source or implicitly rebuilding packages.
 
 Private-display verification currently supports Linux x86_64 with the README's
@@ -79,7 +79,11 @@ developer's preferences or kill unrelated processes. Retain non-secret logs,
 timing JSON and PNG evidence under ignored `logs/<run-id>/`; never log credentials.
 
 Standalone source tasks prepare safely. Within CI, restore/build/import source
-once; overlap cheap tests with bounded network scenarios, then run source UI.
+once; overlap cheap C# partitions, network and source UI. CI shares a total expensive-scenario
+budget (`--jobs 2` default), with graphical cap `--ui-jobs 1..2`. Await cancellation
+and every owner before releasing admission. Owned setup may batch 1..8 ordinary
+fixed ticks (default 4); graphical animation/input timing barriers acknowledge speed 1.
+Interactive launches remain speed 1.
 All source checks gate the sequential client/server exports, followed by
 headless package smoke and graphical package smoke. Do not parallelize mutations
 of shared build/import/export output. CI has no publishing/upload/deployment step.

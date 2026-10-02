@@ -6,6 +6,23 @@ namespace DevRunner;
 // The observed main window and PID property identify the child; titles are never matched.
 internal static class NativeWindowClose
 {
+    public static void Resize(Child child, Options options, ulong window, uint width, uint height)
+    {
+        PrivateDisplay.ValidateWorker(options);
+        if (child.HasExited || window == 0) throw new InvalidOperationException("Owned child has no live observed window.");
+        nint display = XOpenDisplay(0);
+        if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");
+        try
+        {
+            ulong[] values = Property(display, window, XInternAtom(display, "_NET_WM_PID", 0), 6);
+            if (values.Length != 1 || values[0] != (ulong)child.ProcessId)
+                throw new InvalidOperationException("Observed main window does not belong to the owned child PID.");
+            _ = XResizeWindow(display, window, width, height);
+            _ = XFlush(display);
+            Console.WriteLine($"NATIVE RESIZE {child.Name}: owned pid={child.ProcessId}, main window={window}, {width}x{height}");
+        }
+        finally { _ = XCloseDisplay(display); }
+    }
     public static void Focus(Child child, Options options, ulong window)
     {
         PrivateDisplay.ValidateWorker(options);
@@ -121,6 +138,8 @@ internal static class NativeWindowClose
     private static extern ulong XDefaultRootWindow(nint display);
     [DllImport("libX11.so.6")]
     private static extern int XSetInputFocus(nint display, ulong window, int revert, ulong time);
+    [DllImport("libX11.so.6")]
+    private static extern int XResizeWindow(nint display, ulong window, uint width, uint height);
     [DllImport("libX11.so.6")]
     private static extern ulong XCreateSimpleWindow(nint display, ulong parent, int x, int y, uint width, uint height, uint borderWidth, ulong border, ulong background);
     [DllImport("libX11.so.6")]

@@ -126,7 +126,7 @@ internal sealed partial class Runner
         await host.WaitFor(e => e.Type == "menu", "host leaves to menu", options.StartupTimeout, token);
         await resumed.WaitFor(e => e.Type == "session-ended", "orderly original host end reaches guest", options.StartupTimeout, token);
         await host.Send("host");
-        MatchSnapshot fresh = State(await host.WaitFor(e => e.Type == "connected" && e.State?.MatchId != roster.MatchId,
+        MatchSnapshot fresh = State(await host.WaitFor(e => e.Type == "connected" && e.State is { } state && state.MatchId != roster.MatchId,
             "same-process fresh host", options.StartupTimeout, token));
         Require(fresh.Phase == Phase.Lobby && fresh.Players.Length == 1 && fresh.Players[0].Slots.All(s => s.Type == Building.Empty),
             "fresh hosted authority has a new match and only its local host");

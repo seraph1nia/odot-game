@@ -77,6 +77,13 @@ internal sealed class TabletopCamera(Camera3D camera)
         Pan += new Vector2(before.X - after.X, before.Z - after.Z);
         Apply();
     }
+    internal Vector3? DragAnchor(Vector2 cursor) => Ground(cursor);
+    internal void Drag(Vector3 anchor, Vector2 cursor)
+    {
+        if (Ground(cursor) is not { } current) return;
+        Pan += new Vector2(anchor.X - current.X, anchor.Z - current.Z);
+        Apply();
+    }
     private Vector3? Ground(Vector2 cursor) => Plane.PlaneXZ.IntersectsRay(camera.ProjectRayOrigin(cursor), camera.ProjectRayNormal(cursor));
     private void Apply()
     {

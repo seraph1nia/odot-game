@@ -5,6 +5,53 @@ namespace Game.Core.Tests;
 
 public sealed class ProgressionPresentationTests
 {
+    [Theory]
+    [InlineData(1, "I")]
+    [InlineData(4, "IV")]
+    [InlineData(9, "IX")]
+    [InlineData(18, "XVIII")]
+    [InlineData(20, "XX")]
+    public void LevelsUseConventionalRomanNumerals(int level, string expected)
+        => Assert.Equal(expected, ProgressionPresentation.RomanLevel(level));
+
+    [Theory]
+    [InlineData(10000, 10000, 100)]
+    [InlineData(525, 1050, 50)]
+    [InlineData(0, 10000, 0)]
+    [InlineData(9950, 10000, 100)]
+    public void CityPercentUsesMatchingScales(int current, int maximum, int expected)
+        => Assert.Equal(expected, ProgressionPresentation.HealthPercent(current, maximum));
+
+    [Theory]
+    [InlineData(Phase.Building, 1, 0)]
+    [InlineData(Phase.Building, 2, 1)]
+    [InlineData(Phase.Building, 3, 2)]
+    [InlineData(Phase.Preparation, 3, 3)]
+    [InlineData(Phase.Combat, 3, 4)]
+    [InlineData(Phase.Lobby, 0, -1)]
+    [InlineData(Phase.Victory, 3, -1)]
+    public void PhaseListHighlightsOnlyTheAuthoritativeStage(Phase phase, int turn, int active)
+    {
+        using var match = new Match(combatSeed: 1);
+        string[] rows = ProgressionPresentation.PhaseRows(match.Snapshot() with { Phase = phase, Turn = turn });
+        Assert.Equal(5, rows.Length);
+        Assert.Equal(active < 0 ? 0 : 1, rows.Count(row => row.StartsWith('>')));
+        if (active >= 0) Assert.StartsWith(">", rows[active]);
+    }
+
+    [Fact]
+    public void InspectionUsesTheVeteransResolvedRankedBossProfile()
+    {
+        var unit = new UnitState(42, 525) { Type = UnitType.Mage, Faction = Faction.Skeletons, Level = 4, Rank = 2, IsBoss = true, Profile = new(1050, 1975, 3, 20, 18, 24) { Size = 6 } };
+        string text = ProgressionPresentation.UnitStats(unit);
+        Assert.Contains("Health 5.25/10.5", text);
+        Assert.Contains("Level 4", text);
+        Assert.Contains("Damage per attack 19.75", text);
+        Assert.Contains("Size 6", text);
+        Assert.Equal("Boss · Skeleton Mage", ProgressionPresentation.UnitName(unit));
+        Assert.NotEmpty(ProgressionPresentation.UnitDescription(unit));
+    }
+
     [Fact]
     public void CombatShowsItsPaidReceiptEvenWhenTheCurrentForecastIsUnfunded()
     {
@@ -63,8 +110,8 @@ public sealed class ProgressionPresentationTests
         using var match = new Match(combatSeed: 1); City city = match.Join()!;
         int high = match.Combat.Create(UnitType.Swordsman, 1, 1, 1, level: 5), low = match.Combat.Create(UnitType.Swordsman, 1, 1, 1);
         UnitState veteran = match.Combat.Read(high);
-        Assert.Equal("S L5", ProgressionPresentation.UnitLabel(veteran));
-        Assert.Equal("BOSS L5", ProgressionPresentation.UnitLabel(veteran with { IsBoss = true, Faction = Faction.Skeletons })); match.Combat.Seed(veteran with { Health = 2100 });
+        Assert.Equal("V", ProgressionPresentation.UnitLabel(veteran));
+        Assert.Equal("V", ProgressionPresentation.UnitLabel(veteran with { IsBoss = true, Faction = Faction.Skeletons })); match.Combat.Seed(veteran with { Health = 2100 });
         CityState snapshot = city.Snapshot() with { FoodForecast = new(2, 1, 1, [high], [low]) };
         ProgressionView preview = ProgressionPresentation.Describe(match.Snapshot() with { Phase = Phase.Preparation }, snapshot);
         Assert.Contains($"#{high} Swordsman L5 · HP 21/133 · damage 33 · size 2 · next: fed", preview.Army);

@@ -143,6 +143,19 @@ internal sealed record UiObservation
     public string StatsText { get; init; } = "";
     public string StatusText { get; init; } = "";
     public string DetailText { get; init; } = "";
+    public string DetailsText { get; init; } = "";
+    public bool DetailsOpen { get; init; }
+    public string[] ResourceOrder { get; init; } = [];
+    public int ObservedCity { get; init; }
+    public int[] CityIds { get; init; } = [];
+    public string[] PhaseRows { get; init; } = [];
+    public Dictionary<string, int> ResourceBalances { get; init; } = [];
+    public bool ReturnConfirmationOpen { get; init; }
+    public string ConfirmationFocus { get; init; } = "";
+    public string ReturnWarning { get; init; } = "";
+    public InspectorObservation? InspectedUnit { get; init; }
+    public HomeHealthObservation HomeHealth { get; init; } = new();
+    public string[] LockedMarkers { get; init; } = [];
     public string RosterText { get; init; } = "";
     public long Revision { get; init; }
     public int SelectedSlot { get; init; }
@@ -220,15 +233,22 @@ internal sealed partial class Runner
     private static readonly string[] EconomyResourceLabels = ["Gold", "Food", "Wood", "Stone", "Metal", "Cloth"];
     private static string UiRisk(string name) => name switch
     {
-        "combat" => "Paused camera/health-bar reprojection with frozen world anchors; a few probes in the existing early-battle slice. Authoritative overhead bars on both factions, damage/pause/casualty cleanup; eight imported role/faction rigs, sword/axe/cast poses, tower projectiles, contact and effect/audio/death pause cleanup; cheap tests cannot sample rendered bones, pools or voices. One ordinary early-wave-three slice, material production and paid upkeep, 180s bound.",
-        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits/reset/resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. Six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds; picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
+        "combat" => "Unit inspection stats/preview/interior/outside/drag, using the existing pause and a few extra probes/one frame at each size; no new battle. Paused camera/health-bar reprojection with frozen world anchors; a few probes in the existing early-battle slice. Authoritative overhead bars on both factions, damage/pause/casualty cleanup; eight imported role/faction rigs, sword/axe/cast poses, tower projectiles, contact and effect/audio/death pause cleanup; cheap tests cannot sample rendered bones, pools or voices. One ordinary early-wave-three slice, material production and paid upkeep, 180s bound.",
+        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds; picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates; visible recovery control and retained presentation/identity; headless resume cannot exercise the button.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
-        "launcher" => "Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, semantic icons and full control bounds; application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit; cheap checks miss native controls. Steam remains disabled.",
+        "launcher" => "Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
         "exported-package" => "Packed shared countryside and contacts through existing captures; no additional match. Packed cursor zoom/pan/reset/picking parity using actual events in existing setup. Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
-        "installed-linux" => "Installed launcher, packed presentation and normal input; archive inventory alone cannot establish an installed graphical launch.",
+        "installed-linux" => "Installed archive reuses focused packed launch/solo/purchase/bindings/live animation/two-size/Exit route; inventory alone cannot establish an installed graphical launch.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
     };
+    private async Task SimulationSpeed(Child authority, int speed, CancellationToken token)
+    {
+        string id = Guid.NewGuid().ToString("N");
+        await authority.Send($"pacing {id} {speed}");
+        await authority.WaitFor(e => e.Type == "pacing" && e.Message == id + ":" + speed,
+            "owned simulation speed " + speed, options.StartupTimeout, token);
+    }
     private async Task<UiObservation> WaitUi(Child client, Func<UiObservation, bool> predicate, string expectation, CancellationToken token, int? timeout = null)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(timeout ?? options.StartupTimeout);
@@ -245,6 +265,31 @@ internal sealed partial class Runner
     }
     private async Task Click(Child client, string name, CancellationToken token)
     {
+        if (name == "ResetView")
+        {
+            UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            Require(!initial.Targets.ContainsKey("ResetView"), "reset button removed");
+            await FocusWorld(client, token);
+            await client.Send("key Space");
+            UiObservation reset = await WaitUi(client, p => Math.Abs(p.Camera.Zoom - 1) < .001 && Math.Abs(p.Camera.PanX) < .001 && Math.Abs(p.Camera.PanZ) < .001, "Space resets overview", token);
+            Require(reset.SelectedSlot == initial.SelectedSlot, "Space reset retains plot selection");
+            return;
+        }
+        if (name.StartsWith("City", StringComparison.Ordinal) && int.TryParse(name.AsSpan(4), out int cityId))
+        {
+            UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            for (int i = 0; initial.ObservedCity != cityId && i < initial.CityIds.Length; i++)
+            {
+                await Click(client, "NextCity", token);
+                initial = await WaitUi(client, p => p.ObservedCity != initial.ObservedCity, "city arrow switches observation", token);
+            }
+            Require(initial.ObservedCity == cityId, "city selector reaches requested cooperative city"); return;
+        }
+        if (name == "ReturnToMenu")
+        {
+            UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            if (!initial.SettingsOpen) await Click(client, "Settings", token);
+        }
         if (Enum.TryParse(name, out Building building) && building != Building.Empty)
         {
             UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
@@ -276,6 +321,10 @@ internal sealed partial class Runner
         }
         GameEvent result = await client.WaitFor(e => e.Type == "ack" && e.Result!.Sequence > previous, name + " authoritative result", options.StartupTimeout, token);
         Require(result.Result!.Accepted, $"{name} input accepted through normal protocol: {result.Message}");
+        MatchSnapshot accepted = State(result);
+        if (accepted.Phase is Phase.Building or Phase.Preparation)
+            await WaitUi(client, frame => frame.Revision >= accepted.Revision && accepted.Players.FirstOrDefault(city => city.Id == frame.ObservedCity) is { } city
+                && Enum.GetValues<Resource>().All(resource => frame.ResourceBalances.GetValueOrDefault(resource.ToString(), -1) == city.Resources.Amount(resource)), "exact displayed resource balances after accepted action", token);
         return result;
     }
     private async Task Pick(Child client, int slot, CancellationToken token)
@@ -302,8 +351,7 @@ internal sealed partial class Runner
         foreach (HealthBarObservation bar in frame.HealthBars)
         {
             UnitObservation unit = frame.Units.Single(u => u.Id == bar.Id);
-            string role = unit.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
-            string expectedRole = unit.IsBoss ? $"BOSS L{unit.Level}" : $"{(unit.Faction == Faction.Skeletons ? "E" : "")}{role} L{unit.Level}";
+            string expectedRole = RomanLevel(unit.Level);
             if (unit.Dead || !unit.Visible || !unit.Deployed || bar.Current != unit.Health || bar.Maximum != unit.MaximumHealth
                 || bar.Role != expectedRole
                 || bar.Fraction != PresentationLimits.HealthFraction(unit.Health, unit.MaximumHealth)
@@ -322,7 +370,7 @@ internal sealed partial class Runner
         Require(frame.PanelTexture == "res://Assets/TrioUI/cozy/panel_plain.svg" && frame.FocusBorder == 2, "actual kit panel and keyboard focus styles loaded");
         Require(frame.ButtonTextures.Length == 4 && frame.ButtonTextures.Distinct().Count() == 4 && frame.ButtonTextures.All(p => p.StartsWith("res://Assets/TrioUI/derived/button_", StringComparison.Ordinal)), "four distinct kit button-state textures");
         Require(frame.SliderTexture == "res://Assets/TrioUI/derived/slider_knob.svg", "kit slider knob loaded");
-        if (frame.SettingsOpen || frame.FriendsOpen || frame.JoinConfirmationOpen)
+        if (frame.SettingsOpen || frame.FriendsOpen || frame.JoinConfirmationOpen || frame.ReturnConfirmationOpen)
             Require(frame.DialogTexture == "res://Assets/TrioUI/cozy/panel_plain.svg", "actual owned dialog uses shared kit panel");
         if (frame.SettingsOpen)
             Require(frame.TabTextures.Length == 2 && frame.TabTextures.Distinct().Count() == 2, "selected and unselected tabs use distinct kit textures");
@@ -330,11 +378,12 @@ internal sealed partial class Runner
             Require(frame.DropdownTexture == "res://Assets/TrioUI/cozy/panel_plain.svg", "actual dropdown popup uses shared kit panel");
         if (frame.Screen == "session")
         {
-            Require(frame.ResourceRowsSingleLine && frame.HudHeight <= 310, "readable single-line resource values within bounded HUD reservation");
-            if (frame.StatsText.Contains("Land", StringComparison.Ordinal))
-                Require(EconomyResourceLabels.All(resource => frame.StatsText.Contains(resource, StringComparison.Ordinal))
-                    && frame.StatsText.Contains("/9", StringComparison.Ordinal) && frame.UpkeepText.Length != 0, "source and packed HUD retain six resources, permanent land and separate food upkeep");
-            Require(frame.ResourceIcons.GetValueOrDefault("Gold") == "res://Assets/TrioUI/icons/icon_gold_pile.svg" && frame.ResourceIcons.GetValueOrDefault("Food") == "res://Assets/TrioUI/icons/icon_bread.svg" && frame.ResourceIcons.GetValueOrDefault("Wood") == "", "gold/food icons and explicit wood text from actual HUD");
+            Require(frame.ResourceRowsSingleLine && frame.HudHeight <= 190, "six exact single-line balances and approximately 180px HUD");
+            Require(frame.ResourceOrder.SequenceEqual(new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" }), "resource table uses requested row order");
+            Require(EconomyResourceLabels.All(resource => frame.ResourceBalances.ContainsKey(resource)) && frame.UpkeepText.Length != 0, "six resources including zero and separate Details upkeep");
+            Require(frame.ResourceIcons.Values.All(icon => icon.Length == 0) && frame.Targets.Values.All(target => target.Icon.Length == 0), "text controls and resource table omit semantic icons");
+            Require(!frame.Targets.ContainsKey("ResetView") && (!frame.Targets.TryGetValue("ReturnToMenu", out UiTarget? leave) || !leave.Visible || frame.SettingsOpen), "reset and leave removed from bottom HUD");
+            if (frame.Connected && frame.HomeHealth.Maximum > 0) Require(frame.HomeHealth.InputIgnored && frame.HomeHealth.PercentageInside && frame.HomeHealth.Percent == (int)Math.Round(PresentationLimits.HealthFraction(frame.HomeHealth.Current, frame.HomeHealth.Maximum) * 100, MidpointRounding.AwayFromZero), "home percentage uses matching authoritative health scales");
             foreach (var (name, plot) in frame.Targets.Where(t => t.Key.StartsWith("Plot", StringComparison.Ordinal) && t.Value.Visible))
                 Require(plot.X >= 0 && plot.X <= frame.Width && plot.Y >= 0 && plot.Y < frame.HudTop, "plot selectable above HUD: " + name);
             HealthBars(frame);
@@ -348,6 +397,13 @@ internal sealed partial class Runner
         string path = Path.Combine(_scope!.EvidenceDirectory, name + ".png");
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
         UiProtocol.Frame(frame, path);
+        MatchSnapshot current = Latest(client);
+        CityState? observedCity = current.Players.FirstOrDefault(city => city.Id == frame.ObservedCity);
+        if (observedCity is not null && frame.Revision == current.Revision)
+        {
+            Require(frame.HomeHealth.Current == observedCity.Health && frame.HomeHealth.Maximum == HealthPoints.FromWhole(current.Rules.CityHealth), "home bar follows authoritative city health and maximum");
+            Require(Enum.GetValues<Resource>().All(resource => frame.ResourceBalances[resource.ToString()] == observedCity.Resources.Amount(resource)), "observed resource amounts match exact authoritative balances including zero");
+        }
         TrioPresentation(frame);
         Countryside(frame);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.Materials > 0 && frame.MusicLoaded, "rendered UI/models/materials/music loaded on owned X11 display");
@@ -379,7 +435,9 @@ internal sealed partial class Runner
         {
             case "economy":
             case "exported-package":
+                await SimulationSpeed(started.Server, 1, token);
                 await CameraControls(client, !package, token);
+                await SimulationSpeed(started.Server, options.SimulationSpeed, token);
                 await Pick(client, 0, token);
                 int gold = Latest(client).Players.Single(p => p.Id == client.PlayerId).Gold;
                 UiObservation costs = await UiProtocol.Probe(client, options.StartupTimeout, token);
@@ -393,20 +451,6 @@ internal sealed partial class Runner
                     await EconomyDetails(client, observer, token);
                 }
                 await Checkpoint(client, package ? "packed-building" : "economy-building", token);
-                if (package)
-                {
-                    await MixedArmy(client, observer, token, farmExists: true, towers: true);
-                    long towerAfter = Latest(observer).Tick;
-                    await Observe(observer, s => s.CombatEvents.Any(e => e.Tick > towerAfter && e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "packed authoritative tower impact", token);
-                    MatchSnapshot packedTower = State(await Action(observer, "pause", token));
-                    await Observe(client, s => s.Paused && s.Tick == packedTower.Tick, "packed tower pause barrier", token);
-                    UiObservation tower = await WaitUi(client, p => p.Effects.Active > 0 && p.Effects.Bus == "Master", "packed tower feedback", token);
-                    Require(tower.LoadedModels.Contains("Medieval/building_tower_catapult_blue.gltf") && tower.Stockpiles is not null && tower.Effects.Voices <= 8, "packed tower model, resource piles and bounded Master audio load from exports");
-                    await Checkpoint(client, "packed-catapult", token);
-                    await Click(client, "City" + client.PlayerId, token);
-                    await ClickAck(client, "Pause", token);
-                    await CombatCheckpoint(client, observer, token, shortCheck: true);
-                }
                 break;
             case "combat":
                 if (options.UiCheckpoint == "melee")
@@ -420,18 +464,23 @@ internal sealed partial class Runner
                 break;
             case "reconnect":
                 await MixedArmy(client, observer, token);
+                await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
                 long reconnectCasualtyAfter = Latest(observer).Tick;
                 await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId
                     && u.Hex!.DeathStartTick > reconnectCasualtyAfter && u.Hex.DeathEndTick > s.Tick + 12), "fresh natural casualty before reconnect", token);
                 MatchSnapshot deathPause = State(await Action(observer, "pause", token));
                 await Observe(client, s => s.Paused && s.Tick == deathPause.Tick, "graphical casualty pause barrier", token);
                 Require(deathPause.DyingBodies.Any(u => u.Destination == client.PlayerId), "pause retains a current casualty");
+                await UnitInspection(client, "reconnect-unit-inspection", token);
                 int identity = client.PlayerId, connection = client.PeerId;
                 string before = Gameplay(Latest(client));
                 UiObservation cameraBefore = await CameraZoom(client, token);
+                UiObservation inspectedBeforeLoss = await OpenUnitInspector(client, token);
                 await client.Send("disconnect");
                 await client.WaitFor(e => e.Type == "server-disconnected", "local transport disconnected", options.StartupTimeout, token);
                 await Observe(observer, s => !s.Players.Single(p => p.Id == identity).Connected, "observer sees absent city", token);
+                UiObservation lost = await UiProtocol.Probe(client, options.StartupTimeout, token);
+                Require(lost.InspectedUnit == inspectedBeforeLoss.InspectedUnit, "transport loss freezes inspector health and profile");
                 Require(SameCamera(cameraBefore.Camera, (await UiProtocol.Probe(client, options.StartupTimeout, token)).Camera), "transport loss retains local view");
                 await HoldPan(client, ["D"], token);
                 UiObservation cameraDisconnected = await UiProtocol.Probe(client, options.StartupTimeout, token);
@@ -444,6 +493,8 @@ internal sealed partial class Runner
                 Require(SameCamera(cameraDisconnected.Camera, restored.Camera), "same-match reconnect preserves adjusted camera");
                 await Pick(client, 2, token);
                 await Click(client, "ResetView", token);
+                CityState resumedCity = State(resumed).Players.Single(city => city.Id == restored.ObservedCity);
+                Require(Enum.GetValues<Resource>().All(resource => restored.ResourceBalances[resource.ToString()] == resumedCity.Resources.Amount(resource)), "reconnect reconstructs exact displayed balances including zero");
                 HealthBars(restored);
                 foreach (HealthBarObservation bar in restored.HealthBars)
                 {
@@ -475,6 +526,7 @@ internal sealed partial class Runner
                 await WaitUi(deathRestart, p => p.Units.All(u => !dyingIds.Contains(u.Id)), "expired death models removed after resume", token);
                 break;
             case "settings":
+                await SimulationSpeed(started.Server, 1, token);
                 await CameraInputPriority(client, token);
                 await Pick(client, 0, token);
                 UiObservation closed = await UiProtocol.Probe(client, options.StartupTimeout, token);

@@ -32,13 +32,13 @@ internal sealed partial class Runner
     }
     private async Task MixedArmy(Child client, Child observer, CancellationToken token, bool farmExists = false, bool towers = false)
     {
-        if (!farmExists) { await Pick(client, 0, token); await ClickAck(client, "Farm", token); }
-        await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
-        await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
+        if (!farmExists) await Action(client, "build 0 farm", token);
+        await Action(client, "build 1 metalmine", token);
+        await Action(client, "build 2 barracks", token);
         if (towers) await TowerOpening(observer, token);
         else { await Action(observer, "build 0 farm", token); await Action(observer, "build 1 metalmine", token); await Action(observer, "build 2 barracks", token); }
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
-        await Pick(client, 3, token); await ClickAck(client, "Lumbermill", token);
+        await Action(client, "build 3 lumbermill", token);
         await UiReadyPair(client, observer, token);
         await Pick(client, 2, token);
         UiObservation equipment = await UiProtocol.Probe(client, options.StartupTimeout, token);
@@ -64,6 +64,7 @@ internal sealed partial class Runner
             "ranged recruitment remains visible, disabled without equipment and inside the window");
         await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
         if (towers) await Click(client, "City" + observer.PlayerId, token);
+        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         await UiReadyPair(client, observer, token);
         await Observe(client, state => state.Phase == Phase.Combat && state.Wave == 2, "funded mixed second wave", token);
     }
@@ -93,6 +94,7 @@ internal sealed partial class Runner
         Require(piles.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "specialist equipment updates exact current stockpile tiers");
         Require(city.Soldiers.Any(u => u.Type == UnitType.Mage) && city.Soldiers.Any(u => u.Type == UnitType.Berserker) && city.Soldiers.Any(u => u.Type == UnitType.Crossbowman), "ordinary three-wave specialist supply chain fields all required friendly roles");
         await Click(client, "City" + observer.PlayerId, token);
+        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         await UiReadyPair(client, observer, token, actualInput: false); await Observe(client, state => state.Phase == Phase.Combat && state.Wave == 3, "funded specialist third wave", token);
         long towerAfter = Latest(observer).Tick;
         await Observe(observer, s => s.CombatEvents.Any(e => e.Tick > towerAfter && e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "real catapult impact", token);
@@ -107,6 +109,7 @@ internal sealed partial class Runner
 
     private async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
     {
+        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Type == UnitType.Swordsman && u.Clip == "Running_A"), "actual locomotion pose", token);
         HealthBars(moving);
         Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
@@ -117,8 +120,13 @@ internal sealed partial class Runner
         if (shortCheck) await Action(observer, "pause", token);
         else await ClickAck(client, "Pause", token, moved);
         await Checkpoint(client, shortCheck ? "packed-locomotion" : "combat-locomotion", token);
+        await UnitInspection(client, shortCheck ? "packed-unit-inspection" : "combat-unit-inspection", token);
         if (shortCheck)
         {
+            UiObservation packedWindow = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            NativeWindowClose.Resize(client, options, packedWindow.NativeWindow, 1280, 720);
+            await WaitUi(client, p => p.Width == 1280 && p.Height == 720, "owned packed window resized to supported 1280x720", token);
+            await UnitInspection(client, "packed-unit-inspection-resized", token);
             async Task<MatchSnapshot> PausePackedEvent(Func<MatchSnapshot, bool> predicate, string expectation)
             {
                 await Observe(observer, predicate, expectation, token);
@@ -156,13 +164,29 @@ internal sealed partial class Runner
             && resized.HealthBars.Any(b => b.Visible && b.X != frozen.HealthBars.Single(old => old.Id == b.Id).X), "resizing reprojects health bars while authoritative health and paused unit poses stay frozen");
         await Click(client, "CloseSettings", token);
         await WaitUi(client, p => !p.SettingsOpen, "return to paused battle after resizing", token);
+        await UnitInspection(client, "combat-unit-inspection-resized", token);
         await Checkpoint(client, "combat-resized", token);
+        await OpenUnitInspector(client, token);
+        long priorPause = AckSequence(client);
         await ClickAck(client, "Pause", token);
+        UiObservation outsidePause = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(outsidePause.InspectedUnit is null && AckSequence(client) == priorPause + 1, "outside Pause dismisses inspection and executes once");
+        UiObservation liveInspection = await OpenUnitInspector(client, token);
+        InspectorObservation liveUnit = liveInspection.InspectedUnit!;
+        bool inspectionChanged = false;
         bool sword = false, shot = false, hit = false, axe = false, damagedBar = false, recovery = false;
         var priorRecovery = new Dictionary<int, UnitObservation>();
         await WaitUi(client, p =>
         {
             RenderedContact(p); HealthBars(p);
+            UnitState? observed = CombatPlayback.All(Latest(client)).FirstOrDefault(unit => unit.Id == liveUnit.Id);
+            if (p.InspectedUnit is { } inspected && inspected.Id == liveUnit.Id)
+            {
+                inspectionChanged |= inspected.Health != liveUnit.Health;
+                if (p.Revision == Latest(client).Revision && observed is not null)
+                    Require(inspected.Health == observed.Health && inspected.MaximumHealth == observed.Profile.Health && inspected.Damage == observed.Profile.Damage, "live inspector follows authoritative damage and resolved stats");
+            }
+            else if (observed is null || observed.Health <= 0) { Require(p.InspectedUnit is null, "selected casualty removes its inspection panel"); inspectionChanged = true; }
             damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
             foreach (UnitObservation unit in p.Units.Where(u => !u.Dead && u.Hex?.Action == UnitActionKind.Recovery))
             {
@@ -185,8 +209,9 @@ internal sealed partial class Runner
             shot |= p.Units.Any(u => u.Visible && u.Type == UnitType.Mage && u.Clip == "Spellcast_Shoot" && u.AttackActive);
             axe |= p.Units.Any(u => u.Visible && u.Type == UnitType.Berserker && u.Clip == "2H_Melee_Attack_Chop" && u.AttackActive);
             hit |= p.Units.Any(u => u.Visible && u.Clip == "Hit_A");
-            return sword && shot && hit && axe && damagedBar && recovery;
+            return sword && shot && hit && axe && damagedBar && recovery && inspectionChanged;
         }, "sword/axe, Mage cast, hit and recovery poses", token, 60000);
+        Require(inspectionChanged, "live inspection updates damage or closes on its casualty");
         long casualtyAfter = Latest(observer).Tick;
         await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId
             && u.Hex!.DeathStartTick > casualtyAfter && u.Hex.DeathEndTick > s.Tick + 12), "fresh focused-city casualty after all attack witnesses", token);
@@ -198,6 +223,7 @@ internal sealed partial class Runner
             && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && u.PoseSeconds < .35), "same paused authoritative casualty rendered freshly", token);
         Require(sword && shot && hit && axe && casualty.Effects.Active <= 64 && casualty.Effects.Voices <= 8, "rendered sword/axe/cast/hit states and bounded effects sampled from live nodes");
         Require(damagedBar, "authoritative damage visibly reduces a living health bar");
+        if (!CombatPlayback.All(retainedDeath).Any(unit => unit.Id == liveUnit.Id)) Require(casualty.InspectedUnit is null, "removed selected unit has no retained inspector");
         Require(!casualty.HealthBars.Any(b => b.Id == dead), "death immediately removes overhead bar");
         Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");
         Require(retainedDeath.DyingBodies.Any(u => u.Id == dead), "authoritative casualty pause retains the sampled death");
@@ -219,10 +245,11 @@ internal sealed partial class Runner
         Require(cleaned.VisualSeconds - casualty.VisualSeconds <= 2, "death view frees within two unpaused seconds");
         await CameraZoom(client, token);
         await Click(client, "ReturnToMenu", token);
+        await Click(client, "ConfirmReturn", token);
         await WaitUi(client, p => p.Screen == "menu", "combat return cleanup", token);
         await Click(client, "Singleplayer", token);
         UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal)
-            && p.HudHeight >= 299 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
+            && p.HudHeight >= 179 && p.HudHeight <= 190 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
         RequireOverview(fresh);
         Require(fresh.Units.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
             "fresh match clears living/dead views, events and old authority identity");

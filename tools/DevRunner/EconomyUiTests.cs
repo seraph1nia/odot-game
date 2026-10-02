@@ -4,10 +4,11 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
+    private readonly HashSet<string> _inputWitnesses = [];
     private async Task<MatchSnapshot> UiReadyPair(Child client, Child observer, CancellationToken token, bool actualInput = true)
     {
         await TowerInvestment(observer, token);
-        if (actualInput) await ClickAck(client, "Ready", token);
+        if (actualInput && _inputWitnesses.Add("Ready")) await ClickAck(client, "Ready", token);
         else await Action(client, "ready", token);
         MatchSnapshot resolved = State(await Action(observer, "ready", token));
         return await Observe(client, s => s.Revision >= resolved.Revision && s.TurnSerial == resolved.TurnSerial && s.Phase == resolved.Phase, "ordinary UI production/battle synchronization", token);
@@ -39,11 +40,11 @@ internal sealed partial class Runner
     }
     private async Task UiSwords(Child client, int slot, int target, CancellationToken token, bool actualInput = true)
     {
-        if (actualInput) await Pick(client, slot, token);
+        if (actualInput && !_inputWitnesses.Contains("Recruit")) await Pick(client, slot, token);
         while (Latest(client).Players.Single(p => p.Id == client.PlayerId) is CityState city && city.Soldiers.Length < target
             && city.Resources.TryPay(city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[slot].Level).Cost, out _))
         {
-            int food = city.Food; GameEvent recruit = actualInput ? await ClickAck(client, "Recruit", token) : await Action(client, $"recruit {slot}", token);
+            int food = city.Food; GameEvent recruit = actualInput && _inputWitnesses.Add("Recruit") ? await ClickAck(client, "Recruit", token) : await Action(client, $"recruit {slot}", token);
             Require(State(recruit).Players.Single(p => p.Id == client.PlayerId).Food == food, "actual material recruitment does not deduct food");
         }
     }
@@ -56,11 +57,15 @@ internal sealed partial class Runner
     }
     private async Task EconomyDetails(Child client, Child observer, CancellationToken token)
     {
+        await Click(client, "Details", token);
+        UiObservation details = await WaitUi(client, p => p.DetailsOpen, "Details inspection opens explicitly", token);
+        Require(details.UpkeepText.Length > 0 && details.RewardText.Length > 0 && details.RosterText.Contains('P') && details.DetailsText.Contains("Gold:", StringComparison.Ordinal), "Details retains upkeep, reward and cooperative roster");
+        await Click(client, "CloseDetails", token);
         await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
         await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
         await TowerOpening(observer, token);
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
-        await Pick(client, 3, token); await ClickAck(client, "Lumbermill", token);
+        await Action(client, "build 3 lumbermill", token);
         await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
         await UiSwords(client, 2, 6, token);
         CityState equipped = Latest(client).Players.Single(p => p.Id == client.PlayerId);
@@ -68,7 +73,7 @@ internal sealed partial class Runner
         await UiReadyPair(client, observer, token);
         Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).LastUpkeep is { Wave: 1, Paid: 6 }, "battle-start food receipt pays once through actual Ready input");
         await UiClear(client, observer, 1, token);
-        await Pick(client, 4, token); await ClickAck(client, "Stonecutter", token);
+        await Action(client, "build 4 stonecutter", token);
         for (int production = 0; production < 3; production++) { await UiReadyPair(client, observer, token); await TowerInvestment(observer, token); }
         await Pick(client, 1, token); await ClickAck(client, "Sell", token);
         await ClickAck(client, "Blacksmith", token); await ClickAck(client, "ResearchMelee", token);
@@ -80,12 +85,18 @@ internal sealed partial class Runner
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
         CityState full = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(full.Slots.Where(s => s.Purchased).All(s => s.Type != Building.Empty), "five purchased plots are full before expansion");
-        await Pick(client, 5, token); GameEvent expansion = await ClickAck(client, "BuyPlot", token);
+        await Pick(client, 5, token);
+        UiObservation locked = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(locked.LockedMarkers.Contains("Locked5", StringComparer.Ordinal), "locked plot has gold marker before purchase");
+        GameEvent expansion = await ClickAck(client, "BuyPlot", token);
+        UiObservation bought = await WaitUi(client, p => !p.LockedMarkers.Contains("Locked5", StringComparer.Ordinal), "accepted purchase removes gold marker", token);
+        Require(bought.SelectedSlot == 5, "buy marker does not change plot selection");
         Require(State(expansion).Players.Single(p => p.Id == client.PlayerId).Slots[5].Purchased, "actual plot purchase permanently opens selected land");
         await UiReadyPair(client, observer, token);
         await Pick(client, 4, token); await ClickAck(client, "Sell", token);
         await Pick(client, 5, token); await ClickAck(client, "Market", token);
-        for (int bundle = 0; bundle < 8; bundle++) await ClickAck(client, "TradeMetal", token);
+        await ClickAck(client, "TradeMetal", token);
+        for (int bundle = 1; bundle < 8; bundle++) await Action(client, "trade 5 metal 1", token);
         await Pick(client, 2, token); await ClickAck(client, "Upgrade", token);
         int food = Latest(client).Players.Single(p => p.Id == client.PlayerId).Food;
         GameEvent leveled = await ClickAck(client, "Recruit", token);
@@ -94,7 +105,7 @@ internal sealed partial class Runner
         await Pick(client, 5, token); GameEvent foodSale = await ClickAck(client, "TradeFood", token);
         CityState soldFood = State(foodSale).Players.Single(p => p.Id == client.PlayerId);
         Require(soldFood.Food == food - Latest(client).MarketRates.Single(r => r.Resource == Resource.Food).Units && soldFood.FoodForecast!.Available == soldFood.Food, "food sale refreshes the authoritative next-battle preview");
-        for (int bundle = 0; bundle < 4; bundle++) await ClickAck(client, "TradeMetal", token);
+        for (int bundle = 0; bundle < 4; bundle++) await Action(client, "trade 5 metal 1", token);
         await Pick(client, 3, token); long generation = Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3].Generation;
         await ClickAck(client, "Sell", token); await ClickAck(client, "Lumbermill", token);
         Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3] is { Level: 1 } replacement && replacement.Generation > generation, "sale and rebuild establish a fresh producer on retained land");
@@ -114,6 +125,7 @@ internal sealed partial class Runner
         for (int slot = 0; slot < 9; slot++) await Pick(client, slot, token);
         await Pick(client, 2, token); UiObservation foreign = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(!foreign.Targets["Upgrade"].Enabled && !foreign.Targets["Sell"].Enabled, "foreign tower remains read only");
+        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         await CameraZoom(client, token); await Pick(client, 2, token);
         Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["Upgrade"].Enabled, "zoomed foreign roof remains read only");
         await Checkpoint(client, "economy-camera-roof", token); await Click(client, "ResetView", token); await Checkpoint(client, "economy-upgraded-roof", token);

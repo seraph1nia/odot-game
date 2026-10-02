@@ -51,7 +51,8 @@ public partial class Main : Node, IGameSession
     private string _bind = "127.0.0.1";
     private ulong? _combatSeed;
     private long _localSequence = 1;
-    private int _broadcastTick;
+    private ulong _lastBroadcast;
+    private VerificationPacing _pacing = new(null, null, null);
     private long _broadcastRevision = -1;
 
     public MatchSnapshot? State { get; private set; }
@@ -63,6 +64,12 @@ public partial class Main : Node, IGameSession
     public bool CanStart => Connected && State?.Phase == Phase.Lobby
         && (_authority?.CanStart(PlayerId) == true || _role == SessionRole.Guest && _guestCanStart);
     public bool CanInvite { get; set; }
+    internal string LeaveWarning => _role switch
+    {
+        SessionRole.Solo => "Return to menu? Unsaved game progress will be lost.",
+        SessionRole.PlayingHost => "Return to menu? This ends the session for everyone and game progress will be lost.",
+        _ => "Leave this game and return to menu? Your city remains with the host while this session is running."
+    };
     public bool HasSession => _role != SessionRole.None || _drainingPeer is not null;
     public long SessionGeneration { get; private set; }
     internal GameApplication? Application { get; private set; }
@@ -97,6 +104,9 @@ public partial class Main : Node, IGameSession
     {
         SessionRole role = OS.HasFeature("dedicated_server") ? SessionRole.Dedicated : SessionRole.None;
         bool roleSet = false;
+        int simulationSpeed = 1;
+        _pacing = new(System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA"),
+            System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_MARKER"), System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_TOKEN"));
         for (int i = 0; i < args.Length; i++)
         {
             string Value() => ++i < args.Length ? args[i] : throw new ArgumentException("Missing argument value.");
@@ -117,12 +127,15 @@ public partial class Main : Node, IGameSession
                 case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--combat-seed": _combatSeed = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
                 case "--automated": _automated = true; break;
+                case "--simulation-speed": simulationSpeed = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--supervised": _supervised = true; break;
                 // Steam's own launch arguments are consumed by the application platform owner.
                 case "+connect_lobby": _ = Value(); break;
                 default: throw new ArgumentException($"Unknown game argument: {args[i]}");
             }
         }
+        if (simulationSpeed != 1 && !_pacing.Configure(simulationSpeed, role != SessionRole.Guest))
+            throw new ArgumentException("Simulation pacing requires an owned verification authority.");
         if (_port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Invalid port or timeout.");
         if (role == SessionRole.Guest && _combatSeed is not null) throw new ArgumentException("Combat seed belongs to an authority role.");
         if (System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA") is { } owned)
@@ -391,6 +404,7 @@ public partial class Main : Node, IGameSession
         if (result is null) return;
         MatchSnapshot state = _authority.Snapshot(); SetState(state);
         RpcId(peer, MethodName.Acknowledged, JsonSerializer.Serialize(result, WireJson.Options), SnapshotPayload.Encode(state));
+        PublishState(force: true);
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void Acknowledged(string json, string state)
@@ -452,6 +466,7 @@ public partial class Main : Node, IGameSession
     {
         Feedback = result.Message; SetState(_authority!.Snapshot()); QueueCue(result);
         Emit(new("ack", 1, State, result.Message, PlayerId, result));
+        PublishState(force: true);
     }
 
     public override void _Process(double delta)
@@ -466,21 +481,27 @@ public partial class Main : Node, IGameSession
             if (command.Generation == SessionGeneration || IsApplicationCommand(command.Text)) HandleCommand(command.Text);
         if (_authority is not null)
         {
-            _authority.Step();
-            // Complete combat snapshots are larger than the old lane state. Repeating
-            // an unchanged paused snapshot fills ENet's reliable queue and can
-            // hide a later resume/pause revision from the graphical peer.
-            if (_broadcastRevision != _authority.Revision
-                && (++_broadcastTick >= 3 || _authority.Phase != Phase.Combat || _authority.Paused))
+            _pacing.Run(() =>
             {
-                MatchSnapshot state = _authority.Snapshot();
-                _broadcastTick = 0; _broadcastRevision = state.Revision; SetState(state);
-                if (_peer is not null && Multiplayer.GetPeers().Length != 0) Rpc(MethodName.Snapshot, SnapshotPayload.Encode(state));
-                if (Connected && (_automated || _supervised)) Emit(new("snapshot", 1, State, PlayerId: PlayerId));
-            }
+                Phase before = _authority.Phase;
+                _authority.Step();
+                if (_authority.Phase != before) PublishState(force: true);
+            }, () => _authority.Paused);
+            PublishState(force: false);
         }
         else if (_role == SessionRole.Guest && !Connected && Status == "Connecting" && Time.GetTicksMsec() - _started > (ulong)_connectionTimeout)
             FailConnection("connection-failed", "Connection deadline expired.");
+    }
+
+    private void PublishState(bool force)
+    {
+        if (_authority is null || _broadcastRevision == _authority.Revision && !force) return;
+        ulong now = Time.GetTicksMsec();
+        if (!force && _authority.Phase == Phase.Combat && !_authority.Paused && now - _lastBroadcast < 50) return;
+        MatchSnapshot state = _authority.Snapshot();
+        _lastBroadcast = now; _broadcastRevision = state.Revision; SetState(state);
+        if (_peer is not null && Multiplayer.GetPeers().Length != 0) Rpc(MethodName.Snapshot, SnapshotPayload.Encode(state));
+        if (Connected && (_automated || _supervised)) Emit(new("snapshot", 1, State, PlayerId: PlayerId));
     }
 
     private static bool IsApplicationCommand(string text) => text is "quit" or "exit" or "ui" or "ui-probe"
@@ -494,6 +515,13 @@ public partial class Main : Node, IGameSession
             if (parts.Length == 0) return;
             switch (parts[0])
             {
+                case "pacing" when _supervised:
+                    int speed = int.Parse(parts[2], CultureInfo.InvariantCulture);
+                    if (!_pacing.Configure(speed, _role != SessionRole.Guest)) { Emit(new("error", Message: "Unowned or guest pacing request.")); break; }
+                    PublishState(force: true);
+                    Emit(new("pacing", State: State, Message: parts[1] + ":" + _pacing.Speed)); break;
+                case "checkpoint" when _supervised && _pacing.Owned:
+                    PublishState(force: true); Emit(new("checkpoint", State: State, Message: parts[1])); break;
                 case "ui" or "ui-probe" when _supervised && Application is not null:
                     _ = ProbeUi(parts.Length > 1 ? parts[1] : Guid.NewGuid().ToString("N"), parts.Length > 2 ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[2])) : null); break;
                 case "ui-steam-friends": ProbeSteamFriends(parts[1]); break;
@@ -511,6 +539,11 @@ public partial class Main : Node, IGameSession
                     Input.ParseInputEvent(new InputEventMouseMotion { Position = cursor, GlobalPosition = cursor });
                     Input.ParseInputEvent(new InputEventMouseButton { Position = cursor, GlobalPosition = cursor, ButtonIndex = wheel, Pressed = true, Factor = 1 });
                     Input.ParseInputEvent(new InputEventMouseButton { Position = cursor, GlobalPosition = cursor, ButtonIndex = wheel, Pressed = false }); break;
+                case "mouse-down" or "mouse-up" or "mouse-move" when _supervised && Application is not null:
+                    Vector2 dragPosition = new(float.Parse(parts[1], CultureInfo.InvariantCulture), float.Parse(parts[2], CultureInfo.InvariantCulture));
+                    if (parts[0] == "mouse-move") Input.ParseInputEvent(new InputEventMouseMotion { Position = dragPosition, GlobalPosition = dragPosition, ButtonMask = MouseButtonMask.Left });
+                    else Input.ParseInputEvent(new InputEventMouseButton { Position = dragPosition, GlobalPosition = dragPosition, ButtonIndex = MouseButton.Left, Pressed = parts[0] == "mouse-down" });
+                    break;
                 case "click" when Application is not null:
                     Vector2 position = new(float.Parse(parts[1], CultureInfo.InvariantCulture), float.Parse(parts[2], CultureInfo.InvariantCulture));
                     Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
@@ -645,7 +678,7 @@ public partial class Main : Node, IGameSession
             Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); peer?.Close(); peer?.Dispose();
         }
         _role = SessionRole.None; _guestPeerFactory = null; _authenticatedIdentity = null; _originalHostIdentity = ""; _expectedNativeMatch = null; _session = null;
-        _sent.Clear(); _attempt = ""; _broadcastTick = 0; _broadcastRevision = -1;
+        _sent.Clear(); _attempt = ""; _lastBroadcast = 0; _broadcastRevision = -1;
         Connected = false; PlayerId = 0; HostPlayerId = 0; CanInvite = false; _guestCanStart = false; State = null; _actionCues.Clear(""); Status = "Menu"; Feedback = "";
     }
 
@@ -676,7 +709,8 @@ public partial class Main : Node, IGameSession
         if (generation != SessionGeneration) return false;
         Feedback = feedback; return true;
     }
-    internal static void Emit(GameEvent value) => GD.Print(WireJson.EventPrefix + JsonSerializer.Serialize(value, WireJson.Options));
+    // Protocol stdout is consumed by the owned supervisor, not duplicated in engine logs.
+    internal static void Emit(GameEvent value) => Console.WriteLine(WireJson.EventPrefix + JsonSerializer.Serialize(value, WireJson.Options));
 
     public void RequestExit()
     {
@@ -733,9 +767,9 @@ public partial class Main : Node, IGameSession
                 Error result = image.SavePng(screenshot);
                 if (result != Error.Ok) throw new InvalidOperationException($"Frame capture failed: {result}");
             }
-            GD.Print("ODOT_UI " + JsonSerializer.Serialize(Application.ObserveUi(id, screenshot, colors), WireJson.Options));
+            Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(Application.ObserveUi(id, screenshot, colors), WireJson.Options));
         }
-        catch (Exception error) { GD.Print("ODOT_UI " + JsonSerializer.Serialize(new { Id = id, Error = error.Message }, WireJson.Options)); }
+        catch (Exception error) { Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(new { Id = id, Error = error.Message }, WireJson.Options)); }
     }
     public override void _ExitTree()
     {

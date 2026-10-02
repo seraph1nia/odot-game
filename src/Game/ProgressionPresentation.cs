@@ -26,12 +26,31 @@ public static class ProgressionPresentation
         string army = string.Join('\n', city.Soldiers.Select(unit => ArmyDetail(unit, city, preview)));
         return new(phase, land, food, reward, army);
     }
-    public static string UnitLabel(UnitState unit)
+    public static string UnitLabel(UnitState unit) => RomanLevel(unit.Level);
+    public static string RomanLevel(int level)
     {
-        if (unit.IsBoss) return $"BOSS L{unit.Level}";
-        string role = unit.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
-        return $"{(unit.Faction == Faction.Skeletons ? "E" : "")}{role} L{unit.Level}";
+        if (level < 1) return "";
+        var result = new System.Text.StringBuilder();
+        foreach (var (value, numeral) in new[] { (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I") })
+            while (level >= value) { result.Append(numeral); level -= value; }
+        return result.ToString();
     }
+    public static string[] PhaseRows(MatchSnapshot? state)
+    {
+        string[] labels = ["Building 1", "Building 2", "Building 3", "Preparation", "Combat"];
+        int active = state?.Phase switch { Phase.Building => state.Turn - 1, Phase.Preparation => 3, Phase.Combat => 4, _ => -1 };
+        return labels.Select((label, index) => (index == active ? "> " : "  ") + label).ToArray();
+    }
+    public static int HealthPercent(int current, int maximum) => (int)Math.Round(PresentationLimits.HealthFraction(current, maximum) * 100, MidpointRounding.AwayFromZero);
+    public static string UnitStats(UnitState unit) => $"Health {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)}\nLevel {unit.Level} · {unit.Faction}\nDamage per attack {HealthPoints.Format(unit.Profile.Damage)}\nSize {unit.Size}";
+    public static string UnitName(UnitState unit) => (unit.IsBoss ? "Boss · " : "") + (unit.Faction == Faction.Skeletons ? "Skeleton " : "") + unit.Type;
+    public static string UnitDescription(UnitState unit) => unit.Type switch
+    {
+        UnitType.Berserker => "A heavy melee fighter with powerful axe attacks.",
+        UnitType.Crossbowman => "A ranged fighter who attacks with a crossbow.",
+        UnitType.Mage => "A spellcaster who attacks with magic.",
+        _ => "A close combat fighter armed with a sword."
+    };
     private static string ArmyDetail(UnitState unit, CityState city, bool preview)
     {
         string status = preview && city.FoodForecast is BattleFoodForecast forecast ? forecast.Participating.Contains(unit.Id) ? "next: fed" : "next: reserve"

@@ -12,14 +12,20 @@ internal sealed partial class Runner
     // Two small solo routes reuse existing picking/protocol helpers without replaying battles.
     private async Task MenuUiScenario(string? executable, CancellationToken token)
     {
-        foreach (string size in new[] { "1100x820", "1280x720" })
-        {
-            var worker = new Runner(options with { EngineArgs = ["--resolution", size] }, token, _evidence, _scope);
-            await worker.MenuRoute(size, executable, token);
-            await worker.FriendsUiScenario(size, executable, token);
-        }
+        await MenuRoute("1100x820", executable, token);
+        await FriendsUiScenario("1100x820", executable, token);
         var hosted = new Runner(options with { EngineArgs = ["--resolution", "1280x720"] }, token, _evidence, _scope);
         await hosted.HostedMenuRoute(executable, token);
+    }
+
+    private async Task GeometryAtBothSizes(Child client, string name, CancellationToken token)
+    {
+        UiObservation current = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        NativeWindowClose.Resize(client, options, current.NativeWindow, 1280, 720);
+        await WaitUi(client, p => p.Width == 1280 && p.Height == 720, "same prepared window at 1280x720", token);
+        await MenuCheckpoint(client, name + "-1280x720", token);
+        NativeWindowClose.Resize(client, options, current.NativeWindow, 1100, 820);
+        await WaitUi(client, p => p.Width == 1100 && p.Height == 820, "same prepared window restored", token);
     }
 
     private async Task HostedMenuRoute(string? executable, CancellationToken token)
@@ -37,7 +43,7 @@ internal sealed partial class Runner
             && p.RosterText.Contains("P" + guest.PlayerId, StringComparison.Ordinal) && p.Targets["Start"].Visible && p.Targets["Start"].Enabled,
             "hosted roster and host Start available", token);
         Require(lobby.Targets["Invite"].Visible && !lobby.Targets["Invite"].Enabled, "local ENet host displays unavailable Steam Invite");
-        foreach (string name in new[] { "Start", "Invite", "ReturnToMenu" })
+        foreach (string name in new[] { "Start", "Invite" })
         {
             UiTarget target = lobby.Targets[name];
             Require(target.X > 0 && target.X < lobby.Width && target.Y > 0 && target.Y < lobby.Height, "hosted " + name + " stays inside bottom panel at 1280x720");
@@ -54,8 +60,20 @@ internal sealed partial class Runner
             "hosted purchase feedback and direct selection", token);
         Require(purchases.MusicPlaying, "hosted application retains music");
         await MenuCheckpoint(host, "hosted-1280x720", token);
+        int retainedId = guest.PlayerId;
+        UiObservation guestBefore = await UiProtocol.Probe(guest, options.StartupTimeout, token);
+        await ReturnViaControl(guest, token);
+        UiObservation guestMenu = await WaitUi(guest, p => p.Screen == "menu", "guest confirmed leave returns to menu", token);
+        Require(guestMenu.MusicInstance == guestBefore.MusicInstance && guestMenu.MasterVolume == guestBefore.MasterVolume, "guest confirmed leave preserves application music and preferences");
+        await Observe(host, state => state.Players.Single(city => city.Id == retainedId) is { Connected: false } city && city.Slots[0].Type == Building.Farm, "host retains the city after guest confirms leaving", token);
+        await Click(guest, "Exit", token); Require(await guest.WaitExit(token) == 0, "owned guest exits before intentional resume");
+        guest = StartGameRole("ui-local-guest", "client", false, port, executable);
+        GameEvent rejoined = await guest.WaitFor(e => e.Type == "connected", "owned guest resumes retained city", options.StartupTimeout, token);
+        Require(rejoined.PlayerId == retainedId, "private resume credentials survive confirmed guest leave");
+        await WaitUi(guest, p => p.Screen == "session" && p.Connected, "resumed hosted guest UI", token);
         await Click(guest, "Settings", token);
-        UiObservation guestModal = await WaitUi(guest, p => p.SettingsOpen, "guest settings open before original host ends", token);
+        await Click(guest, "ReturnToMenu", token);
+        UiObservation guestModal = await WaitUi(guest, p => p.SettingsOpen && p.ReturnConfirmationOpen, "guest confirmation open before original host ends", token);
         await Click(host, "Settings", token);
         UiObservation modal = await WaitUi(host, p => p.SettingsOpen, "native close with settings modal open", token);
         NativeWindowClose.Request(host, options, modal.NativeWindow);
@@ -85,13 +103,14 @@ internal sealed partial class Runner
             UiTarget target = UiProtocol.Target(menu, name);
             Require(target.X > 0 && target.X < menu.Width && target.Y > 0 && target.Y < menu.Height, name + " is accessible at " + size);
         }
-        Require(menu.Targets["Singleplayer"].Icon.EndsWith("icon_play.svg", StringComparison.Ordinal) && menu.Targets["Settings"].Icon.EndsWith("icon_gear.svg", StringComparison.Ordinal), "semantic play/settings icons on actual menu buttons");
+        Require(menu.Targets.Values.All(target => target.Icon.Length == 0), "owned menu buttons have plain text");
         Require(!menu.Connected && menu.Revision == -1 && !client.History().Any(HasState), "start screen creates no match or connection");
         Require(menu.SteamStatus == "Open Steam to log in", "offline start screen explains Steam login");
         UiTarget identity = UiProtocol.Target(menu, "SteamStatus");
         Require(identity.Y > menu.Height * 0.8f && identity.Y < menu.Height, "Steam login status stays at bottom of start screen at " + size);
         Require(menu.MasterVolume == 50 && Math.Abs(menu.MasterGain - 0.5f) < 0.001f, "initial preferences apply before menu music");
         await MenuCheckpoint(client, "menu-" + size, token);
+        await GeometryAtBothSizes(client, "menu", token);
         await client.Send("key Down");
         await WaitUi(client, p => p.FocusedControl == "Multiplayer", "native menu keyboard navigation", token);
         await client.Send("key Enter");
@@ -105,6 +124,8 @@ internal sealed partial class Runner
 
         await Click(client, "Settings", token);
         await WaitUi(client, p => p.SettingsOpen, "shared menu settings open", token);
+        UiObservation outsideSettings = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(!outsideSettings.Targets["ReturnToMenu"].Visible, "non-session Settings omits return action");
         await Click(client, "AudioTab", token);
         await Click(client, "Volume", token);
         await UiProtocol.Probe(client, options.StartupTimeout, token);
@@ -171,6 +192,7 @@ internal sealed partial class Runner
         await ClickAck(client, "Pause", token);
         Require(Latest(client).Paused, "solo Pause freezes match");
         await MenuCheckpoint(client, "solo-" + size, token);
+        await GeometryAtBothSizes(client, "solo-controls", token);
         await ClickAck(client, "Pause", token);
         Require(!Latest(client).Paused, "solo Resume continues match");
         if (size == "1100x820") await DeclineConsent(client, token);
@@ -242,6 +264,22 @@ internal sealed partial class Runner
     {
         int previous = client.History().Count(e => e.Type == "menu");
         await Click(client, "ReturnToMenu", token);
+        await WaitUi(client, p => p.ReturnConfirmationOpen, "leave confirmation opens", token);
+        UiObservation warning = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        await MenuCheckpoint(client, "return-confirmation-" + warning.Width + "-" + (warning.ReturnWarning.Contains("everyone", StringComparison.Ordinal) ? "host" : warning.ReturnWarning.Contains("city remains", StringComparison.Ordinal) ? "guest" : "solo"), token);
+        Require(warning.ConfirmationFocus == "CancelReturn", "Cancel has default confirmation focus");
+        Require(warning.ReturnWarning.Contains("progress", StringComparison.OrdinalIgnoreCase) || warning.ReturnWarning.Contains("city remains", StringComparison.Ordinal), "leave warning explains session consequences");
+        string before = Gameplay(Latest(client)); int selected = warning.SelectedSlot;
+        await Click(client, "CancelReturn", token);
+        UiObservation canceled = await WaitUi(client, p => !p.ReturnConfirmationOpen && p.SettingsOpen, "cancel returns to Settings", token);
+        Require(canceled.SelectedSlot == selected && Gameplay(Latest(client)) == before, "cancel retains match, readiness, resources and selected plot");
+        await Click(client, "ReturnToMenu", token); await client.Send("key Escape");
+        await WaitUi(client, p => !p.ReturnConfirmationOpen && p.SettingsOpen, "Escape cancels leaving", token);
+        await Click(client, "ReturnToMenu", token);
+        await Click(client, "CloseReturn", token);
+        await WaitUi(client, p => !p.ReturnConfirmationOpen && p.SettingsOpen, "window close cancels leaving", token);
+        await Click(client, "ReturnToMenu", token);
+        await Click(client, "ConfirmReturn", token);
         await client.WaitFor(e => e.Type == "menu" && client.History().Count(value => value.Type == "menu") > previous,
             "fresh session disposal/menu event", options.StartupTimeout, token);
     }

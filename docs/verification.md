@@ -1391,3 +1391,293 @@ Full `mise run ci` passed in **640.75 seconds** (642.14 overall), [`logs/2026100
 The complete gate passed 333 core/presentation/transport tests (68.12s), 120 runner tests (1.76s), and all six network scenarios: authority-resume-victory 161.18s, redistribution 26.23s, defeat 7.64s, failure-cases 3.31s, solo-session 0.86s and playing-host-lifecycle 6.03s. It passed all five serial source UI slices: economy 92.69s, reconnect 46.20s, settings 25.45s, launcher 90.16s and combat 51.76s; source UI including display ownership took 309.58s. Sequential client/server exports passed in 4.93s/3.93s, headless package smoke in 1.46s and graphical package smoke in 134.40s (137.69s including owned display). Source and packed PNGs, per-process engine logs and phase/scenario summaries remain under that ignored run directory. Both Market viewport frames, melee near-impact overview, final fresh solo and packed locomotion frames were inspected in the selected runs recorded above. The separate seed-one melee checkpoint passed in 27.54s and is retained as additional partial coverage beyond this full gate.
 
 This complete gate supersedes the staged pending/red records above. No resources were granted to strategies or process/UI setup. All owned processes, endpoints, displays and temporary preferences were cleaned up. There was no upload, deployment or publication. The 21 numerical strategy campaigns remain a finite balance sample; software OpenGL/private X11 with Dummy audio establishes rendered assertions, not native compositor/GPU performance, physical input or listening quality. Native Windows runtime and real paired Steam/account checks were not executed here.
+
+
+## Compact match UI implementation (2026-10-02)
+
+The pre-implementation full `mise run ci` baseline passed in 653.22s at
+`logs/20261002-170019-5010fcaa`, with source commit
+`0909e72e3cf757c94b8113b705379ec6d995a4f8` and only OpenSpec planning edits at
+its start. Locked .NET 10.0.401 and Godot 4.7.2 .NET were used. All source
+checks, sequential Linux exports, headless package smoke and graphical package
+smoke passed. A separate user-owned `Options.cs` package deadline edit is
+preserved during implementation.
+
+Existing economy, reconnect, settings, launcher, combat and exported-package
+helpers now drive Space reset, city arrows, text controls and confirmed return.
+The economy camera helper checks actual left-button motion, bounded travel,
+outside release, modal interruption and resource-table click/wheel protection.
+Existing combat pauses provide living units for centre-right inspection; no
+additional match is prepared. Each inspection adds fresh probes and one frame,
+checks resolved health/damage/level/size, plot retention, interior protection,
+outside dismissal and drag suppression. Source combat resizes the same paused
+fixture; packed smoke reuses its existing pause. Cheap projection tests cover
+Roman subtractive notation, percentage rounding and all five turn stages.
+
+The bottom HUD reserves about 180px at both supported sizes. Resources are a
+text table in Gold/Food/Wood/Stone/Metal/Cloth order; Details retains upkeep,
+receipts, roster and army information. Locked plots use the bundled gold marker;
+physical stockpiles remain. Home health uses a transparent percentage overlay,
+and living units retain transparent health bars with Roman levels. Settings
+leave confirmation defaults to Cancel and explains solo, host or guest effects.
+These checks need UI coverage because pure snapshot tests cannot establish
+Godot input routing, embedded-window focus, projection, clipping or packed assets.
+Selected results and final full-CI evidence are recorded below once complete.
+
+Selected economy coverage passed in 101.49s at
+`logs/20261002-172914-e50ea862`; reconnect passed in 47.21s at
+`logs/20261002-173139-13f84300`. The initial launcher pass took 96.87s at
+`logs/20261002-172525-cfab5f2d`. These are partial coverage of their recorded
+inputs; later assertions extend guest resume and host confirmation. The first
+economy iteration caught a preview-camera scene-tree initialization error;
+its corrected run passed. A Settings driver was adjusted to accept Space
+activating its focused Close button while still asserting no camera reset.
+The inspection frame in reconnect confirms the bounded preview and text stats
+fit between the resource table and bottom HUD at 1100x820.
+
+The expanded launcher passed in 115.10s at
+`logs/20261002-173533-d87f93f4`: confirmed guest leave retains its city and music,
+then one intentional owned restart resumes it with its private credentials.
+The existing host fixture also confirms return and creates a fresh host before
+its retained native-close assertions. Relative to the 90.02s baseline launcher,
+this adds 25.08s across both source sizes, modal checks, captures and the guest
+restart. Reconnect's transport-loss inspection assertions passed in 49.91s at
+`logs/20261002-173842-c77fc5f7`. The first expanded combat action-count
+assertion was corrected to use authoritative command sequence numbers, because
+the runner's bounded event history can evict old acknowledgements during probes.
+The 180 logical-pixel HUD reservation renders as about 180 physical pixels at
+1100x820 and 158 at 1280x720 under existing canvas scaling, preserving the 60%
+reduction from the former 300 logical pixels.
+
+Final selected source checks passed: economy 115.15s
+(`logs/20261002-174909-9e4e6e71`), Settings 25.19s
+(`logs/20261002-174101-30941572`), combat 62.83s
+(`logs/20261002-174136-2de5c6d6`) and launcher 122.43s
+(`logs/20261002-174249-d3c0e25e`). Launcher checks use actual confirmation title
+close, Escape and Cancel at both sizes, and end the host while the guest's
+confirmation is open. Combat verifies live inspector damage, outside Pause
+execution by command sequence, and cleanup for a removed selected unit. The
+reconnect case verifies frozen inspector data on transport loss. Exact table
+balances are awaited after accepted building/preparation actions and checked
+again on reconnect, including zero metal/cloth/stone cases. Physical stockpile
+counts and cooperative food/reward assertions remain.
+
+All 349 rules tests passed before the final additional inspection-format test;
+120 runner tests passed separately. The affected pure presentation slice then
+passed all 22 tests, including a veteran's resolved ranked boss profile, fractional
+health, damage, size and name. Boss numerical presentation is checked cheaply;
+graphical inspection reuses deployed early-wave allies/enemies rather than
+replaying ten waves to obtain a boss. Preview, phase, resource, camera, return and
+unit picking helpers are also used by the packed-client smoke. Software-rendered
+frames and Dummy audio establish these presentation paths, not native GPU,
+physical-device performance or listening quality. No scenario or tool dependency
+was added, and the checks retain owned X11/XDG/endpoints and awaited cleanup.
+
+The first integration run at `logs/20261002-175407-3581280b` was intentionally
+canceled after its 350 rules, 120 runner and all network checks passed. A crowded
+1280x720 combat frame revealed that a unit bar could cover the home percentage
+above the home bar. The percentage now sits inside the home bar and the home
+control is last in its overlay layer; resource/HUD panels still draw above it.
+The supervised runner completed owned child/display cleanup on cancellation.
+That 248.40s partial run is not a successful full-CI result. Final integration
+restarts with consistent source inputs for this visual correction.
+
+Full integration passed in 779.99s at `logs/20261002-175915-9de304ce`:
+locked restore 0.89s, format verification 15.39s, build 1.49s, import 2.91s,
+350 gameplay tests and 120 runner tests, all six network scenarios (166.75s),
+all source UI (391.69s), sequential client/server exports (5.91s/3.91s),
+headless package smoke (1.36s) and graphical package smoke (187.89s including
+worker supervision). Source UI timings were economy 118.68s, reconnect 55.75s,
+Settings 25.35s, launcher 125.50s and combat 63.09s; the packed scenario itself
+took 184.59s. `source-inputs.json` records commit, locked tool versions and SHA-256
+hashes for 544 source/test/tool/lock/asset files. This includes the percentage
+inside the home bar and correct overlay ordering. Nothing was published.
+
+A final verification-only extension resizes the already paused packed combat
+fixture to 1280x720 and repeats unit inspection there, supplementing its 1100x820
+frame and both source-size frames. It changes only the packed branch of the
+existing combat driver; game source, assets and verified exports stay identical.
+The selected exported-package rerun uses those existing exports without source
+preparation. Its owned setup and battle are unchanged; the added resize, probes
+and PNG catch packed viewport/clipping differences that pure projection checks
+cannot establish.
+
+That additional check at `logs/20261002-181553-9dcf8182` passed its
+1100x820/1280x720 inspection and other feature assertions, but failed overall
+in 195.54s because Godot reported nonexistent native focus-signal connections
+during Settings resize. A retry with explicit Settings-open/closed barriers at
+`logs/20261002-182316-071d9572` reproduced those engine errors and was canceled
+through the owned runner, which awaited private-display/peer cleanup. Neither
+run is a successful acceptance result. An attempted fix deferred recentering its
+existing embedded window instead of reopening it during the resolution popup's
+close callback. This game-source attempt required fresh full integration;
+the earlier successful integration still records the earlier source inputs.
+
+Source combat passed after recentering (63.85s scenario / 74.50s standalone,
+`logs/20261002-182559-b5df24b4`). Full integration at
+`logs/20261002-182754-9ac421cb` passed 350 gameplay tests, 120 runner tests,
+all networks and all source UI, exports and headless package smoke, but failed
+graphical package acceptance (193.79s scenario; 792.33s total) on the same focus
+error. A checked-in-driver diagnostic at `logs/20261002-184135-8f854cfa`
+localized it to Enter accepting the resolution choice; it was canceled through
+the owned runner after reproduction. Repositioning alone was insufficient.
+Deferring resolution application also reproduced the error in the selected
+packed run at `logs/20261002-184404-ee50da7c`, which was canceled through the
+owned runner. These timing/recentering changes were reverted.
+
+This matches upstream [Godot issue #89657](https://github.com/godotengine/godot/issues/89657),
+a release-template OptionButton/Popup connection defect absent in editor runs.
+The final packed inspector size check uses checked-in XResizeWindow input on
+the supervisor-owned display, with observed native window/PID ownership checked
+before mutation. It still exercises actual window resize, reprojection, inspector
+picking/dismissal and PNG/control bounds at both supported sizes. Settings-driven
+resolution selection retains source coverage; exported native-dropdown diagnostics
+remain an upstream limitation, and are not suppressed in the engine-error checker.
+No engine, export mode, dependency or Settings display behavior was changed.
+All game/assets/locks/tests match the successful `20261002-175915-9de304ce`
+full-CI input manifest. The final two-size extension changes only
+`CombatUiTests.cs` and `NativeWindowClose.cs`, so that full implementation result
+is reused with a fresh selected packed check and runner checks for the extension.
+
+Final selected package acceptance passed at `logs/20261002-184754-a7ba964c`:
+189.88s scenario / 193.17s supervised graphical suite / 194.56s standalone task.
+Both `packed-unit-inspection.png` (1100x820) and
+`packed-unit-inspection-resized.png` (1280x720) contain the unit preview, stats,
+Roman bars, home percentage, resource table and compact HUD, with actual picking,
+interior/outside dismissal, drag and Space assertions repeated at both sizes.
+Shooting/death and solo/host/guest confirmation/leave checks also passed; no engine
+errors were ignored. Relative to the earlier 184.59s packed scenario, this run
+added 5.29s including ordinary run variability; the extension adds one native
+resize, existing inspection probes and one PNG, with no additional battle/setup.
+Formatting and all 120 runner tests (550ms test time) passed for these driver
+changes. `source-inputs.json` records their final hashes; comparing with the
+successful full-CI manifest identifies only the two driver files listed above.
+The verified client export was regenerated from the identical accepted game
+inputs after reverting the unsuccessful timing fixes. Documentation/task-only
+updates do not change those acceptance inputs. No publishing was performed.
+
+
+## Verification speed implementation: coverage ownership
+
+Implementation starts from the accepted compact-UI state. The full gate at
+`logs/20261002-175915-9de304ce` passed in 779.99s with 350 gameplay and 120
+runner tests. The subsequent selected packed acceptance at
+`logs/20261002-184754-a7ba964c` passed in 193.17s supervised and verified the
+only two changed driver inputs (`CombatUiTests.cs`, `NativeWindowClose.cs`).
+Before this implementation, all 544 hashes in that later manifest matched the
+current checkout; the full-gate manifest differed only in those two drivers.
+Locked .NET 10.0.401 and Godot 4.7.2 .NET also matched. These records together
+are reused as the successful before baseline. Planning/archive/documentation
+changes do not alter their test inputs. The original full gate is historical;
+the selected extension is partial coverage, not a second full-suite result.
+
+Assertions move only after their replacement passes. The following map names
+coverage owners; implementation results below distinguish pending from verified
+migration. No seed/player sample or cooperative invariant is removed.
+
+| Current scenario/helper | Flow/math owner | Retained boundary witness |
+| --- | --- | --- |
+| `authority-resume-victory`, `RecruitAll`, twenty-wave loop | `SessionFlowTests`, `SessionCampaignTests`, all 21 strategy combinations | Real ENet ownership, early clear, transport reconnect/retry/rate rejection and stopped/stale server |
+| `redistribution`, `ReinforcementInvestment` | `SessionFlowTests.SerializedThreeCityTransferPreservesIdentityAndNextWaveAllocation`, existing `VillageStrategyTests` protected-admission and combat reservation checks | Three actual peers, immediate transfer agreement, next-wave allocation and resumed eliminated observer |
+| `defeat` | Existing no-investment and terminal-reason C# checks | Real automatic city fall and terminal feedback |
+| `failure-cases` | Existing `HarnessTests` and authority validation checks | Actual unavailable socket, bind collision retaining owner, readiness failure and child exit |
+| `solo-session`, `playing-host-lifecycle` | Existing `AuthoritySessionTests` local/remote lifecycle checks, `SessionFlowTests` | Socketless Godot authority and real host/guest delivery, host end, guest reconnect and fresh session |
+| `economy`, `EconomyDetails` | Economy/authority/strategy C# arithmetic, generations, materials, upkeep and rewards | Each distinct purchase/upgrade/recruit/sale/trade/land control family, observer effect, disabled/foreign control mapping, picking and both-size bounds |
+| `reconnect` | C# session rebind/upkeep/retry and `CombatPlaybackTests` reconstruction | Actual Reconnect control, retained local view, current moving/dying rendering and fresh selection |
+| `settings` | Existing pure preference/volume mapping checks | Native modal/focus/input isolation, slider/tab/dropdown, intentional owned preference restart |
+| `launcher`, `MenuRoute`, `FriendsUiScenario`, `HostedMenuRoute` | Existing Steam picker/policy and authority lifecycle tests | Actual menu/solo/friends/host/guest routes and native modal/focus/exit once; resize existing fixtures for layout |
+| `combat`, `MixedArmy`, `SpecialistArmy` | Existing combat math/event/occupancy/presentation C# checks | Actual melee/ranged controls, live imported rigs/actions/contact/death, freeze, inspector/picking and cleanup at normal speed |
+| `exported-package`, installed graphical route | Asset inventory/provenance and C# flow/binding coverage | Standalone packed menu/solo/purchase, rig/clip/material load, one live animation, both-size layout and owned exit; headless packed solo/host roles retained |
+
+Normal-speed visual checks still prove input/rendering boundaries. C# flow
+acceptance does not claim ENet, compositor, GPU or physical-device acceptance.
+The 180–300s warm local gate is a target until measured. Cold hosted preparation
+and Linux/Windows jobs remain separately reported.
+
+
+The initial C# replacement slice passed all six new session cases (4s execution).
+The complete `mise run test` then passed 356 gameplay tests partitioned as 334
+general, 12 ordinary solo strategies plus one serialized session campaign, and
+nine cooperative campaigns; 121 runner tests also passed. Evidence:
+`logs/20261002-200540-86127d50/`; the C# suite took 51.23s including its two
+bounded hosts. The prior recorded rules phase was 68.08s while overlapping real
+network processes; workload and contention differ, so this is acceptance evidence
+and a directional timing observation, not a controlled benchmark.
+
+## Verification speed implementation evidence (2026-10-02)
+
+The retained `authority-resume-victory` selection passed in 11.59s (17.69s including preparation), `logs/20261002-201545-0e09e6c7`. It keeps dedicated-authority ENet ownership/refusals, ordinary equipment and two early clears, exact accepted recruitment retry, frozen process recovery, rate-burst rejection, stopped-host feedback and expired-session refusal. Full twenty-wave and boss rewards are owned by the passing serialized C# campaign and all 21 existing strategy combinations. This selected run is partial coverage. It uses default four-step setup batching; engine/supervisor snapshot duplication is removed.
+
+Current admission is two expensive scenarios total during CI, with at most two graphical workers. Network and graphical scenarios release admission only after owned cleanup; first failure cancels siblings and awaits cleanup before source failure reaches the export gate. Every graphical worker owns one selected scenario, Xvfb/Xauthority/Openbox, endpoint/storage roots and report directory. Serial graphical admission preserves the same five selectors. Cheap C# processes have their separate maximum-two budget; core test collections are serial inside each process, including the in-process fallback, so extra campaign throughput does not depend on concurrent Arch registry lifetimes. All shared restore/build/import/export mutations remain sequential.
+
+Routine full-state retention is at most 16 snapshots and 16 MiB per child; reliable lifecycle/result/error metadata has a separate 512-event bound whose unobserved overflow fails visibly. Wake notifications have capacity one, because the driver reads retained state rather than consuming a snapshot backlog. Compact transcripts buffer routine writes and flush errors/results and awaited shutdown. Explicit engine transcripts omit protocol frames and cap at 8 MiB. Checkpoint dumps report truncation, simulated ticks, pacing and bytes; credentials are redacted, including nested message fields and full `--trace` output. Full trace is optional and can exceed routine limits.
+
+`--simulation-speed 1..8` configures supervisor-owned authorities only; default setup speed is 4, interactive speed is 1. The owned data marker and token are checked locally. Guest/RPC requests cannot configure stepping. Every accelerated callback iterates ordinary steps and yields to Godot; pause accumulates no catch-up. Publication is bounded to one routine combat snapshot per 50ms wall time, with phase transitions, command results and explicit checkpoints published promptly. Rate limits, connection and cleanup deadlines still use wall time. Graphical action/animation witnesses acknowledge speed 1 before entering their measured battle.
+
+Source economy retains actual build, readiness, equipment/research, sell, buy-land, upgrade and Market control families, plus cooperative observation, exact balances and supported-size geometry. Repeated recruit/trade/production setup uses accepted ordinary commands. Launcher/friends boundaries execute once, resizing prepared windows for second-size geometry; Settings retains its preference restart and native resolution controls. Packed/installed graphical checks load menu assets, enter solo, purchase through actual input, load all rig/clip bindings, observe one live animation, capture both sizes and terminate through Exit. Broad source animation/application proofs and headless packaged role checks remain separate required owners. Native owned resize establishes packed layout; it does not claim native dropdown completeness.
+
+The affected selected economy route passes in 91.08s (94.40s with owned display), `logs/20261002-202721-298c3b1a`. Relative to accepted historical 118.68s this is directional improvement; host compiler contention and serial selected execution differ from the final shared-budget gate. A preceding concurrent attempt exposed an owned-window startup focus race; the camera driver now awaits actual native focus before world input. That failed attempt cancelled the sibling and cleaned up both owners, and is not counted as passing coverage.
+
+The first integrated gate `logs/20261002-203428-ca27374c` failed before exports on same-process host restart. It passed all 359 C# checks, 137 runner checks, economy, reconnect and Settings; launcher/combat were cancelled, not passed. Bounded result/state storage needed arrival ordering across match revision resets and one event identity per acknowledgment. A fresh-host predicate now requires a non-null retained state; the corresponding cheap regression and all 138 runner checks pass. Selected `playing-host-lifecycle` then passes in 6.18s, `logs/20261002-204236-35f2b358`.
+
+A cancellation audit found one graphical runtime directory after the forced worker bound, with no live owner. It was reclaimed only after verifying owners had stopped. Graphical runtime data now lives beneath the parent-owned display root, so awaited process-group cleanup precedes removal even when a worker cannot finish its own finally. A synthetic abrupt-wrapper test covers the nested ownership and cleanup.
+
+The second integrated attempt, `logs/20261002-204713-6aec0cd1`, was rejected by the engine-error gate on startup XML/decompression diagnostics in the reconnect observer, despite completing the feature assertions. All owned runtime roots were absent after cancellation. The selected reconnect rerun with identical code/native dependencies passed in 37.74s (41.07s with private display), `logs/20261002-205441-2d7edbfa`; the startup error did not reproduce. The two-error pattern is consistent with the [godot-cpp documentation decompression/load path](https://github.com/godotengine/godot-cpp/blob/master/src/godot.cpp#L284), an inference rather than an established root cause. No engine errors are suppressed and no dependency/cache outside owned state is changed. Retain this intermittent native startup observation as a limitation.
+
+The final required `mise run ci` passed at
+`logs/20261002-205614-c7ee8d08`: **252.82s** supervised / 254.20s task wall time.
+It passed 359 gameplay checks (337 general, 13 solo/session campaign, nine
+cooperative campaigns), 139 runner checks, all six network selectors, all five
+source UI selectors, sequential client/server exports and both headless and
+graphical package gates. Locked restore, solution formatting, build and import
+also passed. No engine errors were ignored. All 25 recorded owned runtime roots
+were absent after completion.
+
+| Tier | Historical full gate | Final full gate |
+| --- | ---: | ---: |
+| Entire required gate | 779.99s | 252.82s |
+| C# partitions | 68.08s | 55.37s |
+| Network suite, including admission waits | 166.75s | 119.03s |
+| Source UI suite, including admission waits | 391.69s | 199.95s |
+| Exported graphical suite | 187.89s | 15.63s |
+| Retained evidence | 4,224,801,963 bytes | about 108,800,000 bytes |
+
+The observed full-gate reduction is 67.6% (3.09 times faster), within the
+180–300s warm target. These are ordinary acceptance runs, not controlled
+benchmarks: coverage ownership, host contention and scheduler overlap changed.
+The earlier selected two-size package extension took 193.17s; it remains partial
+coverage and is not substituted for the historical full-gate package time.
+Routine evidence decreased by about 97.4%; captures and bounded full states remain
+available. `ci-summary.json` reports bytes before writing its own summary and the
+subsequent input manifest, accounting for a small difference from directory size.
+
+`source-admission.json` records actual maxima of two expensive scenarios and two
+graphical workers. C# started alongside the two initial network cases, then
+economy overlapped redistribution and reconnect; launcher and combat later ran on
+separate owned displays. Suite durations include waiting for the shared admission
+budget and cannot be added to obtain wall time. Source gates finished before the
+7.94s client export, 3.94s server export, 1.47s headless package smoke and 15.63s
+graphical package smoke. Preparation mutated shared outputs only once.
+
+Owned authority setup used speed 4; fresh acknowledgments switched graphical
+animation/input witnesses and transport transient checks to speed 1. Final state
+dumps show combat at tick 1324, reconnect at tick 590 and packed animation at tick
+22 with speed 1; the accelerated defeat authority reached tick 313 at speed 4.
+These are retained last observations, not a count of every tick executed across
+all restarted peers. C# equivalence checks compare each intervening ordinary step
+at speeds 1, 4 and 8, including pause/resume without catch-up.
+
+`source-inputs.json` records 563 source/asset/lock/workflow hashes, all unchanged
+from the during-run manifest when checked after completion. Numerical
+`src/Game.Core` inputs match the accepted before baseline. Locked SDK/Godot
+versions are unchanged. The environment used `UseSharedCompilation=false` to
+avoid an observed busy shared compiler service without stopping a developer
+service; this is a comparability limitation, not a dependency change. Existing
+workflow job identities and the 300-second Linux-package default are retained.
+Serial scheduler/option and cancellation coverage is established by runner tests;
+no second full serial game run was performed solely for timing comparison.
+
+The final `mise run test-in-process` fallback also passed the same 359 gameplay
+checks (79.95s) and 139 runner checks (0.57s), with no skipped cases or Godot
+processes. This is complete cheap coverage and partial coverage of the full gate;
+it verifies the final serial core collection policy and socketless entry point.

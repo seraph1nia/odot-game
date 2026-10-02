@@ -13,6 +13,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     private bool _attacking, _hitting;
     private long _attackSequence;
     private double _hitAt = -1, _shotAt = -1;
+    private Node3D _model = null!;
     private Node3D _shot = null!;
     private MeshInstance3D _marker = null!;
     private long _effectSequence;
@@ -26,17 +27,10 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
 
     public override void _Ready()
     {
-        Node3D model = UnitAssets.Instantiate(UnitAssets.Character(State.Type, State.Faction));
+        Node3D model = _model = UnitAssets.Instantiate(UnitAssets.Character(State.Type, State.Faction));
         model.Scale = Vector3.One * 0.43f; AddChild(model);
         (_player, _skeleton) = UnitAssets.Bind(model, State.Type);
-        // The character files include optional props; equip only our selected weapon.
-        foreach (MeshInstance3D mesh in model.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
-            if (mesh.Name.ToString().Contains("Sword", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Shield", StringComparison.Ordinal)
-                || mesh.Name.ToString().Contains("Crossbow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Dagger", StringComparison.Ordinal)
-                || mesh.Name.ToString().Contains("Bow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Arrow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Knife", StringComparison.Ordinal)
-                || mesh.Name.ToString().Contains("Throwable", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Staff", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Axe", StringComparison.Ordinal)) mesh.Visible = false;
-        var hand = new BoneAttachment3D { BoneName = "handslot.r" }; _skeleton.AddChild(hand);
-        hand.AddChild(UnitAssets.Instantiate(UnitAssets.Weapon(State.Type, State.Faction)));
+        UnitAssets.Equip(model, _skeleton, State.Type, State.Faction);
         var locomotion = new AnimationNodeBlendSpace1D { MinSpace = 0, MaxSpace = 1 };
         locomotion.AddBlendPoint(Locomotion("Idle"), 0, -1, "idle");
         locomotion.AddBlendPoint(Locomotion("Walking_A"), 0.8f, -1, "walk");
@@ -75,6 +69,16 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         };
         AddChild(_marker);
         _shot = UnitAssets.Instantiate("arrow.gltf"); _shot.Scale = Vector3.One * 0.35f; _shot.Visible = false; AddChild(_shot);
+    }
+    internal Aabb PickingBounds()
+    {
+        Aabb? bounds = null;
+        foreach (MeshInstance3D mesh in _model.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>().Where(mesh => mesh.IsVisibleInTree()))
+        {
+            Aabb box = mesh.GlobalTransform * mesh.GetAabb();
+            bounds = bounds is { } existing ? existing.Merge(box) : box;
+        }
+        return bounds ?? new Aabb(GlobalPosition, new Vector3(.5f, 1.2f, .5f));
     }
     public void Event(CombatEvent entry, double seconds)
     {

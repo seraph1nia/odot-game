@@ -11,17 +11,21 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private readonly Dictionary<int, UnitView> _units = [];
     private readonly Dictionary<int, UnitHealthBar> _healthBars = [];
     private Control _healthRoot = null!;
-    private HBoxContainer _resourceRow = null!, _materialRow = null!, _vitalRow = null!;
     private readonly Dictionary<string, Label> _values = [];
     private readonly Dictionary<int, Node3D> _boards = [];
     private readonly Dictionary<int, string> _boardKeys = [];
     private readonly Dictionary<int, Aabb?[]> _buildingBounds = [];
     private readonly Dictionary<string, StandardMaterial3D> _materials = [];
     private readonly Dictionary<float, ArrayMesh> _outlines = [];
-    private readonly Dictionary<int, Label3D> _cityLabels = [];
+    private HomeHealthBar _homeHealth = null!;
     private Camera3D _camera = null!;
     private TabletopCamera _navigation = null!;
-    private Button _resetView = null!;
+    private Button _previousCity = null!, _nextCity = null!, _detailsButton = null!;
+    private Label _cityName = null!, _counters = null!, _rosterDetails = null!;
+    private PanelContainer _resources = null!;
+    private AcceptDialog _detailsDialog = null!;
+    private readonly List<Control> _emptyBuildCells = [];
+    private readonly List<Label> _phaseRows = [];
     private Label _phase = null!;
     private Label _status = null!;
     private Label _stats = null!;
@@ -49,10 +53,9 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private float _framePanelHeight;
     private int _frameFocus;
     private bool _wasConnected;
-    private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ranged = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!, _invite = null!, _return = null!;
+    private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ranged = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!, _invite = null!;
     private int _focus;
     private int _slot = -1;
-    private string _rosterKey = "";
     private long _revision = -1;
     private string _matchId = "";
     private ClientSettings _settings = null!;
@@ -84,89 +87,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _healthRoot = new Control { Name = "UnitHealth", MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
         root.AddChild(_healthRoot); _healthRoot.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         _settings = application.Settings;
-        _panel = new PanelContainer { Name = "BottomPanel", CustomMinimumSize = new(0, 300), MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
-        root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -300;
-        var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 8); _panel.AddChild(box);
-        var columns = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; columns.AddThemeConstantOverride("separation", 24); box.AddChild(columns);
-        var city = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.32f };
-        city.AddThemeConstantOverride("separation", 2); columns.AddChild(city);
-        var heading = new HBoxContainer(); city.AddChild(heading);
-        Text(heading, "ODOT", 16);
-        _resetView = Button(heading, "Reset view", () => { _navigation.Reset(); GetViewport().GuiReleaseFocus(); });
-        _resetView.Name = "ResetView";
-        _resetView.TooltipText = "Scroll to zoom toward the cursor · WASD / arrows to pan · Reset view for the overview";
-        _stats = Text(city, "Waiting for the village…", 14); _stats.CustomMinimumSize = Vector2.Zero;
-        _resourceRow = new HBoxContainer(); _resourceRow.AddThemeConstantOverride("separation", 10); city.AddChild(_resourceRow);
-        _materialRow = new HBoxContainer(); _materialRow.AddThemeConstantOverride("separation", 10); city.AddChild(_materialRow);
-        _upkeep = Text(city, "", 12); _reward = Text(city, "", 12);
-        _vitalRow = new HBoxContainer(); _vitalRow.AddThemeConstantOverride("separation", 10); city.AddChild(_vitalRow);
-        foreach (var (name, meaning, row) in new[] { ("Gold", "Gold", _resourceRow), ("Food", "Food", _resourceRow), ("Wood", "Wood", _resourceRow), ("Stone", "Stone", _materialRow), ("Metal", "Metal", _materialRow), ("Cloth", "Cloth", _materialRow), ("City", "Health", _vitalRow), ("Army", "Army", _vitalRow) })
-        {
-            var item = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }; row.AddChild(item);
-            Texture2D? icon = UiAssets.Icon(meaning);
-            if (icon is not null) item.AddChild(new TextureRect { Texture = icon, CustomMinimumSize = new(18, 18), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore });
-            _values[name] = Text(item, name, 13);
-            _values[name].AutowrapMode = TextServer.AutowrapMode.Off;
-        }
-        _roster = new HBoxContainer(); city.AddChild(_roster);
-        var context = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.4f }; columns.AddChild(context);
-        _detail = Text(context, "Click a plot or building in the world", 15); _detail.CustomMinimumSize = new(0, 64);
-        _buyPlot = Button(context, "Buy plot", () => ContextAction("buy-plot")); _buyPlot.Name = "BuyPlot";
-        _buildGroups = new HBoxContainer(); context.AddChild(_buildGroups);
-        foreach (string group in new[] { "Production", "Army", "Defense", "Trade" })
-        {
-            string selected = group;
-            Button tab = Button(_buildGroups, group, () => { _constructionGroup = selected; _uiKey = ""; });
-            tab.Name = group + "Choices"; tab.AddThemeFontSizeOverride("font_size", 12); _groupButtons.Add(tab);
-        }
-        _buildActions = new GridContainer { Columns = 4 }; context.AddChild(_buildActions);
-        foreach (BuildingDefinition definition in Catalogs.Buildings(new()))
-        {
-            Building type = definition.Type;
-            _construction[type] = Button(_buildActions, type.ToString(), () => ContextAction("build", type));
-            _construction[type].Name = type.ToString();
-        }
-        _mine = _construction[Building.Mine]; _farm = _construction[Building.Farm]; _barracks = _construction[Building.Barracks];
-        _buildingActions = new HBoxContainer(); context.AddChild(_buildingActions);
-        _upgrade = Button(_buildingActions, "Upgrade", () => ContextAction("upgrade"));
-        _sell = Button(_buildingActions, "Sell", () => ContextAction("sell")); _sell.Name = "Sell";
-        _marketActions = new HBoxContainer(); context.AddChild(_marketActions);
-        foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>().Where(r => r != Game.Core.Resource.Gold))
-        {
-            Game.Core.Resource selected = resource;
-            Button trade = Button(_marketActions, resource.ToString(), () => { if (_slot >= 0 && CanEdit()) game.SendAction("trade", _slot, resource: selected, bundles: 1); });
-            trade.Name = "Trade" + resource; _trades[resource] = trade;
-        }
-        var recruitment = new HBoxContainer(); context.AddChild(recruitment);
-        foreach (UnitType type in Enum.GetValues<UnitType>())
-        {
-            UnitType role = type;
-            _recruitment[type] = Button(recruitment, type.ToString(), () => ContextAction("recruit", soldierType: role));
-            _recruitment[type].Name = type switch { UnitType.Swordsman => "Recruit", UnitType.Crossbowman => "RecruitRanged", _ => "Recruit" + type };
-        }
-        _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
-        _researchActions = new HBoxContainer(); context.AddChild(_researchActions);
-        foreach (UnitClass type in Enum.GetValues<UnitClass>())
-        {
-            UnitClass @class = type;
-            _research[type] = Button(_researchActions, type.ToString(), () => ContextAction("research", researchClass: @class));
-            _research[type].Name = "Research" + type;
-        }
-        var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.28f }; columns.AddChild(match);
-        _phase = Text(match, "Lobby", 17); _phase.CustomMinimumSize = new(0, 44);
-        _start = Button(match, "Start match", () => game.SendAction("start"));
-        _ready = Button(match, "Ready", () => game.SendAction(Me()?.Ready == true ? "unready" : "ready"));
-        _pause = Button(match, "Pause match", () => game.SendAction(game.State?.Paused == true ? "resume" : "pause"));
-        _reconnect = Button(match, "Reconnect to my city", () => game.Connect());
-        _fresh = Button(match, "Join lobby · fresh session", () => game.Connect(true));
-        foreach (var (button, name) in new[] { (_mine, "Mine"), (_farm, "Farm"), (_barracks, "Barracks"), (_upgrade, "Upgrade"), (_recruit, "Recruit"),
-            (_ready, "Ready"), (_pause, "Pause"), (_start, "Start"), (_reconnect, "Reconnect"), (_fresh, "Fresh") }) button.Name = name;
-        _invite = Button(match, "Invite friends", application.RequestInvite); _invite.Name = "Invite";
-        var footer = new HBoxContainer(); footer.AddThemeConstantOverride("separation", 20); box.AddChild(footer);
-        _return = Button(footer, "Return to menu", application.ReturnToMenu); _return.Name = "ReturnToMenu"; _return.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
-        foreach (var (button, meaning) in new[] { (_start, "Start"), (_ready, "Ready"), (_return, "ReturnToMenu"), (_upgrade, "Upgrade") }) UiAssets.Decorate(button, meaning);
-        _status = Text(footer, "Connecting", 13); _status.SizeFlagsStretchRatio = 0.32f;
-        _feedback = Text(footer, "", 13); _feedback.SizeFlagsStretchRatio = 0.68f; _feedback.CustomMinimumSize = new(0, 32);
+        CreateHud(root);
     }
     private void ContextAction(string action, Building building = Building.Empty, UnitType soldierType = UnitType.Swordsman, UnitClass researchClass = UnitClass.Melee)
     {
@@ -184,19 +105,35 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; UiAssets.Decorate(button, text); parent.AddChild(button);
         button.Pressed += () => { if (!application.IsModalOpen) action(); }; return button;
     }
+    internal bool DetailsOpen => _detailsDialog?.Visible == true;
+    internal void FocusDetails() => _detailsDialog.GrabFocus();
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _return, _resetView }.Concat(_construction.Values).Concat(_recruitment.Values).Concat(_research.Values).Concat(_trades.Values).Concat(_groupButtons).Concat(new[] { _buyPlot, _sell }))
+        foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _previousCity, _nextCity, _detailsButton }.Concat(_construction.Values).Concat(_recruitment.Values).Concat(_research.Values).Concat(_trades.Values).Concat(_groupButtons).Concat(new[] { _buyPlot, _sell }))
             application.ObserveControl(targets, button.Name, button);
-        foreach (Button tab in _roster.GetChildren().OfType<Button>()) application.ObserveControl(targets, tab.Name, tab);
+        application.ObserveControl(targets, "ResourceTable", _resources);
+        if (_detailsDialog.Visible) application.ObserveControl(targets, "CloseDetails", _detailsDialog.GetOkButton());
+        fields["DetailsOpen"] = _detailsDialog.Visible;
+        fields["DetailsText"] = _inspectionRoster.Text + "\n" + _upkeep.Text + "\n" + _reward.Text + "\n" + _armyDetails.Text + "\n" + _quoteDetails.Text;
+        fields["ResourceOrder"] = _values.Keys.ToArray();
+        _inspector.Observe(application, fields, targets);
+        foreach ((int id, UnitView view) in _units)
+        {
+            Vector3 point = view.GlobalPosition + new Vector3(0, .7f, 0);
+            Vector2 position = _camera.UnprojectPosition(point);
+            Vector2 screen = GetViewport().GetFinalTransform() * position;
+            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position), Enabled = !application.IsModalOpen };
+        }
+        fields["LockedMarkers"] = _boards.TryGetValue(_focus, out Node3D? markersBoard) ? markersBoard.GetNodeOrNull<Node3D>("Buildings")?.GetChildren().OfType<Sprite3D>().Select(marker => marker.Name.ToString()).ToArray() ?? [] : [];
+
         for (int slot = 0; slot < 9; slot++)
         {
             Vector3 point = Center(_focus) + SlotPosition(slot);
             if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds) && bounds[slot] is { } box) point = Center(_focus) + box.GetCenter();
             Vector2 screen = GetViewport().GetFinalTransform() * _camera.UnprojectPosition(point);
-            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null && !_camera.IsPositionBehind(point) && WorldArea().HasPoint(_camera.UnprojectPosition(point)), Enabled = game.Connected && !application.IsModalOpen };
+            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null && !_camera.IsPositionBehind(point) && WorldArea().HasPoint(_camera.UnprojectPosition(point)) && !_resources.GetGlobalRect().HasPoint(_camera.UnprojectPosition(point)), Enabled = game.Connected && !application.IsModalOpen };
         }
         if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) fields["Landscape"] = landscape.Observe(_camera, WorldArea());
         fields["Placements"] = _boards.TryGetValue(_focus, out Node3D? placementBoard) ? new[] { placementBoard.GetNodeOrNull<Node3D>("Buildings"), placementBoard.GetNodeOrNull<Node3D>("Stockpiles") }.OfType<Node3D>().SelectMany(root => root.FindChildren("*", "Node3D", true, false).OfType<Node3D>())
@@ -214,19 +151,24 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["Models"] = _landscapeAssets.Paths.Count();
         fields["LoadedModels"] = _landscapeAssets.Paths.Order().ToArray();
         fields["Materials"] = _materials.Count;
-        fields["PhaseText"] = _phase.Text;
+        fields["PhaseText"] = _phase.Text + "\n" + string.Join("\n", _phaseRows.Where(row => row.Visible).Select(row => row.Text)) + "\n" + _counters.Text;
+        fields["PhaseRows"] = _phaseRows.Select(row => row.Text).ToArray();
+        fields["ObservedCity"] = _focus;
+        fields["CityIds"] = game.State?.Players.Select(city => city.Id).Order().ToArray() ?? [];
+        fields["HomeHealth"] = _homeHealth.Observe(GetViewport().GetFinalTransform());
         fields["UpkeepText"] = _upkeep.Text; fields["RewardText"] = _reward.Text;
         fields["ConstructionGroup"] = _constructionGroup;
         fields["StatusText"] = _status.Text;
         fields["StatsText"] = _stats.Text + "\n" + string.Join("    ", _values.Values.Select(v => v.Text));
-        fields["ResourceIcons"] = _resourceRow.GetChildren().OfType<HBoxContainer>().ToDictionary(n => n.GetChildren().OfType<Label>().Single().Text.Split(' ')[0], n => n.GetChildren().OfType<TextureRect>().FirstOrDefault()?.Texture?.ResourcePath ?? "");
+        fields["ResourceIcons"] = _values.Keys.ToDictionary(name => name, _ => "");
+        fields["ResourceBalances"] = _values.ToDictionary(pair => pair.Key, pair => int.Parse(pair.Value.Text, System.Globalization.CultureInfo.InvariantCulture));
         fields["ResourceRowsSingleLine"] = _values.Values.All(label => label.Size.Y <= label.GetThemeFont("font").GetHeight(label.GetThemeFontSize("font_size")) + 1);
         fields["HudHeight"] = _panel.Size.Y;
         fields["HudTop"] = (GetViewport().GetFinalTransform() * _panel.Position).Y;
         fields["HealthBars"] = _healthBars.OrderBy(p => p.Key).Select(p => p.Value.Observe(p.Key, GetViewport().GetFinalTransform())).ToArray();
         fields["FeedbackText"] = _feedback.Text;
         fields["DetailText"] = _detail.Text;
-        fields["RosterText"] = string.Join(" | ", _roster.GetChildren().OfType<Button>().Select(button => button.Text));
+        fields["RosterText"] = _rosterDetails.Text;
         fields["UnitBindings"] = _unitBindings;
         fields["Units"] = _units.Values.OrderBy(u => u.State.Id).Select(u => u.Observe()).ToArray();
         fields["Strikes"] = _strikes.OrderBy(p => p.Key).Select(p => p.Value.Observe(_camera, GetViewport().GetFinalTransform())).ToArray();
@@ -249,9 +191,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         {
             foreach (Node3D n in _boards.Values.Concat<Node3D>(_units.Values)) n.QueueFree();
             ClearBars();
-            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _cityLabels.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
+            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
+            CancelGesture(); _inspector.Close();
             _navigation.Reset(); _frameFocus = -1;
-            _matchId = state.MatchId; _constructionGroup = "Production"; _revision = -1; _focus = game.PlayerId; _slot = -1; _hover = -1; _rosterKey = "";
+            _matchId = state.MatchId; _constructionGroup = "Production"; _revision = -1; _focus = game.PlayerId; _slot = -1; _hover = -1;
         }
         if (state is not null && state.Revision != _revision)
         {
@@ -270,44 +213,45 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
         if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) landscape.Cover(_camera, WorldArea(), TabletopCamera.Travel);
         UpdateHealthBars();
+        UpdateInspector();
+        _homeHealth.Sample(Focus(), game.State?.Rules.CityHealth ?? 100, Center(_focus) + VillageLandscape.Home + new Vector3(0, 2.7f, 0), _camera, WorldArea());
         Vector2 mouse = GetViewport().GetMousePosition();
-        int hover = game.Connected && !application.BlocksWorldInput(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
+        int hover = game.Connected && !BlocksWorld(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
         if (hover != _hover) { _hover = hover; UpdateMarkers(); }
     }
     private void UpdateUi()
     {
         if (_phase is null) return;
         MatchSnapshot? s = game.State; CityState? focus = Focus(); CityState? me = Me();
-        _status.Text = $"{game.Status}  •  You: P{game.PlayerId}";
+        _status.Text = game.Connected ? "" : game.Status;
+        _status.Visible = _status.Text.Length != 0;
         ProgressionView progression = ProgressionPresentation.Describe(s, focus);
         _phase.Text = progression.Phase;
-        _feedback.Text = game.Feedback;
-        string roster = s is null ? "" : string.Join('|', s.Players.Select(p => $"{p.Id}:{p.Connected}:{p.Ready}:{p.Eliminated}:{game.HostPlayerId}"));
-        if (roster != _rosterKey)
-        {
-            _rosterKey = roster;
-            foreach (Node n in _roster.GetChildren()) { _roster.RemoveChild(n); n.QueueFree(); }
-            if (s is not null) foreach (CityState city in s.Players)
-            {
-                int id = city.Id; Button tab = Button(_roster, $"P{id}{(id == game.HostPlayerId ? " · Host" : "")}{(id == game.PlayerId ? " · You" : "")}\n{(city.Eliminated ? "Fallen" : !city.Connected ? "Away" : city.Ready ? "Ready" : "Here")}", () => { _focus = id; _slot = -1; _hover = -1; _rosterKey = ""; }); tab.Name = "City" + id; UiAssets.Decorate(tab, "City"); tab.ToggleMode = true; tab.ButtonPressed = id == _focus; tab.AddThemeFontSizeOverride("font_size", 13); tab.TooltipText = id == _focus ? "Viewing this city" : "Inspect city";
-            }
-        }
-        _stats.Text = focus is null ? "Up to four players. Start when everyone joins." : $"P{focus.Id}{(_focus == game.PlayerId ? " • YOUR CITY" : " • OBSERVING")}";
-        if (focus is not null) _stats.Text += "\n" + progression.Land;
-        _materialRow.Visible = _resourceRow.Visible = _vitalRow.Visible = focus is not null;
-        _values["Gold"].Text = $"Gold {focus?.Gold ?? 0}"; _values["Food"].Text = $"Food {focus?.Food ?? 0}"; _values["Wood"].Text = $"Wood {focus?.Wood ?? 0}";
-        _values["Stone"].Text = $"Stone {focus?.Stone ?? 0}"; _values["Metal"].Text = $"Metal {focus?.Metal ?? 0}"; _values["Cloth"].Text = $"Cloth {focus?.Cloth ?? 0}";
-        _upkeep.Text = progression.Food;
-        _upkeep.TooltipText = "Food is paid once before battle. Stronger units eat first; unfed veterans retain health in reserve until a later fed battle.";
-        _reward.Text = progression.Reward;
-        _values["Army"].TooltipText = progression.Army;
-        _values["City"].Text = $"City {HealthPoints.Format(focus?.Health ?? 0)}/{s?.Rules.CityHealth ?? 100}"; _values["Army"].Text = $"Army {focus?.Soldiers.Length ?? 0}";
+        _feedback.Text = game.Feedback.Contains("Match started", StringComparison.OrdinalIgnoreCase) ? "" : game.Feedback;
+        _feedback.Visible = _feedback.Text.Length != 0;
+        _rosterDetails.Text = s is null ? "" : string.Join("\n", s.Players.OrderBy(p => p.Id).Select(p => $"P{p.Id}{(p.Id == game.HostPlayerId ? " · Host" : "")}{(p.Id == game.PlayerId ? " · You" : "")} · {(p.Eliminated ? "Fallen" : !p.Connected ? "Away" : p.Ready ? "Ready" : "Here")}"));
+        _inspectionRoster.Text = _rosterDetails.Text;
+        _roster.Visible = s?.Phase == Phase.Lobby;
+        _cityName.Text = _focus == game.PlayerId ? "[YOU]" : $"[P{_focus}]";
+        _previousCity.Disabled = _nextCity.Disabled = s is null || s.Players.Length < 2;
+        _stats.Text = "";
+        _resources.Visible = focus is not null;
+        foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>()) _values[resource.ToString()].Text = (focus?.Resources.Amount(resource) ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _upkeep.Text = progression.Food; _reward.Text = progression.Reward;
+        _armyDetails.Text = progression.Army;
+        _detailsDialog.DialogText = "";
+        _counters.Text = s is null ? "" : $"Wave {s.Wave}/{s.TotalWaves} · Turn {s.Turn}/3{(s.WaveCatalog.FirstOrDefault(w => w.Number == s.Wave)?.IsBoss == true ? " · BOSS" : "")}";
+        string[] phases = ProgressionPresentation.PhaseRows(s);
+        for (int i = 0; i < _phaseRows.Count; i++) _phaseRows[i].Text = phases[i];
+        _phase.Text = s?.Phase switch { Phase.Lobby => "Lobby", Phase.Victory => progression.Phase, Phase.Defeat => progression.Phase, _ => s?.Paused == true ? "PAUSED" : "" };
+        _phase.Visible = _phase.Text.Length != 0;
+        foreach (Label row in _phaseRows) row.Visible = s?.Phase is Phase.Building or Phase.Preparation or Phase.Combat;
         bool live = game.Connected && s is not null;
         bool edit = CanEdit() && _slot >= 0;
         SlotState slot = _slot >= 0 && focus is not null ? focus.Slots[_slot] : new(Building.Empty, 0);
         TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
         BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
-        _detail.Text = _slot < 0 ? "Select a plot or building, then choose an action." : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? $"Open plot {_slot + 1} · choose a building" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n" + (definition?.Produces is Game.Core.Resource output ? $"+{definition.Output(slot.Level)} {output} per production" : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.Blacksmith ? "Class research: +5% base HP and damage per rank" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
+        _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n" + (definition?.Produces is Game.Core.Resource output ? $"+{definition.Output(slot.Level)} {output} per production" : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.Blacksmith ? "Class research: +5% base HP and damage per rank" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
         string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
         if (explanation.Length != 0) _detail.Text += "\n" + explanation;
         _buildActions.Visible = _slot >= 0 && slot.Purchased && slot.Type == Building.Empty;
@@ -315,7 +259,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         int expansions = focus?.Slots.Count(p => p.Purchased) - 5 ?? 0;
         ResourceCost plotCost = s is not null && expansions < s.PlotPrices.Length ? new(s.PlotPrices[expansions]) : default;
         _buyPlot.Text = $"Buy plot · {plotCost.Gold} gold"; _buyPlot.Disabled = !edit || slot.Purchased || !me!.Resources.TryPay(plotCost, out _);
+        _buyPlot.TooltipText = focus is null ? "" : CostExplanation(plotCost, focus.Resources);
         _buildGroups.Visible = _buildActions.Visible;
+        _detail.Visible = _detail.Text.Trim().Length != 0;
+        int choices = _construction.Keys.Count(type => BuildingGroup(type) == _constructionGroup);
+        for (int i = 0; i < _emptyBuildCells.Count; i++) _emptyBuildCells[i].Visible = i < 9 - choices;
         foreach (Button tab in _groupButtons) tab.Modulate = tab.Text == _constructionGroup ? Colors.White : new Color(.7f, .7f, .7f);
         _buildingActions.Visible = _slot >= 0 && slot.Type != Building.Empty;
 
@@ -333,6 +281,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
         UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
         _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {q.Type} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
+        if (slot.UpgradeQuote is ResourceCost nextUpgrade && focus is not null) _upgrade.TooltipText += "\n" + CostExplanation(nextUpgrade, focus.Resources);
         _sell.Text = "Sell · " + ResourceText(slot.Refund); _sell.Disabled = !edit || slot.Type == Building.Empty;
         _sell.TooltipText = "Refund half the building's total paid construction and upgrades. Land, army, health and research remain.";
         _marketActions.Visible = slot.Type == Building.Market;
@@ -357,22 +306,24 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         {
             int rank = focus?.Research.For(type) ?? 0;
             ResearchQuote? quote = s?.ResearchQuotes.FirstOrDefault(q => q.Rank == rank + 1);
+            button.TooltipText = quote is null ? "Maximum research rank" : $"Requires Blacksmith L{quote.RequiredBlacksmithLevel}\n" + (focus is null ? "" : CostExplanation(quote.Cost, focus.Resources));
             button.Text = $"{type} {rank}/2\n "; UiAssets.Cost(button, quote?.Cost ?? default);
             button.Disabled = !edit || slot.Type != Building.Blacksmith || quote is null || quote.RequiredBlacksmithLevel > slot.Level || !me!.Resources.TryPay(quote.Cost, out _);
         }
-        _ready.Text = me?.Ready == true ? "Unready · edit city" : s?.Phase == Phase.Preparation ? "Ready for battle" : "Ready · production";
+        _ready.Text = me?.Ready == true ? "Unready" : "Ready";
         _ready.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation) || s.Paused || me is null || me.Eliminated;
         _ready.Visible = s?.Phase != Phase.Lobby && game.Connected;
         _pause.Visible = game.Connected && s?.Phase != Phase.Lobby;
         _start.Visible = game.Connected && s?.Phase == Phase.Lobby && game.CanStart; _start.Disabled = !live || !game.CanStart;
         _invite.Visible = game.HostPlayerId == game.PlayerId && game.HostPlayerId != 0; _invite.Disabled = !live || !game.CanInvite;
         _invite.TooltipText = game.CanInvite ? "Invite friends through Steam" : "Invitations are unavailable for this session.";
-        _pause.Text = s?.Paused == true ? "Resume whole match" : "Pause whole match";
+        _pause.Text = s?.Paused == true ? "Resume" : "Pause";
         UiAssets.Decorate(_pause, s?.Paused == true ? "Resume" : "Pause");
         UiAssets.Decorate(_ready, me?.Ready == true ? "Unready" : "Ready");
         _pause.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation or Phase.Combat);
         _reconnect.Visible = !game.Connected; _reconnect.Disabled = game.Status == "Connecting";
         _fresh.Visible = !game.Connected && game.Status != "Connecting" && (s is null || s.Phase == Phase.Lobby || game.Feedback.Contains("expired", StringComparison.Ordinal));
+        _quoteDetails.Text = _detail.Text + "\n" + string.Join("\n\n", _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Concat(_trades.Values).Append(_upgrade).Append(_buyPlot).Where(button => button.IsVisibleInTree() && button.TooltipText.Length > 0).Select(button => button.Text.Trim() + "\n" + button.TooltipText));
         foreach (Button button in _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Append(_upgrade))
             if (button.GetNodeOrNull<RichTextLabel>("Cost") is { } cost) cost.Modulate = button.Disabled ? new Color(1, 1, 1, 0.6f) : Colors.White;
     }
@@ -413,8 +364,9 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             minX = Math.Min(minX, px); maxX = Math.Max(maxX, px); minY = Math.Min(minY, py); maxY = Math.Max(maxY, py);
         }
         float usable = Math.Max(1, size.Y - hud);
-        _camera.Size = Math.Max((maxY - minY + 1.2f) * size.Y / usable, (maxX - minX + 1.2f) * size.Y / size.X);
-        target = center + right * ((minX + maxX) / 2) + up * ((minY + maxY) / 2 - _camera.Size * hud / size.Y / 2);
+        float width = Math.Max(1, size.X - 240);
+        _camera.Size = Math.Max((maxY - minY + 1.2f) * size.Y / usable, (maxX - minX + 1.2f) * size.Y / width);
+        target = center + right * ((minX + maxX) / 2 + _camera.Size * 120 / size.Y) + up * ((minY + maxY) / 2 - _camera.Size * hud / size.Y / 2);
         _camera.Position = target + direction * 45; _camera.LookAt(target);
         _navigation.Fit();
     }
@@ -428,10 +380,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                 board.Name = $"City{city.Id}"; board.Visible = city.Id == _focus;
                 _landscapes[city.Id] = new VillageLandscape(board, _landscapeAssets);
                 _buildingBounds[city.Id] = new Aabb?[9];
-                Label(board, new(6, 1.5f, 3.2f), "Gold / Food / Wood", 18);
-                Label3D title = Label(board, VillageLandscape.Home + new Vector3(0, 2.7f, 0), "CITY", 26); _cityLabels[city.Id] = title;
+
             }
-            _cityLabels[city.Id].Text = $"P{city.Id}{(city.Id == game.PlayerId ? " • YOU" : "")}  ♥ {HealthPoints.Format(city.Health)}\n{(city.Eliminated ? "FALLEN" : "Home · Defender")}";
             UpdateStockpiles(board, city);
             _landscapes[city.Id].SetPlots(city.Slots);
             string key = string.Join('|', city.Slots.Select(s => $"{s.Type}:{s.Level}:{s.Purchased}"));
@@ -445,7 +395,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                     SlotState slot = city.Slots[i];
                     if (slot.Type == Building.Empty)
                     {
-                        if (!slot.Purchased) Label(buildings, SlotPosition(i) + new Vector3(0, .15f, 0), "Locked land", 16);
+                        if (!slot.Purchased) buildings.AddChild(new Sprite3D { Name = "Locked" + i, Position = SlotPosition(i) + new Vector3(0, .6f, 0), Texture = UiAssets.Icon("Gold"), PixelSize = .025f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Shaded = false });
                         continue;
                     }
                     string name = slot.Type switch { Building.Mine or Building.MetalMine => "mine", Building.Stonecutter => "blacksmith", Building.Weaver => "lumbermill", Building.Market => "stage_C", Building.Farm => "windmill", Building.Lumbermill => "lumbermill", Building.ArcheryRange => "archeryrange", Building.Arcanum => "church", Building.Blacksmith => "blacksmith", Building.ArrowTower => "tower_B", Building.CatapultTower => "tower_catapult", _ => "barracks" };
@@ -565,6 +515,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             if (!_healthBars.TryGetValue(id, out UnitHealthBar? bar)) { bar = new UnitHealthBar { Name = "Health" + id }; _healthBars[id] = bar; _healthRoot.AddChild(bar); }
             bar.Sample(view, _camera, world);
         }
+        _healthRoot.MoveChild(_homeHealth, -1);
     }
     private Node3D Model(Node3D parent, string path, Vector3 position, float size) => _landscapeAssets.Place(parent, path, position, size);
     private MeshInstance3D Box(Node3D parent, Vector3 position, Vector3 size, string color)
@@ -613,41 +564,4 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         return -1;
     }
     private Rect2 WorldArea() => new(Vector2.Zero, new Vector2(GetViewport().GetVisibleRect().Size.X, _panel.Position.Y));
-    public override void _Notification(int what)
-    {
-        if (what == NotificationWMWindowFocusOut || what == NotificationApplicationFocusOut) _navigation?.Interrupt();
-    }
-    public override void _Input(InputEvent @event)
-    {
-        if (@event is InputEventKey key)
-        {
-            _navigation.ObserveKey(key);
-            if (key.IsActionPressed("ui_focus_next") || key.IsActionPressed("ui_focus_prev")) _navigation.Interrupt();
-        }
-        if (@event is InputEventMouseButton { Pressed: true } mouse && !WorldArea().HasPoint(mouse.Position)) _navigation.Interrupt();
-        if (application.IsModalOpen || !GetWindow().HasFocus()) _navigation.Interrupt();
-    }
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (!application.IsModalOpen && @event.IsActionPressed("ui_cancel", false))
-        {
-            _settings.Open(); GetViewport().SetInputAsHandled(); return;
-        }
-        if (application.IsModalOpen || !GetWindow().HasFocus()) return;
-        if (Focus() is not null && @event is InputEventKey key && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit) && _navigation.Press(key))
-        { GetViewport().SetInputAsHandled(); return; }
-        if (Focus() is not null && @event is InputEventMouseButton { Pressed: true } wheel
-            && wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown
-            && WorldArea().HasPoint(wheel.Position) && !application.BlocksWorldInput(wheel.Position))
-        {
-            _navigation.ZoomAt(wheel.Position, wheel.ButtonIndex == MouseButton.WheelUp, wheel.Factor > 0 ? wheel.Factor : 1);
-            GetViewport().SetInputAsHandled(); return;
-        }
-        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) return;
-        if (!WorldArea().HasPoint(mouse.Position) || application.BlocksWorldInput(mouse.Position)) return;
-        if (GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit)) GetViewport().GuiReleaseFocus();
-        if (!game.Connected) return;
-        int selected = Pick(mouse.Position);
-        if (selected >= 0) _slot = selected;
-    }
 }

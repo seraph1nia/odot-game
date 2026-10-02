@@ -16,6 +16,8 @@ public partial class GameApplication(Main session) : Node
     private Label _steamStatus = null!;
     private AudioStreamPlayer _music = null!;
     private Tabletop? _tabletop;
+    private ConfirmationDialog _leave = null!;
+    private long _leaveGeneration = -1;
     private ConfirmationDialog _join = null!;
     private Action? _joinAccepted, _joinDeclined;
     private bool _exiting;
@@ -28,7 +30,7 @@ public partial class GameApplication(Main session) : Node
     public ClientSettings Settings { get; private set; } = null!;
     internal SteamFriendsDialog Friends { get; private set; } = null!;
     public string Screen { get; private set; } = "menu";
-    public bool IsModalOpen => Settings.IsOpen || _join.Visible || Friends.IsOpen;
+    public bool IsModalOpen => Settings.IsOpen || _join.Visible || _leave.Visible || Friends.IsOpen || _tabletop?.DetailsOpen == true;
 
     public override void _Ready()
     {
@@ -38,6 +40,7 @@ public partial class GameApplication(Main session) : Node
         canvas.AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         Settings = new ClientSettings { Name = "ClientSettings", FocusFallback = ActiveFocus }; AddChild(Settings);
         Settings.Initialize(root, Theme);
+        Settings.ReturnRequested = RequestReturn;
         using var music = GD.Load<AudioStreamWav>("res://Assets/Music/LVS04_11_Echoes_of_Valhalla_bpm82_loop.wav");
         _music = new AudioStreamPlayer { Name = "BackgroundMusic", Stream = music, Bus = "Master", VolumeDb = -12, Autoplay = true };
         _music.TreeExiting += _music.Stop;
@@ -78,6 +81,12 @@ public partial class GameApplication(Main session) : Node
         AddChild(_join);
         UiAssets.Decorate(_join.GetOkButton(), "AcceptJoin");
         UiAssets.Decorate(_join.GetCancelButton(), "DeclineJoin");
+        _leave = new ConfirmationDialog { Name = "LeaveConfirmation", Title = "Return to menu?", OkButtonText = "Return to menu", CancelButtonText = "Cancel", Transient = true, Exclusive = false, Theme = Theme, DialogCloseOnEscape = true };
+        AddChild(_leave);
+        _leave.GetCancelButton().Name = "CancelReturn"; _leave.GetOkButton().Name = "ConfirmReturn";
+        _leave.Confirmed += ConfirmReturn;
+        _leave.Canceled += CancelReturn;
+        _leave.CloseRequested += CancelReturn;
         _join.Confirmed += AcceptJoin;
         _join.Canceled += DeclineJoin;
         Friends = new SteamFriendsDialog { Name = "SteamFriends", Theme = Theme, FocusFallback = FocusCurrent };
@@ -113,10 +122,11 @@ public partial class GameApplication(Main session) : Node
     public void ShowMenu(string feedback = "")
     {
         Friends.Close();
+        _leave.Hide(); _leaveGeneration = -1;
         Settings.Close(false);
         if (_join.Visible) DeclineJoin();
         RemoveTabletop();
-        Screen = "menu";
+        Screen = "menu"; Settings.InSession = false;
         _scenery.Visible = true; _environment.Environment = _menuEnvironment; _menuCamera.Current = true;
         _menuRoot.Visible = true; _startMenu.Visible = true; _multiplayerMenu.Visible = false;
         Settings.SettingsButton.Visible = false;
@@ -128,7 +138,7 @@ public partial class GameApplication(Main session) : Node
     public void ShowMultiplayer(string feedback = "")
     {
         if (_tabletop is not null) return;
-        Screen = "multiplayer";
+        Screen = "multiplayer"; Settings.InSession = false;
         _startMenu.Visible = false; _multiplayerMenu.Visible = true;
         Settings.SettingsButton.Visible = true;
         _steamStatus.Visible = true;
@@ -144,10 +154,11 @@ public partial class GameApplication(Main session) : Node
     public void ShowSession()
     {
         Friends.Close();
+        _leave.Hide(); _leaveGeneration = -1;
         Settings.Close(false);
         if (_join.Visible) DeclineJoin();
         RemoveTabletop();
-        Screen = "session";
+        Screen = "session"; Settings.InSession = true;
         _menuRoot.Visible = false; _scenery.Visible = false; _menuCamera.Current = false; _environment.Environment = null;
         Settings.SettingsButton.Visible = true;
         _steamStatus.Visible = false;
@@ -170,15 +181,32 @@ public partial class GameApplication(Main session) : Node
         if (IsModalOpen || _exiting || !session.CanInvite) return;
         InviteRequested?.Invoke();
     }
-    public void ReturnToMenu()
+    private void RequestReturn()
     {
-        if (IsModalOpen || _exiting) return;
+        if (_exiting || Screen != "session" || !Settings.IsOpen || _leave.Visible || !session.HasSession) return;
+        _leaveGeneration = session.SessionGeneration;
+        _leave.DialogText = session.LeaveWarning;
+        _leave.PopupCenteredClamped(new(500, 190), 0.9f);
+        _leave.GetCancelButton().GrabFocus();
+    }
+    private void CancelReturn()
+    {
+        _leaveGeneration = -1; _leave.Hide();
+        if (!_exiting && Screen == "session" && Settings.IsOpen) Settings.ReturnButton.GrabFocus();
+    }
+    private void ConfirmReturn()
+    {
+        long generation = _leaveGeneration;
+        _leaveGeneration = -1; _leave.Hide();
+        if (_exiting || Screen != "session" || generation != session.SessionGeneration || !session.HasSession) return;
+        Settings.Close(false);
         session.ReturnToMenu();
     }
     public void OpenJoinConfirmation(Action accept, Action decline)
     {
         if (_exiting || _join.Visible) { decline(); return; }
         Friends.Close();
+        _leave.Hide(); _leaveGeneration = -1;
         Settings.Close(false);
         _joinAccepted = accept; _joinDeclined = decline;
         _join.PopupCenteredClamped(new(500, 190), 0.9f);
@@ -207,6 +235,7 @@ public partial class GameApplication(Main session) : Node
         if (_exiting) return;
         _exiting = true;
         Friends.Close();
+        _leave.Hide(); _leaveGeneration = -1;
         Settings.Close(false);
         DeclineJoin();
         session.RequestExit();
@@ -223,8 +252,9 @@ public partial class GameApplication(Main session) : Node
         // Consume only events routed outside the dialog, keeping native focus inside.
         // Nonexclusive dialogs let the main window deliver native close requests.
         if (!IsModalOpen) return;
+        if (_tabletop?.DetailsOpen == true) { _tabletop.FocusDetails(); GetViewport().SetInputAsHandled(); return; }
         if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true })
-            (_join.Visible ? _join : Friends.IsOpen ? Friends : Settings.Dialog).GrabFocus();
+            (_leave.Visible ? _leave : _join.Visible ? _join : Friends.IsOpen ? Friends : Settings.Dialog).GrabFocus();
         GetViewport().SetInputAsHandled();
     }
     public override void _UnhandledInput(InputEvent @event)
@@ -255,12 +285,20 @@ public partial class GameApplication(Main session) : Node
             ObserveControl(targets, "Volume", Settings.VolumeSlider);
             ObserveControl(targets, "CheckUpdate", Settings.CheckUpdateButton);
             ObserveControl(targets, "DownloadUpdate", Settings.DownloadUpdateButton);
+            ObserveControl(targets, "ReturnToMenu", Settings.ReturnButton);
             ObserveControl(targets, "CloseSettings", Settings.Dialog.GetOkButton());
         }
         if (_join.Visible)
         {
             ObserveControl(targets, "AcceptJoin", _join.GetOkButton());
             ObserveControl(targets, "DeclineJoin", _join.GetCancelButton());
+        }
+        if (_leave.Visible)
+        {
+            Vector2 close = GetViewport().GetFinalTransform() * ((Vector2)_leave.Position + new Vector2(_leave.Size.X - 8, -14));
+            targets["CloseReturn"] = new { X = close.X, Y = close.Y, Width = 14, Height = 14, Visible = true, Enabled = true };
+            ObserveControl(targets, "ConfirmReturn", _leave.GetOkButton());
+            ObserveControl(targets, "CancelReturn", _leave.GetCancelButton());
         }
         Friends.Observe(this, targets);
         int master = AudioServer.GetBusIndex("Master");
@@ -282,7 +320,10 @@ public partial class GameApplication(Main session) : Node
             ["DropdownOpen"] = Settings.DisplaySelector.GetPopup().Visible || Settings.ResolutionSelector.GetPopup().Visible,
             ["DropdownTexture"] = (Settings.DisplaySelector.GetPopup().GetThemeStylebox("panel") as StyleBoxTexture)?.Texture?.ResourcePath,
             ["TabTextures"] = new[] { Settings.Categories.GetTabBar().GetThemeStylebox("tab_selected"), Settings.Categories.GetTabBar().GetThemeStylebox("tab_unselected") }.OfType<StyleBoxTexture>().Select(box => box.Texture.ResourcePath).ToArray(),
-            ["DialogTexture"] = ((Settings.IsOpen ? Settings.Dialog : _join.Visible ? _join : Friends).GetThemeStylebox("panel", "AcceptDialog") as StyleBoxTexture)?.Texture?.ResourcePath,
+            ["DialogTexture"] = ((_leave.Visible ? _leave : Settings.IsOpen ? Settings.Dialog : _join.Visible ? _join : Friends).GetThemeStylebox("panel", "AcceptDialog") as StyleBoxTexture)?.Texture?.ResourcePath,
+            ["ReturnConfirmationOpen"] = _leave.Visible,
+            ["ReturnWarning"] = _leave.DialogText,
+            ["ConfirmationFocus"] = _leave.GuiGetFocusOwner()?.Name.ToString() ?? "",
             ["JoinConfirmationOpen"] = _join.Visible,
             ["FriendsOpen"] = Friends.IsOpen,
             ["FriendCount"] = Friends.FriendCount,
@@ -350,6 +391,7 @@ public partial class GameApplication(Main session) : Node
     }
     public override void _Process(double delta)
     {
+        if (_leave.Visible && (Screen != "session" || _leaveGeneration != session.SessionGeneration)) CancelReturn();
         if (_scenery.Visible) _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);
     }
 }

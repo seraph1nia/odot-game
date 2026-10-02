@@ -16,6 +16,8 @@ The match HUD repeats city identity, resource information and navigation across 
 - Replace the large phase block with a small vertical sequence highlighting the current stage, compact wave/turn counters, and side-by-side Ready/Pause buttons beneath it.
 - Add a narrow top-right two-column resource table: Resource name / Amount, with Gold, Food, Wood, Stone, Metal and Cloth from the observed city's authoritative balances.
 - Replace Locked land text with a gold/buy marker; remove board resource labels while retaining physical stockpiles. Replace the home's P1/You/heart/raw-health label with a percentage health bar.
+- Replace overhead unit names/codes such as S L1 and BOSS L5 with a Roman level numeral above the left edge of each health bar.
+- Make visible living friendly/enemy units and bosses clickable for a centre-right inspection popup showing the unit model, name, description, level, current/max health with a bar, and damage per attack. Outside clicks dismiss it; another unit click replaces its contents; camera dragging does not select units.
 - Keep detailed upkeep, rewards and army inspection accessible outside the removed summary rows.
 
 ## Capabilities
@@ -27,10 +29,11 @@ None.
 ### Modified Capabilities
 
 - `themed-ui`: Text-only menus/buttons and resource table, with a world purchase-marker exception and compact responsive layout.
-- `city-tabletop`: Reduced HUD, compact city navigation and phases, relocated resources, Space reset, cleaner board labels and percentage city health.
+- `city-tabletop`: Reduced HUD, compact city navigation and phases, relocated resources, Space reset, cleaner board labels, percentage city health and click-to-inspect units.
+- `game-feedback`: Roman unit level markers replacing overhead names/codes while preserving authoritative health-bar accuracy and lifecycle.
 - `client-settings`: Session-only return action and cancelable confirmation with modal input/focus protection.
 - `game-launcher`: Confirmed return through Settings while preserving existing solo, host and guest leave semantics.
 
 ## Impact
 
-Presentation changes affect `src/Game/Tabletop.cs`, `TabletopCamera.cs`, `ProgressionPresentation.cs`, `ClientSettings.cs`, `GameApplication.cs`, `UiAssets.cs` and owned invitation/dialog surfaces. Extend existing `tools/DevRunner` UI observations and scenarios to reflect changed controls, resource placement, health and keyboard input. Gameplay rules, authority/network protocols, tool/dependency locks and asset provenance remain unchanged; no new resource types or downloaded assets are proposed.
+Presentation changes affect `src/Game/Tabletop.cs`, `TabletopCamera.cs`, `ProgressionPresentation.cs`, `ClientSettings.cs`, `GameApplication.cs`, `UiAssets.cs`, `UnitHealthBar.cs`, `UnitView.cs` and owned invitation/dialog surfaces. Extend existing `tools/DevRunner` UI observations and scenarios to reflect changed controls, resource placement, health, unit inspection and keyboard/mouse input. Gameplay rules, authority/network protocols, tool/dependency locks and asset provenance remain unchanged; no new resource types or downloaded assets are proposed.

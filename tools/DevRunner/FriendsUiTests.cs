@@ -21,6 +21,7 @@ internal sealed partial class Runner
             Require(target.X > 0 && target.X < picker.Width && target.Y > 0 && target.Y < picker.Height, name + " fits at " + size);
         }
         await MenuCheckpoint(host, "friends-list-" + size, token);
+        await GeometryAtBothSizes(host, "friends-list", token);
         for (int step = 0; step < 32; step++) await host.Send("key Tab");
         UiObservation scrolled = await WaitUi(host, ui => ui.FocusedControl == "InviteFriend309", "keyboard scrolls to final friends row", token);
         UiTarget last = UiProtocol.Target(scrolled, "InviteFriend309");
@@ -75,6 +76,9 @@ internal sealed partial class Runner
             && !host.History().Any(e => e.Type is "steam-lobby" or "steam-connection"), "cleanup sends no invitation or native connection");
         await host.Send("host");
         await WaitUi(host, ui => ui.Screen == "session" && !ui.FriendsOpen && !ui.Targets["Invite"].Enabled, "new host has no stale fixture", token);
+        await ReturnViaControl(host, token);
+        await host.Send("host");
+        await WaitUi(host, ui => ui.Screen == "session" && ui.Connected && !ui.FriendsOpen, "fresh host after confirmed menu return", token);
         await FriendFixture(host, "list", token);
         await Click(host, "Invite", token);
         UiObservation final = await WaitUi(host, ui => ui.FriendsOpen, "picker open for native close", token);

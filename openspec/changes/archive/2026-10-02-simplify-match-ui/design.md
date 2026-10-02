@@ -2,9 +2,9 @@
 
 ## Context
 
-See proposal.md for motivation and the four capability deltas for behavior. `Tabletop` currently builds a minimum-300px bottom panel with city/resources, contextual actions, phase controls and a footer. Its construction grid has four columns. Resource totals use two horizontal rows; verbose city tabs select the observed player. `ProgressionPresentation` combines large phase/wave/turn text with land, upkeep, rewards and army details. `TabletopCamera` owns fitted camera state, wheel zoom, bounded keyboard panning and reset; `Tabletop` routes world selection and input.
+See proposal.md for motivation and the five capability deltas for behavior. `Tabletop` currently builds a minimum-300px bottom panel with city/resources, contextual actions, phase controls and a footer. Its construction grid has four columns. Resource totals use two horizontal rows; verbose city tabs select the observed player. `ProgressionPresentation` combines large phase/wave/turn text with land, upkeep, rewards and army details. `TabletopCamera` owns fitted camera state, wheel zoom, bounded keyboard panning and reset; `Tabletop` routes world selection and input.
 
-`ClientSettings` is application-owned, reused outside and inside sessions. `GameApplication.ReturnToMenu` currently refuses calls while any modal is open. `UiAssets.Decorate` inserts icons, `UiAssets.Cost` embeds gold/food images, and Settings tabs have explicit icons. World stockpiles and their tests are separate from resource labels. Existing runner checks depend on ResetView, CityN and ReturnToMenu targets and icon-bearing controls, so observation and driver changes belong in this feature.
+`ClientSettings` is application-owned, reused outside and inside sessions. `GameApplication.ReturnToMenu` currently refuses calls while any modal is open. `UiAssets.Decorate` inserts icons, `UiAssets.Cost` embeds gold/food images, and Settings tabs have explicit icons. World stockpiles and their tests are separate from resource labels. Existing runner checks depend on ResetView, CityN and ReturnToMenu targets and icon-bearing controls, so observation and driver changes belong in this feature. `UnitHealthBar` currently renders role/level codes below the bar using `ProgressionPresentation.UnitLabel`; runner and presentation tests assert those codes. `UnitView.State` already contains identity, faction, level, current health and a resolved profile with maximum health and per-attack damage. Unit selection and descriptions are new presentation behavior; existing picking only targets plots/buildings.
 
 The working tree already contains unrelated changes to CI, exports, README and verification documentation. Preserve them. Planning edits are confined to this change directory; full game CI belongs to implementation, not proposal authoring.
 
@@ -54,7 +54,21 @@ Assume left mouse button for click-and-drag. Track a pending gesture on an eligi
 
 Alternative: use middle/right mouse drag. Left drag matches the request using an ordinary mouse without a new binding; threshold classification preserves plot clicks. Input routing changes require actual-input regression coverage because cheap state projections cannot establish Godot click/drag priority.
 
-### 6. Application-owned return confirmation
+### 6. Roman unit levels and centre-right inspection
+
+Replace the overhead role/name label with a Roman level numeral positioned immediately above the health bar's left edge. Use conventional subtractive notation (I, IV, IX, etc.) for the authoritative unit level, not research rank or building level. Size and visibility bounds include the numeral, including longer values in the supported level range. Keep the existing authoritative fill, effective maximum, faction-colored ground markers and bar projection/lifetime rules. Full unit name, role, faction and boss status move into inspection and existing army details; do not add overhead replacement abbreviations.
+
+Add a tabletop-owned nonmodal unit inspector anchored at centre-right below the top-right resource table and above the bottom HUD at both supported sizes. It shows a static preview of the selected unit's existing bundled character and weapon, a readable archetype/faction-specific name, short role description, level, current/max health text and health bar, damage per attack and boss status when applicable. A bounded dedicated preview viewport reuses asset loading without a second gameplay UnitView, combat effects, sounds or authoritative actor. Descriptions live in a small presentation mapping for the current archetypes/factions; numbers come from the selected unit's resolved profile and HealthPoints formatting, including level, research and boss modifiers. No new wire fields or gameplay rules are required.
+
+Retain a match-scoped unit id, resolve it from current observed state on updates, and refresh displayed health/stats without replaying events. Pause or transport loss freezes values at the last authoritative observation. Close the popup on death, removal/transfer away from the observed city, observed-city change, fresh match/session end, or when opening a blocking modal. Do not inspect reserves, undeployed arrivals or retained death bodies that have no visible living model.
+
+Integrate unit hits with the pending click/drag gesture from decision 5. A short eligible world click picks the nearest visible living unit model before a plot behind it; overlapping unit targets resolve by hit distance with a stable id tie-break. Picking bounds follow the rendered pose/anchor and camera rather than raw future positions. A unit click changes only local inspection, retaining the selected building slot. Crossing the drag threshold suppresses both unit and plot selection and dismisses an existing inspector at drag start. Health bars/numerals remain input-transparent so clicks reach world picking.
+
+Clicking inside the inspector keeps it open and blocks world input behind its rectangle. A click elsewhere, including another HUD control or plot, dismisses the inspector and performs the eligible normal action once; clicking another unit directly replaces the contents in one gesture. Observe outside presses without consuming the normal target event; newly opened inspector state must not dismiss itself from its opening click. Opening the popup does not pause combat, submit commands or alter readiness. Camera fitting continues to prioritize the ordinary overview; the temporary inspector can cover part of the world while open but must not overlap resource totals or match controls.
+
+Alternative: turn bars into buttons or make the inspector modal. Rejected because bars must remain input-transparent and inspection should coexist with combat, camera navigation and ordinary controls. Reusing the character model avoids inventing portrait assets and keeps unit appearance consistent.
+
+### 7. Application-owned return confirmation
 
 Expose a Settings return-request event with session-only visibility, wired by `GameApplication`. Use an application-owned confirmation dialog included in modal/focus observation. Suggested text: solo, “Return to menu? Unsaved game progress will be lost.”; host, “Return to menu? This ends the session for everyone and game progress will be lost.”; guest, “Leave this game and return to menu? Your city remains with the host while this session is running.” Cancel has default focus; Escape/window close cancel and return to Settings.
 
@@ -69,6 +83,9 @@ Alternative: put leave logic into ClientSettings. Rejected because Settings owns
 - [Delaying selection changes mouse ordering] → Test short clicks, building roofs, drags across plots, release outside world, modal/focus interruption and a subsequent normal click with the existing actual-input harness.
 - [Space activates focused Ready or a modal control] → Use normal Godot event consumption and explicitly test that consumed Space cannot reset or leak to gameplay.
 - [Confirmation overlaps existing Settings modal guard] → Make confirm an explicit ordered modal-close/leave transition and verify cancellation, repeated inputs and late session callbacks.
+- [Unit click conflicts with drag or plot selection] → Resolve selection on short-click release with one ordered nearest-hit decision, and verify drag suppression, popup switching and outside-click action delivery through actual input.
+- [Inspector data or preview survives a casualty/session] → Scope selection to match and unit identity; close invalid selection and release the preview with the tabletop. Verify live damage, pause/loss freeze and lifecycle cleanup using existing combat captures.
+- [Roman levels or popup clip at supported sizes] → Include numeral extents in bar visibility and capture inspector/resource/HUD bounds at both sizes.
 - [HUD cleanup loses useful economy feedback] → Retain exact costs and explicit Details inspection, and preserve current cooperative, reserve, reward and affordability assertions.
 
 ## Migration Plan

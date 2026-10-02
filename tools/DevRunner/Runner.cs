@@ -5,13 +5,14 @@ using Game.Core;
 
 namespace DevRunner;
 
-internal sealed partial class Runner(Options options, CancellationToken cancellation, Evidence? evidence = null, ScenarioScope? scope = null, string? root = null)
+internal sealed partial class Runner(Options options, CancellationToken cancellation, Evidence? evidence = null, ScenarioScope? scope = null, string? root = null, ScenarioAdmission? admission = null)
 {
     private readonly string _root = root ?? FindRoot();
     private string GameDirectory => Path.Combine(_root, "src", "Game");
     private const string EngineVersion = "4.7.2";
     private readonly Evidence _evidence = evidence ?? new Evidence(FindRoot(), options.EvidenceDirectory);
     private readonly ScenarioScope? _scope = scope;
+    private readonly ScenarioAdmission? _admission = admission;
 
     public async Task Run()
     {
@@ -22,10 +23,11 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             switch (options.Command)
             {
                 case "help":
-                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports); --scenario combat --checkpoint melee selects the early rendered gate\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
+                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (--jobs 1..2 (default 2, selected slice 1); exported-package uses existing exports); --scenario combat --checkpoint melee selects the early rendered gate\nVerification: --simulation-speed 1..8 (default 4 setup, graphical witnesses 1), --trace. CI: --jobs N total expensive budget, --ui-jobs 1..2 graphical cap.\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
                     Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] [--scenario direct-invite] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
                 case "prepare": await Prepare(); break;
+                case "test-rules": await CheapTests(); break;
                 case "check-steam-extension": await CheckSteamExtension(); break;
                 case "test-steam": await TestSteam(); break;
                 case "dev": await Interactive(); break;
@@ -70,12 +72,13 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 "test-ui" or "_ui-worker" => "all source UI slices",
                 "ci" or "test-network" => "full required set",
+                "test-rules" => "all C# rules, campaign partitions and tooling; no Godot",
                 "ci-source" => "all source gates; no exports or package coverage",
                 "ci-linux-package" => "Linux exports/native/headless/private UI; source gates separate",
                 "ci-windows" => "Windows source/native/export/offline solo; Linux and real Steam gates separate",
                 _ => "command only; no test coverage claimed"
             };
-            await _evidence.Summary(options.Command, coverage, options.Command is "ci" or "ci-source" or "test-network" ? options.Jobs : 1, result, timer.Elapsed.TotalSeconds);
+            await _evidence.Summary(options.Command, coverage, options.Command is "ci" or "ci-source" or "test-network" ? options.Jobs : options.Command == "test-rules" ? 2 : options.Command == "test-ui" && options.Scenario is null ? Math.Min(options.Jobs, options.UiJobs) : 1, result, timer.Elapsed.TotalSeconds, options.UiJobs, options.SimulationSpeed, options.Trace);
         }
     }
 
@@ -192,7 +195,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         if (role is not ("server" or "playing-host" or "client" or "menu" or "solo")) throw new ArgumentException("Unknown game role: " + role);
         var args = new List<string>();
         if (headless) args.Add("--headless");
-        if (_scope is not null) args.AddRange(["--log-file", Path.Combine(_scope.EvidenceDirectory, name + "-engine-" + Guid.NewGuid().ToString("N") + ".log")]);
+        string? engineLogPath = _scope is null ? null : Path.Combine(_scope.EvidenceDirectory, name + "-engine-" + Guid.NewGuid().ToString("N") + ".log");
         if (exported is null) args.AddRange(["--path", GameDirectory]);
         if (!headless)
         {
@@ -218,6 +221,15 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             environment ??= new Dictionary<string, string?>();
             WindowsStandaloneEnvironment(environment);
         }
+        if (_scope is not null && options.Command is "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows")
+        {
+            string marker = Path.Combine(environment!["ODOT_OWNED_DATA"]!, ".verification-owner");
+            string token = Guid.NewGuid().ToString("N");
+            File.WriteAllText(marker, token);
+            environment["ODOT_VERIFICATION_MARKER"] = marker;
+            environment["ODOT_VERIFICATION_TOKEN"] = token;
+            if (role != "client") args.AddRange(["--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
+        }
         if (_scope?.Graphical == true) environment!["ODOT_STEAM_DISABLED"] = "1";
         if (options.Command is "verify-installed-linux" or "verify-installed-windows")
         {
@@ -240,7 +252,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         }
         var child = new Child(name, exported ?? "godot", args, _root, game: true, quiet: headless || _scope is not null,
             workingDirectory: exported is null ? _root : Path.GetDirectoryName(exported), environment: environment, evidenceDirectory: _scope?.EvidenceDirectory ?? _evidence.Directory,
-            sanitizeSteam: options.Command == "test-steam");
+            sanitizeSteam: options.Command == "test-steam", trace: options.Trace, engineLogPath: engineLogPath, simulationSpeed: role == "client" ? 1 : options.SimulationSpeed);
         return _scope?.Own(child) ?? child;
     }
 

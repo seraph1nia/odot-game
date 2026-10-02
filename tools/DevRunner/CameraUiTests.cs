@@ -22,9 +22,10 @@ internal sealed partial class Runner
     private async Task FocusWorld(Child client, CancellationToken token)
     {
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        UiTarget plot = frame.Targets.Where(p => p.Key.StartsWith("Plot", StringComparison.Ordinal) && p.Value.Visible).First().Value;
-        await ClickPoint(client, plot);
-        await WaitUi(client, p => p.FocusedControl.Length == 0, "world releases HUD navigation focus", token);
+        if (!frame.WindowFocused) NativeWindowClose.Focus(client, options, frame.NativeWindow);
+        await WaitUi(client, p => p.WindowFocused, "owned world input window focus", token);
+        await client.Send("click 32 70");
+        await WaitUi(client, p => p.WindowFocused && p.FocusedControl.Length == 0, "world releases HUD navigation focus", token);
     }
     private async Task<UiObservation> CameraZoom(Child client, CancellationToken token)
     {
@@ -67,6 +68,7 @@ internal sealed partial class Runner
         string before = Gameplay(Latest(client));
         int acknowledgements = client.History().Count(e => e.Type == "ack");
         await CameraZoom(client, token);
+        await CameraDrag(client, token);
         await HoldPan(client, ["D"], token);
         await Pick(client, 4, token);
         await Checkpoint(client, thorough ? "camera-navigation" : "packed-camera-navigation", token);
@@ -101,7 +103,7 @@ internal sealed partial class Runner
             finally { await client.Send("key-up D"); }
             await Click(client, "ResetView", token);
             UiObservation overview = await UiProtocol.Probe(client, options.StartupTimeout, token);
-            string city = overview.Targets.Keys.First(k => k.StartsWith("City", StringComparison.Ordinal) && k != "City" + client.PlayerId);
+            string city = "City" + overview.CityIds.First(id => id != client.PlayerId);
             await CameraZoom(client, token);
             await Click(client, city, token);
             RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
@@ -118,6 +120,38 @@ internal sealed partial class Runner
         RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
         Require(Gameplay(Latest(client)) == before && client.History().Count(e => e.Type == "ack") == acknowledgements, "camera controls submit no gameplay commands or changes");
     }
+    private async Task CameraDrag(Child client, CancellationToken token)
+    {
+        await FocusWorld(client, token);
+        UiObservation before = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        float x = before.Camera.ReferenceX, y = before.Camera.ReferenceY;
+        await client.Send(FormattableString.Invariant($"mouse-down {x} {y}"));
+        await client.Send(FormattableString.Invariant($"mouse-move {x + 55} {y + 30}"));
+        UiObservation dragged = await WaitUi(client, p => !SameCamera(before.Camera, p.Camera), "left drag pans camera", token);
+        await client.Send(FormattableString.Invariant($"mouse-up {x + 55} {y + 30}"));
+        Require(dragged.SelectedSlot == before.SelectedSlot && dragged.Camera.Zoom == before.Camera.Zoom && dragged.Camera.Rotation.SequenceEqual(before.Camera.Rotation), "drag preserves selection, zoom and angle");
+        await client.Send(FormattableString.Invariant($"mouse-down {x} {y}"));
+        await client.Send(FormattableString.Invariant($"mouse-move {-10000} {-10000}"));
+        await client.Send("mouse-up -10000 -10000");
+        UiObservation edge = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(Math.Abs(edge.Camera.PanX) <= 6 && Math.Abs(edge.Camera.PanZ) <= 8 && edge.SelectedSlot == before.SelectedSlot, "drag travel bounded and outside release suppresses selection");
+        await Click(client, "ResetView", token);
+        UiObservation reset = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        await client.Send(FormattableString.Invariant($"mouse-down {reset.Camera.ReferenceX} {reset.Camera.ReferenceY}"));
+        await client.Send("key Escape");
+        await WaitUi(client, p => p.SettingsOpen, "modal cancels pending drag", token);
+        await client.Send("mouse-up 0 0");
+        await Click(client, "CloseSettings", token);
+        await client.Send("mouse-move 400 350");
+        RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
+        UiTarget table = reset.Targets["ResourceTable"];
+        await Wheel(client, table.X, table.Y, true);
+        await client.Send(FormattableString.Invariant($"mouse-down {table.X} {table.Y}"));
+        await client.Send(FormattableString.Invariant($"mouse-move {table.X - 70} {table.Y + 40}"));
+        await client.Send(FormattableString.Invariant($"mouse-up {table.X - 70} {table.Y + 40}"));
+        RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
+        await Pick(client, 4, token);
+    }
     private async Task CameraInputPriority(Child client, CancellationToken token)
     {
         UiObservation view = await CameraZoom(client, token);
@@ -131,13 +165,21 @@ internal sealed partial class Runner
             UiObservation modal = await WaitUi(client, p => p.SettingsOpen, "modal interrupts held pan", token);
             await Wheel(client, view.Camera.ReferenceX, view.Camera.ReferenceY, true);
             await client.Send("key-down W"); await client.Send("key-up W");
-            Require(SameCamera(modal.Camera, (await UiProtocol.Probe(client, options.StartupTimeout, token)).Camera), "modal suppresses wheel and held directions");
-            await Click(client, "CloseSettings", token); await FocusWorld(client, token);
+            await client.Send("key Space");
+            UiObservation modalSpace = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            Require(SameCamera(modal.Camera, modalSpace.Camera), "modal suppresses wheel, held directions and Space reset");
+            if (modalSpace.SettingsOpen) await Click(client, "CloseSettings", token);
+            await FocusWorld(client, token);
             UiObservation returned = await UiProtocol.Probe(client, options.StartupTimeout, token);
             Require(SameCamera(modal.Camera, returned.Camera) && returned.Camera.DirectionX == 0, "closing modal cannot restart interrupted key");
         }
         finally { await client.Send("key-up D"); }
         await Click(client, "Settings", token);
+        await Click(client, "CloseSettings", token);
+        UiObservation focused = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        await client.Send("key Space");
+        UiObservation consumed = await WaitUi(client, p => p.SettingsOpen, "focused Settings consumes Space", token);
+        Require(SameCamera(focused.Camera, consumed.Camera), "consumed Space cannot reset world");
         await Click(client, "CloseSettings", token);
         await WaitUi(client, p => p.FocusedControl.Length != 0, "HUD focus restored", token);
         UiObservation wasd = await PanKeys(client, ["W"], false, token);

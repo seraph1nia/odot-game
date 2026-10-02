@@ -36,10 +36,7 @@ internal static class UiAssets
     };
     internal static void Decorate(Button button, string meaning)
     {
-        button.Icon = Icon(meaning);
-        button.ExpandIcon = true;
-        button.AddThemeConstantOverride("icon_max_width", 18);
-        button.AddThemeConstantOverride("h_separation", 5);
+        button.Icon = null;
     }
     internal static void Cost(Button button, ResourceCost cost)
     {
@@ -52,8 +49,8 @@ internal static class UiAssets
             label.OffsetLeft = 4; label.OffsetRight = -4; label.OffsetTop = -24; label.OffsetBottom = -3;
         }
         List<string> parts = [];
-        if (cost.Gold > 0) parts.Add($"[img=14x14]{Root}icons/icon_gold_pile.svg[/img]{cost.Gold} gold");
-        if (cost.Food > 0) parts.Add($"[img=14x14]{Root}icons/icon_bread.svg[/img]{cost.Food} food");
+        if (cost.Gold > 0) parts.Add($"{cost.Gold} gold");
+        if (cost.Food > 0) parts.Add($"{cost.Food} food");
         if (cost.Wood > 0) parts.Add($"{cost.Wood} wood");
         if (cost.Stone > 0) parts.Add($"{cost.Stone} stone");
         if (cost.Metal > 0) parts.Add($"{cost.Metal} metal");

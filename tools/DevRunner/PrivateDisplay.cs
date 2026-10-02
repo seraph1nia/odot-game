@@ -89,40 +89,50 @@ internal sealed partial class Runner
         if (selection == "exported-package") CheckPackages();
         if (selection == "installed-linux" && (options.InstalledClient is null || !File.Exists(options.InstalledClient)))
             throw new InvalidOperationException("The installed Linux client is missing; run the checked-in install verification task.");
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+        string[] selected = selection is null ? ScenarioNames.Ui.Where(n => n is not ("exported-package" or "installed-linux")).ToArray() : [selection];
+        var scenarios = selected.Select(name => new Scenario(name, UiRisk(name), token => UiDisplay(name, token))).ToArray();
+        int jobs = selection is null ? Math.Min(options.Jobs, options.UiJobs) : 1;
+        await _evidence.Measure(selection == "exported-package" ? "exported-ui" : "source-ui", "suite",
+            () => ScenarioScheduler.Run(scenarios, jobs, cancellation, _admission, graphical: true));
+    }
+    private async Task UiDisplay(string name, CancellationToken tokenCancellation)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(tokenCancellation);
         deadline.CancelAfter(options.Timeout);
-        await using var display = new ScenarioScope("display-" + (selection == "exported-package" ? "package" : "source"), _evidence);
-        string token = Guid.NewGuid().ToString("N");
-        await File.WriteAllTextAsync(Path.Combine(display.Directory, "worker-token"), token, cancellation);
+        await using var display = new ScenarioScope("display-" + name, _evidence);
+        string workerToken = Guid.NewGuid().ToString("N");
+        await File.WriteAllTextAsync(Path.Combine(display.Directory, "worker-token"), workerToken, tokenCancellation);
         var env = display.EnvironmentFor("display");
         env["DISPLAY"] = null; env["WAYLAND_DISPLAY"] = null; env["XAUTHORITY"] = null;
         env["DBUS_SESSION_BUS_ADDRESS"] = null;
         env["LIBGL_ALWAYS_SOFTWARE"] = "true"; env["LP_NUM_THREADS"] = "2";
-        env["ODOT_UI_WORKER"] = token; env["ODOT_UI_RUNTIME"] = display.Directory;
+        env["ODOT_UI_WORKER"] = workerToken; env["ODOT_UI_RUNTIME"] = display.Directory;
         var args = new List<string> { "xvfb-run", "--auto-servernum", "--auth-file", Path.Combine(display.Directory, "xauthority"),
             "--error-file", Path.Combine(display.EvidenceDirectory, "xvfb.log"), "--server-args=-screen 0 1920x1080x24 -nolisten tcp",
-            "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", _evidence.Directory, "--worker-token", token,
+            "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", Path.Combine(_evidence.Directory, name + "-worker"), "--worker-token", workerToken,
             "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
-        if (selection is not null) args.AddRange(["--scenario", selection]);
+        args.AddRange(["--scenario", name, "--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
+        if (options.Trace) args.Add("--trace");
         if (options.UiCheckpoint is not null) args.AddRange(["--checkpoint", options.UiCheckpoint]);
         if (options.InstalledClient is not null) args.AddRange(["--installed-client", options.InstalledClient]);
         if (options.Port is not null) args.AddRange(["--port", options.Port.Value.ToString(CultureInfo.InvariantCulture)]);
         try
         {
-            await _evidence.Measure(selection == "exported-package" ? "exported-ui" : "source-ui", "suite", async () =>
+            await _evidence.Measure(name, "ui-worker", async () =>
             {
                 await using var worker = new Child("private-display-worker", "setsid", args, _root, environment: env, evidenceDirectory: display.EvidenceDirectory, ownsGroup: true);
-                Console.WriteLine($"OWNED display worker pid={worker.ProcessId}; coverage={(selection ?? "all source slices")}");
+                Console.WriteLine($"OWNED display worker pid={worker.ProcessId}; coverage={(name ?? "all source slices")}");
                 int code = await worker.WaitExit(deadline.Token);
                 if (code != 0 || worker.HasEngineErrors) throw new InvalidOperationException($"Private-display worker failed ({code}); evidence: {display.EvidenceDirectory}\n{worker.Tail()}");
             });
         }
-        catch (OperationCanceledException) when (!cancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (!tokenCancellation.IsCancellationRequested)
         { throw new TimeoutException($"UI suite exceeded {options.Timeout} ms; owned worker/display/peers were cleaned up. Evidence: {display.EvidenceDirectory}"); }
     }
     private async Task UiWorker()
     {
         PrivateDisplay.ValidateWorker(options);
+        if (options.Scenario is null) throw new InvalidOperationException("A graphical worker must own exactly one selected scenario.");
         await Capture("xdpyinfo");
         string info = await Capture("glxinfo", "-B");
         Console.WriteLine(PrivateDisplay.RequireSoftwareGraphics(info));
@@ -135,12 +145,9 @@ internal sealed partial class Runner
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
             if (name == "launcher") await worker.MenuUiScenario(null, token);
-            else if (name == "installed-linux") await worker.MenuUiScenario(options.InstalledClient, token);
-            else
-            {
-                await worker.UiScenario(name, token);
-                if (name == "exported-package") await worker.MenuUiScenario(Path.Combine(_root, "dist", "client", "odot.x86_64"), token);
-            }
+            else if (name is "installed-linux" or "exported-package")
+                await worker.PackedUiScenario(name == "installed-linux" ? options.InstalledClient! : Path.Combine(_root, "dist", "client", "odot.x86_64"), token);
+            else await worker.UiScenario(name, token);
             await owned.DisposeAsync(); owned.CheckErrors();
         }))).ToArray();
         Console.WriteLine($"UI coverage: {(options.Scenario is null ? "all source slices" : "selected: " + options.Scenario)}; jobs=1; {string.Join(", ", selected)}");

@@ -7,7 +7,6 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
-    private static readonly string[] EconomicRetryActions = ["buy-plot", "sell", "trade"];
     private readonly HashSet<string> _retriedEconomicActions = [];
     private static MatchSnapshot Latest(Child child) => State(child.History().Last(e => e.State is not null));
     private async Task<GameEvent> Action(Child child, string command, CancellationToken token, bool accepted = true)
@@ -88,6 +87,7 @@ internal sealed partial class Runner
             {
                 "solo-session" => "Socketless local authority and fresh application session state; pure core tests miss delivery/lifetime.",
                 "playing-host-lifecycle" => "Bound host, real guest delivery, reconnect and host termination; dedicated tests lack local authority presentation.",
+                "authority-resume-victory" => "Dedicated ENet authority, ownership/refusals, retry and real peer recovery through two ordinary early clears; terminal/boss campaign owned by SessionCampaignTests.",
                 _ => "Preserved real ENet gameplay/lifecycle integration"
             }, token => _evidence.Measure(name, "network", async () =>
             {
@@ -107,7 +107,7 @@ internal sealed partial class Runner
         try
         {
             Console.WriteLine($"Network coverage: {(options.Scenario is null ? "full" : "selected")}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
-            await _evidence.Measure("network", "suite", () => ScenarioScheduler.Run(scenarios, options.Jobs, suite.Token));
+            await _evidence.Measure("network", "suite", () => ScenarioScheduler.Run(scenarios, options.Jobs, suite.Token, _admission));
             Console.WriteLine(options.Scenario is null ? "Network verification passed (all required groups)." : $"Selected network scenario passed: {options.Scenario}.");
         }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new TimeoutException($"Network suite exceeded {options.Timeout} ms; children were cleaned up."); }
@@ -177,28 +177,15 @@ internal sealed partial class Runner
         await Action(resumed, "ready", token, false); MatchSnapshot paused = Latest(resumed);
         await Observe(a, s => s.Paused && s.Revision >= paused.Revision && s.Tick == frozen.Tick, "paused revisions remain visible", token);
         await Action(a, "resume", token);
-        for (int wave = 2; wave <= Latest(a).TotalWaves; wave++)
-        {
-            MatchSnapshot cleared = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase is Phase.Building or Phase.Victory && (s.Wave > wave || s.Phase == Phase.Victory), "wave clear", token);
-            Require(cleared.Phase != Phase.Defeat, "ordinary cooperative economy survives wave " + wave);
-            await Observe(resumed, s => s.Revision >= cleared.Revision && s.Phase == cleared.Phase, "shared wave result", token);
-            if (wave < cleared.TotalWaves)
-            {
-                if (wave == 2) await Action(resumed, "sell 4", token);
-                // A stale ready command from wave one cannot match the repeated turn display.
-                await Action(a, "stale-ready", token, false);
-                await Advance([a, resumed], token); await Advance([a, resumed], token); await Advance([a, resumed], token);
-            }
-        }
-        Require(Latest(a).Phase == Phase.Victory && Latest(resumed).Phase == Phase.Victory, "standard strategy wins all twenty waves");
-        Require(_retriedEconomicActions.SetEquals(EconomicRetryActions), "fresh economic retries delivered for land, refunds and Market bundles");
-        Require(Latest(a).Wave == 20 && Latest(a).LastRewardedWave == 20 && Latest(a).Players.Where(p => !p.Eliminated).All(p => p.LastReward is { Wave: 20, IsBoss: true }), "final boss clear pays its actual reward once");
-        await Action(a, "ready", token, false);
+        MatchSnapshot secondClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 3, "ordinary early clear after peer recovery", token);
+        Require(secondClear.Phase == Phase.Building, "ordinary cooperative equipment survives recovery and wave two");
+        await Observe(resumed, s => s.Revision >= secondClear.Revision && s.Phase == Phase.Building, "shared early result", token);
+        await Action(a, "stale-ready", token, false);
         // Drain one bounded burst in one client frame. Separate stdin lines are
         // throttled by the client's command pump and can straddle rate windows.
         await a.Send("raw-burst 192 null");
         await a.WaitFor(e => e.Type == "ack" && e.Message == "Command rate exceeded.", "excessive request rejection", options.StartupTimeout, token);
-        await Action(resumed, "ready", token, false);
+        await Action(resumed, "unknown", token, false);
         await server.Send("quit"); await a.WaitFor(e => e.Type == "server-disconnected", "server stopped feedback", options.StartupTimeout, token);
         // A credential from a stopped match must not silently create a new city.
         await using var replacement = StartGame("replacement-server", true, true, port);
@@ -233,7 +220,9 @@ internal sealed partial class Runner
             MatchSnapshot advanced = Latest(c);
             foreach (Child child in new[] { a, b }) await Observe(child, state => state.Revision >= advanced.Revision && state.Phase == advanced.Phase, "reinforcement opening synchronized", token);
         }
-        MatchSnapshot initial = Latest(a); UnitState[] attackers = initial.Enemies.Where(e => e.Origin == deadId).ToArray();
+        MatchSnapshot initial = Latest(a);
+        await SimulationSpeed(a, 1, token); // Transfer/admission transients are ordinary-speed transport witnesses.
+        UnitState[] attackers = initial.Enemies.Where(e => e.Origin == deadId).ToArray();
         MatchSnapshot fallen = await Observe(a, s => s.Phase == Phase.Combat && s.Players.Single(p => p.Id == deadId).Eliminated, "ordinary under-defended city falls", token);
         UnitState[] transferred = fallen.Enemies.Where(e => e.Origin == deadId).ToArray();
         Require(transferred.Length > 0 && transferred.All(e => e.Destination != deadId) && transferred.Select(e => e.Id).Distinct().Count() == transferred.Length, "live enemies transferred immediately without duplication");

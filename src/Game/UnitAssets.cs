@@ -49,6 +49,18 @@ internal static class UnitAssets
         return (player, skeleton);
     }
 
+    internal static void Equip(Node3D model, Skeleton3D skeleton, UnitType type, Faction faction)
+    {
+        // The character files include optional props; equip only our selected weapon.
+        foreach (MeshInstance3D mesh in model.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
+            if (mesh.Name.ToString().Contains("Sword", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Shield", StringComparison.Ordinal)
+                || mesh.Name.ToString().Contains("Crossbow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Dagger", StringComparison.Ordinal)
+                || mesh.Name.ToString().Contains("Bow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Arrow", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Knife", StringComparison.Ordinal)
+                || mesh.Name.ToString().Contains("Throwable", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Staff", StringComparison.Ordinal) || mesh.Name.ToString().Contains("Axe", StringComparison.Ordinal)) mesh.Visible = false;
+        var hand = new BoneAttachment3D { BoneName = "handslot.r" }; skeleton.AddChild(hand);
+        hand.AddChild(UnitAssets.Instantiate(UnitAssets.Weapon(type, faction)));
+    }
+
     public static string[] Validate(Node parent)
     {
         var reports = new List<string>();

@@ -28,6 +28,10 @@ public partial class ClientSettings : Node
     private bool _restoreFocusOnClose = true;
     internal Func<Control?>? FocusFallback { get; set; }
 
+    internal Action? ReturnRequested { get; set; }
+    internal Button ReturnButton { get; private set; } = null!;
+    internal bool InSession { set => ReturnButton.Visible = value; }
+
     public bool IsOpen => _dialog.Visible;
     internal Button SettingsButton => _button;
     internal AcceptDialog Dialog => _dialog;
@@ -99,10 +103,9 @@ public partial class ClientSettings : Node
         _updates = new(BuildInfo.Identity, target, new System.Net.Http.HttpClient(), url => OS.ShellOpen(url) == Error.Ok);
         _checkUpdate.Pressed += CheckUpdates;
         _downloadUpdate.Pressed += OpenUpdate;
-        tabs.SetTabIcon(1, UiAssets.Icon("Audio"));
-        tabs.SetTabIcon(2, UiAssets.Icon("Inspect"));
-        tabs.SetTabIconMaxWidth(1, 18);
-        tabs.SetTabIconMaxWidth(2, 18);
+        ReturnButton = new Button { Name = "ReturnToMenu", Text = "Return to menu", Visible = false };
+        content.AddChild(ReturnButton);
+        ReturnButton.Pressed += () => ReturnRequested?.Invoke();
         _saveFeedback = Label(content, "");
         _dialog.VisibilityChanged += () =>
         {
