@@ -1177,8 +1177,9 @@ preference assertions while verifying the About controls and accurate
 development-build update feedback on owned X11/Mesa software rendering.
 
 The ordinary `Verify and build` workflow runs only for pull requests targeting
-`main` and pushes to `main`. It runs the full source gate before parallel Linux
-and native Windows package checks and has no upload permission. Native Windows
+`main` and pushes to `main`. It runs the full source checks, Linux packaging
+and native Windows package checks in parallel on separate runners; all three
+jobs must pass. It has no upload permission. Native Windows
 installer qualification remains accepted as deferred.
 The separate `Build published release` workflow follows the owner's final
 preference to skip all gameplay, network, UI and installation tests: it performs

@@ -159,7 +159,7 @@ internal sealed partial class Runner
 
     private async Task CiLinuxExports()
     {
-        // Sequential mutations of this workspace; GitHub gates this job on CiSource.
+        // Sequential mutations of this workspace; GitHub jobs use separate runners.
         await PrepareTemplates();
         await Export(false);
         await Export(true);

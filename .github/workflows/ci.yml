@@ -30,7 +30,6 @@ jobs:
         # Cold hosted-runner imports can exceed the local 15-second startup default.
         run: mise run ci-source --startup-timeout-ms 60000
   linux-package:
-    needs: source
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -47,9 +46,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Export Linux roles and verify packages
-        run: mise run ci-linux-package
+        # Cold hosted-runner imports can exceed the local 15-second startup default.
+        run: mise run ci-linux-package --startup-timeout-ms 60000
   windows-package:
-    needs: source
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
