@@ -78,6 +78,7 @@ mise run test-ui --scenario reconnect
 mise run test-ui --scenario settings
 mise run test-ui --scenario launcher
 mise run test-ui --scenario combat
+mise run test-ui --scenario combat --checkpoint melee
 mise run ci
 ```
 
@@ -98,7 +99,7 @@ godot --path src/Game -- --playing-host --bind 127.0.0.1 --port 7001
 godot --headless --path src/Game -- --solo
 ```
 
-Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. Protocol v4 retains handshake attempt/match isolation and hosted permissions and adds typed Arch combat snapshots/events. Older versions cannot join. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries revision-ordered complete snapshots at 20 Hz. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
+Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. Protocol v6 retains handshake attempt/match isolation and hosted permissions and adds deterministic hex actions, reservations and retained death bodies to typed Arch combat snapshots/events. Snapshots include the seed, configuration fingerprint, board/actions, current dying bodies, reservations, admission bounds and outcome reason; rebuilding current state does not require historical effects. Older versions cannot join. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries changed, revision-ordered complete snapshots at up to 20 Hz during combat, with immediate paused/noncombat changes. Unchanged paused states are not repeatedly queued. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
 
 ## Verification and exports
 
@@ -219,3 +220,15 @@ first wave. Full source CI includes this fifth slice; packed smoke also exercise
 short combat and rig/weapon bindings. Reconnect tests baseline a paused living
 army without historical effects. See [combat rules](docs/gameplay.md) and
 [verification](docs/verification.md) for scope and measured evidence.
+
+The early hex-melee proof is selected with `mise run test-ui --scenario combat
+--checkpoint melee`. It launches the ordinary authority with explicit combat seed 1, uses a normal
+two-Farm/Barracks opening, recruits six
+Swordsmen and continues ordinary recruitment into wave two when needed. It stops
+before wave three after collecting linked near/far, shared and simultaneous
+windup/impact observations and four paused overview/close PNGs. This checkpoint
+uses the existing combat peers, private display and cleanup. Cheap opportunity checks establish only the setup; actual imported rigs, linked
+cue readability and reserved-route clearance require the retained rendered frames.
+Authority application arguments accept `--combat-seed <unsigned-64-bit>` for
+repeatable diagnostics; guests cannot select the seed. Without it, a match
+generates its seed once. No seed editor is added to the interface.

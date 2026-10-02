@@ -22,7 +22,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             switch (options.Command)
             {
                 case "help":
-                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports)\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
+                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (source slices serial; exported-package uses existing exports); --scenario combat --checkpoint melee selects the early rendered gate\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
                     Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] [--scenario direct-invite] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
                 case "prepare": await Prepare(); break;
@@ -66,7 +66,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         catch { result = "failed"; throw; }
         finally
         {
-            string coverage = options.Scenario is not null ? "selected: " + options.Scenario : options.Command switch
+            string coverage = options.Scenario is not null ? "selected: " + options.Scenario + (options.UiCheckpoint is null ? "" : "/" + options.UiCheckpoint) : options.Command switch
             {
                 "test-ui" or "_ui-worker" => "all source UI slices",
                 "ci" or "test-network" => "full required set",

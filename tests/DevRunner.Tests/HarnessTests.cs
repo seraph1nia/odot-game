@@ -30,6 +30,16 @@ public sealed class HarnessTests
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-network", "--scenario", "combat"]));
     }
     [Fact]
+    public void EarlyMeleeCheckpointIsScopedToTheExistingCombatSlice()
+    {
+        Assert.Equal("melee", Options.Parse(["test-ui", "--scenario", "combat", "--checkpoint", "melee"]).UiCheckpoint);
+        Assert.Equal("melee", Options.Parse(["_ui-worker", "--scenario", "combat", "--checkpoint", "melee"]).UiCheckpoint);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-ui", "--checkpoint", "melee"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-ui", "--scenario", "reconnect", "--checkpoint", "melee"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-ui", "--scenario", "combat", "--checkpoint", "unknown"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-network", "--checkpoint", "melee"]));
+    }
+    [Fact]
     public void RiggedObservationPreservesStringEnumsAndActualPoseFields()
     {
         const string json = """

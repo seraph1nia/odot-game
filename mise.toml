@@ -55,7 +55,7 @@ run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mod
 
 [tasks.test-in-process]
 description = "Run the same locked xUnit suites without test-host sockets"
-run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet run --project tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore", "dotnet run --project tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore"]
+run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet build tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore -m:1 -nr:false -p:UseSharedCompilation=false", "dotnet build tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore -m:1 -nr:false -p:UseSharedCompilation=false", "dotnet tests/Game.Core.Tests/bin/Debug/net10.0/Game.Core.Tests.dll", "dotnet tests/DevRunner.Tests/bin/Debug/net10.0/DevRunner.Tests.dll"]
 
 [tasks.dev]
 description = "Start a playable host and one guest window (--guests 1..3)"

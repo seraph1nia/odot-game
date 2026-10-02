@@ -51,6 +51,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private ClientSettings _settings = null!;
     private string[] _unitBindings = [];
     private readonly CombatPlayback _playback = new();
+    private CombatLayout? _combatLayout;
+    private readonly Dictionary<int, MeleeStrike> _strikes = [];
     private int _playbackGeneration;
     private readonly Dictionary<int, string> _stockpileKeys = [];
     private readonly List<(Node3D Node, Vector3 Rotation)> _windmills = [];
@@ -199,6 +201,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["RosterText"] = string.Join(" | ", _roster.GetChildren().OfType<Button>().Select(button => button.Text));
         fields["UnitBindings"] = _unitBindings;
         fields["Units"] = _units.Values.OrderBy(u => u.State.Id).Select(u => u.Observe()).ToArray();
+        fields["Strikes"] = _strikes.OrderBy(p => p.Key).Select(p => p.Value.Observe(_camera, GetViewport().GetFinalTransform())).ToArray();
         fields["CombatTick"] = _playback.Tick; fields["VisualSeconds"] = _playback.VisualSeconds;
         fields["EventCursor"] = _playback.EventCursor; fields["PlaybackGeneration"] = _playback.Generation;
         fields["Stockpiles"] = _boards.TryGetValue(_focus, out Node3D? observedBoard) ? new
@@ -248,7 +251,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (_phase is null) return;
         MatchSnapshot? s = game.State; CityState? focus = Focus(); CityState? me = Me();
         _status.Text = $"{game.Status}  •  You: P{game.PlayerId}";
-        _phase.Text = s is null ? "Waiting for server" : s.Phase switch { Phase.Victory => "VICTORY • three waves held", Phase.Defeat => "DEFEAT • all cities fell", _ => $"{(s.Paused ? "PAUSED • " : "")}{s.Phase}\nWave {s.Wave}/3 • Turn {s.Turn}/3" };
+        _phase.Text = s is null ? "Waiting for server" : s.Phase switch { Phase.Victory => "VICTORY • three waves held", Phase.Defeat => PresentationLimits.DefeatText(s.DefeatReason), _ => $"{(s.Paused ? "PAUSED • " : "")}{s.Phase}\nWave {s.Wave}/3 • Turn {s.Turn}/3" };
         _feedback.Text = game.Feedback;
         string roster = s is null ? "" : string.Join('|', s.Players.Select(p => $"{p.Id}:{p.Connected}:{p.Ready}:{p.Eliminated}:{game.HostPlayerId}"));
         if (roster != _rosterKey)
@@ -294,7 +297,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             button.Text = type + "\n "; UiAssets.Cost(button, cost);
             button.Visible = definition?.Recruits?.Contains(type) == true;
             button.Disabled = !edit || !button.Visible || !cost.CanPay(me!.Gold, me.Wood, me.Food);
-            if (unit is not null) button.TooltipText = $"{unit.Class} · HP {HealthPoints.Format(HealthPoints.Ranked(unit.Profile.Health, focus?.Research.For(unit.Class) ?? 0))} · damage {HealthPoints.Format(HealthPoints.Ranked(unit.Profile.Damage, focus?.Research.For(unit.Class) ?? 0))} · range {unit.Profile.Range:0.##}" + (unit.Profile.VictimCap > 1 ? $" · up to {unit.Profile.VictimCap} targets within {unit.Profile.SplashRadius:0.##}" : "");
+            if (unit is not null) button.TooltipText = $"{unit.Class} · HP {HealthPoints.Format(HealthPoints.Ranked(unit.Profile.Health, focus?.Research.For(unit.Class) ?? 0))} · damage {HealthPoints.Format(HealthPoints.Ranked(unit.Profile.Damage, focus?.Research.For(unit.Class) ?? 0))} · range {unit.Profile.HexRange} hexes" + (unit.Profile.VictimCap > 1 ? $" · up to {unit.Profile.VictimCap} targets within {unit.Profile.SplashHexRadius} hexes" : "");
         }
         _researchActions.Visible = slot.Type == Building.Blacksmith;
         foreach ((UnitClass type, Button button) in _research)
@@ -366,16 +369,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                 _landscapes[city.Id] = new VillageLandscape(board, _landscapeAssets);
                 _buildingBounds[city.Id] = new Aabb?[9];
                 Label(board, new(6, 1.5f, 3.2f), "Gold / Food / Wood", 18);
-                Box(board, Vector3.Zero, new(0.06f, 0.06f, 1), "e8c44a").Name = "DefenderShot";
                 Label3D title = Label(board, VillageLandscape.Home + new Vector3(0, 2.7f, 0), "CITY", 26); _cityLabels[city.Id] = title;
-            }
-            var beam = board.GetNode<MeshInstance3D>("DefenderShot");
-            UnitState? target = state.Enemies.Where(e => e.Deployed && e.Destination == city.Id).OrderBy(e => e.Position).ThenBy(e => e.Id).FirstOrDefault();
-            beam.Visible = !city.Eliminated && target is not null && city.DefenderCooldown > state.Rules.AttackTicks - 8;
-            if (beam.Visible)
-            {
-                Vector3 from = VillageLandscape.Defender + new Vector3(0, 1.1f, 0); Vector3 to = new((float)target!.Lateral, 0.4f, -(float)target.Position);
-                beam.Position = (from + to) / 2; beam.LookAt(board.ToGlobal(to)); ((BoxMesh)beam.Mesh).Size = new(0.06f, 0.06f, from.DistanceTo(to));
             }
             _cityLabels[city.Id].Text = $"P{city.Id}{(city.Id == game.PlayerId ? " • YOU" : "")}  ♥ {HealthPoints.Format(city.Health)}\n{(city.Eliminated ? "FALLEN" : "Home · Defender")}";
             UpdateStockpiles(board, city);
@@ -446,6 +440,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (_playbackGeneration != _playback.Generation)
         {
             foreach (UnitView view in _units.Values) view.QueueFree();
+            foreach (MeleeStrike strike in _strikes.Values) strike.QueueFree(); _strikes.Clear();
+            _combatLayout = game.State is null ? null : new CombatLayout(new HexBoard(game.State.Rules.Combat.Board));
             _units.Clear(); ClearBars(); _effects.Clear(); _playbackGeneration = _playback.Generation;
         }
         _playback.Advance(delta, game.Connected);
@@ -458,20 +454,30 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         foreach (Command request in game.DrainActionCues()) _effects.Action(request, _focus, _playback.VisualSeconds, audible);
         _effects.Sample(_playback.VisualSeconds, audible);
         var current = _playback.Units().ToDictionary(u => u.Id);
-        foreach (UnitState unit in current.Values) View(unit);
+        if (_combatLayout is null) return;
+        foreach (UnitState unit in current.Values.Where(u => u.Deployed)) View(unit).Sample(unit, _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);
         foreach (CombatEvent entry in _playback.Drain())
         {
-            _effects.Combat(entry, _focus, _playback.VisualSeconds, audible, entry.Tower is { } tower && _buildingBounds.GetValueOrDefault(tower.City)?[tower.Slot] is { } towerBounds ? Center(tower.City) + new Vector3(towerBounds.GetCenter().X, towerBounds.End.Y - .2f, towerBounds.GetCenter().Z) : null);
+            Vector3? source = entry.Unit is { Deployed: true } actor ? _combatLayout.Position(actor, entry.Tick) + new Vector3(0, .6f, 0)
+                : entry.Tower is { Slot: >= 0 } tower && _buildingBounds.GetValueOrDefault(tower.City)?[tower.Slot] is { } towerBounds
+                    ? Center(tower.City) + new Vector3(towerBounds.GetCenter().X, towerBounds.End.Y - .2f, towerBounds.GetCenter().Z) : null;
+            _effects.Combat(entry, _focus, _playback.VisualSeconds, audible, source, _combatLayout.EventImpact(entry));
             if (entry.Unit is not null && (entry.Type is CombatEventType.Death or CombatEventType.Hit || entry.Type == CombatEventType.Impact && entry.Unit.Type == UnitType.Crossbowman))
-                View(entry.Unit).Event(entry, _playback.VisualSeconds);
+                if (_units.TryGetValue(entry.Unit.Id, out UnitView? existing)) existing.Event(entry, _playback.VisualSeconds);
         }
         foreach ((int id, UnitView view) in _units.ToArray())
         {
             // Missing live IDs with a buffered death stay until its common-clock event.
             bool awaitingDeath = game.State?.CombatEvents.Any(e => e.Type == CombatEventType.Death && e.Unit?.Id == id && e.Sequence > _playback.EventCursor) == true;
-            if (view.Expired(_playback.VisualSeconds) || !view.Dead && !current.ContainsKey(id) && !awaitingDeath)
+            if (view.Expired(_playback.Tick) || !current.ContainsKey(id) && !awaitingDeath)
             { view.QueueFree(); _units.Remove(id); continue; }
-            view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus);
+            view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);
+        }
+        foreach (int id in _strikes.Keys.Where(id => !_units.ContainsKey(id)).ToArray()) { _strikes[id].QueueFree(); _strikes.Remove(id); }
+        foreach ((int id, UnitView view) in _units.Where(p => p.Value.State.Class == UnitClass.Melee))
+        {
+            if (!_strikes.TryGetValue(id, out MeleeStrike? strike)) { strike = new(); AddChild(strike); _strikes.Add(id, strike); }
+            strike.Sample(view, _units.GetValueOrDefault(view.State.TargetId), _playback.Tick, _focus, _combatLayout);
         }
     }
     private void ClearBars()

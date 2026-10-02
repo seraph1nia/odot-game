@@ -28,7 +28,7 @@ public sealed class CombatPlayback
             _pending.Enqueue(entry);
         _acceptedSequence = state.EventSequence;
         // Corrections have one common fraction for all bodies. No extrapolation.
-        Tick = Math.Max(Tick, state.Tick - 3);
+        Tick = state.Paused ? state.Tick : Math.Max(Tick, state.Tick - 3);
         return true;
     }
     public void Advance(double seconds, bool connected)
@@ -47,31 +47,36 @@ public sealed class CombatPlayback
     public UnitState[] Units()
     {
         if (_current is null) return [];
-        UnitState[] current = All(_current);
-        if (_current.Phase != Phase.Combat)
-            return current.Select(u => u with { MoveForward = 0, MoveLateral = 0, TargetId = 0, TargetCity = false, PendingImpact = false, ReadyTick = 0 }).ToArray();
-        if (_previous is null || _current.Paused || _current.Tick <= _previous.Tick) return current;
-        var previous = All(_previous).ToDictionary(u => u.Id);
-        double fraction = Math.Clamp((Tick - _previous.Tick) / (_current.Tick - _previous.Tick), 0, 1);
-        // A straight chord between separated contact endpoints can cut inside the
-        // contact circle during tangential motion. Hold the common previous frame
-        // until a safe interpolation fraction (or the next endpoint) is available.
-        if (fraction < 1)
+        return HexUnits();
+    }
+    private UnitState[] HexUnits()
+    {
+        UnitState[] current = All(_current!).Concat(_current!.DyingBodies).ToArray();
+        var previous = _previous is null ? new Dictionary<int, UnitState>() : All(_previous).Concat(_previous.DyingBodies).ToDictionary(u => u.Id);
+        var ids = current.Select(u => u.Id).ToHashSet();
+        var sampled = new List<UnitState>();
+        foreach (UnitState unit in current)
         {
-            var points = current.Where(u => u.Deployed && previous.TryGetValue(u.Id, out UnitState? old) && old.Deployed && old.Destination == u.Destination)
-                .Select(u => (u.Id, u.Destination, Forward: previous[u.Id].Position + (u.Position - previous[u.Id].Position) * fraction,
-                    Lateral: previous[u.Id].Lateral + (u.Lateral - previous[u.Id].Lateral) * fraction)).ToArray();
-            if (points.Any(a => points.Any(b => b.Id > a.Id && b.Destination == a.Destination
-                && Math.Pow(a.Forward - b.Forward, 2) + Math.Pow(a.Lateral - b.Lateral, 2) < Math.Pow(2 * CombatSimulation.Radius - CombatSimulation.Tolerance, 2)))) fraction = 0;
+            UnitState selected = unit; HexUnitState? hex = unit.Hex;
+            if (previous.TryGetValue(unit.Id, out UnitState? old) && old.Hex is { } prior && hex is not null)
+            {
+                if (hex.Lifecycle == UnitLifecycle.Dying && Tick < hex.DeathStartTick
+                    || hex.Lifecycle == UnitLifecycle.Alive && prior.Lifecycle == UnitLifecycle.Queued && Tick < hex.AdmittedTick
+                    || prior.HoldsTransit && Tick < prior.EndTick && (hex.Action != UnitActionKind.Moving || hex.StartTick > Tick)
+                    || hex.StartTick > Tick && hex.Lifecycle != UnitLifecycle.Dying) selected = old;
+            }
+            if (selected.Hex is not { Lifecycle: UnitLifecycle.Dying } death || Tick < death.DeathEndTick) sampled.Add(selected);
         }
-        return current.Select(u =>
-        {
-            previous.TryGetValue(u.Id, out UnitState? old);
-            if (u.Deployed && (old is null || !old.Deployed || old.Destination != u.Destination) && fraction < 1)
-                return u with { Deployed = false };
-            return old is not null && old.Destination == u.Destination && old.Deployed && u.Deployed
-                ? u with { Position = old.Position + (u.Position - old.Position) * fraction, Lateral = old.Lateral + (u.Lateral - old.Lateral) * fraction } : u;
-        }).ToArray();
+        // A snapshot can omit a death that expires up to three buffered ticks
+        // ahead of the presentation clock. Keep its previous current state only
+        // through the declared deadline, never recreate it from historical events.
+        sampled.AddRange(previous.Values.Where(u => !ids.Contains(u.Id) && u.Hex is { Lifecycle: UnitLifecycle.Dying } death && Tick < death.DeathEndTick));
+        return sampled.OrderBy(u => u.Id).ToArray();
+    }
+    public static double DeathPose(UnitState unit, double tick, double clipLength)
+    {
+        HexUnitState hex = unit.Hex ?? throw new ArgumentException("Death sampling requires authoritative hex state.", nameof(unit));
+        return Math.Clamp((tick - hex.DeathStartTick) / Math.Max(1, hex.DeathEndTick - hex.DeathStartTick), 0, 1) * clipLength;
     }
     public static UnitState[] All(MatchSnapshot state) => state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).OrderBy(u => u.Id).ToArray();
     // Imported clip sampling: axe hand descends at frame 23, cast hand reaches

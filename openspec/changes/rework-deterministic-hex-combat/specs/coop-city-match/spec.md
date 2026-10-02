@@ -110,3 +110,13 @@ Each of three escalating waves SHALL contain a configured baseline enemy allocat
 - **WHEN** a declared combat limit expires with living enemies and living cities after that tick's normal result checks
 - **THEN** every player observes defeat with a battle-stalled reason and the same diagnostic limit/tick
 - **AND** current city/unit health is preserved and no later wave or economic turn runs
+
+## ADDED Requirements
+
+### Requirement: Changed-state snapshot publication
+The authority SHALL publish complete changed snapshots at the bounded combat cadence and promptly for pause or non-combat revisions. It SHALL NOT continually enqueue unchanged paused/building snapshots on the reliable channel. Welcome and command acknowledgment delivery SHALL still carry the complete current state, and current death cleanup SHALL remain observable as it changes authoritative revisions.
+
+#### Scenario: Resume after a long shared pause
+- **WHEN** clients inspect a paused battle and an eligible player resumes then pauses at a later action tick
+- **THEN** the graphical and headless peers receive the later paused revision and agree on its authority tick
+- **AND** repeated copies of the prior unchanged pause do not delay the revision behind a growing reliable snapshot queue

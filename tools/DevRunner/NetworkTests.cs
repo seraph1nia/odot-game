@@ -131,14 +131,17 @@ internal sealed partial class Runner
         await Action(a, "build 4 mine", token, false);
         await b.Send("quit"); Require(await b.WaitExit(token) == 0, "departing client exits");
         MatchSnapshot absent = await Observe(a, s => s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == cb.PlayerId).Connected, "retained disconnected city", token);
-        await Observe(a, s => s.Tick > absent.Tick + 9 && CombatPlayback.All(s).Any(u => u.PendingImpact), "pending combat continues while absent", token);
+        await Observe(a, s => s.Tick > absent.Tick + 9 && s.DyingBodies.Length > 0 && CombatPlayback.All(s).Any(u => u.PendingImpact), "current casualty and pending combat continue while absent", token);
         MatchSnapshot frozen = State(await Action(a, "pause", token));
         await Observe(a, s => s.Paused && s.Tick == frozen.Tick, "paused snapshot", token);
         Require(CombatPlayback.All(frozen).Any(u => u.PendingImpact) && frozen.Players.Single(p => p.Id == cb.PlayerId).Soldiers.Any(u => u.Type == UnitType.Crossbowman),
             "paused authority retains pending action and typed soldier before resume");
+        CombatContact(frozen);
+        Require(frozen.DyingBodies.Length > 0, "paused authority retains current deaths");
         await using var resumed = StartGame("test-resumed", false, true, port, null, "--automated", "--session-file", bPath);
         GameEvent cr = await resumed.WaitFor(e => e.Type == "connected", "restart resume", options.StartupTimeout, token);
         Require(cr.PlayerId == cb.PlayerId && cr.PeerId != cb.PeerId && Gameplay(State(cr)) == Gameplay(frozen), "new peer restores original city and frozen gameplay without regrant");
+        CombatContact(State(cr));
         await resumed.Send(replay); GameEvent retried = await resumed.WaitFor(e => e.Type == "ack" && e.Result!.Sequence == spent.Sequence, "retry after process restart", options.StartupTimeout, token);
         Require(Gameplay(State(retried)) == Gameplay(frozen), "old accepted spending remains exactly once after resume");
         await Action(resumed, "ready", token, false); MatchSnapshot paused = Latest(resumed);
@@ -170,7 +173,7 @@ internal sealed partial class Runner
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        await using var a = StartGameRole("transfer-a", "playing-host", true, port);
+        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "1");
         await a.WaitFor(e => e.Type == "ready", "playing host transfer readiness", options.StartupTimeout, token);
         await using var b = StartGame("transfer-b", false, true, port, null, "--automated");
         string cPath = Path.Combine(_scope!.Directory, "observer.json");
@@ -178,7 +181,9 @@ internal sealed partial class Runner
         foreach (Child p in new[] { a, b, c }) await p.WaitFor(e => e.Type == "connected", "three-player lobby", options.StartupTimeout, token);
         int deadId = c.PlayerId;
         await Action(a, "start", token); foreach (Child p in new[] { b, c }) await Observe(p, s => s.Phase == Phase.Building, "transfer start", token);
-        await Economy(a, token); await Economy(b, token); await Advance([a, b, c], token); await Advance([a, b, c], token); await Advance([a, b, c], token);
+        await Action(a, "build 0 farm", token); await Action(a, "build 1 barracks", token); await Action(a, "build 2 farm", token);
+        await Economy(b, token); await Advance([a, b, c], token); await Advance([a, b, c], token);
+        await Action(a, "build 3 lumbermill", token); await Advance([a, b, c], token);
         MatchSnapshot initial = Latest(a); UnitState[] attackers = initial.Enemies.Where(e => e.Origin == deadId).ToArray();
         MatchSnapshot fallen = await Observe(a, s => s.Phase == Phase.Combat && s.Players.Single(p => p.Id == deadId).Eliminated, "ordinary under-defended city falls", token);
         UnitState[] transferred = fallen.Enemies.Where(e => e.Origin == deadId).ToArray();
@@ -195,19 +200,40 @@ internal sealed partial class Runner
         GameEvent restored = await observer.WaitFor(e => e.Type == "connected", "eliminated observer resume", options.StartupTimeout, token);
         Require(restored.PlayerId == deadId && State(restored).Players.Single(p => p.Id == deadId).Eliminated, "resume cannot revive eliminated city");
         await Action(observer, "build 0 mine", token, false); await Action(observer, "pause", token); await Action(observer, "resume", token);
-        await Advance([a, b], token); await Advance([a, b], token); await Advance([a, b], token);
+        for (int preparation = 0; preparation < 4; preparation++)
+        {
+            await RecruitAll(a, token);
+            if (preparation == 3) for (int recruit = 0; recruit < 3; recruit++) await Action(b, "recruit 1", token);
+            await Action(a, "ready", token);
+            MatchSnapshot advanced = State(await Action(b, "ready", token));
+            await Observe(a, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase, "transfer preparation synchronized", token);
+        }
         MatchSnapshot next = await Observe(a, s => s.Phase == Phase.Combat && s.Wave == 2, "future original roster allocation", token);
         Require(next.Enemies.Length == 18 && next.Players.Where(p => !p.Eliminated).All(p => next.Enemies.Count(e => e.Destination == p.Id) == 9), "fallen future allocation counted once and divided 9/9");
+        var board = new HexBoard(next.Rules.Combat.Board);
+        int[] forward = board.Front(Faction.Skeletons).ToArray();
+        MatchSnapshot cleared = await Observe(a, s => s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == b.PlayerId).Eliminated
+            && !s.Enemies.Any(u => u.Destination == a.PlayerId)
+            && s.Players.Single(p => p.Id == a.PlayerId).Soldiers.Any(u => u.Deployed && forward.Contains(u.Hex!.Position.Cell)), "receiving city cleared with surviving forward defenders", token);
+        CombatContact(cleared);
+        MatchSnapshot reinforced = await Observe(a, s => s.Phase == Phase.Combat && s.Wave == 2 && s.Players.Any(p => p.Id == b.PlayerId && p.Eliminated) && s.Admissions.Any(d => d.City == a.PlayerId), "reinforcement into cleared forward band", token);
+        AdmissionBound admission = reinforced.Admissions.Single(d => d.City == a.PlayerId);
+        Require(admission.AdmissionTick is not null && admission.AdmissionTick <= admission.FirstAdmissionBound, "reinforcement meets original protected-entry admission bound");
+        CombatContact(reinforced);
+        MatchSnapshot engaged = await Observe(a, s => s.Tick > reinforced.Tick && s.CombatEvents.Any(e => e.Tick >= admission.TransferTick && e.Type == CombatEventType.Hit), "transferred army engages after admission", token);
+        CombatContact(engaged);
+        MatchSnapshot completed = await Observe(a, s => s.Tick >= reinforced.Tick && (s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 3), "reinforced battlefield completes", token);
+        Require(completed.Phase == Phase.Building && completed.Wave == 3 && completed.DefeatReason == DefeatReason.None, "reinforced battlefield completes ordinarily without stall fallback");
     }
     private static void CombatContact(MatchSnapshot state)
     {
-        UnitState[] units = CombatPlayback.All(state).Where(u => u.Deployed).ToArray();
-        foreach (UnitState unit in units)
-        {
-            Require(unit.Position >= 0.2 && unit.Position <= 11.8 && Math.Abs(unit.Lateral) <= 1.5, "active entry remains in its corridor");
-            foreach (UnitState other in units.Where(u => u.Id > unit.Id && u.Destination == unit.Destination))
-                Require(Math.Sqrt(Math.Pow(unit.Position - other.Position, 2) + Math.Pow(unit.Lateral - other.Lateral, 2)) >= 0.4 - 1e-6, "occupied redistribution approach keeps body separation");
-        }
+        var board = new HexBoard(state.Rules.Combat.Board);
+        UnitState[] units = CombatPlayback.All(state).Concat(state.DyingBodies).ToArray();
+        Require(units.All(u => u.Hex is not null && u.Hex.Id == u.Id && u.Hex.City == u.Destination && u.Hex.Faction == u.Faction), "complete hex identity for living and dying units");
+        CombatReservations reconstructed = CombatReservations.Reconstruct(board, units.Select(u => u.Hex!));
+        Require(JsonSerializer.Serialize(reconstructed, WireJson.Options) == JsonSerializer.Serialize(state.Reservations, WireJson.Options),
+            "complete occupied and moving/death reservations reconstruct from current units");
+        Require(new CombatConfiguration(state.Rules).Fingerprint == state.ConfigurationFingerprint, "published combat configuration matches board and profiles");
     }
     private async Task Defeat(int port, CancellationToken token)
     {
@@ -216,7 +242,7 @@ internal sealed partial class Runner
         await using var client = StartGame("defeat-client", false, true, port, null, "--automated"); await client.WaitFor(e => e.Type == "connected", "defeat client", options.StartupTimeout, token);
         await Action(client, "start", token); await Advance([client], token); await Advance([client], token); await Advance([client], token);
         MatchSnapshot lost = await Observe(client, s => s.Phase == Phase.Defeat, "ordinary losing strategy", token);
-        Require(lost.Players.All(p => p.Eliminated), "zero city health ends match with defeat");
+        Require(lost.Players.All(p => p.Eliminated && p.Health == 0) && lost.DefeatReason == DefeatReason.AllCitiesFallen && lost.Stall is null, "zero city health ends match with ordinary defeat, without stall fallback");
     }
     private async Task FailureCases(CancellationToken token)
     {

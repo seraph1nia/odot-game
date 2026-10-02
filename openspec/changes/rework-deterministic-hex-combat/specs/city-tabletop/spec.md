@@ -71,10 +71,20 @@ Graphical clients SHALL show idle, locomotion, sword attack, ranged shooting, hi
 - **THEN** their models stand at distinct declared anchors matching their legal footprints
 - **AND** moving models sample reserved routes without displacing stationary neighbors
 
+#### Scenario: Retained death still needs visual clearance
+- **WHEN** a visible casualty retains its authoritative positions or transit reservations until death end
+- **THEN** living models remain clear of its frozen death pose throughout that interval
+- **AND** graphical clearance assertions include current visible dying bodies rather than filtering them out of the occupied battlefield
+
 #### Scenario: Frame rate does not order combat
 - **WHEN** compatible attacks and moves begin on the same authority tick
 - **THEN** clients sample each action from that tick irrespective of local frame rate
 - **AND** initiative does not add presentation-only delays that change the declared action timing
+
+#### Scenario: Overview retains readable unit roles
+- **WHEN** a player observes shared combat hexes at the supported overview scale
+- **THEN** input-transparent role labels and health bars remain readable above the models
+- **AND** the directional melee guide still identifies its locked target during windup
 
 #### Scenario: Far-side melee target is readable
 - **WHEN** an anchored melee occupant attacks an eligible far-side occupant in an adjacent shared hex

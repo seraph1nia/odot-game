@@ -6,7 +6,6 @@ namespace Game.Core;
 // ECS is the only unit store. Reservations are a derived index.
 internal sealed class CombatSimulation : IDisposable
 {
-    public const double Width = 3.4, Radius = .20, Tolerance = 1e-6;
     public const int HistoryTicks = 120, HistoryLimit = 4096;
     private readonly CombatConfiguration _configuration;
     private readonly HexBoard _board;
@@ -17,6 +16,7 @@ internal sealed class CombatSimulation : IDisposable
     private readonly Dictionary<int, Entity> _entities = [];
     private readonly List<CombatEvent> _events = [];
     private readonly SortedDictionary<int, AdmissionBound> _admissions = [];
+    private readonly SortedSet<int> _healthProgress = [];
     private readonly QueryDescription _units = new QueryDescription().WithAll<UnitIdentity>();
     private int _nextId = 1, _wave = 1;
     private long _tick;
@@ -33,7 +33,8 @@ internal sealed class CombatSimulation : IDisposable
     internal HexBoard Board => _board;
     internal CombatReservations Reservations => _occupancy.Snapshot();
     internal AdmissionBound[] Admissions => _admissions.Values.ToArray();
-    public WeaponProfile Profile(UnitType type, int rank = 0) => _configuration.Unit(type, rank).Legacy();
+    internal int[] HealthProgressCities => _healthProgress.ToArray();
+    public WeaponProfile Profile(UnitType type, int rank = 0) => _configuration.Unit(type, rank).Runtime();
     private ref HexUnitState Spatial(int id) => ref _world.Get<HexUnitState>(_entities[id]);
     private ref CombatDecisionState Decision(int id) => ref _world.Get<CombatDecisionState>(_entities[id]);
     private CombatDecisionKey Key(int id, int city, long sequence, int generation, CombatPurpose purpose, CombatActorKind kind = CombatActorKind.Unit)
@@ -70,27 +71,11 @@ internal sealed class CombatSimulation : IDisposable
     public UnitState[] Enemies() => Snapshot().Where(u => u.Faction == Faction.Skeletons).ToArray();
     public CombatEvent[] Events() => _events.ToArray();
     public long OldestEventSequence => _events.Count == 0 ? EventSequence + 1 : _events[0].Sequence;
-    // Temporary derived presentation adapter; never read by numerical decisions.
-    private (double Forward, double Lateral) Anchor(HexPosition position)
-    {
-        if (position.Cell == 0) return default;
-        HexCell cell = _board.Cell(position.Cell); HexFootprint f = _board.Footprint(position.Footprint);
-        return (-cell.Coordinate.R * 2.598076211 - f.AnchorForward / 1000.0,
-            cell.Coordinate.Column * 3 + (cell.Coordinate.R & 1) * 1.5 + f.AnchorX / 1000.0);
-    }
     internal UnitState Read(int id)
     {
         Entity entity = _entities[id]; UnitIdentity identity = _world.Get<UnitIdentity>(entity); HexUnitState hex = Spatial(id);
         UnitTarget target = _world.Get<UnitTarget>(entity); UnitAttack attack = _world.Get<UnitAttack>(entity);
-        var from = Anchor(hex.Position); var to = hex.HoldsTransit ? Anchor(hex.Destination) : from;
-        double elapsed = hex.Lifecycle == UnitLifecycle.Dying ? hex.FrozenMoveTicks : Math.Clamp(_tick - hex.StartTick, 0, Math.Max(0, hex.EndTick - hex.StartTick));
-        double fraction = hex.HoldsTransit ? elapsed / Math.Max(1, hex.EndTick - hex.StartTick) : 0;
-        var aim = target.City ? (Forward: -2.598076211, Lateral: from.Lateral)
-            : _entities.ContainsKey(target.Id) ? Anchor(Spatial(target.Id).Position) : to;
-        double forward = aim.Forward - from.Forward, lateral = aim.Lateral - from.Lateral;
-        double length = Math.Sqrt(forward * forward + lateral * lateral);
-        bool moving = hex.Lifecycle == UnitLifecycle.Alive && hex.HoldsTransit;
-        return new(id, _world.Get<UnitHealth>(entity).Value, from.Forward + (to.Forward - from.Forward) * fraction,
+        return new(id, _world.Get<UnitHealth>(entity).Value,
             checked((int)Math.Max(0, attack.ReadyTick - _tick)), identity.Origin, identity.Destination)
         {
             Hex = hex,
@@ -99,12 +84,7 @@ internal sealed class CombatSimulation : IDisposable
             Faction = identity.Faction,
             Rank = identity.Rank,
             Owner = identity.Owner,
-            Lateral = from.Lateral + (to.Lateral - from.Lateral) * fraction,
             Deployed = hex.Lifecycle != UnitLifecycle.Queued,
-            MoveForward = moving ? (to.Forward - from.Forward) * Match.StepsPerSecond / (hex.EndTick - hex.StartTick) : 0,
-            MoveLateral = moving ? (to.Lateral - from.Lateral) * Match.StepsPerSecond / (hex.EndTick - hex.StartTick) : 0,
-            FacingForward = length > 0 ? forward / length : identity.Faction == Faction.Adventurers ? 1 : -1,
-            FacingLateral = length > 0 ? lateral / length : 0,
             TargetId = target.Id,
             TargetCity = target.City,
             AttackSequence = attack.Sequence,
@@ -112,6 +92,7 @@ internal sealed class CombatSimulation : IDisposable
             ImpactTick = attack.ImpactTick,
             ReadyTick = attack.ReadyTick,
             PendingImpact = attack.Pending,
+            AttackLanded = attack.Landed,
             Profile = _world.Get<WeaponProfile>(entity)
         };
     }
@@ -120,14 +101,19 @@ internal sealed class CombatSimulation : IDisposable
         HexUnitState hex = state.Hex ?? (state.Deployed ? throw new ArgumentException("Deployed fixtures require explicit hex state.", nameof(state))
             : new(state.Id, state.Destination, state.Faction, UnitLifecycle.Queued, default));
         if (hex.Id != state.Id || hex.City != state.Destination || hex.Faction != state.Faction) throw new ArgumentException("Fixture identity mismatch.", nameof(state));
+        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank);
+        if (state.Id <= 0 || state.Origin <= 0 || state.Destination <= 0 || !Enum.IsDefined(state.Type) || state.Health < 0 || state.Health > profile.Health
+            || hex.Lifecycle != UnitLifecycle.Dying && state.Health == 0
+            || hex.Lifecycle != UnitLifecycle.Queued && _board.Footprint(hex.Position.Footprint).CapacityCost != profile.CapacityCost)
+            throw new ArgumentException("Invalid unit health, identity or profile footprint.", nameof(state));
+        int nextId = Math.Max(_nextId, checked(state.Id + 1));
         // Validate a complete prospective index before replacing the ECS entity.
         _occupancy.Rebuild(All().Where(u => u.Id != state.Id).Select(u => u.Hex!).Append(hex));
         if (_entities.Remove(state.Id, out Entity old)) _world.Destroy(old);
-        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank);
         Entity entity = _world.Create(new UnitIdentity(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank), new UnitHealth(state.Health),
             hex, state.Decision ?? NewDecision(state.Id, state.Destination, 0), new UnitTarget(state.TargetId, state.TargetCity),
-            new UnitAttack(state.AttackSequence, state.ActionStartTick, state.ImpactTick, Math.Max(state.ReadyTick, checked(_tick + state.Cooldown)), state.PendingImpact, state.TargetId, state.TargetCity), profile);
-        _entities.Add(state.Id, entity); _nextId = Math.Max(_nextId, checked(state.Id + 1));
+            new UnitAttack(state.AttackSequence, state.ActionStartTick, state.ImpactTick, Math.Max(state.ReadyTick, checked(_tick + state.Cooldown)), state.PendingImpact, state.TargetId, state.TargetCity, state.AttackLanded), profile);
+        _entities.Add(state.Id, entity); _nextId = nextId;
     }
     internal void Remove(int id)
     {
@@ -137,7 +123,7 @@ internal sealed class CombatSimulation : IDisposable
     public void BeginWave(int wave = 1)
     {
         if (HasDeaths) throw new InvalidOperationException("Cannot reform while prior deaths hold space.");
-        _wave = wave; _events.Clear(); _occupancy.Clear(); _admissions.Clear();
+        _wave = wave; _events.Clear(); _occupancy.Clear(); _routing.Clear(); _admissions.Clear();
         foreach (UnitState unit in Snapshot())
         {
             Spatial(unit.Id) = new(unit.Id, unit.Destination, unit.Faction, UnitLifecycle.Queued, default, ActionSequence: unit.Hex!.ActionSequence);
@@ -169,7 +155,8 @@ internal sealed class CombatSimulation : IDisposable
                     Lifecycle = UnitLifecycle.Alive,
                     Position = position.Value,
                     Action = unit.ReadyTick > _tick ? UnitActionKind.Recovery : UnitActionKind.Waiting,
-                    EndTick = unit.ReadyTick
+                    EndTick = unit.ReadyTick,
+                    AdmittedTick = _tick
                 };
                 if (!_occupancy.TryPlace(admitted)) throw new InvalidOperationException("Placement lost its atomic reservation.");
                 Spatial(unit.Id) = admitted; break;
@@ -214,7 +201,7 @@ internal sealed class CombatSimulation : IDisposable
     }
     public void Advance(long tick, IEnumerable<City> cities)
     {
-        Cleanup(tick);
+        Cleanup(tick); _healthProgress.Clear();
         foreach (UnitState unit in Snapshot().Where(u => u.Hex!.Lifecycle == UnitLifecycle.Alive))
         {
             HexUnitState hex = unit.Hex!;
@@ -251,7 +238,7 @@ internal sealed class CombatSimulation : IDisposable
             if (valid && attack.TargetCity) Add(cityDamage, attack.TargetId, unit.Profile.Damage);
             foreach (int id in victims) Add(damage, id, unit.Profile.Damage);
             Emit(CombatEventType.Impact, unit, attack.TargetId, attack.TargetCity, unit.Profile.Damage, valid, primary, victims);
-            _world.Get<UnitAttack>(_entities[unit.Id]) = attack with { Pending = false };
+            _world.Get<UnitAttack>(_entities[unit.Id]) = attack with { Pending = false, Landed = valid };
             Spatial(unit.Id) = unit.Hex! with { Action = UnitActionKind.Recovery };
         }
         foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
@@ -262,9 +249,14 @@ internal sealed class CombatSimulation : IDisposable
         foreach ((int id, int amount) in damage)
         {
             ref UnitHealth health = ref _world.Get<UnitHealth>(_entities[id]); int effective = Math.Min(health.Value, amount); health = new(health.Value - effective);
-            if (effective > 0) Emit(CombatEventType.Hit, Read(id), damage: effective, landed: true);
+            if (effective > 0) { _healthProgress.Add(current[id].Destination); Emit(CombatEventType.Hit, Read(id), damage: effective, landed: true); }
         }
-        foreach (City city in cities) city.Health = Math.Max(0, city.Health - cityDamage.GetValueOrDefault(city.Id));
+        foreach (City city in cities)
+        {
+            int next = Math.Max(0, city.Health - cityDamage.GetValueOrDefault(city.Id));
+            if (next < city.Health) _healthProgress.Add(city.Id);
+            city.Health = next;
+        }
         foreach (UnitState unit in Snapshot().Where(u => u.Health <= 0)) Kill(unit);
         TrimHistory();
     }
@@ -350,6 +342,7 @@ internal sealed class CombatSimulation : IDisposable
         _world.Get<UnitTarget>(entity) = new(targetId, city);
         _world.Get<UnitAttack>(entity) = new(checked(previous.Sequence + 1), _tick, checked(_tick + unit.Profile.WindupTicks), checked(_tick + unit.Profile.CadenceTicks), true, targetId, city);
         Spatial(unit.Id) = unit.Hex! with { Action = UnitActionKind.Windup, ActionSequence = checked(unit.Hex!.ActionSequence + 1), StartTick = _tick, EndTick = checked(_tick + unit.Profile.CadenceTicks) };
+        _occupancy.SynchronizeAction(Spatial(unit.Id));
         Emit(CombatEventType.AttackStarted, Read(unit.Id), targetId, city, primary: target);
     }
     private void StartDefense(City city, TowerState tower, UnitState[] alive)
@@ -394,9 +387,24 @@ internal sealed class CombatSimulation : IDisposable
         }
         return result.ToArray();
     }
+    private HexPosePoint? FrozenAim(UnitState unit)
+    {
+        HexUnitState hex = unit.Hex!;
+        HexPosePoint? aim = null;
+        if (!unit.TargetCity && _entities.ContainsKey(unit.TargetId))
+        {
+            HexUnitState target = Spatial(unit.TargetId);
+            if (target.Lifecycle != UnitLifecycle.Queued && target.City == hex.City)
+                aim = new(target.Position, target.HoldsTransit ? target.Destination : default, target.HoldsTransit ? target.Transition : 0,
+                    target.HoldsTransit ? target.Lifecycle == UnitLifecycle.Dying ? target.FrozenMoveTicks : checked((int)(_tick - target.StartTick)) : 0,
+                    target.HoldsTransit ? checked((int)(target.EndTick - target.StartTick)) : 0);
+        }
+        return aim;
+    }
     private void Kill(UnitState unit)
     {
         HexUnitState hex = unit.Hex!;
+        HexPosePoint? aim = FrozenAim(unit);
         _world.Get<UnitHealth>(_entities[unit.Id]) = new(0);
         _world.Get<UnitAttack>(_entities[unit.Id]) = _world.Get<UnitAttack>(_entities[unit.Id]) with { Pending = false };
         if (hex.Lifecycle == UnitLifecycle.Queued) { Emit(CombatEventType.Death, unit with { Health = 0 }); Remove(unit.Id); return; }
@@ -405,7 +413,8 @@ internal sealed class CombatSimulation : IDisposable
             Lifecycle = UnitLifecycle.Dying,
             DeathStartTick = _tick,
             DeathEndTick = checked(_tick + unit.Profile.DeathTicks),
-            FrozenMoveTicks = hex.HoldsTransit ? checked((int)(_tick - hex.StartTick)) : 0
+            FrozenMoveTicks = hex.HoldsTransit ? checked((int)(_tick - hex.StartTick)) : 0,
+            FrozenAim = aim
         };
         Emit(CombatEventType.Death, Read(unit.Id));
     }
@@ -423,22 +432,48 @@ internal sealed class CombatSimulation : IDisposable
     }
     public void Step(long tick, IEnumerable<City> cities)
     { City[] values = cities.ToArray(); Advance(tick, values); AdmitEntries(); StartActions(values); }
+    public void StopActions(IEnumerable<City> cities)
+    {
+        foreach (UnitState unit in Snapshot().Where(u => u.Hex!.IsTargetable))
+        {
+            Spatial(unit.Id) = unit.Hex! with { FrozenTick = _tick, FrozenAim = FrozenAim(unit) };
+            _world.Get<UnitAttack>(_entities[unit.Id]) = _world.Get<UnitAttack>(_entities[unit.Id]) with { Pending = false };
+        }
+        foreach (City city in cities)
+        {
+            city.Defender = city.Defender with { PendingImpact = false };
+            foreach (TowerState tower in city.Towers.Values.ToArray()) city.Towers[tower.Slot] = tower with { PendingImpact = false };
+        }
+    }
     private void Emit(CombatEventType type, UnitState unit, int target = 0, bool city = false, int damage = 0, bool landed = false, UnitState? primary = null, int[]? victims = null)
     {
         EventSequence = checked(EventSequence + 1);
         _events.Add(new(EventSequence, _tick, type, unit, target, city, damage, landed)
-        { ImpactForward = primary?.Position ?? 0, ImpactLateral = primary?.Lateral ?? unit.Lateral, Victims = victims ?? [] });
+        {
+            ImpactPose = city ? null : primary is not null ? Pose(primary)
+            : type is CombatEventType.Hit or CombatEventType.Death or CombatEventType.DefenderShot ? Pose(unit) : null,
+            Victims = victims ?? []
+        });
     }
     private void EmitTower(CombatEventType type, TowerState tower, UnitState? target, int damage, bool landed, int[] victims)
     {
         EventSequence = checked(EventSequence + 1);
         _events.Add(new(EventSequence, _tick, type, null, tower.TargetId, false, damage, landed)
-        { Tower = tower, ImpactForward = target?.Position ?? 0, ImpactLateral = target?.Lateral ?? 0, Victims = victims });
+        { Tower = tower, ImpactPose = target is null ? null : Pose(target), Victims = victims });
+    }
+    private HexPosePoint? Pose(UnitState unit)
+    {
+        HexUnitState hex = unit.Hex!;
+        if (hex.Lifecycle == UnitLifecycle.Queued) return null;
+        int duration = hex.HoldsTransit ? checked((int)(hex.EndTick - hex.StartTick)) : 0;
+        int elapsed = hex.Lifecycle == UnitLifecycle.Dying ? hex.FrozenMoveTicks
+            : checked((int)Math.Clamp((hex.FrozenTick ?? _tick) - hex.StartTick, 0, duration));
+        return new(hex.Position, hex.HoldsTransit ? hex.Destination : default, hex.HoldsTransit ? hex.Transition : 0, elapsed, duration);
     }
     private void TrimHistory() { if (_events.Count > HistoryLimit) _events.RemoveRange(0, _events.Count - HistoryLimit); }
     public void Dispose()
     {
         if (IsDisposed) return;
-        IsDisposed = true; _entities.Clear(); _events.Clear(); _admissions.Clear(); _occupancy.Clear(); EcsWorld.Destroy(_world); GC.SuppressFinalize(this);
+        IsDisposed = true; _entities.Clear(); _events.Clear(); _admissions.Clear(); _healthProgress.Clear(); _occupancy.Clear(); _routing.Clear(); EcsWorld.Destroy(_world); GC.SuppressFinalize(this);
     }
 }

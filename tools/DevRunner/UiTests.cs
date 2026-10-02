@@ -35,6 +35,8 @@ internal sealed record UnitObservation
     public long ActionStartTick { get; init; }
     public long ImpactTick { get; init; }
     public long ReadyTick { get; init; }
+    public HexUnitState? Hex { get; init; }
+    public bool? AttackLanded { get; init; }
     public long EffectSequence { get; init; }
     public string Clip { get; init; } = "";
     public string BoneRotation { get; init; } = "";
@@ -44,6 +46,24 @@ internal sealed record UnitObservation
     public float BoneX { get; init; }
     public float BoneY { get; init; }
     public float BoneZ { get; init; }
+}
+internal sealed record StrikeObservation
+{
+    public int Id { get; init; }
+    public int TargetId { get; init; }
+    public long AttackSequence { get; init; }
+    public long ImpactTick { get; init; }
+    public bool? AttackLanded { get; init; }
+    public bool Visible { get; init; }
+    public bool ImpactVisible { get; init; }
+    public float SourceX { get; init; }
+    public float SourceZ { get; init; }
+    public float TargetX { get; init; }
+    public float TargetZ { get; init; }
+    public float SourceScreenX { get; init; }
+    public float SourceScreenY { get; init; }
+    public float TargetScreenX { get; init; }
+    public float TargetScreenY { get; init; }
 }
 internal sealed record EffectObservation
 {
@@ -56,6 +76,7 @@ internal sealed record EffectObservation
 }
 internal sealed record HealthBarObservation
 {
+    public string Role { get; init; } = "";
     public int Id { get; init; }
     public int Current { get; init; }
     public int Maximum { get; init; }
@@ -146,6 +167,7 @@ internal sealed record UiObservation
     public Dictionary<string, UiTarget> Targets { get; init; } = [];
     public string[] UnitBindings { get; init; } = [];
     public UnitObservation[] Units { get; init; } = [];
+    public StrikeObservation[] Strikes { get; init; } = [];
     public HealthBarObservation[] HealthBars { get; init; } = [];
     public Dictionary<string, string> ResourceIcons { get; init; } = [];
     public bool ResourceRowsSingleLine { get; init; }
@@ -263,7 +285,10 @@ internal sealed partial class Runner
         foreach (HealthBarObservation bar in frame.HealthBars)
         {
             UnitObservation unit = frame.Units.Single(u => u.Id == bar.Id);
+            string role = unit.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
+            string expectedRole = (unit.Faction == Faction.Skeletons ? "E" : "") + role;
             if (unit.Dead || !unit.Visible || !unit.Deployed || bar.Current != unit.Health || bar.Maximum != unit.MaximumHealth
+                || bar.Role != expectedRole
                 || bar.Fraction != PresentationLimits.HealthFraction(unit.Health, unit.MaximumHealth)
                 || Math.Abs(bar.FillWidth - 43 * bar.Fraction) > 0.001 || !bar.InputIgnored
                 || bar.Track != "res://Assets/TrioUI/derived/health_track.svg" || bar.Fill != "res://Assets/TrioUI/derived/health_fill.svg")
@@ -357,13 +382,15 @@ internal sealed partial class Runner
     }
     private async Task UiScenario(string name, CancellationToken token)
     {
-        Console.WriteLine($"UI risk: {name}: {UiRisk(name)}");
+        if (options.UiCheckpoint is null) Console.WriteLine($"UI risk: {name}: {UiRisk(name)}");
+        if (options.UiCheckpoint == "melee") Console.WriteLine("Melee checkpoint risk: fixed-anchor swings without a readable target, missed shared near/far occupants or conflicting routes. Ordinary six-Swordsman opening and recruitment up to wave two, four paused overview/close PNGs and live-node witnesses; 40s checkpoint/60s scenario bounds. Owned peers/display/data cleanup uses the existing combat slice.");
         using var combatDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         if (name == "combat") combatDeadline.CancelAfter(60000);
         token = combatDeadline.Token;
         bool package = name == "exported-package";
         string? executable = package ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null;
-        var started = await StartServer("ui-server", options.Port ?? _scope!.Port(), token, retryAutomatic: options.Port is null, exported: package ? Path.Combine(_root, "dist", "server", "odot.x86_64") : null);
+        var started = await StartServer("ui-server", options.Port ?? _scope!.Port(), token, retryAutomatic: options.Port is null, exported: package ? Path.Combine(_root, "dist", "server", "odot.x86_64") : null,
+            extra: name is "combat" or "exported-package" ? ["--combat-seed", "1"] : []);
         Child client = StartGame("ui-client", false, false, started.Port, executable);
         await client.WaitFor(e => e.Type == "connected", "graphical client connected", options.StartupTimeout, token);
         Child observer = StartGame("ui-observer", false, true, started.Port, executable, "--automated");
@@ -403,22 +430,39 @@ internal sealed partial class Runner
                 if (package)
                 {
                     await MixedArmy(client, observer, token, farmExists: true, towers: true);
+                    async Task<MatchSnapshot> PausePackedTower()
+                    {
+                        await Observe(observer, s => s.CombatEvents.Any(e => e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "packed authoritative tower impact", token);
+                        return State(await Action(observer, "pause", token));
+                    }
+                    Task<MatchSnapshot> packedTowerPause = PausePackedTower();
                     await Click(client, "City" + observer.PlayerId, token);
+                    MatchSnapshot packedTower = await packedTowerPause;
+                    await Observe(client, s => s.Paused && s.Tick == packedTower.Tick, "packed tower pause barrier", token);
                     UiObservation tower = await WaitUi(client, p => p.Effects.Active > 0 && p.Effects.Bus == "Master", "packed tower feedback", token);
                     Require(tower.LoadedModels.Contains("Medieval/building_tower_catapult_blue.gltf") && tower.Stockpiles is not null && tower.Effects.Voices <= 8, "packed tower model, resource piles and bounded Master audio load from exports");
                     await Checkpoint(client, "packed-catapult", token);
                     await Click(client, "City" + client.PlayerId, token);
+                    await ClickAck(client, "Pause", token);
                     await CombatCheckpoint(client, observer, token, shortCheck: true);
                 }
                 break;
             case "combat":
+                if (options.UiCheckpoint == "melee")
+                {
+                    await MeleeArmy(client, observer, token);
+                    await MeleeCheckpoint(client, observer, token);
+                    break;
+                }
                 await SpecialistArmy(client, observer, token);
                 await CombatCheckpoint(client, observer, token);
                 break;
             case "reconnect":
                 await MixedArmy(client, observer, token);
-                await Observe(client, s => CombatPlayback.All(s).Any(u => u.PendingImpact), "current attack before reconnect", token);
-                await ClickAck(client, "Pause", token);
+                await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId), "natural casualty before reconnect", token);
+                MatchSnapshot deathPause = State(await Action(observer, "pause", token));
+                await Observe(client, s => s.Paused && s.Tick == deathPause.Tick, "graphical casualty pause barrier", token);
+                Require(deathPause.DyingBodies.Any(u => u.Destination == client.PlayerId), "pause retains a current casualty");
                 int identity = client.PlayerId, connection = client.PeerId;
                 string before = Gameplay(Latest(client));
                 UiObservation cameraBefore = await CameraZoom(client, token);
@@ -432,7 +476,7 @@ internal sealed partial class Runner
                 GameEvent resumed = await client.WaitFor(e => e.Type == "connected" && e.PeerId != connection, "Reconnect control restores a new transport", options.StartupTimeout, token);
                 Require(resumed.PlayerId == identity && Gameplay(State(resumed)) == before, "Reconnect input preserves city identity and gameplay");
                 await Observe(observer, s => s.Players.Single(p => p.Id == identity).Connected && s.Revision >= State(resumed).Revision, "observer sees restored identity", token);
-                UiObservation restored = await WaitUi(client, p => p.Units.Length == CombatPlayback.All(State(resumed)).Length && p.EventCursor == State(resumed).EventSequence,
+                UiObservation restored = await WaitUi(client, p => p.Units.Length == CombatPlayback.All(State(resumed)).Length + State(resumed).DyingBodies.Length && p.EventCursor == State(resumed).EventSequence,
                     "restored current unit baseline", token);
                 Require(SameCamera(cameraDisconnected.Camera, restored.Camera), "same-match reconnect preserves adjusted camera");
                 await Pick(client, 1, token);
@@ -443,9 +487,29 @@ internal sealed partial class Runner
                     UnitState expected = CombatPlayback.All(State(resumed)).Single(u => u.Id == bar.Id);
                     Require(bar.Current == expected.Health && bar.Maximum == expected.Profile.Health && bar.Fraction == PresentationLimits.HealthFraction(expected.Health, expected.Profile.Health), "reconnect reconstructs current authoritative health fraction");
                 }
-                Require(restored.Units.All(u => !u.Dead && u.EffectSequence == 0) && restored.Effects.Active == 0 && restored.Effects.Voices == 0, "reconnect baselines living poses without historical effects/corpses");
+                Require(restored.Units.All(u => u.EffectSequence == 0) && restored.Effects.Active == 0 && restored.Effects.Voices == 0, "reconnect baselines current poses without historical effects");
+                Require(restored.Units.Where(u => u.Dead).Select(u => u.Id).Order().SequenceEqual(deathPause.DyingBodies.Select(u => u.Id).Order()), "reconnect restores current dying bodies");
                 Require(restored.Units.Any(u => u.Type == UnitType.Crossbowman && u.WeaponAttached), "reconnect preserves ranged rig and profile");
                 await Checkpoint(client, "restored-connection", token);
+                await client.Send("quit"); Require(await client.WaitExit(token) == 0, "reconnect client exits cleanly for process restart");
+                await Observe(observer, s => !s.Players.Single(p => p.Id == identity).Connected, "owned client absent before restart", token);
+                Child deathRestart = StartGame("ui-client", false, false, started.Port);
+                GameEvent deathWelcome = await deathRestart.WaitFor(e => e.Type == "connected", "owned client restarts during paused death", options.StartupTimeout, token);
+                Require(deathWelcome.PlayerId == identity && Gameplay(State(deathWelcome)) == before, "process restart restores paused health and actions without regrant");
+                UiObservation deathBaseline = await WaitUi(deathRestart, p => p.Connected && p.Units.Length == restored.Units.Length && p.EventCursor == deathPause.EventSequence, "restarted current death baseline", token);
+                foreach (UnitState body in deathPause.DyingBodies)
+                {
+                    UnitObservation pose = deathBaseline.Units.Single(u => u.Id == body.Id);
+                    Require(pose.Dead && pose.Hex == body.Hex && pose.EffectSequence == 0, "restart reconstructs the original death interval and reservations");
+                }
+                Require(deathBaseline.Effects.Active == 0 && deathBaseline.Effects.Voices == 0, "process restart does not replay historical sound or effects");
+                await Checkpoint(deathRestart, "restarted-death", token);
+                long deathDeadline = deathPause.DyingBodies.Max(u => u.Hex!.DeathEndTick);
+                int[] dyingIds = deathPause.DyingBodies.Select(u => u.Id).ToArray();
+                await ClickAck(deathRestart, "Pause", token);
+                MatchSnapshot releasedDeath = await Observe(observer, s => s.Tick >= deathDeadline && s.DyingBodies.All(u => !dyingIds.Contains(u.Id)), "resumed deaths expire at their declared deadline", token);
+                CombatContact(releasedDeath);
+                await WaitUi(deathRestart, p => p.Units.All(u => !dyingIds.Contains(u.Id)), "expired death models removed after resume", token);
                 break;
             case "settings":
                 await CameraInputPriority(client, token);

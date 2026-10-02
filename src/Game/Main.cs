@@ -49,6 +49,7 @@ public partial class Main : Node, IGameSession
     private int _port = 7000;
     private string _host = "127.0.0.1";
     private string _bind = "127.0.0.1";
+    private ulong? _combatSeed;
     private long _localSequence = 1;
     private int _broadcastTick;
     private long _broadcastRevision = -1;
@@ -114,6 +115,7 @@ public partial class Main : Node, IGameSession
                 case "--session-file": _sessionPath = Value(); break;
                 case "--protocol-version": _version = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
+                case "--combat-seed": _combatSeed = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
                 case "--automated": _automated = true; break;
                 case "--supervised": _supervised = true; break;
                 // Steam's own launch arguments are consumed by the application platform owner.
@@ -122,6 +124,7 @@ public partial class Main : Node, IGameSession
             }
         }
         if (_port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Invalid port or timeout.");
+        if (role == SessionRole.Guest && _combatSeed is not null) throw new ArgumentException("Combat seed belongs to an authority role.");
         if (System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA") is { } owned)
         {
             string data = Path.GetFullPath(ProjectSettings.GlobalizePath("user://"));
@@ -154,7 +157,7 @@ public partial class Main : Node, IGameSession
     {
         if (DeferSessionStart(StartSolo)) return;
         BeginSession(SessionRole.Solo);
-        _authority = new(AuthorityPolicy.Solo);
+        _authority = new(AuthorityPolicy.Solo, combatSeed: _combatSeed);
         Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer();
         BindLocalPlayer();
         SendAction("start");
@@ -171,7 +174,7 @@ public partial class Main : Node, IGameSession
         var peer = new ENetMultiplayerPeer(); _peer = peer; peer.SetBindIP(bind);
         Error result = peer.CreateServer(port, 16, 2);
         if (result != Error.Ok) throw new InvalidOperationException($"Cannot bind server to {bind}:{port}: {result}");
-        _authority = new(policy);
+        _authority = new(policy, combatSeed: _combatSeed);
         Multiplayer.MultiplayerPeer = peer;
         BindAuthoritySignals();
         SetState(_authority.Snapshot());
@@ -186,7 +189,7 @@ public partial class Main : Node, IGameSession
         if (DeferSessionStart(() => StartNativeHost(peer, originalHostIdentity, authenticatedIdentity))) return;
         BeginSession(SessionRole.PlayingHost);
         _peer = peer; _authenticatedIdentity = authenticatedIdentity; _originalHostIdentity = originalHostIdentity;
-        _authority = new(AuthorityPolicy.PlayingHost, originalHostIdentity: originalHostIdentity, requireTrustedIdentity: true);
+        _authority = new(AuthorityPolicy.PlayingHost, originalHostIdentity: originalHostIdentity, requireTrustedIdentity: true, combatSeed: _combatSeed);
         Multiplayer.MultiplayerPeer = peer;
         BindAuthoritySignals();
         SetState(_authority.Snapshot());
@@ -459,7 +462,11 @@ public partial class Main : Node, IGameSession
         if (_authority is not null)
         {
             _authority.Step();
-            if (++_broadcastTick >= 3 || _broadcastRevision != _authority.Revision && _authority.Phase != Phase.Combat)
+            // Complete combat snapshots are larger than the old lane state. Repeating
+            // an unchanged paused snapshot fills ENet's reliable queue and can
+            // hide a later resume/pause revision from the graphical peer.
+            if (_broadcastRevision != _authority.Revision
+                && (++_broadcastTick >= 3 || _authority.Phase != Phase.Combat || _authority.Paused))
             {
                 MatchSnapshot state = _authority.Snapshot();
                 _broadcastTick = 0; _broadcastRevision = state.Revision; SetState(state);

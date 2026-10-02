@@ -4,7 +4,8 @@ namespace DevRunner;
 internal sealed record Options(string Command, string Host, string Bind, int? Port, int StartupTimeout, int Timeout, string[] EngineArgs, string? SessionFile,
     int Jobs = 2, string? Scenario = null, string? EvidenceDirectory = null, string? WorkerToken = null,
     bool Production = false, uint? SteamAppId = null, bool Offline = false, bool Exported = false, int Guests = 1,
-    string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64", string? InstalledClient = null)
+    string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64", string? InstalledClient = null,
+    string? UiCheckpoint = null)
 {
     public static Options Parse(string[] args)
     {
@@ -26,6 +27,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         string? releaseTag = null;
         string exportTarget = command is "ci-windows" or "package-windows" ? "windows-x64" : "linux-x64";
         string? installedClient = null;
+        string? checkpoint = null;
         var engineArgs = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
@@ -42,6 +44,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--jobs": jobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--guests" when command == "dev": guests = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--scenario": scenario = Value(); break;
+                case "--checkpoint" when command is "test-ui" or "_ui-worker": checkpoint = Value(); break;
                 case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
                 case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;
                 case "--production" when command is "export-client" or "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight" or "assemble-release-assets": production = true; break;
@@ -69,6 +72,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             string[] names = command == "test-network" ? ScenarioNames.Network : command is "test-ui" or "_ui-worker" ? ScenarioNames.Ui : command == "test-steam" ? ["direct-invite"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
+        if (checkpoint is not null && (scenario != "combat" || checkpoint != "melee"))
+            throw new ArgumentException("--checkpoint melee belongs to --scenario combat.");
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
         if (args.Contains("--jobs") && command != "test-network") throw new ArgumentException("--jobs belongs to test-network.");
@@ -89,6 +94,6 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (command == "test-steam" && scenario == "direct-invite" && lobby is not null)
             throw new ArgumentException("direct-invite requires accepting an actual invitation; omit --lobby.");
         return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
-            production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient);
+            production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient, checkpoint);
     }
 }

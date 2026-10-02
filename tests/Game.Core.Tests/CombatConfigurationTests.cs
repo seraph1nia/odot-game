@@ -23,10 +23,10 @@ public sealed class CombatConfigurationTests
     public void MageCandidateHasTwoVictimBenefitAndSingleTargetCadenceTradeoff()
     {
         var c = new CombatConfiguration(new()); HexCombatProfile mage = c.Unit(UnitType.Mage), crossbow = c.Unit(UnitType.Crossbowman);
-        Assert.Equal(300, mage.Damage); Assert.Equal(600, mage.Health);
+        Assert.Equal(400, mage.Damage); Assert.Equal(600, mage.Health);
         Assert.True((long)mage.Damage * crossbow.CadenceTicks < (long)crossbow.Damage * mage.CadenceTicks);
         Assert.True((long)mage.Damage * 2 * crossbow.CadenceTicks > (long)crossbow.Damage * mage.CadenceTicks);
-        Assert.Equal(0, mage.SplashHexRadius); Assert.Equal(3, mage.VictimCap);
+        Assert.Equal(1, mage.SplashHexRadius); Assert.Equal(2, mage.VictimCap);
         Assert.Equal(new ResourceCost(2, Food: 7), Catalogs.Units(new()).Single(u => u.Type == UnitType.Mage).Recruitment);
         // This is a profile check, not the still-required ordinary role fixture.
     }
@@ -76,7 +76,7 @@ public sealed class CombatConfigurationTests
         { Cells = rules.Combat.Board.Cells.Reverse().Select(c => c with { Neighbors = c.Neighbors.Reverse().ToArray() }).ToArray(), Footprints = rules.Combat.Board.Footprints.Reverse().ToArray() };
         Assert.Equal(a.Fingerprint, new CombatConfiguration(rules with { Combat = rules.Combat with { Board = reversed } }).Fingerprint);
         Assert.Equal(a.Fingerprint, new CombatConfiguration(rules with { StartingGold = 999 }).Fingerprint);
-        Assert.NotEqual(a.Fingerprint, new CombatConfiguration(rules with { MageDamage = 4 }).Fingerprint);
+        Assert.NotEqual(a.Fingerprint, new CombatConfiguration(rules with { MageDamage = 3 }).Fingerprint);
         Assert.NotEqual(a.Fingerprint, new CombatConfiguration(rules with { Combat = rules.Combat with { RetryTicks = 7 } }).Fingerprint);
         rules.Combat.Board.Cells[0].Neighbors[0] = 0;
         Assert.Equal(HexBoardDefinition.Default().Cells[0].Neighbors, a.Board.Cell(1).Neighbors);
@@ -88,5 +88,19 @@ public sealed class CombatConfigurationTests
         Assert.Equal(123UL, a.CombatSeed); Assert.Equal(a.CombatSeed, b.CombatSeed); Assert.Equal(a.Configuration.Fingerprint, b.Configuration.Fingerprint);
         using var generated = new Match(); ulong seed = generated.CombatSeed;
         generated.Join(); generated.Snapshot(); Assert.Equal(seed, generated.CombatSeed);
+    }
+    [Fact]
+    public void PublishedBoardAndDecisionArraysCannotMutateTheAuthority()
+    {
+        using var match = new Match(combatSeed: 123); match.Join(); VillageStrategyTests.Act(match, 1, "start");
+        for (int n = 0; n < 4; n++) VillageStrategyTests.Act(match, 1, "ready");
+        match.Step(); MatchSnapshot published = match.Snapshot();
+        UnitState actor = published.Enemies.First(u => u.Decision!.Route.Length > 0);
+        HexPosition expected = actor.Decision!.Route[0]; actor.Decision.Route[0] = default;
+        published.Rules.Combat.Board.Cells[0].Neighbors[0] = 999;
+        MatchSnapshot fresh = match.Snapshot();
+        Assert.Equal(expected, fresh.Enemies.Single(u => u.Id == actor.Id).Decision!.Route[0]);
+        Assert.DoesNotContain(999, fresh.Rules.Combat.Board.Cells[0].Neighbors);
+        Assert.Equal(123UL, fresh.CombatSeed); Assert.Equal(match.Configuration.Fingerprint, fresh.ConfigurationFingerprint);
     }
 }

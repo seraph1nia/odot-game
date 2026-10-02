@@ -4,16 +4,25 @@ namespace Game.Core;
 
 public enum UnitLifecycle { Queued, Alive, Dying }
 public enum UnitActionKind { Waiting, Moving, Windup, Recovery }
+public readonly record struct HexPosePoint(HexPosition Position, HexPosition Destination = default, int Transition = 0, int ElapsedTicks = 0, int DurationTicks = 0);
 public sealed record HexUnitState(int Id, int City, Faction Faction, UnitLifecycle Lifecycle, HexPosition Position,
     UnitActionKind Action = UnitActionKind.Waiting, HexPosition Destination = default, int Transition = 0,
-    long ActionSequence = 0, long StartTick = 0, long EndTick = 0, long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0)
+    long ActionSequence = 0, long StartTick = 0, long EndTick = 0, long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0,
+    long AdmittedTick = 0, long? FrozenTick = null, HexPosePoint? FrozenAim = null)
 {
     public bool HoldsTransit => Action == UnitActionKind.Moving;
     public bool IsTargetable => Lifecycle == UnitLifecycle.Alive;
 }
 public readonly record struct PositionReservation(int City, int Cell, int Footprint, int UnitId, long ActionSequence, Faction Faction);
 public readonly record struct TransitReservation(int City, int SourceCell, int DestinationCell, int EdgeToken, int UnitId, long ActionSequence);
-public sealed record CombatReservations(PositionReservation[] Positions, TransitReservation[] Transit);
+public sealed record CombatReservations(PositionReservation[] Positions, TransitReservation[] Transit)
+{
+    public static CombatReservations Reconstruct(HexBoard board, IEnumerable<HexUnitState> units)
+    {
+        var occupancy = new HexOccupancy(board); occupancy.Rebuild(units);
+        return occupancy.Snapshot();
+    }
+}
 
 // An auxiliary index, not a second unit store. ECS owns the states supplied to
 // rebuild/commit; the index records only occupied masks and action ownership.
@@ -50,7 +59,7 @@ internal sealed class HexOccupancy(HexBoard board)
         // ECS action only after this transaction succeeds.
         if (state.Lifecycle != UnitLifecycle.Alive || state.Action is not UnitActionKind.Waiting || sequence <= state.ActionSequence
             || !_positions.TryGetValue((state.City, state.Position.Cell), out var source)
-            || !source.TryGetValue(state.Id, out PositionReservation reservation) || reservation.Footprint != state.Position.Footprint
+            || !source.TryGetValue(state.Id, out PositionReservation reservation) || reservation.Footprint != state.Position.Footprint || reservation.ActionSequence != state.ActionSequence
             || reservation.Faction != state.Faction || !board.Cell(state.Position.Cell).Neighbors.Contains(destination.Cell)
             || board.Footprint(state.Position.Footprint).CapacityCost != board.Footprint(destination.Footprint).CapacityCost
             || !CanPlace(state.City, state.Faction, destination)) return false;
@@ -63,6 +72,13 @@ internal sealed class HexOccupancy(HexBoard board)
         _endpointTransit.Add((state.City, state.Position.Cell), transit); _endpointTransit.Add((state.City, destination.Cell), transit);
         _edgeTransit.Add((state.City, transition.EdgeToken), transit);
         Revision = checked(Revision + 1); return true;
+    }
+    public void SynchronizeAction(HexUnitState state)
+    {
+        if (state.HoldsTransit) throw new InvalidOperationException("Committed transit identity cannot change.");
+        if (!_positions.TryGetValue((state.City, state.Position.Cell), out var positions) || !positions.TryGetValue(state.Id, out PositionReservation reservation))
+            throw new InvalidOperationException("Standing action lacks its footprint reservation.");
+        positions[state.Id] = reservation with { ActionSequence = state.ActionSequence };
     }
     public bool Arrive(HexUnitState state, long tick)
     {

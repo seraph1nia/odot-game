@@ -8,12 +8,12 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     private static readonly HexBoard TestBoard = new(HexBoardDefinition.Default());
     private static Match Battle(Rules? rules = null, int soldiers = 0, bool mixed = false, bool reverse = false)
     {
-        var match = new Match(rules, "combat-fixture", combatSeed: 123); match.Join();
+        var match = new Match(rules, combatSeed: 123); match.Join();
         int[] ids = Enumerable.Range(1, soldiers).ToArray();
         foreach (int id in reverse ? ids.Reverse() : ids)
         {
             UnitType type = mixed ? (UnitType)((id - 1) % 4) : UnitType.Swordsman;
-            match.Combat.Seed(new(id, match.Combat.Profile(type).Health, 0, 0, 1, 1)
+            match.Combat.Seed(new(id, match.Combat.Profile(type).Health, 0, 1, 1)
             { Owner = 1, Type = type, Deployed = false });
         }
         Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
@@ -49,17 +49,42 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var rules = new Rules { WaveOne = 32, DefenderDamage = 0 };
         using Match a = Battle(rules, 32, mixed); using Match b = Battle(rules, 32, mixed, reverse: true);
-        bool hadDeaths = false;
+        Assert.NotEqual(a.Id, b.Id);
+        bool hadDeaths = false, hadMageSecondary = false; var deaths = new HashSet<int>();
+        long outcomeTick = 0;
         int steps = 0;
-        while (a.Phase == Phase.Combat && steps++ < 6000)
+        while ((a.Phase == Phase.Combat || a.Combat.HasDeaths) && steps++ < 6000)
         {
+            // Reading/traversing snapshots and events cannot advance any combat stream.
+            if (steps % 7 == 0)
+            {
+                _ = JsonSerializer.Serialize(b.Snapshot(), WireJson.Options);
+                _ = b.Combat.Events().Reverse().Select(e => e.Victims.Reverse().ToArray()).ToArray();
+                _ = b.Combat.Dying().Reverse().ToArray();
+            }
             a.Step(); b.Step();
+            if (outcomeTick == 0 && a.Phase != Phase.Combat) outcomeTick = a.Tick;
             UnitState[] units = a.Combat.Snapshot(); Separated(units);
-            Assert.Equal(JsonSerializer.Serialize(units), JsonSerializer.Serialize(b.Combat.Snapshot())); Assert.Equal(JsonSerializer.Serialize(a.Combat.Events()), JsonSerializer.Serialize(b.Combat.Events()));
+            foreach (CombatEvent death in a.Combat.Events().Where(e => e.Tick == a.Tick && e.Type == CombatEventType.Death)) deaths.Add(death.Unit!.Id);
+            hadMageSecondary |= a.Combat.Events().Any(e => e.Tick == a.Tick && e.Type == CombatEventType.Impact && e.Unit?.Type == UnitType.Mage && e.Landed && e.Victims.Length > 1);
+            UnitState[] current = units.Concat(a.Combat.Dying()).ToArray();
+            var currentIds = current.Select(u => u.Id).ToHashSet();
+            Assert.Equal(64, current.Length + deaths.Count(id => !currentIds.Contains(id)));
+            var index = new HexOccupancy(a.Combat.Board); index.Rebuild(current.Select(u => u.Hex!));
+            Assert.Equal(JsonSerializer.Serialize(index.Snapshot()), JsonSerializer.Serialize(a.Combat.Reservations));
+            Assert.All(current.Where(u => u.Deployed), u => Assert.InRange(u.Hex!.Position.Cell, 1, 21));
+            Assert.All(current.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
+            MatchSnapshot first = a.Snapshot() with { MatchId = "normalized-session", Revision = 0 };
+            MatchSnapshot second = b.Snapshot() with { MatchId = "normalized-session", Revision = 0 };
+            Assert.True(JsonSerializer.Serialize(first, WireJson.Options) == JsonSerializer.Serialize(second, WireJson.Options),
+                $"First divergent complete combat state: tick={a.Tick}, seed={a.CombatSeed}, config={a.Configuration.Fingerprint}, mixed={mixed}.");
             hadDeaths |= a.Enemies.Count < 32 || a.Players[1].Soldiers.Count < 32;
         }
-        output.WriteLine($"Crowded mixed={mixed}: {steps} ticks, {a.Phase}, survivors={a.Combat.Snapshot().Length}");
+        output.WriteLine($"Crowded mixed={mixed}, seed={a.CombatSeed}, config={a.Configuration.Fingerprint}: outcome={outcomeTick}, cleanup={a.Tick}, {a.Phase}, survivors={a.Combat.Snapshot().Length}, Mage secondary={hadMageSecondary}");
         Assert.True(hadDeaths); Assert.NotEqual(Phase.Combat, a.Phase); Assert.Equal(a.Phase, b.Phase);
+        Assert.Empty(a.Combat.Dying()); Assert.Empty(b.Combat.Dying());
+        if (mixed) Assert.True(hadMageSecondary, "The mixed complete-trace fixture must exercise actual splash victim selection.");
+        Assert.NotEqual(DefeatReason.BattleStalled, a.DefeatReason);
     }
     [Fact]
     public void LargeEntryQueuesConserveUnitsAndNeverOverlap()
@@ -69,6 +94,21 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal(160, units.Length); Assert.Contains(units, u => !u.Deployed); Separated(units);
         match.Step(); Assert.Equal(160, match.Combat.Snapshot().Length); Separated(match.Combat.Snapshot());
         Assert.All(match.Combat.Snapshot().Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
+        var deaths = new HashSet<int>(); int steps = 1;
+        while (match.Phase == Phase.Combat && steps++ < 18000)
+        {
+            match.Step();
+            foreach (CombatEvent death in match.Combat.Events().Where(e => e.Tick == match.Tick && e.Type == CombatEventType.Death)) deaths.Add(death.Unit!.Id);
+            UnitState[] current = match.Combat.Snapshot().Concat(match.Combat.Dying()).ToArray();
+            var currentIds = current.Select(u => u.Id).ToHashSet();
+            Assert.Equal(160, current.Length + deaths.Count(id => !currentIds.Contains(id)));
+            var index = new HexOccupancy(match.Combat.Board); index.Rebuild(current.Select(u => u.Hex!));
+            Assert.Equal(JsonSerializer.Serialize(index.Snapshot()), JsonSerializer.Serialize(match.Combat.Reservations));
+            Assert.All(current.Where(u => u.Deployed), u => Assert.InRange(u.Hex!.Position.Cell, 1, 21));
+            Assert.All(current.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
+        }
+        output.WriteLine($"80-per-side queue: {steps} ticks, {match.Phase}, reason={match.DefeatReason}, deaths={deaths.Count}.");
+        Assert.NotEqual(Phase.Combat, match.Phase); Assert.NotEqual(DefeatReason.BattleStalled, match.DefeatReason);
     }
     [Fact]
     public void MeleeStopsAtReachAndImpactsAreSimultaneous()
@@ -78,7 +118,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         {
             combat.Step(tick, []); UnitState[] units = combat.Snapshot();
             Assert.Equal(2, units.Length); Assert.All(units, u => Assert.Equal(1000, u.Health)); Separated(units);
-            Assert.All(units, u => { Assert.Equal(0, u.MoveForward); Assert.Equal(1, u.AttackSequence); Assert.Equal(13, u.ImpactTick); });
+            Assert.All(units, u => { Assert.False(u.Hex!.HoldsTransit); Assert.Equal(1, u.AttackSequence); Assert.Equal(13, u.ImpactTick); });
         }
         combat.Step(13, []); Assert.Empty(combat.Snapshot());
         Assert.Equal(2, combat.Events().Count(e => e.Type == CombatEventType.Death));
@@ -109,7 +149,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void CrossbowmanHoldsShootingRangeAndShootsAtItsImpactTick()
     {
         using var combat = Duel(type: UnitType.Crossbowman);
-        combat.Step(1, []); Assert.Equal(0, combat.Read(1).MoveForward); Assert.True(combat.Read(1).PendingImpact);
+        combat.Step(1, []); Assert.False(combat.Read(1).Hex!.HoldsTransit); Assert.True(combat.Read(1).PendingImpact);
         for (int tick = 2; tick <= 18; tick++) combat.Step(tick, []);
         Assert.Equal(1000, combat.Read(2).Health);
         combat.Step(19, []); Assert.Equal(700, combat.Read(2).Health);
@@ -125,7 +165,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         close.Seed(close.Read(2) with { Hex = CombatFixture.At(close.Read(2), 8, 7) });
         for (int tick = 1; tick <= 19; tick++) { close.Step(tick, []); Separated(close.Snapshot()); }
         Assert.Equal(400, close.Read(1).Health); Assert.Equal(700, close.Read(2).Health);
-        Assert.Equal(3, close.Read(1).Profile.Range);
+        Assert.Equal(3, close.Read(1).Profile.HexRange);
     }
     [Fact]
     public void PauseFreezesPendingImpactAndEventIdentityAcrossResynchronization()

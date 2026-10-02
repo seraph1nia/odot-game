@@ -7,9 +7,25 @@ internal sealed record Approach(int TargetId, bool City, int TargetCell, HexPosi
 // opponent disappear from the list of feasible long-term objectives.
 internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
 {
+    private long _revision = -1;
+    private readonly Dictionary<(int City, Faction Faction, int Range, int Capacity), Dictionary<int, HexFootprint[]>> _available = [];
+    private Dictionary<int, HexFootprint[]> Available(UnitState actor)
+    {
+        if (_revision != occupancy.Revision) { _available.Clear(); _revision = occupancy.Revision; }
+        var key = (actor.Destination, actor.Faction, actor.Profile.HexRange, actor.Profile.CapacityCost);
+        if (!_available.TryGetValue(key, out Dictionary<int, HexFootprint[]>? cells))
+        {
+            cells = board.Cells.ToDictionary(c => c.Id,
+                c => occupancy.Free(actor.Destination, actor.Faction, c.Id, actor.Profile.CapacityCost).OrderBy(f => f.Id).ToArray());
+            _available.Add(key, cells);
+        }
+        return cells;
+    }
+    public void Clear() { _available.Clear(); _revision = -1; }
     public Approach Find(UnitState actor, UnitState? target, UnitState[] all, CombatDecisionKey key, int[] excluded)
     {
         HexUnitState state = actor.Hex!;
+        Dictionary<int, HexFootprint[]> available = Available(actor);
         int targetCell = target?.Hex!.Position.Cell ?? 0;
         int Distance(int cell) => target is null ? board.CityDistance(cell) : board.Distance(cell, targetCell);
         bool Goal(int cell) => Distance(cell) >= 1 && Distance(cell) <= actor.Profile.HexRange;
@@ -25,12 +41,12 @@ internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
             if (steps > 0 && Goal(cell))
             {
                 shortest = steps;
-                goals.AddRange(occupancy.Free(state.City, state.Faction, cell, actor.Profile.CapacityCost).Select(f => new HexPosition(cell, f.Id)));
+                goals.AddRange(available[cell].Select(f => new HexPosition(cell, f.Id)));
                 continue;
             }
             foreach (int next in board.Cell(cell).Neighbors)
             {
-                if (excluded.Contains(next) || !occupancy.Free(state.City, state.Faction, next, actor.Profile.CapacityCost).Any()) continue;
+                if (excluded.Contains(next) || available[next].Length == 0) continue;
                 if (!lengths.TryGetValue(next, out int existing))
                 { lengths.Add(next, steps + 1); parents.Add(next, [cell]); queue.Enqueue(next); }
                 else if (existing == steps + 1) parents[next].Add(cell);
@@ -49,7 +65,7 @@ internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
         {
             int[] predecessors = parents[current].Order().ToArray();
             current = predecessors[SeededDecision.Choose(key with { Purpose = CombatPurpose.Route, Generation = checked(key.Generation + lengths[current]) }, predecessors.Length)];
-            HexFootprint[] footprints = occupancy.Free(state.City, state.Faction, current, actor.Profile.CapacityCost).OrderBy(f => f.Id).ToArray();
+            HexFootprint[] footprints = available[current];
             HexFootprint footprint = footprints[SeededDecision.Choose(key with { Purpose = CombatPurpose.Route, Generation = checked(key.Generation + current) }, footprints.Length)];
             reversed.Add(new(current, footprint.Id));
         }

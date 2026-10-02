@@ -12,17 +12,17 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     private readonly AnimationNodeAnimation _attackClip = new();
     private bool _attacking, _hitting;
     private long _attackSequence;
-    private Label3D _label = null!;
-    private double _deathAt = -1, _hitAt = -1, _shotAt = -1;
+    private double _hitAt = -1, _shotAt = -1;
     private Node3D _shot = null!;
     private MeshInstance3D _marker = null!;
     private long _effectSequence;
     private int _shotCount;
     public UnitState State { get; private set; } = initial;
-    public bool Dead => _deathAt >= 0;
+    public bool Dead => State.Hex?.Lifecycle == UnitLifecycle.Dying;
     public string Clip { get; private set; } = "Idle";
     public double PoseSeconds { get; private set; }
-    public bool Expired(double seconds) => Dead && seconds - _deathAt >= 1.4;
+    public bool Expired(double tick) => Dead && tick >= State.Hex!.DeathEndTick;
+    public Vector3 StrikeOrigin => _skeleton.GlobalTransform * _skeleton.GetBoneGlobalPose(_skeleton.FindBone("handslot.r")).Origin;
 
     public override void _Ready()
     {
@@ -67,15 +67,6 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         blend.ConnectNode("output", 0, "death");
         _tree = new AnimationTree { TreeRoot = blend, CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual };
         model.AddChild(_tree); _tree.AnimPlayer = _tree.GetPathTo(_player); _tree.Active = true;
-        _label = new Label3D
-        {
-            Position = new(0, 1.05f, 0),
-            FontSize = 18,
-            PixelSize = 0.012f,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            Modulate = new(State.Faction == Faction.Skeletons ? "ea8272" : "93c5ef")
-        };
-        AddChild(_label);
         _marker = new MeshInstance3D
         {
             Position = new(0, 0.015f, 0),
@@ -92,19 +83,22 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         switch (entry.Type)
         {
             case CombatEventType.Hit: if (!Dead) { _hitAt = seconds; _hitting = false; } break;
-            case CombatEventType.Death: State = entry.Unit; _deathAt = seconds; _label.Visible = false; break;
+            case CombatEventType.Death: State = entry.Unit; break;
             case CombatEventType.Impact when entry.Unit.Type == UnitType.Crossbowman: _shotAt = seconds; _shotCount++; break;
         }
     }
-    public void Sample(UnitState? living, double tick, double seconds, int focus)
+    public void Sample(UnitState? current, double tick, double seconds, int focus, CombatLayout layout, IReadOnlyDictionary<int, UnitState> units)
     {
-        if (!Dead && living is not null) State = living;
+        if (current is not null) State = current;
         UnitState state = State;
+        tick = state.Hex?.FrozenTick ?? tick;
         Visible = state.Deployed && state.Destination == focus;
-        Position = new((state.Destination - 1) * 40 + (float)state.Lateral, 0, -(float)state.Position);
-        Rotation = new(0, Mathf.Atan2((float)state.FacingLateral, -(float)state.FacingForward), 0);
+        Position = layout.Position(state, tick);
+        Rotation = new(0, layout.Facing(state, tick, units), 0);
+        bool moving = !Dead && state.Hex?.HoldsTransit == true;
+        double locomotionTime = moving ? tick / Match.StepsPerSecond : seconds;
         string clip; double pose;
-        if (Dead) { clip = "Death_A"; pose = seconds - _deathAt; }
+        if (Dead) { clip = "Death_A"; pose = CombatPlayback.DeathPose(state, tick, _player.GetAnimation(clip).Length); }
         else if (_hitAt >= 0 && seconds - _hitAt < 0.15) { clip = "Hit_A"; pose = (seconds - _hitAt) * 2; }
         else if (state.AttackSequence > 0 && state.TargetId != 0 && tick >= state.ActionStartTick && tick < state.ReadyTick)
         {
@@ -116,14 +110,12 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         }
         else
         {
-            double speed = Math.Sqrt(state.MoveForward * state.MoveForward + state.MoveLateral * state.MoveLateral);
-            clip = speed > 0.85 ? "Running_A" : speed > 0.01 ? "Walking_A" : "Idle";
-            pose = seconds % 0.8 / 0.8 * _player.GetAnimation(clip).Length;
+            clip = moving ? "Running_A" : "Idle";
+            pose = locomotionTime % 0.8 / 0.8 * _player.GetAnimation(clip).Length;
         }
         Clip = clip; PoseSeconds = Math.Clamp(pose, 0, _player.GetAnimation(clip).Length - 0.0001);
-        double movement = Math.Sqrt(state.MoveForward * state.MoveForward + state.MoveLateral * state.MoveLateral);
-        _tree.Set("parameters/locomotion/blend_position", Math.Clamp(movement, 0, 1));
-        _tree.Set("parameters/locoseek/seek_request", seconds % 0.8);
+        _tree.Set("parameters/locomotion/blend_position", moving ? 1 : 0);
+        _tree.Set("parameters/locoseek/seek_request", locomotionTime % 0.8);
         bool attacking = !Dead && state.AttackSequence > 0 && state.TargetId != 0 && tick >= state.ActionStartTick && tick < state.ReadyTick;
         bool hitting = !Dead && _hitAt >= 0 && seconds - _hitAt < 0.15;
         if (attacking && state.AttackSequence != _attackSequence) { _attacking = false; _attackSequence = state.AttackSequence; }
@@ -133,14 +125,13 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             CombatPlayback.AttackPose(state, tick, _player.GetAnimation(_attackClip.Animation).Length)));
         _tree.Set("parameters/hitseek/seek_request", Math.Clamp((seconds - _hitAt) * 2, 0, 0.6665));
         _tree.Set("parameters/death/blend_amount", Dead ? 1 : 0);
-        _tree.Set("parameters/deathseek/seek_request", Math.Clamp(seconds - _deathAt, 0, 0.7999));
+        double deathLength = _player.GetAnimation("Death_A").Length;
+        _tree.Set("parameters/deathseek/seek_request", Dead ? Math.Min(deathLength - .0001, CombatPlayback.DeathPose(state, tick, deathLength)) : 0);
         _tree.Advance(0);
         int root = _skeleton.FindBone("root");
         Vector3 rootPose = _skeleton.GetBonePosePosition(root);
         _skeleton.SetBonePosePosition(root, new(0, rootPose.Y, 0));
         _marker.Visible = !Dead;
-        string role = state.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
-        _label.Text = $"{(state.Faction == Faction.Skeletons ? "E" : "")}{role}";
         _shot.Visible = !Dead && _shotAt >= 0 && seconds - _shotAt < 0.12;
         _shot.Position = new(0, 0.5f, 0.25f + (float)Math.Max(0, seconds - _shotAt) * 12);
     }
@@ -154,7 +145,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     }
     public object Observe()
     {
-        Transform3D pose = _skeleton.GetBonePose(_skeleton.FindBone("handslot.r"));
+        Transform3D pose = _skeleton.GetBoneGlobalPose(_skeleton.FindBone("handslot.r"));
         return new
         {
             State.Id,
@@ -176,6 +167,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             State.ActionStartTick,
             State.ImpactTick,
             State.ReadyTick,
+            State.Hex,
+            State.AttackLanded,
             X = Position.X,
             Z = Position.Z,
             BoneX = pose.Origin.X,

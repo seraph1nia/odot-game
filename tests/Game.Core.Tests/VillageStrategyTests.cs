@@ -7,6 +7,65 @@ namespace Game.Core.Tests;
 
 public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(1UL)]
+    [InlineData(2UL)]
+    public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
+    {
+        using Match match = Start(3, seed);
+        foreach (int id in new[] { 1, 2 })
+        {
+            Assert.True(Act(match, id, "build", 0, Building.Farm).Accepted);
+            Assert.True(Act(match, id, "build", 1, Building.Barracks).Accepted);
+            Assert.True(Act(match, id, "build", 2, id == 1 ? Building.Farm : Building.Lumbermill).Accepted);
+        }
+        void Invest(int id)
+        {
+            City city = match.Players[id];
+            if (city.Id == 1 && city.Slots[3].Type == Building.Empty && city.Gold >= 20) Assert.True(Act(match, id, "build", 3, Building.Lumbermill).Accepted);
+            if (city.Slots[4].Type == Building.Empty && city.Gold >= 20 && city.Wood >= 10) Assert.True(Act(match, id, "build", 4, Building.Farm).Accepted);
+            if (city.Slots[0].Level == 1 && city.Gold >= 20 && city.Wood >= 10) Assert.True(Act(match, id, "upgrade", 0).Accepted);
+            while (city.Food >= 5) Assert.True(Act(match, id, "recruit", 1).Accepted);
+            output.WriteLine($"P{id} W{match.Wave} T{match.Turn} army={city.Soldiers.Count} gold={city.Gold} wood={city.Wood}");
+        }
+        void Prepare(bool firstWave)
+        {
+            while (match.Phase is Phase.Building or Phase.Preparation)
+            {
+                foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
+                {
+                    if (city.Id == 1 || firstWave && city.Id == 2) Invest(city.Id);
+                    else if (city.Id == 2 && match.Phase == Phase.Preparation) for (int n = 0; n < 3; n++) Assert.True(Act(match, 2, "recruit", 1).Accepted);
+                    Assert.True(Act(match, city.Id, "ready").Accepted);
+                }
+                if (match.Players.Values.Where(c => !c.Eliminated).All(c => c.Ready)) match.Step();
+            }
+        }
+        Prepare(true);
+        while (match.Phase == Phase.Combat) match.Step();
+        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave); Assert.True(match.Players[3].Eliminated);
+        Prepare(false); Assert.Equal(18, match.Enemies.Count);
+        MatchSnapshot? before = null, transfer = null;
+        for (int step = 0; step < 3000 && match.Phase == Phase.Combat && !match.Players[2].Eliminated; step++)
+        {
+            before = match.Snapshot(); match.Step();
+            if (match.Players[2].Eliminated) transfer = match.Snapshot();
+        }
+        Assert.NotNull(before); Assert.NotNull(transfer);
+        output.WriteLine($"transfer {before.Tick}: A soldiers={before.Players[0].Soldiers.Length}, enemies={before.Enemies.Count(u => u.Destination == 1)}");
+        Assert.DoesNotContain(before.Enemies, u => u.Destination == 1);
+        int[] forward = match.Configuration.Board.Front(Faction.Skeletons).ToArray();
+        int[] held = before.Players[0].Soldiers.Where(u => u.Deployed && forward.Contains(u.Hex!.Position.Cell)).Select(u => u.Hex!.Position.Cell).Distinct().Order().ToArray();
+        output.WriteLine($"cleared-forward transfer seed={seed} tick={transfer.Tick}; held={string.Join(',', held)}; required={string.Join(',', forward)}");
+        Assert.NotEmpty(held);
+        AdmissionBound bound = Assert.Single(transfer.Admissions, a => a.City == 1);
+        Assert.NotNull(bound.AdmissionTick); Assert.True(bound.AdmissionTick <= bound.FirstAdmissionBound);
+        Assert.Contains(transfer.Enemies, u => u.Id == bound.FirstUnitId && u.Deployed && u.Origin != 1);
+        while (match.Phase == Phase.Combat) match.Step();
+        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(3, match.Wave); Assert.Equal(DefeatReason.None, match.DefeatReason);
+    }
+
     internal static CommandResult Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, UnitType unit = UnitType.Swordsman, UnitClass @class = UnitClass.Melee)
         => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, @class));
     private static Match Start(int count = 1, ulong seed = 123)
@@ -63,7 +122,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         UnitClass @class = Catalogs.Class(type);
         Assert.True(Act(match, 1, "research", 1, @class: @class).Accepted);
         UnitState ranked = city.Soldiers.Single(); Assert.Equal(old.Health - 100, ranked.Health); Assert.Equal(old.Id, ranked.Id);
-        Assert.Equal(old.Position, ranked.Position); Assert.Equal(HealthPoints.Ranked(old.Profile.Damage, 1), ranked.Profile.Damage);
+        Assert.Equal(old.Hex, ranked.Hex); Assert.Equal(HealthPoints.Ranked(old.Profile.Damage, 1), ranked.Profile.Damage);
         Assert.False(Act(match, 1, "research", 1, @class: @class).Accepted);
         Assert.True(Act(match, 1, "upgrade", 1).Accepted); Assert.True(Act(match, 1, "research", 1, @class: @class).Accepted);
         Assert.False(Act(match, 1, "research", 1, @class: @class).Accepted);
@@ -79,6 +138,22 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
             foreach (string strategy in new[] { "frontline", "mixed", "towers", "research" }) yield return [strategy, 1, seed];
             foreach (int players in new[] { 2, 3, 4 }) yield return ["frontline", players, seed];
         }
+    }
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(1UL)]
+    [InlineData(123UL)]
+    public void NoInvestmentLosesThroughCityDamageInsteadOfTheStallFallback(ulong seed)
+    {
+        using Match match = Start(seed: seed);
+        while (match.Phase is not Phase.Victory and not Phase.Defeat && match.Tick < match.Configuration.MaximumWaveTicks)
+        {
+            if (match.Phase is Phase.Building or Phase.Preparation) Assert.True(Act(match, 1, "ready").Accepted);
+            else match.Step();
+        }
+        Assert.Equal(Phase.Defeat, match.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, match.DefeatReason);
+        Assert.Null(match.Stall); Assert.Equal(0, match.Players[1].Health); Assert.True(match.Players[1].Eliminated);
+        output.WriteLine($"No investment: seed={seed}, config={match.Configuration.Fingerprint}, wave={match.Wave}, tick={match.Tick}, cityHP={match.Players[1].Health}.");
     }
     [Theory]
     [MemberData(nameof(StrategySeeds))]

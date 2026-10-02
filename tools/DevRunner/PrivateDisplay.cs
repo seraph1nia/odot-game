@@ -53,12 +53,12 @@ internal sealed partial class Runner
         if (bindFailure) child.AllowedEngineError = "Couldn't create an ENet host.";
         return child;
     }
-    private async Task<(Child Server, int Port)> StartServer(string name, int port, CancellationToken token, bool retryAutomatic = true, string? exported = null)
+    private async Task<(Child Server, int Port)> StartServer(string name, int port, CancellationToken token, bool retryAutomatic = true, string? exported = null, params string[] extra)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         for (int attempt = 0; ; attempt++)
         {
-            Child server = StartGame(name + (attempt == 0 ? "" : "-retry" + attempt), true, true, port, exported);
+            Child server = StartGame(name + (attempt == 0 ? "" : "-retry" + attempt), true, true, port, exported, extra);
             try
             {
                 int remaining = options.StartupTimeout - (int)timer.ElapsedMilliseconds;
@@ -104,6 +104,7 @@ internal sealed partial class Runner
             "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", _evidence.Directory, "--worker-token", token,
             "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
         if (selection is not null) args.AddRange(["--scenario", selection]);
+        if (options.UiCheckpoint is not null) args.AddRange(["--checkpoint", options.UiCheckpoint]);
         if (options.InstalledClient is not null) args.AddRange(["--installed-client", options.InstalledClient]);
         if (options.Port is not null) args.AddRange(["--port", options.Port.Value.ToString(CultureInfo.InvariantCulture)]);
         try

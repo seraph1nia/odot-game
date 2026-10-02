@@ -104,16 +104,69 @@ public sealed class WorldTests
             Assert.All(a.Enemies.Where(e => e.Deployed), e => Assert.InRange(e.Hex!.Position.Cell, 1, 21));
         }
         Assert.True(a.Enemies.Sum(e => e.Health) < health);
-        Assert.True(a.Enemies.Sum(e => e.Health) >= health - 1200); // One low damage shot per second.
+        long shots = (a.Tick - 1 - a.Configuration.Defender.WindupTicks) / a.Configuration.Defender.CadenceTicks + 1;
+        Assert.True(a.Enemies.Sum(e => e.Health) >= health - shots * a.Configuration.DefenderDamage); // At most one configured shot per cadence.
     }
     [Fact]
     public void ArmyDeathDoesNotEliminateCityAndDamageIsSimultaneous()
     {
         using Match m = Started(2, new Rules { DefenderDamage = 0, SoldierDamage = 10, MeleeWindupTicks = 1 }); Battle(m);
-        CombatFixture.Soldier(m, 1000, 1, 2, 0.25);
+        CombatFixture.Soldier(m, 1000, 1, 2);
         CombatFixture.Change(m, m.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 7) });
         CombatFixture.Steps(m, 2);
         Assert.Empty(m.Players[1].Soldiers); Assert.DoesNotContain(m.Enemies, e => e.Id == 1); Assert.False(m.Players[1].Eliminated);
+    }
+    [Fact]
+    public void EliminatingOneCityCancelsItsLockedTowerWhileOtherCitiesKeepFighting()
+    {
+        using Match match = Started(2, new Rules { WaveOne = 1, DefenderDamage = 0, MeleeWindupTicks = 1 });
+        Act(match, 1, "build", 0, Building.CatapultTower); Battle(match);
+        match.Players[1].Health = 1; CombatFixture.AtCityEdge(match);
+        match.Step(); Assert.True(match.Players[1].Towers[0].PendingImpact);
+        match.Step(); Assert.True(match.Players[1].Eliminated); Assert.Equal(Phase.Combat, match.Phase);
+        Assert.False(match.Players[1].Towers[0].PendingImpact); Assert.False(match.Players[1].Defender.PendingImpact);
+        CombatFixture.Steps(match, 30);
+        Assert.DoesNotContain(match.Combat.Events(), e => e.Type == CombatEventType.Impact && e.Tower?.City == 1);
+    }
+    [Fact]
+    public void NewlyDeployedDefenderMakesACommittedCityAttackMissWithoutRetargeting()
+    {
+        var rules = new Rules { DefenderDamage = 0 };
+        using var combat = new CombatSimulation(rules); var city = new City(1, rules, combat);
+        int attacker = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
+        UnitState enemy = combat.Read(attacker);
+        combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 17, 7) });
+        combat.Step(1, [city]); Assert.True(combat.Read(attacker).TargetCity);
+        int defender = combat.Create(UnitType.Crossbowman, 1, 1, 1);
+        UnitState ally = combat.Read(defender);
+        combat.Seed(ally with { Hex = CombatFixture.At(ally, 20, 1) });
+        combat.Advance(13, [city]);
+        CombatEvent impact = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == attacker);
+        Assert.True(impact.TargetCity); Assert.False(impact.Landed); Assert.Equal(10000, city.Health);
+        Assert.Equal(UnitActionKind.Recovery, combat.Read(attacker).Hex!.Action); Assert.Equal(61, combat.Read(attacker).ReadyTick);
+        Assert.Equal(ally.Health, combat.Read(defender).Health);
+    }
+    [Fact]
+    public void RapidNextWaveReadyWaitsForDeathReleaseWithoutGrantingExtraIncome()
+    {
+        using Match match = Started(rules: new Rules { WaveOne = 1 }); Battle(match);
+        UnitState enemy = Assert.Single(match.Enemies);
+        match.Combat.Seed(enemy with
+        { Health = 100, ReadyTick = 500, Hex = enemy.Hex! with { Action = UnitActionKind.Recovery, EndTick = 500 } });
+        CombatFixture.Steps(match, 13);
+        Assert.Equal(Phase.Building, match.Phase); Assert.Empty(match.Enemies);
+        UnitState corpse = Assert.Single(match.Snapshot().DyingBodies); Assert.Equal(61, corpse.Hex!.DeathEndTick);
+        Ready(match); Ready(match); Ready(match); Assert.Equal(Phase.Preparation, match.Phase);
+        CityState prepared = match.Players[1].Snapshot(); Act(match, 1, "ready");
+        Assert.Equal(Phase.Preparation, match.Phase); Assert.True(match.Players[1].Ready);
+        Act(match, 1, "pause"); CombatFixture.Steps(match, 100); Assert.Equal(13, match.Tick);
+        Act(match, 1, "resume"); CombatFixture.Steps(match, 47);
+        Assert.Equal(60, match.Tick); Assert.Equal(Phase.Preparation, match.Phase); Assert.Single(match.Snapshot().DyingBodies);
+        match.Step(); Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(2, match.Wave); Assert.Empty(match.Snapshot().DyingBodies);
+        Assert.Equal(6, match.ProductionCount); Assert.False(match.Players[1].Ready);
+        CityState started = match.Players[1].Snapshot();
+        Assert.Equal((prepared.Gold, prepared.Food, prepared.Wood), (started.Gold, started.Food, started.Wood));
+        match.Step(); Assert.Equal(2, match.Wave); Assert.Equal(6, match.ProductionCount);
     }
     [Fact]
     public void TransfersConserveHealthCooldownAndSplitFiveThreeTwo()
@@ -144,7 +197,7 @@ public sealed class WorldTests
     [Fact]
     public void PersistentHealthNineTurnsAndNoFourthWave()
     {
-        using Match m = Started(); CombatFixture.Soldier(m, 900, 1, 7, 0.25); m.Players[1].Health = 80;
+        using Match m = Started(); CombatFixture.Soldier(m, 900, 1, 7); m.Players[1].Health = 80;
         for (int wave = 1; wave <= 3; wave++)
         {
             Assert.Equal((wave - 1) * 5 + 1, m.TurnSerial); Battle(m); Assert.Equal(wave, m.Wave);

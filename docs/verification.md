@@ -1,38 +1,230 @@
 # Cooperative POC verification
 
-## Deterministic hex combat implementation, 2026-10-01
+## Deterministic hex combat implementation, 2026-10-02
+
+Final full `mise run ci` **passed**: 256 gameplay tests, 120 runner tests, all six
+network scenarios, all five source UI scenarios, sequential client/server exports,
+headless package smoke and graphical package verification. Evidence:
+`logs/20261002-080220-8a1264c2/ci-summary.json`; 445.58 seconds total, 249.22 seconds
+source UI and 113.01 seconds graphical package checks. No stages failed or were
+skipped; nothing was published. `source-inputs.json` records HEAD, tool versions
+and the per-file build/asset inputs; combined SHA256 `42d3fd1b988f7d22736388c0da488a2632e4d042424be61e48116ff3a43698e6`. This passing
+state is the unchanged before-baseline for the following progression change.
+The chronology below retains earlier partial checks and corrected failures.
 
 The full pre-combat-change baseline passed `mise run ci` in 392.77 seconds,
 including source checks, every network/source UI scenario, sequential exports,
-and headless/graphical package smoke. Evidence is retained under
-`logs/20261001-195415-e3ddb2d9/`, with `ci-summary.json` and
-`baseline-inputs.json`. Inputs: HEAD
-`a8d1838571cbbcbf31548079227559790cbb9d57`, 655 tracked/working source files with
-SHA256 `d7660219bb4c62651d161db3470a8899640dc60a46acdcec5548dbefcc7e1c13`,
+and headless/graphical package smoke. Evidence: `logs/20261001-195415-e3ddb2d9/`,
+with `ci-summary.json` and `baseline-inputs.json`. Inputs: HEAD
+`a8d1838571cbbcbf31548079227559790cbb9d57`, source SHA256
+`d7660219bb4c62651d161db3470a8899640dc60a46acdcec5548dbefcc7e1c13`,
 .NET SDK 10.0.401 and Godot 4.7.2.stable.mono.official.ed1daf0bf.
-This is baseline evidence, not acceptance of the new hex implementation.
+This is baseline evidence, not final acceptance of the new implementation.
+The preceding aggregate UI timeout was repaired using the measured 215.35-second
+suite: default full-source budget 300 seconds, selected slices 180 seconds,
+explicit overrides preserved.
 
-The preceding run `logs/20261001-194802-45e81d5c/` reached the aggregate
-180-second source UI deadline before launcher completion. The measured serial
-source UI suite takes 215.35 seconds; its default aggregate budget is now
-300 seconds. Selected network/UI slices retain 180 seconds and explicit timeout
-overrides are preserved. The successful rerun established the feature baseline
-after that repair.
+Earlier execution restrictions denied local Unix/UDP sockets, VSTest and semantic
+formatting. Their in-process xUnit passes and unexecuted graphical attempts remain
+historical evidence under `logs/hex-combat-20261002/`,
+`logs/hex-melee-checkpoint-20261002/` and `logs/hex-lifecycle-traces-20261002/`.
+The resumed environment permits owned socket binds and normal execution.
+`dotnet restore Odot.slnx --locked-mode` and
+`dotnet format Odot.slnx --no-restore` now pass. Normal `mise run test` passes
+**256 gameplay tests and 120 runner tests**, with no failures or skips
+(approximately 10 and 1 seconds). The final selected source preparation builds
+the whole solution with zero warnings/errors. Final full CI now passes as recorded above.
 
-The current workspace sandbox denies local socket/named-pipe creation. Normal
-VSTest and the solution-wide semantic formatter cannot start under that
-restriction. `mise run test-in-process` runs the same locked xUnit framework,
-including its facts, theories and fixtures, inside the test assembly without a
-test-host socket; it restores in locked mode and introduces no dependency.
-Whitespace formatting can also run with explicit file selection. These checks
-do not replace the final required normal formatter, network/private-display
-checks or full CI. Record those as unexecuted until the environment permits them.
+The later DTO migration removes continuous unit coordinates, uses integer profile
+ranges and discrete event impact poses, and reconstructs occupancy from complete
+living/dying snapshots. Authority and playback tests cover history-free deaths,
+seeded authority equivalence and terminal poses. The ordinary three-city transfer
+fixture uses seeds 0/1/2: the receiving city clears with surviving enemy-forward-band
+defenders, admits reinforcements within the original bound and reaches wave three.
+These are deliberately chosen positioning fixtures, not a claim that every seed
+ends a wave in those cells. Cheap evidence: `logs/hex-integration-20261002/cheap.log`.
 
-The numerical gameplay gate currently uses combat seeds 0, 1 and 123 for the
-ordinary frontline, mixed, tower and research strategies and one-through-four
-player frontline strategy. Profile/layout values remain candidates until the
-role, reinforcement, crowded and rendered proofs pass. Later dated evidence
-below describes previous implementations rather than the new hex behavior.
+The extended real-ENet `redistribution` slice passes in 38.41 seconds (runner
+43.56 seconds), with seed 1, ordinary purchases, an eliminated observer reconnect,
+unchanged identity/damage/recovery and 9/9 allocation assertions, then a second
+transfer into a cleared forward-held battlefield, bounded admission, ensuing hits
+and ordinary wave-three preparation. Current reservations/configuration are
+reconstructed on received snapshots. Evidence: `logs/20261002-072815-36d9a5d3/`.
+The preceding attempt `logs/20261002-072733-a9792b8b/` exposed a harness wait that
+matched historical Building state; the corrected wait requires the later tick
+and wave three. This selected pass is partial integration coverage.
+
+The selected `authority-resume-victory` scenario also passes with a natural
+paused casualty, full reservation reconstruction before/after process restart,
+unchanged duplicate-request/credential protections and ordinary three-wave victory.
+Evidence: `logs/20261002-072906-1ba16b0f/`; scenario 37.24 seconds, runner 42.19 seconds.
+
+The selected ordinary network `defeat` check passes with all cities at zero HP,
+`AllCitiesFallen` and no stall diagnostic: `logs/20261002-073127-79c35612/`,
+9.40-second scenario / 14.30-second runner. Graphical `reconnect` passes with a
+natural paused casualty, retained camera/health checks, same-process reconnect,
+then an owned process restart using only that client's saved session. Current
+death intervals reconstruct without historical sounds/effects; resume expires
+the bodies and reconstructs released reservations. Evidence and inspected restart
+PNG: `logs/20261002-073043-b9ed8c3c/reconnect/`; 29.12-second scenario,
+37.51-second runner. This extends the existing scenario with one owned restart;
+cheap reconstruction checks alone cannot detect graphical startup or sound replay.
+
+The full combat visual fixture also fixes seed 1. Its movement witness now
+accepts either world axis and samples the hand's skeleton-global transform,
+including animated parent bones; the local attachment rotation can legitimately
+remain constant throughout locomotion. The main timing correction uses the headless observer to pause at authoritative
+tower-impact and casualty milestones while the graphical client renders and
+captures frames. A graphical pause click also follows the fresh movement
+observation before screenshots. These barriers avoid consuming the short fight
+and death intervals during graphical work. The earlier full-combat failures
+remain recorded at `logs/20261002-073214-ff980dc4/` (stale pause),
+`logs/20261002-073347-53304b51/` and `logs/20261002-073531-40dcbb2b/`
+(missed animation opportunities). The corrected full combat slice passes with
+fresh live role/attack/hit observations, stationary recovery, a paused current
+casualty, declared-tick model removal, reconstructed reservation release, camera/
+resize checks and return to a fresh solo session. Evidence:
+`logs/20261002-074659-36373d39/`; scenario 39.06 seconds, runner 47.50 seconds.
+The full 60-second combat deadline and existing assertions remain in force.
+
+After the discrete DTO/feedback migration and corrected skeletal observation,
+the melee checkpoint passes again with all four overview/close PNGs inspected:
+`logs/20261002-074808-77e5bb94/`, 33.22-second combat scenario / 41.54-second
+runner. Fixed anchors, directional strike guides, near/far targets and retained
+deaths remain visibly distinguishable. The subsequent full CI pass is recorded above.
+
+The first final-CI attempt (`logs/20261002-074909-2d8e01b5/`) passed locked
+restore, formatting, build, import and all 256 gameplay / 120 runner tests. It
+stopped in concurrent network verification because the new reinforcement predicate
+examined an old lobby snapshot before player two existed. The predicate now
+requires second-wave Combat and a matching eliminated player. The corrected selected redistribution slice passes in 34.03 seconds
+(39.00-second runner), `logs/20261002-075024-81c5dab6/`. The failed full attempt
+and selected rerun are partial coverage, not final CI acceptance.
+
+The next full run (`logs/20261002-075118-700f517e/`) passed all six network
+scenarios, all source UI (233.89 seconds), both sequential exports and headless
+package smoke, then failed the packed shooting observation after an unpaused
+capture consumed its opportunity. Package smoke now uses seed 1 and observer-driven
+tower/shot/death pause barriers with ordinary graphical resume controls, retaining
+the compact live-rig, action and current-death assertions. It is checked against
+existing exports; this runner-only correction does not implicitly rebuild them.
+
+The corrected `test-ui --scenario exported-package` passes against those existing
+exports: `logs/20261002-075929-fbc66dec/`, 108.50-second package scenario /
+111.86-second runner, including both menu/solo viewports and compact combat.
+Packed shooting/death PNGs were inspected. Live exported rigs retain typed hex
+positions, timed routes/actions and current death intervals. Its added pause
+barriers use the existing observer and ordinary resume input; no new authority,
+privileged combat state or full graphical battle is introduced. The subsequent full CI pass includes this harness correction.
+
+The standard configuration fingerprint is
+`8c0080f3af737848ff96499b7c810cee14fa9618cb6ba6d608fb40b1416ec501`.
+All 21 ordinary strategy/seed cases at seeds 0/1/123 retain three-wave victory,
+nine productions and the investment rules. No-investment seeds 0/1/123 lose at
+ticks 481/523/547 through zero city health and `AllCitiesFallen`, never a stall.
+The paired seven-Swordsman screen fixture credits Mage 20 effective damage
+against Crossbowman's 15 over their common live interval through tick 325.
+Mage records three secondary hits, clears at 325 versus 403 and preserves 18
+friendly health versus 8. Recruitment remains seven food/two gold versus five
+food/no gold: a role comparison, not equal-cost superiority. Against one ordinary
+Mage opponent, the isolated Crossbowman clears at tick 139 and retains four
+health; Mage clears at 175 in a simultaneous death. Screened support hits at 79
+without support damage; its unscreened control first takes damage at 103.
+These finite fixtures establish the required contributions, not universal balance.
+
+Each transferred archetype encounters defenders occupying all three neutral
+enemy-front cells. Free protected rear cells admit immediately at transfer tick
+27. Fragmented retained deaths yield the original admission bound of 48 for
+cost-one support and 72 for cost-two melee, unchanged during retries. Actual
+identity/profile/health/recovery, a landed attack, ensuing health reduction and
+ordinary completion at tick 126 or 138 are checked. Defenders cannot occupy the
+protected row. Cumulative mask-release coverage refuses melee at the first
+fragmented expiry. Conserved queues and BattleStalled do not count as admission.
+
+The 32-vs-32 fixtures compare complete normalized snapshots every tick through
+cleanup, including deaths, reservations, decisions/routes, defense and outcomes.
+Only match ID/revision are normalized. Reverse insertion, unrelated match IDs
+and additional observation/serialization on one side preserve the trace.
+The mixed battle exercises Mage secondary selection, resolves at 790 and finishes
+cleanup at 838. All-melee resolves through ordinary city-health defeat at 1456.
+These disable the defender: fingerprint
+`237144aab3b3c9ef2710304b3c5803a2fc73f8dc71dfd3f2a877d6685f3622bc`.
+The 80-per-side queue resolves at 2620 with `AllCitiesFallen` and 154 deaths.
+The accelerated zero-damage 64-per-side history stress serializes 3,810,327 JSON
+characters and 2,674 retained events; this is stress size, not production
+bandwidth acceptance. Routing fixtures cover detours, feasible ranking, screened
+support, capacity preferences, transit conflicts, stable waits and revision-cache
+invalidation. A natural moving casualty dies at tick 19, freezes 18 movement
+ticks and keeps both endpoint/transit locks through death end 67. Dying transfer
+is rejected without mutation; disposal clears locks/events/decisions for a fresh
+combat. Existing simultaneous elimination, transfer recovery, rapid readiness,
+pause, terminal frozen pose and cleanup-income guards also pass.
+
+The early rendered gate **passes**:
+`mise run test-ui --scenario combat --checkpoint melee`.
+Accepted evidence is `logs/20261002-063429-e14c58ca/`, including timing summaries,
+owned peer/engine logs, `combat/combat-melee-witnesses.json`, four PNGs and matching
+observations. The selected checkpoint launches the ordinary authority with
+explicit combat seed 1 and uses real two-Farm/Barracks controls to recruit six
+Swordsmen over three productions. There are no grants, custom placements or
+combat setters. Optional authority `--combat-seed` arguments support repeatable
+diagnostics; other launches still generate one seed. Guests consume it.
+
+The headless peer observes action milestones and sends ordinary pause requests
+while the graphical client continues fresh probes. One ordered driver per child
+and awaited cancellation keep ownership intact. Actual live nodes prove the
+shared simultaneous windup at tick 214 (impact 223) and later near-side landed
+impact at tick 253. Camera-only inspection leaves paused poses/actions unchanged.
+Each phase has an inspected overview and close frame. The explicit dark target
+guide and warm progress/landed stroke identify stationary miniature-to-target
+attacks; landed target flashes remain distinct from windup/misses. Imported rigs,
+weapons and fixed shared anchors are visible. Screen-sized role labels prevent
+overview text from disappearing. Retained dying models remain visibly separate.
+
+The recorded 86 fresh observations contain 119 moving-body samples covering ten
+moving identities and six dying identities; minimum observed root separation is
+0.802 world units, including visible deaths. The checked-in clearance assertion
+passes throughout. Four-frame inspection and these finite route samples establish
+this representative setup, not every possible customized footprint/animation.
+Largest ordinary snapshot observed here is 104,557 JSON characters. Review metrics
+are retained in `combat/review-metrics.json`; they supplement the checked-in
+acceptance rather than replacing it.
+
+| Selected gate phase | Seconds |
+| --- | ---: |
+| Locked restore | 0.91 |
+| Solution build | 3.57 |
+| Godot import | 2.99 |
+| Combat setup, live assertions, four captures and cleanup | 34.21 |
+| Source graphical phase including owned display | 37.53 |
+| Runner total | 45.19 |
+
+The checkpoint remains bounded at 40 seconds inside the 60-second combat case.
+It extends the existing peers/display/input/capture setup, with no new full-match
+scenario. Its defects are actual imported-model mapping, target attribution,
+shared-cell cue/role readability and rendered clearance; core tests cannot see
+them. Recurring maintenance is the current action/node detector and four captures.
+Cheap seed-0/1/123 opportunities remain additional coverage: windup/impact
+866/935, 211/250 and 547/803, with ordinary wave-two progression for two seeds.
+Those opportunities do not claim identical capture pairs for every generated
+seed. A failed generated-seed run is retained at `logs/20261002-060218-25981097/`.
+
+The first seeded real run (`logs/20261002-061806-d9405af4/`) captured windup but
+failed later pause synchronization: the authority repeatedly enqueued unchanged
+approximately 100 KB paused snapshots, delaying the graphical peer's later state.
+Changed-revision publication fixes this while preserving three-tick combat cadence,
+prompt pause/non-combat changes, welcomes and command acknowledgments. The next
+run passed at `logs/20261002-062710-a58fa22b/`; image review then required clearer
+windup guides/overview role labels. The label/guide run passed at
+`logs/20261002-063139-5eab6e5d/`; final stroke layering is the accepted run above.
+All attempts awaited owned peer/display cleanup; no developer state or desktop
+was used. Rendering uses private X11, llvmpipe and Dummy audio and does not
+establish physical input, native GPU/compositor performance or audible quality.
+
+The early numerical and rendered gate now accepts the current board/profile
+candidates for integration. Comprehensive snapshot/history/reconnect/network/
+package coverage, obsolete continuous DTO removal, final tuning and full CI
+remain pending. Historical evidence below does not complete those obligations.
 
 Verified on 2026-09-30 on Linux x86_64 using .NET SDK 10.0.401 and Godot 4.7.2 .NET. Historical desktop checks below used real X11 windows under KDE Wayland with the Compatibility renderer and an AMD Radeon RX 6800. The current recurring workflow uses private Xvfb displays and Mesa software graphics. Platform and remote-run coverage is recorded in the dated sections below.
 

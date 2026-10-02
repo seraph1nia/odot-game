@@ -24,13 +24,13 @@ public sealed record CombatSettings
     public int MageWindupTicks { get; init; } = 24;
     public int MageRecoveryTicks { get; init; } = 66;
     public int MageHexRange { get; init; } = 3;
-    public int MageVictimCap { get; init; } = 3;
-    public int MageSplashHexRadius { get; init; }
+    public int MageVictimCap { get; init; } = 2;
+    public int MageSplashHexRadius { get; init; } = 1;
     public DefenseTiming Defender { get; init; } = new(12, 48);
     public DefenseTiming ArrowTower { get; init; } = new(12, 48);
     public DefenseTiming CatapultTower { get; init; } = new(30, 90, 3);
-    public int ArrowLevelOneDamage { get; init; } = 4;
-    public int ArrowLevelTwoDamage { get; init; } = 6;
+    public int ArrowLevelOneDamage { get; init; } = 5;
+    public int ArrowLevelTwoDamage { get; init; } = 7;
     public int CatapultLevelOneDamage { get; init; } = 6;
     public int CatapultLevelTwoDamage { get; init; } = 8;
     public int RetryTicks { get; init; } = 6;
@@ -42,19 +42,13 @@ public sealed record HexCombatProfile(UnitType Type, int Health, int Damage, int
 {
     public int CadenceTicks => checked(WindupTicks + RecoveryTicks);
     public HexCombatProfile Researched(int rank) => this with { Health = HealthPoints.Ranked(Health, rank), Damage = HealthPoints.Ranked(Damage, rank) };
-    // Temporary adapter for the old presentation/simulation consumers. Removed
-    // with their coordinated hex migration; no hex query reads these doubles.
-    internal WeaponProfile Legacy() => new(Health, Damage, Catalogs.Class(Type) == UnitClass.Melee ? Match.Reach : HexRange,
-        30.0 / MoveTicks, WindupTicks, CadenceTicks)
+    internal WeaponProfile Runtime() => new(Health, Damage, HexRange, MoveTicks, WindupTicks, CadenceTicks)
     {
         CapacityCost = CapacityCost,
         Initiative = Initiative,
-        HexRange = HexRange,
-        MoveTicks = MoveTicks,
         DeathTicks = DeathTicks,
         VictimCap = VictimCap,
-        SplashHexRadius = SplashHexRadius,
-        SplashRadius = VictimCap > 1 ? .75 : 0
+        SplashHexRadius = SplashHexRadius
     };
 }
 public readonly record struct CombatFingerprint(ulong A, ulong B, ulong C, ulong D)
@@ -138,8 +132,7 @@ public sealed class CombatConfiguration
     {
         CombatSettings c = rules.Combat;
         TowerDefinition Tower(Building type, int level, int damage, DefenseTiming timing) => new(type, level, HealthPoints.FromWhole(damage),
-            timing.WindupTicks, timing.CadenceTicks, timing.VictimCap, timing.VictimCap > 1 ? .75 : 0)
-        { SplashHexRadius = timing.SplashHexRadius };
+            timing.WindupTicks, timing.CadenceTicks, timing.VictimCap, timing.SplashHexRadius);
         return [Tower(Building.ArrowTower, 1, c.ArrowLevelOneDamage, c.ArrowTower), Tower(Building.ArrowTower, 2, c.ArrowLevelTwoDamage, c.ArrowTower),
             Tower(Building.CatapultTower, 1, c.CatapultLevelOneDamage, c.CatapultTower), Tower(Building.CatapultTower, 2, c.CatapultLevelTwoDamage, c.CatapultTower)];
     }

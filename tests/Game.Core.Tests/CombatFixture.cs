@@ -5,12 +5,11 @@ internal static class CombatFixture
 {
     private static readonly int[] SiegeCells = [16, 17, 18];
     private static readonly int[] MeleeFootprints = [11, 12, 13];
-    public static void Soldier(Match match, int id, int city, int health, double forward, double lateral = 0, UnitType type = UnitType.Swordsman)
-        => match.Combat.Seed(new(id, health, forward, 0, city, city)
+    public static void Soldier(Match match, int id, int city, int health, UnitType type = UnitType.Swordsman)
+        => match.Combat.Seed(new(id, health, 0, city, city)
         {
             Type = type,
             Owner = city,
-            Lateral = lateral,
             Hex = new(id, city, Faction.Adventurers, UnitLifecycle.Alive, new(17, type is UnitType.Swordsman or UnitType.Berserker ? 7 : 1))
         });
     public static HexUnitState At(UnitState unit, int cell, int footprint) => new(unit.Id, unit.Destination, unit.Faction, UnitLifecycle.Alive,

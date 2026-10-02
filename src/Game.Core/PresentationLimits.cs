@@ -3,6 +3,7 @@ namespace Game.Core;
 // Pure, bounded presentation mappings shared by tests; exact resource amounts stay in snapshots/HUD.
 public static class PresentationLimits
 {
+    public static string DefeatText(DefeatReason reason) => reason == DefeatReason.BattleStalled ? "DEFEAT • battle stalled" : "DEFEAT • all cities fell";
     public static double HealthFraction(int current, int maximum)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximum);

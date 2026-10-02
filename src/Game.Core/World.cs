@@ -34,14 +34,14 @@ public sealed record Rules
     public int BerserkerHealth { get; init; } = 8;
     public int BerserkerDamage { get; init; } = 6;
     public int MageHealth { get; init; } = 6;
-    public int MageDamage { get; init; } = 3;
+    public int MageDamage { get; init; } = 4;
     public int WaveOne { get; init; } = 4;
     public int WaveTwo { get; init; } = 6;
     public int WaveThree { get; init; } = 8;
     public int Allocation(int wave) => wave switch { 1 => WaveOne, 2 => WaveTwo, 3 => WaveThree, _ => 0 };
 }
 public sealed record SlotState(Building Type, int Level);
-public sealed record UnitState(int Id, int Health, double Position, int Cooldown, int Origin = 0, int Destination = 0)
+public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin = 0, int Destination = 0)
 {
     public HexUnitState? Hex { get; init; }
     public CombatDecisionState? Decision { get; init; }
@@ -50,12 +50,7 @@ public sealed record UnitState(int Id, int Health, double Position, int Cooldown
     public UnitClass Class => Catalogs.Class(Type);
     public int Rank { get; init; }
     public int Owner { get; init; }
-    public double Lateral { get; init; }
     public bool Deployed { get; init; } = true;
-    public double MoveForward { get; init; }
-    public double MoveLateral { get; init; }
-    public double FacingForward { get; init; } = 1;
-    public double FacingLateral { get; init; }
     public int TargetId { get; init; }
     public bool TargetCity { get; init; }
     public long AttackSequence { get; init; }
@@ -63,10 +58,12 @@ public sealed record UnitState(int Id, int Health, double Position, int Cooldown
     public long ImpactTick { get; init; }
     public long ReadyTick { get; init; }
     public bool PendingImpact { get; init; }
+    public bool? AttackLanded { get; init; }
     public WeaponProfile Profile { get; init; }
 }
 public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int Food, int Health, SlotState[] Slots, UnitState[] Soldiers, int DefenderCooldown)
 {
+    public TowerState? Defender { get; init; }
     public int Wood { get; init; }
     public ResearchRanks Research { get; init; }
     public TowerState[] Towers { get; init; } = [];
@@ -74,6 +71,17 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
 }
 public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Phase Phase, bool Paused, int Wave, int Turn, int TurnSerial, Rules Rules, CityState[] Players, UnitState[] Enemies)
 {
+    public ulong CombatSeed { get; init; }
+    public int CombatRulesVersion { get; init; }
+    public int DecisionAlgorithmVersion { get; init; } = 1;
+    public CombatFingerprint ConfigurationFingerprint { get; init; }
+    public UnitState[] DyingBodies { get; init; } = [];
+    public CombatReservations Reservations { get; init; } = new([], []);
+    public AdmissionBound[] Admissions { get; init; } = [];
+    public EngagementProgress[] Engagements { get; init; } = [];
+    public DefeatReason DefeatReason { get; init; }
+    public StallDiagnostic? Stall { get; init; }
+    public long WaveStartedTick { get; init; }
     public int ProductionCount { get; init; }
     public BuildingDefinition[] BuildingCatalog { get; init; } = [];
     public TowerDefinition[] TowerCatalog { get; init; } = [];
@@ -106,7 +114,7 @@ public sealed class City
     public IReadOnlyList<UnitState> Soldiers => _combat.Soldiers(Id);
     public int DefenderCooldown { get; set; }
     public TowerState Defender { get; set; }
-    public CityState Snapshot() => new(Id, Connected, Ready, Gold, Food, Health, Slots.ToArray(), _combat.Soldiers(Id), DefenderCooldown) { Wood = Wood, Research = Research, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+    public CityState Snapshot() => new(Id, Connected, Ready, Gold, Food, Health, Slots.ToArray(), _combat.Soldiers(Id), DefenderCooldown) { Wood = Wood, Research = Research, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
 }
 
 public sealed class Match : IDisposable
@@ -119,7 +127,7 @@ public sealed class Match : IDisposable
         if (Rules.AttackTicks <= Rules.MeleeWindupTicks || Rules.AttackTicks <= Rules.RangedWindupTicks
             || Rules.MeleeWindupTicks < 1 || Rules.RangedWindupTicks < 1 || Rules.SoldierHealth < 1 || Rules.RangedHealth < 1
             || Rules.BerserkerHealth < 1 || Rules.MageHealth < 1 || Rules.CityHealth < 1 || Rules.SoldierDamage < 0 || Rules.RangedDamage < 0 || Rules.BerserkerDamage < 0 || Rules.MageDamage < 0
-            || Rules.DefenderDamage < 0 || Rules.RecruitCost < 2 || Rules.RangedRecruitCost < 2 || !double.IsFinite(Rules.RangedReach) || Rules.RangedReach < Reach)
+            || Rules.DefenderDamage < 0 || Rules.RecruitCost < 2 || Rules.RangedRecruitCost < 2 || !double.IsFinite(Rules.RangedReach) || Rules.RangedReach < 1)
             throw new ArgumentException("Invalid combat profile or timing.", nameof(rules));
         if (Rules.StartingGold < 0 || Rules.StartingWood < 0 || Rules.BaseGold < 0 || Rules.BuildCost < 0 || Rules.UpgradeCost < 0
             || Rules.MineOutput < 0 || Rules.MineOutputLevelTwo < 0 || Rules.FarmOutput < 0 || Rules.FarmOutputLevelTwo < 0
@@ -135,8 +143,6 @@ public sealed class Match : IDisposable
         _combat = new(Rules, Configuration, CombatSeed);
     }
     public const int StepsPerSecond = 60;
-    public const double LaneLength = 12;
-    public const double Reach = 0.55;
     public Rules Rules { get; }
     public CombatConfiguration Configuration { get; }
     public ulong CombatSeed { get; }
@@ -153,6 +159,10 @@ public sealed class Match : IDisposable
     public int ProductionCount { get; private set; }
     private int _nextPlayer = 1;
     private int[] _roster = [];
+    private readonly SortedDictionary<int, EngagementProgress> _engagements = [];
+    public DefeatReason DefeatReason { get; private set; }
+    public StallDiagnostic? Stall { get; private set; }
+    public long WaveStartedTick { get; private set; }
 
     public City? Join()
     {
@@ -167,8 +177,27 @@ public sealed class Match : IDisposable
         city.Connected = connected; city.Ready = false; Revision++;
         ResolveReady();
     }
-    public MatchSnapshot Snapshot() => new(Id, Revision, Tick, Phase, Paused, Wave, Turn, TurnSerial, Rules, Players.Values.Select(p => p.Snapshot()).ToArray(), _combat.Enemies())
-    { ProductionCount = ProductionCount, BuildingCatalog = Catalogs.Buildings(Rules), TowerCatalog = Catalogs.Towers(Rules), UnitCatalog = Catalogs.Units(Rules), EventSequence = _combat.EventSequence, OldestEventSequence = _combat.OldestEventSequence, CombatEvents = _combat.Events() };
+    public MatchSnapshot Snapshot() => new(Id, Revision, Tick, Phase, Paused, Wave, Turn, TurnSerial,
+        Rules with { Combat = Rules.Combat with { Board = Configuration.Board.Definition() } }, Players.Values.Select(p => p.Snapshot()).ToArray(), _combat.Enemies())
+    {
+        ProductionCount = ProductionCount,
+        BuildingCatalog = Catalogs.Buildings(Rules),
+        TowerCatalog = Configuration.Towers.ToArray(),
+        UnitCatalog = Catalogs.Units(Rules),
+        EventSequence = _combat.EventSequence,
+        OldestEventSequence = _combat.OldestEventSequence,
+        CombatEvents = _combat.Events(),
+        CombatSeed = CombatSeed,
+        CombatRulesVersion = Configuration.RulesVersion,
+        ConfigurationFingerprint = Configuration.Fingerprint,
+        DyingBodies = _combat.Dying(),
+        Reservations = _combat.Reservations,
+        Admissions = _combat.Admissions,
+        Engagements = _engagements.Values.ToArray(),
+        DefeatReason = DefeatReason,
+        Stall = Stall,
+        WaveStartedTick = WaveStartedTick
+    };
 
     public CommandResult Apply(int sender, Command command)
     {
@@ -265,7 +294,7 @@ public sealed class Match : IDisposable
     }
     private void BeginWave()
     {
-        Phase = Phase.Combat;
+        Phase = Phase.Combat; WaveStartedTick = Tick; _engagements.Clear();
         City[] living = Players.Values.Where(p => !p.Eliminated).ToArray();
         foreach (City city in living)
         {
@@ -278,6 +307,7 @@ public sealed class Match : IDisposable
         foreach (int dead in _roster.Where(id => Players[id].Eliminated))
             for (int n = 0; n < Rules.Allocation(Wave); n++) Spawn(dead, living[assigned++ % living.Length].Id, n);
         _combat.BeginWave(Wave);
+        UpdateEngagements([]);
     }
     private void Spawn(int origin, int destination, int index) => _combat.Create(Catalogs.EnemyRole(Wave, index), 0, origin, destination, Faction.Skeletons);
 
@@ -288,18 +318,42 @@ public sealed class Match : IDisposable
         if (Phase != Phase.Combat) { _combat.Cleanup(Tick); ResolveReady(); return; }
         _combat.Advance(Tick, Players.Values);
         foreach (City city in Players.Values.Where(c => c.Eliminated))
-        { city.Ready = false; city.Defender = city.Defender with { PendingImpact = false }; _combat.EliminateArmy(city.Id); }
+        {
+            city.Ready = false; city.Defender = city.Defender with { PendingImpact = false };
+            foreach (TowerState tower in city.Towers.Values.ToArray()) city.Towers[tower.Slot] = tower with { PendingImpact = false };
+            _combat.EliminateArmy(city.Id);
+        }
         City[] survivors = Players.Values.Where(p => !p.Eliminated).ToArray();
-        if (survivors.Length == 0) { Phase = Phase.Defeat; return; }
+        if (survivors.Length == 0) { DefeatReason = DefeatReason.AllCitiesFallen; Phase = Phase.Defeat; _combat.StopActions(Players.Values); return; }
         int[] cleared = survivors.Where(c => !Enemies.Any(e => e.Destination == c.Id)).Select(c => c.Id).ToArray();
         int next = 0;
         foreach (UnitState enemy in Enemies.Where(e => Players[e.Destination].Eliminated).OrderBy(e => e.Id))
             _combat.Transfer(enemy.Id, survivors[next++ % survivors.Length].Id);
         foreach (int city in cleared) _combat.TrackClearedAdmission(city);
         _combat.AdmitEntries();
-        if (Enemies.Count != 0) { _combat.StartActions(Players.Values); return; }
+        if (Enemies.Count != 0)
+        {
+            UpdateEngagements(_combat.HealthProgressCities);
+            EngagementProgress? expired = _engagements.Values.FirstOrDefault(e => Tick >= e.Deadline);
+            if (expired is not null) Stall = new(BattleLimit.NoHealthProgress, Tick, expired.City, expired.LastHealthProgressTick);
+            else if (Tick - WaveStartedTick >= Configuration.MaximumWaveTicks) Stall = new(BattleLimit.WaveDuration, Tick);
+            if (Stall is not null) { DefeatReason = DefeatReason.BattleStalled; Phase = Phase.Defeat; _combat.StopActions(Players.Values); return; }
+            _combat.StartActions(Players.Values); return;
+        }
+        _engagements.Clear(); _combat.StopActions(Players.Values);
         if (Wave == 3) Phase = Phase.Victory;
         else { Wave++; Turn = 1; TurnSerial++; Phase = Phase.Building; }
+    }
+    private void UpdateEngagements(int[] healthProgress)
+    {
+        int[] active = Enemies.Select(e => e.Destination).Distinct().Order().ToArray();
+        foreach (int city in _engagements.Keys.Except(active).ToArray()) _engagements.Remove(city);
+        foreach (int city in active)
+        {
+            if (!_engagements.TryGetValue(city, out EngagementProgress? progress)) progress = new(city, Tick, Tick, checked(Tick + Configuration.NoHealthProgressTicks));
+            if (healthProgress.Contains(city)) progress = progress with { LastHealthProgressTick = Tick, Deadline = checked(Tick + Configuration.NoHealthProgressTicks) };
+            _engagements[city] = progress;
+        }
     }
     public void Dispose() { _combat.Dispose(); GC.SuppressFinalize(this); }
 }

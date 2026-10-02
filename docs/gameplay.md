@@ -13,14 +13,14 @@ Each city starts with 100 health, 60 gold, **30 wood**, and no food. The wood gr
 | ArcheryRange | 20 / 10 | Crossbowman |
 | Arcanum | 25 / 10 | Mage |
 | Blacksmith | 20 / 10 | Class research |
-| ArrowTower | 20 / 15 | 2 → 3 damage every second |
-| CatapultTower | 30 / 20 | 3 → 4 damage every two seconds; up to 3 victims |
+| ArrowTower | 20 / 15 | 5 → 7 damage every second |
+| CatapultTower | 30 / 20 | 6 → 8 damage every two seconds; up to 3 victims |
 
 Every building upgrades once for 20 gold and 10 wood. Production upgrades use the explicit output above. Recruitment buildings save one food per recruit at level two, always retaining a positive cost. The Lumbermill requires no wood to build, so a city can replenish an empty wood stock.
 
 Click an outlined plot or a building roof to select its stable slot, then choose an action in the bottom panel. Clicking only selects. Recruitment appears only at the matching building; Blacksmith shows Melee, Ranged and Magic research. City tabs clear selection and permit inspection of other players' cities. Ready prevents editing; Unready restores it until all connected living players are ready. A ready check grants production once and clears readiness. After production three, **Preparation** allows construction, upgrades, research and recruitment using that income. **Ready for battle** then starts combat without granting more resources. Three waves have exactly nine productions and three preparation checks. The phase and stage serial guard reject delayed commands, including old ready commands.
 
-Skeleton enemies allocate 4, 6 and 8 per original player over the waves. Roles cycle by original allocation index: wave one Swordsman/Berserker; wave two adds Crossbowman; wave three adds Mage. The built-in defender remains a separate weak city-wide 1-damage shot every second outside the nine slots. Unit and tower impacts share one simultaneous damage accumulator. Surviving units keep identity and remaining health between waves; cities retain damage too.
+Skeleton enemies allocate 4, 6 and 8 per original player over the waves. Roles cycle by original allocation index: wave one Swordsman/Berserker; wave two adds Crossbowman; wave three adds Mage. The built-in defender remains a separate weak city-wide 2-damage shot every second outside the nine slots. Unit and tower impacts share one simultaneous damage accumulator. Surviving units keep identity and remaining health between waves; cities retain damage too.
 
 A city falls at zero health. Its remaining attackers immediately move to the entrances of surviving cities' lanes, retaining identity, health and attack cooldown. They are split evenly, with remainders assigned in player-ID order; a previously cleared city can receive them. If two cities fall in the same step, neither receives transfers. Disconnected living cities still count as survivors. Future waves include one baseline allocation per original player, with fallen players' allocations divided among survivors. For example, after one of three cities falls, wave two gives each survivor 9 enemies (18 total). Inheriting enemies does not multiply future allocations. Eliminated players can observe, pause and resume. All players share victory after wave three if a city survives; all cities falling ends the match in defeat, including simultaneous final enemy deaths.
 
@@ -113,52 +113,107 @@ reconnect/return feedback. A Steam lobby owner change never migrates gameplay.
 network/Steam resources and the game process. Closing settings restores valid
 focus and changes neither readiness nor shared pause.
 
-## Arch combat and animated soldiers
+## Deterministic hex combat
 
 Each authoritative `Match` owns one private Arch 2.1.0 world. Identity, health,
-body position/movement, target, attack timing and weapon profile are components;
-city soldier/enemy collections are read-only DTO projections, not writable unit
-stores. Public IDs increase within the match and never contain Arch handles.
-`AuthoritySession.End` caches its final immutable snapshot and disposes the world,
-including its Arch registry entry, on orderly teardown. Local, playing-host and
-dedicated authorities execute the same systems synchronously on the fixed 60 Hz
-Godot physics thread. Guests only render 20 Hz complete snapshots. There are no
-worker-thread rule updates, Godot physics bodies or animation damage callbacks.
-Core tests use an internal fixture builder to seed components, never a public
-cheat command or secondary production store, and dispose their owned matches.
+hex footprint, lifecycle, action timers and decision state are components;
+city armies and reservation indexes are projections of that authority. IDs are
+stable and never reused. All session modes use the same synchronous 60 Hz rules;
+guests render complete snapshots. Engine animation never applies damage.
 
-The battle approach is 12 units long and 3.4 wide. Circular bodies have radius
-0.20; active centers remain between 0.20–11.80 forward and ±1.50 laterally.
-Seven columns spaced 0.48 apart fill up to six entry rows per side. Swordsmen
-enter ahead of the rear Crossbowmen; enemies enter at the far end. Recruitment,
-new waves and transfers account for every arrival, including units waiting in
-an explicit entry queue when all separated entry locations are occupied. Queued
-units cannot target, attack or act as contact bodies. Surviving soldiers retain
-stable identity, type and health between waves; each wave reforms the approach.
-Terrain remains decorative and the nine city slots are unchanged.
+The default board has 21 cells, three columns over terrain rows -5 through 1,
+independent of the nine building plots in rows 2 through 4. Each hex contains
+six fixed positions. Capacity costs are two for melee and one for support;
+compatible footprint masks decide placement, including fragmentation. Allies
+can share a hex; opposing factions cannot share occupied or reserved cells.
+Range uses shortest-path distance on the authored axial graph, never model
+geometry. A separate city distance anchor links the neutral home frontier and
+provides no movement shortcut. Board scale and anchors passed the early rendered gate. Neighboring rendered centers are approximately
+three world units apart; footprint anchors use integer thousandths of a world
+unit for presentation only. Melee deliberately uses tabletop presentation:
+rigged swings at fixed anchors, a directional connection to the sampled target,
+then an authoritative impact or miss cue. It does not manufacture physical
+weapon contact or move an attacking model between footprints.
 
-Targeting reads one shared start-of-step buffer. Stable IDs break distance ties;
-valid targets remain engaged unless a closer melee opponent intercepts the path.
-Motion stops at the weapon range, uses swept circular contact against the shared
-buffer and approved moves, and permits bounded local tangents around friendly
-blockers. A blocked stationary unit has zero locomotion velocity. No opposing
-bodies cross or overlap; this is a deterministic local contact solver, not a
-navigation mesh or general physics simulation.
+Each side's rear row is permanently protected against opposing placement and
+transit, but occupants remain normally attackable. Setup allocates rear support
+first, then forward melee, activates together and queues overflow. Within each
+tier use initiative and seeded ties; choose the least used compatible cell,
+then center/owner-relative left/right, then its forwardmost compatible footprint.
+Combat admission tries forward capacity then protected rear for melee; support
+uses rear capacity. No permanent lanes or free intra-hex rearrangement exist.
+Reinforcements transferred into a cleared city can enter protected rear cells
+while defenders hold its neutral forward band. If retained enemy deaths block
+entry, cumulative releases of actual masks determine the fixed first-admission
+bound; the first unrelated expiry or total free capacity is insufficient.
+Further overflow still queues normally. A conserved queue without ensuing
+engagement does not establish progression.
 
-| Archetype | Class | Health | Damage | Food / gold | Range | Speed | Windup | Cadence |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Swordsman | Melee | 10 | 4 | 5 / 0 | 0.55 | 1 | 12 ticks | 60 ticks |
-| Berserker | Melee | 8 | 6 | 6 / 0 | 0.55 | 1.1 | 18 ticks | 72 ticks |
-| Crossbowman | Ranged | 8 | 3 | 5 / 0 | 3 | 1 | 18 ticks | 60 ticks |
-| Mage | Magic | 6 | 2 | 7 / 2 | 3 | 1 | 24 ticks | 90 ticks |
+| Archetype | Health | Damage | Food / gold | Capacity | Initiative | Hex range | Move ticks | Windup / recovery | Death ticks |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Swordsman | 10 | 4 | 5 / 0 | 2 | 10 | 1 | 30 | 12 / 48 | 48 |
+| Berserker | 8 | 6 | 6 / 0 | 2 | 20 | 1 | 27 | 18 / 54 | 48 |
+| Crossbowman | 8 | 3 | 5 / 0 | 1 | 30 | 3 | 30 | 18 / 42 | 48 |
+| Mage | 6 | 4 | 7 / 2 | 1 | 40 | 3 | 30 | 24 / 66 | 48 |
 
-Faction, archetype and class are separate. Both factions use exactly these combat profiles at equal rank; recruitment costs are separate from profiles. Melee ranks enter ahead of ranged/magic on both sides. Skeleton ranks start at zero; transfers never acquire the receiving city's research.
+These defaults passed the early strategy, role, admission and rendered gate. Both factions use equal profiles at equal research rank. Research
+adds 5% of base maximum HP/damage per rank up to rank two, in checked integer
+hundredths; it changes no spatial/timing attributes and never heals survivors.
 
-Blacksmith level one unlocks the first class rank for 10 gold; level two unlocks the second for 15 gold. Each rank adds 5% of base maximum HP and damage, up to an additive 10%. Existing troops' current HP stays unchanged, preserving damage and preventing healing; future recruits begin at researched maximum HP. Duplicate Blacksmiths provide no additional rank or stacking. Health and damage in snapshots/events are checked integer hundredths; the HUD converts them to human values (for example damage 2.1 at rank one).
+At a new attack select the closest in-range living deployed opponent, then the
+lowest target initiative, then a seeded exact tie. Melee requires distance one.
+Ranged units hold when anything is in range. Otherwise query legal attack
+positions, rank targets by feasible route steps, and approach along committed
+steps. Equal shortest support goals prefer a friendly melee screen, then less
+used capacity. Unchanged congestion causes bounded waits, preserving tie choices
+and scheduling rank. Rendering frames never trigger numerical decisions.
 
-Attack T impacts at T + windup and recovers at T + cadence. The attacker holds through windup. Impact revalidates primary identity, destination and range; a dead/transferred primary causes a miss without retargeting. Mage splash selects primary first, then at most two other deployed opponents in the same city within radius 0.75, ordered by distance and stable ID. It excludes friendly and queued units. An exposed city receives only primary Mage damage. Catapult uses the same radius and three-victim cap. Towers have independent city/slot/sequence identities, Arrow windup 12 ticks and Catapult windup 30 ticks, target any deployed enemy in their city, and stop when that city falls. Towers occupy plots without becoming unit bodies or attack targets. Upgrades retain timing identity and improve damage.
+A move starting at tick 100 and ending at 130 locks its source, destination and
+transit conflicts together. Before tick 130 attacks see only the source; at 130
+arrival commits before impacts, so attacks see only the destination. No attack
+or route change occurs mid-step. Lower actor initiative wins conflicting moves;
+seeded ranks resolve equal initiative, while independent actions start together.
 
-Knight, Barbarian, Rogue and Mage and the four corresponding free Skeleton rigs use imported skeletons and role weapons at `handslot.r`. Programmatic AnimationTrees retain synchronized idle/walk/run, timed attack one-shots, filtered hit layers and terminal death. Sword uses horizontal slice, Berserker two-handed chop, Crossbowman ranged shot and Mage Spellcast_Shoot. Horizontal root motion is suppressed. Sword strike is 0.40 clip seconds, crossbow release 0.43, axe descent 23/30 (0.767) and cast extension 8/30 (0.267), mapped onto authoritative impact and recovery. Cosmetic effects never apply damage. Corpses leave core combat immediately and their visuals free after 1.4 unpaused presentation seconds, including after a wave ends. Pause and transport loss freeze this clock.
+An attack started at T impacts at T + windup and finishes at T + windup +
+recovery. The unit stays anchored through both intervals. All due unit/defense
+impacts share one snapshot and damage accumulator before deaths; initiative
+cannot cancel a simultaneous lethal exchange. Invalid locked targets cause
+misses with normal recovery. Mage splash has radius one hex and cap
+two, primary first, then distance/initiative/seeded ties. Catapult radius is
+zero with cap three. Friendly, queued and dying units are excluded. City damage
+is one primary hit. Defender and towers have independent positive windup/recovery,
+using the shared city distance anchor regardless of plot. Candidate defender
+damage is 2 per second; Arrow levels deal 5/7 per second and Catapult 6/8 per two
+seconds. These values are tuned separately from unit approach speed.
+
+Death immediately removes a unit from living counts, actions and targeting, but
+retains its footprint until death end. A transit death freezes route progress and
+retains both endpoint and transit locks. Death at tick 200 with duration 48
+releases space at tick 248. Wave completion is immediate; bounded cleanup can
+continue outside combat, and a ready next-wave preparation waits for that cleanup
+without extra income. Pause freezes the authority's action/death clock.
+Unexpired bodies remain in the separate current dying collection at their
+original battlefield during reinforcement transfer; they never transfer as
+living attackers. Expiry removes the body and all of its reservations together.
+Ending or replacing a session disposes those retained locks and events rather
+than carrying them into a fresh battlefield.
+
+A fight retains a non-secret 64-bit seed and immutable configuration fingerprint.
+The same canonical setup, seed, rules/algorithm version and ordered accepted
+commands reproduce the same normalized trace. Version-one SplitMix decision
+keys separate targeting, movement ranks, route/goal, formation and splash choices.
+Credentials, session GUIDs and cosmetic randomness are separate. Core strategy
+acceptance samples seeds 0, 1 and 123; this finite sample is not universal balance
+or deadlock proof. Paired role tests demonstrate effective splash contribution, frontline protection
+and queued melee access; see the measured comparisons in `docs/verification.md`.
+
+The default no-health-progress allowance is 3,600 ticks per active city and the
+wave duration bound is 18,000 combat ticks. Only actual health reduction resets
+progress; walking, misses and admissions cannot extend it. Normal completion and
+all-cities-fallen defeat take precedence. An unresolved limit ends the match as
+`BattleStalled` defeat with unchanged surviving health. Numerical lifecycle, limit and early rendered checks pass. Final full integration acceptance passes; see `docs/verification.md` for evidence.
+
+Knight, Barbarian, Rogue and Mage and the four corresponding free Skeleton rigs use imported skeletons and role weapons at `handslot.r`. Programmatic AnimationTrees retain synchronized idle/walk/run, timed attack one-shots, filtered hit layers and terminal death. Sword uses horizontal slice, Berserker two-handed chop, Crossbowman ranged shot and Mage Spellcast_Shoot. Horizontal root motion is suppressed. Sword strike is 0.40 clip seconds, crossbow release 0.43, axe descent 23/30 (0.767) and cast extension 8/30 (0.267), mapped onto authoritative impact and recovery. Cosmetic effects never apply damage. The hex presentation migration aligns death clips and retained bodies to authoritative death intervals, including cleanup outside combat and reconnect. The early melee proof and current-death reconnect checks pass; final source/package integration passes.
 
 Terraces, riverbank, bridge, mountain edges, flags, grain/racks/scaffolding and structural tower bases provide village detail. Raised surfaces, building bounds and selection rings use per-plot heights. The combat approach stays flat. Level two adds distinct structures/props instead of enlarging the whole building. The windmill rotates its separate authored fan node; flags use restrained procedural motion on the same presentation clock.
 

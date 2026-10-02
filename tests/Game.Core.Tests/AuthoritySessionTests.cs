@@ -18,6 +18,22 @@ public sealed class AuthoritySessionTests
         => session.Admit(peer, WireJson.ProtocolVersion, credential, 1000, identity);
     private static string State(AuthoritySession session) => JsonSerializer.Serialize(session.Snapshot(), WireJson.Options);
 
+    [Theory]
+    [InlineData(AuthorityPolicy.Solo)]
+    [InlineData(AuthorityPolicy.PlayingHost)]
+    [InlineData(AuthorityPolicy.Dedicated)]
+    public void ExplicitCombatSeedSurvivesAdmissionAndEndedSnapshot(AuthorityPolicy policy)
+    {
+        using var session = new AuthoritySession(policy, combatSeed: ulong.MaxValue);
+        Assert.Equal(ulong.MaxValue, session.Snapshot().CombatSeed);
+        if (policy != AuthorityPolicy.Solo)
+        {
+            AdmissionResult admission = Join(session, 2);
+            Assert.True(admission.Accepted); Assert.Equal(ulong.MaxValue, admission.State!.CombatSeed);
+        }
+        session.End(); Assert.Equal(ulong.MaxValue, session.Snapshot().CombatSeed);
+    }
+
     [Fact]
     public void SoloBindsOneCityAndDedicatedHasNoLocalController()
     {

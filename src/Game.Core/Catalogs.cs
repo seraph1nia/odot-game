@@ -24,10 +24,7 @@ public sealed record BuildingDefinition(Building Type, ResourceCost Construction
 {
     public int Output(int level) => level switch { 1 => LevelOneOutput, 2 => LevelTwoOutput, _ => 0 };
 }
-public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, double SplashRadius)
-{
-    public int SplashHexRadius { get; init; }
-}
+public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, int SplashHexRadius);
 public sealed record UnitDefinition(UnitType Type, UnitClass Class, ResourceCost Recruitment, WeaponProfile Profile);
 public readonly record struct ResearchRanks(int Melee = 0, int Ranged = 0, int Magic = 0)
 {
@@ -51,10 +48,10 @@ public static class Catalogs
     public static TowerDefinition[] Towers(Rules? rules = null) => CombatConfiguration.TowerProfiles(rules ?? new());
     public static UnitDefinition[] Units(Rules rules) =>
     [
-        new(UnitType.Swordsman, UnitClass.Melee, new(0, Food: rules.RecruitCost), CombatConfiguration.Profile(rules, UnitType.Swordsman).Legacy()),
-        new(UnitType.Berserker, UnitClass.Melee, new(0, Food: 6), CombatConfiguration.Profile(rules, UnitType.Berserker).Legacy()),
-        new(UnitType.Crossbowman, UnitClass.Ranged, new(0, Food: rules.RangedRecruitCost), CombatConfiguration.Profile(rules, UnitType.Crossbowman).Legacy()),
-        new(UnitType.Mage, UnitClass.Magic, new(2, Food: 7), CombatConfiguration.Profile(rules, UnitType.Mage).Legacy())
+        new(UnitType.Swordsman, UnitClass.Melee, new(0, Food: rules.RecruitCost), CombatConfiguration.Profile(rules, UnitType.Swordsman).Runtime()),
+        new(UnitType.Berserker, UnitClass.Melee, new(0, Food: 6), CombatConfiguration.Profile(rules, UnitType.Berserker).Runtime()),
+        new(UnitType.Crossbowman, UnitClass.Ranged, new(0, Food: rules.RangedRecruitCost), CombatConfiguration.Profile(rules, UnitType.Crossbowman).Runtime()),
+        new(UnitType.Mage, UnitClass.Magic, new(2, Food: 7), CombatConfiguration.Profile(rules, UnitType.Mage).Runtime())
     ];
     public static UnitClass Class(UnitType type) => type switch { UnitType.Swordsman or UnitType.Berserker => UnitClass.Melee, UnitType.Crossbowman => UnitClass.Ranged, UnitType.Mage => UnitClass.Magic, _ => throw new ArgumentOutOfRangeException(nameof(type)) };
     public static UnitType EnemyRole(int wave, int allocationIndex) => (wave switch

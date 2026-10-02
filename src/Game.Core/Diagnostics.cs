@@ -7,7 +7,7 @@ public sealed record GameEvent(string Type, int PeerId = 0, MatchSnapshot? State
 
 public static class WireJson
 {
-    public const int ProtocolVersion = 5;
+    public const int ProtocolVersion = 6;
     public const string EventPrefix = "ODOT_EVENT ";
     public static readonly JsonSerializerOptions Options = new()
     {

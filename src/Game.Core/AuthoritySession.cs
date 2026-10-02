@@ -33,18 +33,19 @@ public sealed class AuthoritySession : IDisposable
     public string MatchId => _match.Id;
     public long Revision => _match.Revision;
     public Phase Phase => _match.Phase;
+    public bool Paused => _endedState?.Paused ?? _match.Paused;
     public string? OriginalHostIdentity { get; }
     public bool IsEnded { get; private set; }
     internal bool CombatReleased => _match.Combat.IsDisposed && _match.Combat.RegistryReleased && _match.Combat.Events().Length == 0;
 
     public AuthoritySession(AuthorityPolicy policy, Rules? rules = null, string? matchId = null,
-        string? originalHostIdentity = null, bool requireTrustedIdentity = false)
+        string? originalHostIdentity = null, bool requireTrustedIdentity = false, ulong? combatSeed = null)
     {
         if (!Enum.IsDefined(policy)) throw new ArgumentOutOfRangeException(nameof(policy));
         if (requireTrustedIdentity && string.IsNullOrEmpty(originalHostIdentity))
             throw new ArgumentException("Authenticated sessions require their original host identity.", nameof(originalHostIdentity));
         Policy = policy; OriginalHostIdentity = originalHostIdentity; _requireTrustedIdentity = requireTrustedIdentity;
-        _match = new(rules, matchId);
+        _match = new(rules, matchId, combatSeed);
         if (policy != AuthorityPolicy.Dedicated)
         {
             LocalPlayerId = _match.Join()!.Id;

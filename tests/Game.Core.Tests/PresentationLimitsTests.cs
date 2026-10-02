@@ -7,6 +7,12 @@ namespace Game.Core.Tests;
 public sealed class PresentationLimitsTests
 {
     [Theory]
+    [InlineData(DefeatReason.BattleStalled, "DEFEAT • battle stalled")]
+    [InlineData(DefeatReason.AllCitiesFallen, "DEFEAT • all cities fell")]
+    public void DefeatLabelPreservesTheAuthoritativeReason(DefeatReason reason, string expected)
+        => Assert.Equal(expected, PresentationLimits.DefeatText(reason));
+
+    [Theory]
     [InlineData(525, 1050, 0.5)]
     [InlineData(1050, 1050, 1)]
     [InlineData(0, 1050, 0)]

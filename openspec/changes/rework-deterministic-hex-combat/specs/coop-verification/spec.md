@@ -72,3 +72,11 @@ One independently selectable source graphical combat slice SHALL exercise the ac
 - **WHEN** fixed-anchored models swing without a readable strike-to-target relationship across neighboring cells
 - **THEN** the short source combat proof remains failed even if numerical range and occupancy assertions pass
 - **AND** cue/anchor/spacing candidates are corrected before accepting the board layout
+
+#### Scenario: Independently selected early melee proof
+- **WHEN** `test-ui --scenario combat --checkpoint melee` is selected
+- **THEN** the ordinary authority uses explicit seed 1 and ordinary two-Farm/Barracks recruitment supplies six Swordsmen, with ordinary progression into wave two permitted and a stop before wave three
+- **AND** a shared simultaneous windup and later opposite near/far landed impact retain overview and close-view PNGs linked to actual actor/target nodes and action identities
+- **AND** ordinary pause requests are timed from authoritative action milestones while live graphical observations establish the rendered proof
+- **AND** the bounded checkpoint retains seed/configuration and live-node witnesses on success or failure and uses the existing owned combat setup and cleanup
+- **AND** cheap seeded opportunity checks do not substitute for imported-rig, cue-readability or route-clearance evidence
