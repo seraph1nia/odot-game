@@ -33,64 +33,70 @@ internal sealed partial class Runner
     private async Task MixedArmy(Child client, Child observer, CancellationToken token, bool farmExists = false, bool towers = false)
     {
         if (!farmExists) { await Pick(client, 0, token); await ClickAck(client, "Farm", token); }
-        await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
-        if (towers) { await Action(observer, "build 0 catapulttower", token); await Action(observer, "build 1 lumbermill", token); }
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Turn == 2, "first production", token);
-        if (towers) await Action(observer, "build 2 arrowtower", token);
-        await Pick(client, 2, token); await ClickAck(client, "ArcheryRange", token);
-        await Pick(client, 1, token);
-        GameEvent sword = await ClickAck(client, "Recruit", token);
-        Require(State(sword).Players.Single(p => p.Id == client.PlayerId).Food == 0, "Swordsman cost comes from authoritative catalog");
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Turn == 3, "second production", token);
+        await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
+        await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
+        if (towers) await TowerOpening(observer, token);
+        else { await Action(observer, "build 0 farm", token); await Action(observer, "build 1 metalmine", token); await Action(observer, "build 2 barracks", token); }
+        await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
+        await Pick(client, 3, token); await ClickAck(client, "Lumbermill", token);
+        await UiReadyPair(client, observer, token);
         await Pick(client, 2, token);
-        GameEvent ranged = await ClickAck(client, "RecruitRanged", token);
-        CityState army = State(ranged).Players.Single(p => p.Id == client.PlayerId);
-        Require(army.Soldiers.Select(u => u.Type).SequenceEqual([UnitType.Swordsman, UnitType.Crossbowman]) && army.Food == 0,
-            "ordinary building-specific UI recruits melee/ranged for food exactly once");
-        UiObservation controls = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        UiTarget control = controls.Targets["RecruitRanged"];
-        Require(control.Visible && !control.Enabled && control.X > 0 && control.X < controls.Width && control.Y > 0 && control.Y < controls.Height,
-            "Ranged recruitment remains visible, disabled without food and inside the window");
-        for (int stage = 0; stage < 2; stage++)
+        UiObservation equipment = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(equipment.Targets["Recruit"].Text.Contains("L1", StringComparison.Ordinal)
+            && equipment.Targets["Recruit"].CostText.Contains("10 metal", StringComparison.Ordinal)
+            && equipment.UpkeepText.Contains("Next:", StringComparison.Ordinal), "source and packed recruitment exposes level, material quote and separate next-battle upkeep");
+        await UiSwords(client, 2, 6, token);
+        if (towers) await TowerInvestment(observer, token);
+        else
         {
-            await Action(client, "ready", token);
-            MatchSnapshot resolved = State(await Action(observer, "ready", token));
-            await Observe(client, s => s.Revision >= resolved.Revision && s.TurnSerial == resolved.TurnSerial && s.Phase == resolved.Phase, "mixed stage synchronization", token);
+            while (Latest(observer).Players.Single(p => p.Id == observer.PlayerId).Resources.TryPay(Latest(observer).Players.Single(p => p.Id == observer.PlayerId).RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Cost, out _)) await Action(observer, "recruit 2", token);
         }
-        await Observe(client, s => s.Phase == Phase.Combat, "mixed first wave", token);
+        await UiReadyPair(client, observer, token); await UiClear(client, observer, 1, token);
+        await Pick(client, 4, token); await ClickAck(client, "ArcheryRange", token);
+        await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
+        await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
+        await Pick(client, 4, token); int food = Latest(client).Players.Single(p => p.Id == client.PlayerId).Food;
+        GameEvent ranged = await ClickAck(client, "RecruitRanged", token); CityState army = State(ranged).Players.Single(p => p.Id == client.PlayerId);
+        Require(army.Soldiers.Any(u => u.Type == UnitType.Swordsman) && army.Soldiers.Any(u => u.Type == UnitType.Crossbowman) && army.Food == food,
+            "ordinary building-specific UI recruitment pays equipment and retains food");
+        UiObservation controls = await UiProtocol.Probe(client, options.StartupTimeout, token); UiTarget control = controls.Targets["RecruitRanged"];
+        Require(control.Visible && !control.Enabled && control.X > 0 && control.X < controls.Width && control.Y > 0 && control.Y < controls.Height,
+            "ranged recruitment remains visible, disabled without equipment and inside the window");
+        await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
+        if (towers) await Click(client, "City" + observer.PlayerId, token);
+        await UiReadyPair(client, observer, token);
+        await Observe(client, state => state.Phase == Phase.Combat && state.Wave == 2, "funded mixed second wave", token);
     }
 
     private async Task SpecialistArmy(Child client, Child observer, CancellationToken token)
     {
-        await Pick(client, 0, token); await ClickAck(client, "Farm", token);
-        await Pick(client, 1, token); await ClickAck(client, "Arcanum", token);
-        await Action(observer, "build 0 catapulttower", token); await Action(observer, "build 1 lumbermill", token);
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Turn == 2, "specialist first production", token);
-        await Pick(client, 2, token); await ClickAck(client, "Lumbermill", token);
-        await Action(observer, "build 2 arrowtower", token);
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Turn == 3, "specialist second production", token);
-        await Pick(client, 1, token); await ClickAck(client, "RecruitMage", token);
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Phase == Phase.Preparation, "specialist preparation", token);
-        await Pick(client, 3, token); await ClickAck(client, "Barracks", token);
-        await Pick(client, 3, token); await ClickAck(client, "RecruitBerserker", token);
-        UiObservation piles = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        CityState city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
-        Require(piles.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "specialist spending updates exact current stockpile tiers");
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Phase == Phase.Combat, "specialist first wave", token);
-        async Task<MatchSnapshot> PauseTowerImpact()
-        {
-            await Observe(observer, s => s.CombatEvents.Any(e => e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "real catapult impact", token);
-            return State(await Action(observer, "pause", token));
-        }
-        Task<MatchSnapshot> pauseTower = PauseTowerImpact();
+        await Action(client, "build 0 farm", token);
+        await Action(client, "build 1 metalmine", token);
+        await Action(client, "build 2 barracks", token); await TowerOpening(observer, token);
+        await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
+        await Action(client, "build 3 lumbermill", token);
+        await UiReadyPair(client, observer, token, actualInput: false); await UiSwords(client, 2, 6, token, actualInput: false); await TowerInvestment(observer, token);
+        await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 1, token);
+        await Action(client, "build 4 stonecutter", token);
+        for (int production = 0; production < 3; production++) { await UiReadyPair(client, observer, token, actualInput: false); await TowerInvestment(observer, token); }
+        await Action(client, "sell 1", token); await Action(client, "build 1 weaver", token);
+        await Action(client, "sell 4", token); await Action(client, "build 4 arcanum", token);
+        await Pick(client, 2, token); await ClickAck(client, "RecruitBerserker", token);
+        await UiSwords(client, 2, 6, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 2, token);
+        await UiReadyPair(client, observer, token, actualInput: false);
+        await Pick(client, 4, token); await ClickAck(client, "RecruitMage", token);
+        await Pick(client, 2, token);
+        if (!Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Berserker)) await ClickAck(client, "RecruitBerserker", token);
+        await ClickAck(client, "Sell", token); await ClickAck(client, "ArcheryRange", token); await ClickAck(client, "RecruitRanged", token);
+        await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
+        UiObservation piles = await UiProtocol.Probe(client, options.StartupTimeout, token); CityState city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
+        Require(piles.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "specialist equipment updates exact current stockpile tiers");
+        Require(city.Soldiers.Any(u => u.Type == UnitType.Mage) && city.Soldiers.Any(u => u.Type == UnitType.Berserker) && city.Soldiers.Any(u => u.Type == UnitType.Crossbowman), "ordinary three-wave specialist supply chain fields all required friendly roles");
         await Click(client, "City" + observer.PlayerId, token);
-        MatchSnapshot towerPause = await pauseTower;
+        await UiReadyPair(client, observer, token, actualInput: false); await Observe(client, state => state.Phase == Phase.Combat && state.Wave == 3, "funded specialist third wave", token);
+        long towerAfter = Latest(observer).Tick;
+        await Observe(observer, s => s.CombatEvents.Any(e => e.Tick > towerAfter && e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "real catapult impact", token);
+        MatchSnapshot towerPause = State(await Action(observer, "pause", token));
         await Observe(client, s => s.Paused && s.Tick == towerPause.Tick, "tower capture pause barrier", token);
         await WaitUi(client, p => p.Effects.Active > 0 && p.Effects.Bus == "Master", "tower projectiles in observed city", token);
         await Checkpoint(client, "combat-catapult", token);
@@ -152,15 +158,9 @@ internal sealed partial class Runner
         await WaitUi(client, p => !p.SettingsOpen, "return to paused battle after resizing", token);
         await Checkpoint(client, "combat-resized", token);
         await ClickAck(client, "Pause", token);
-        async Task<MatchSnapshot> PauseFreshDeath()
-        {
-            await Observe(observer, s => s.DyingBodies.Any(u => u.Hex!.DeathStartTick >= frozen.CombatTick + 30 && u.Hex.DeathEndTick > s.Tick + 12), "new authoritative casualty after attack sampling", token);
-            return State(await Action(observer, "pause", token));
-        }
-        Task<MatchSnapshot> pauseDeath = PauseFreshDeath();
         bool sword = false, shot = false, hit = false, axe = false, damagedBar = false, recovery = false;
         var priorRecovery = new Dictionary<int, UnitObservation>();
-        UiObservation casualty = await WaitUi(client, p =>
+        await WaitUi(client, p =>
         {
             RenderedContact(p); HealthBars(p);
             damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
@@ -168,7 +168,7 @@ internal sealed partial class Runner
             {
                 if (priorRecovery.TryGetValue(unit.Id, out UnitObservation? previous) && previous.ReadyTick == unit.ReadyTick)
                 {
-                    Require(unit.X == previous.X && unit.Z == previous.Z, "recovery remains stationary at the declared footprint");
+                    if (unit.X != previous.X || unit.Z != previous.Z) throw new InvalidOperationException("Recovery moved away from its declared hex anchor.");
                     recovery = true;
                 }
                 priorRecovery[unit.Id] = unit;
@@ -181,19 +181,25 @@ internal sealed partial class Runner
                 if (unit.Clip is "1H_Melee_Attack_Slice_Horizontal" or "2H_Ranged_Shoot" && !unit.AttackActive)
                     throw new InvalidOperationException("Declared attack has no active animation one-shot.");
             }
-            sword |= p.Units.Any(u => u.Type == UnitType.Swordsman && u.Clip == "1H_Melee_Attack_Slice_Horizontal");
-            shot |= p.Units.Any(u => u.Type == UnitType.Mage && u.Clip == "Spellcast_Shoot" && u.AttackActive);
-            axe |= p.Units.Any(u => u.Type == UnitType.Berserker && u.Clip == "2H_Melee_Attack_Chop" && u.AttackActive);
-            hit |= p.Units.Any(u => u.Clip == "Hit_A");
-            return sword && shot && hit && axe && damagedBar && recovery && p.Units.Any(u => u.Dead && u.PoseSeconds < .35);
-        }, "skeleton sword/axe, Mage cast, hit and first death poses", token, 60000);
+            sword |= p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "1H_Melee_Attack_Slice_Horizontal");
+            shot |= p.Units.Any(u => u.Visible && u.Type == UnitType.Mage && u.Clip == "Spellcast_Shoot" && u.AttackActive);
+            axe |= p.Units.Any(u => u.Visible && u.Type == UnitType.Berserker && u.Clip == "2H_Melee_Attack_Chop" && u.AttackActive);
+            hit |= p.Units.Any(u => u.Visible && u.Clip == "Hit_A");
+            return sword && shot && hit && axe && damagedBar && recovery;
+        }, "sword/axe, Mage cast, hit and recovery poses", token, 60000);
+        long casualtyAfter = Latest(observer).Tick;
+        await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId
+            && u.Hex!.DeathStartTick > casualtyAfter && u.Hex.DeathEndTick > s.Tick + 12), "fresh focused-city casualty after all attack witnesses", token);
+        MatchSnapshot retainedDeath = State(await Action(observer, "pause", token));
+        int dead = retainedDeath.DyingBodies.Where(u => u.Destination == client.PlayerId && u.Hex!.DeathStartTick > casualtyAfter)
+            .MaxBy(u => u.Hex!.DeathStartTick)!.Id;
+        await Action(client, "unknown", token, false);
+        UiObservation casualty = await WaitUi(client, p => p.CombatTick == retainedDeath.Tick && p.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
+            && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && u.PoseSeconds < .35), "same paused authoritative casualty rendered freshly", token);
         Require(sword && shot && hit && axe && casualty.Effects.Active <= 64 && casualty.Effects.Voices <= 8, "rendered sword/axe/cast/hit states and bounded effects sampled from live nodes");
         Require(damagedBar, "authoritative damage visibly reduces a living health bar");
-        // Choose the fresh casualty, rather than an older corpse approaching cleanup.
-        int dead = casualty.Units.Where(u => u.Dead).MinBy(u => u.PoseSeconds)!.Id;
         Require(!casualty.HealthBars.Any(b => b.Id == dead), "death immediately removes overhead bar");
         Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");
-        MatchSnapshot retainedDeath = await pauseDeath;
         Require(retainedDeath.DyingBodies.Any(u => u.Id == dead), "authoritative casualty pause retains the sampled death");
         UiObservation deathPaused = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal) && p.Units.Any(u => u.Id == dead && u.Dead), "paused death remains", token);
         await Action(observer, "unknown", token, false);
@@ -215,7 +221,8 @@ internal sealed partial class Runner
         await Click(client, "ReturnToMenu", token);
         await WaitUi(client, p => p.Screen == "menu", "combat return cleanup", token);
         await Click(client, "Singleplayer", token);
-        UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal), "fresh solo after combat", token);
+        UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal)
+            && p.HudHeight >= 299 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
         RequireOverview(fresh);
         Require(fresh.Units.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
             "fresh match clears living/dead views, events and old authority identity");

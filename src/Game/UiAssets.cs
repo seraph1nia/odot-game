@@ -55,6 +55,9 @@ internal static class UiAssets
         if (cost.Gold > 0) parts.Add($"[img=14x14]{Root}icons/icon_gold_pile.svg[/img]{cost.Gold} gold");
         if (cost.Food > 0) parts.Add($"[img=14x14]{Root}icons/icon_bread.svg[/img]{cost.Food} food");
         if (cost.Wood > 0) parts.Add($"{cost.Wood} wood");
+        if (cost.Stone > 0) parts.Add($"{cost.Stone} stone");
+        if (cost.Metal > 0) parts.Add($"{cost.Metal} metal");
+        if (cost.Cloth > 0) parts.Add($"{cost.Cloth} cloth");
         label.Modulate = button.Disabled ? new Color(1, 1, 1, 0.6f) : Colors.White;
         label.Text = "[center]" + string.Join(" · ", parts) + "[/center]";
     }

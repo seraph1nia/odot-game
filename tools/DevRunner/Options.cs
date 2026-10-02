@@ -60,9 +60,11 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 default: throw new ArgumentException($"Unknown runner argument: {args[i]}");
             }
         }
-        // Full source UI is serial and includes the filled countryside at every
-        // checkpoint; its measured 216s cost exceeds a selected slice's budget.
-        if (!explicitTimeout && (command is "ci" or "ci-source" || command is "test-ui" or "_ui-worker" && scenario is null)) timeout = 300000;
+        // Full source UI is serial. The measured 184s campaign and 156s economy
+        // slices need separate bounded headroom within the complete CI budget.
+        if (!explicitTimeout && command is "ci" or "ci-source") timeout = 900000;
+        else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario is null) timeout = 600000;
+        else if (!explicitTimeout && (command == "test-network" || command is "test-ui" or "_ui-worker" && scenario is "economy" or "exported-package")) timeout = 300000;
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");

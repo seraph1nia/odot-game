@@ -1,5 +1,55 @@
 # Cooperative POC verification
 
+## Economy, army and campaign implementation baseline, 2026-10-02
+
+At source revision `ad771f7595db3a9db53a0a698bba281644597fcf`, the initial
+full CI attempt failed only in `authority-resume-victory`: its 80 individually
+pumped stdin requests did not reliably exceed 64 requests in the authority's
+one-second rate window. Evidence: `logs/20261002-094116-6cb10d7f/ci-summary.json`.
+The supervised guest now accepts bounded `raw-burst <1..256> <json>` input,
+sending ordinary Request RPCs in one frame; this grants no gameplay state and
+changes no authority limit. The existing case sends 192 null requests and
+requires the same rate rejection and continued usability of the other peer.
+Cheap authority tests still verify exact rate limits, malformed/oversized
+rejection, no state mutation and next-window recovery. No expensive case was
+added; the existing network setup/runtime cost is retained. Corrected full CI
+passed in 433.27 seconds, with all source checks, six network cases, five source
+UI slices, both exports and both package smokes. Evidence:
+`logs/20261002-094618-8056a636/ci-summary.json`.
+
+## Size-based combat gate, 2026-10-02
+
+Rules v3/protocol v7 replace shaped footprints with per-actor size claims and
+six fixed render anchors. Ordinary defaults use size two and explicit bosses
+size six. `UnitSizeTests` covers all size pairs and anchor arrangements, mixed
+2+2+2/1+2+3, invalid sizes, profile/research/transfer/wire retention, full-size
+atomic moves/death and work-conserving protected admission without cross-cell
+pooling. All 283 gameplay and 120 runner tests passed.
+
+Default stats/timings are unchanged at this stage. The paired normal role
+fixture uses nine Swordsmen against seven enemies at seed 123 in both controls:
+Mage effective damage 1800 versus Crossbowman 1100 (hundredths) in the shared
+live interval, two secondary hits, clear ticks 373 versus 439 and remaining
+friendly health 2200 versus 1000. Ordinary clear/transfer witnesses use seeds
+1/2/8; the earlier seed-4 witness no longer establishes a cleared receiver under
+the new fingerprint. These finite fixtures retain all role/progression assertions.
+
+Selected source combat passed in 33.12s (42.21s supervised including preparation),
+evidence `logs/20261002-100455-4da608ed/`. Selected reconnect passed in 30.15s
+(38.35s supervised), `logs/20261002-100608-4c4d8e34/`. They uniquely prove imported
+rigs, fixed-anchor/route clearance and restored current moving/dying rendering;
+no new expensive scenario was added.
+
+The independent seed-1 melee checkpoint passed in 57.10s (65.34s supervised),
+`logs/20261002-101110-ff674639/`, retaining 51 live-node witnesses and four
+near-windup/far-impact overview/close PNGs. A preceding attempt exposed a phase
+sync race between observer and graphical peer; next-stage requests now await
+current peer state. Its capture deadline is 65s after measuring the former 40s
+allowance expire after the first capture. The required seed-1 proof remains
+bounded to two waves; the additional cheap seed-0 detector sample needs wave
+three for its opposite-side impact. Software rendering does not establish
+native GPU/input/listening quality. Final feature CI is still required.
+
 ## Combat math and flow simplification, 2026-10-02
 
 The before baseline passed full `mise run ci` in 431.98 seconds: 256 gameplay
@@ -298,7 +348,7 @@ The final real ENet suite passes using separate headless Godot processes and sta
 - Three clients under-defend one city until it falls in actual combat. Surviving clients agree on conserved enemy IDs/remaining damage and changed destinations. The next wave allocates 18 enemies, 9 per survivor. The fallen player resumes as an observer and can pause/resume without reviving.
 - An ordinary no-building strategy ends in defeat; unavailable/stopped servers, occupied ports, missing readiness and exited children produce bounded feedback.
 
-There is no resource-grant, damage, kill-city or teleport RPC. Automated clients send normal requests through the same handlers as the UI. Network/selected UI suites default to 180 seconds; full serial source UI and source/full CI default to 300 seconds, with a 15-second startup deadline and endpoint/timeout overrides. Network, export-smoke and dev sessions use separate owned temporary directories and clean them on exit. Diagnostics contain public identity/state and command results, never resume tokens.
+There is no resource-grant, damage, kill-city or teleport RPC. Automated clients send normal requests through the same handlers as the UI. Network and selected economy/packed UI default to 300 seconds; other selected UI slices default to 180 seconds, full serial source UI to 600 seconds, and source/full CI to 900 seconds, with a 15-second startup deadline and endpoint/timeout overrides. Network, export-smoke and dev sessions use separate owned temporary directories and clean them on exit. Diagnostics contain public identity/state and command results, never resume tokens.
 
 ## Clean source, CI and exports
 
@@ -1280,3 +1330,63 @@ Five cheap runner tests cover bounded camera movement as well as rejecting under
 Before CI passed in 246.02s, evidence `logs/20261001-185736-043325d8`. Iteration evidence and final measured slice costs are recorded in [the change verification record](../openspec/changes/archive/2026-10-01-fill-countryside-and-align-assets/verification.md). All graphical checks use owned Linux X11, software OpenGL and Dummy audio; they establish rendered input/projection/lifecycle behavior, not native GPU/compositor performance, physical input, audible quality, Windows execution or paired Steam acceptance.
 
 Full final `mise run ci --timeout-ms 300000` passed in 395.00s (`logs/20261001-194033-eb0b391f/ci-summary.json`): 140 core / 113 runner tests, all six network cases, all five source UI slices, sequential Linux exports and both package smokes. Source UI took 216.32s (before 113.31s), and graphical packed smoke took 100.48s (before 52.80s). The default 180-second source suite deadline was exceeded; the existing five-minute override retains all coverage. Individual economy/launcher costs grew from 29.57/37.86s to 59.21/75.29s. Filled pixels increase software-rendering cost even with batching; these runs do not measure native performance. Final source and packed menu/solo/navigation frames were inspected. Shared observations contain 18 static placements/83 core transforms, with 952 menu terrain instances and 2016–2444 gameplay instances in 26/43–57 spatial batches. The gameplay overview fit remains 43.32361.
+
+## Progression economy and land stage (2026-10-02)
+
+The six-resource foundation passed `mise run test` (288 core, 120 runner) before the new construction graph. After adding the thirteen-building graph and land transactions, the core slice excluding the not-yet-adapted `OrdinaryStrategiesWinWithinBoundedSteps` campaign gate passed 280 tests. The ten focused `BuildingTransactionTests`, including added readiness/pause/disconnection/elimination coverage, and all 120 runner tests passed. New cheap coverage owns production overflow atomicity, frozen quote identity, stocked-material construction, disconnected six-resource income, selected expansion, actual investment/refund, stale generations, Market bundles and authority retry deduplication. Existing ordinary Catapult setup now funds materials through three producer buildings and three real productions. There are no new network/UI scenarios or additional source/package runs for this numerical stage.
+
+This is partial coverage: full cheap campaign strategies do not yet pass the intermediate economy, and the complete feature CI gate remains pending. Preserve their success, role and research assertions while adapting real material/land/upkeep strategies in the later balance stage. These results do not establish twenty-wave balance or final UI integration.
+
+## Army and twenty-wave core stage (2026-10-02)
+
+The combined `CampaignTests`, `ArmyProgressionTests`, `ResourceTests`, `EconomyCatalogTests`, `BuildingTransactionTests` and `VillageAuthorityTests` slice passes 53 checks; `UnitSizeTests` passes all eight after progression. Cheap coverage includes level-six enemy validity, base-derived whole/nearest-five rounding, boss/research order, material quotes, wounded veterans, death/transfer identity, food reserves, fed queues, cleanup barriers and a paused dedicated-authority resume with readiness retry. Default composition and roster expansion, absent-survivor rewards, boss redistribution, all-fallen/stall precedence and final victory balances are verified. The forced-clear twenty-transition case verifies accounting only and does not prove balance.
+
+The full cheap run at the intermediate army boundary was red (68 failures, 244 passes) because old math fixtures and food/three-wave strategies still need adaptation. The full campaign strategy gate, runner/UI integration and final complete CI remain pending. No new expensive scenarios were added for these core rules.
+
+
+Economy balance evidence uses the shared ordinary-command policy in `tools/DevRunner/CampaignStrategy.cs`: four solo families and frontline co-op with two, three and four players, each at seeds 0, 1 and 123 (21 complete campaigns). All reached wave-twenty Victory with all original cities alive, 60 real productions and paid battle upkeep. Initial stone/metal/cloth were zero. Final equipment outputs are Metal Mine/Weaver 20/40 per production; other producer outputs, enemy waves, ordinary health/damage, boss multipliers, plot prices and Market rates remain as authored. Earlier trials exposed insufficient replacements and late Market construction; the final policies retain more troops and establish Markets earlier.
+
+The policy builds Farm/Metal Mine/Barracks/Lumbermill/Stonecutter on the first five plots, recruits six paid Swordsmen for the first battle, then upgrades producers and the Barracks and purchases actual locked plots for its branch. Mixed adds Weaver/Arcanum/Archery Range; towers adds Arrow/Catapult defenses; research adds Blacksmith and both melee ranks. All retain recurring equipment supply and use quoted Market bundles. After wave thirteen, with at least 120 stone stock and level-five Barracks, they sell the upgraded Stonecutter for its actual half refund and build a Gold Mine on the retained plot. Land, troops and research remain. Recruitment logs verify no food deduction, material charges, later metal/cloth recruits, full-land expansion, producer upgrades, trades and reconfiguration.
+
+A producer upgrade adds one level-one output while saving a plot and gold compared with purchasing another plot and producer, but requires stone. At current rates, a level-one Metal Mine can sell its whole 20-metal output for eight gold versus a Gold Mine's five gold; this consumes equipment stock and requires an additional paid Market. Markets and Gold Mines therefore have different land and supply costs. The receipt/action logs record stocks before/after commands, investment, individual army levels/health, forecast/actual rations, casualties, rewards, city health and per-wave ticks.
+
+This finite sample establishes viable ordinary strategies; it is not universal balance proof. The separate cleared-frontage reinforcement witness uses seed 8 with its funded L2 opening and one weak-city replacement. Earlier size-only seeds 1/2/8 are historical input-specific evidence, not promises for the new authored wave composition. The Mage/Crossbowman role witness uses six ordinary screen units against six ordinary enemies at seed 123, identical identities and the shared live interval. Mage equipment is 15 cloth/5 gold and upkeep two; Crossbow equipment is five metal/ten wood and upkeep one. Both clear normally; effective support damage is 6400 versus 4000 hundredths, clearance 253 versus 283 ticks, and surviving army HP 17500 versus 16000 hundredths. No inflated enemy HP, seeded clustering or altered default profiles are used.
+
+
+Protocol/runner progression evidence, 2026-10-02: protocol v8 carries six balances, permanent land, instance generations/investment/refunds, leveled profiles, Size/boss identity, all quotes, forecasts/upkeep receipts and authored wave/reward projections. Rules v4 own the new profile formula. The shared ordinary process strategy completed `mise run test-network --scenario authority-resume-victory --timeout-ms 300000` in 183.98 seconds (190.22 including preparation), `logs/20261002-121941-5361d2be/`. This is selected coverage: actual wave-twenty outcome, final boss receipt, paused disconnected typed-army restoration, exact equipment retry, old-peer refusal, roster/ownership/rate checks and fresh authority credential refusal. Fresh retries for plot purchases, sales and Market bundles have since been added and remain subject to the next run/final CI.
+
+`mise run test-network --scenario redistribution` passed in 26.13 seconds (33.14 including preparation), `logs/20261002-123446-23d26713/`. It uses the same ordinary seed-eight investment policy as the cheap cleared-frontage witness and retains typed level/boss/size identity, recovery, original-roster pressure, protected admission, engagement and ordinary completion. Guest B is admitted before launching observer C so the numerical city's identity matches the authored seeded witness. The prior concurrent-admission attempt `logs/20261002-122901-6d684ef3/` was intentionally cancelled after the wrong city-id ordering invalidated that witness; SIGTERM invoked the runner's cancellation handler, awaited owned children and removed owned runtime state. No unrelated endpoint/process/display was touched.
+
+The twenty-wave network path exceeded the old 180-second allowance. Default network budget is now 300 seconds, retaining roughly 63% headroom over the measured path. After the measured 156-second economy slice, source/full CI budget is 900 seconds for network followed by all source UI, sequential exports and package smoke; full serial source UI is 600 seconds, selected economy/packed UI 300 seconds and other selected UI 180 seconds. Cheap runner timeout, cancellation, child disposal and scheduling tests passed all 120 cases after the budget changes. The actual graphical economy run currently extends the existing slice through early wave-three preparation; its first trial exposed a tower-only observer defeat, `logs/20261002-123933-bc1e67ad/`, and was cleaned up. The revised observer equips ordinary soldiers before selling its Barracks to establish the Catapult on retained land. No resource grants or extra scenario were introduced.
+
+
+The revised `mise run test-ui --scenario economy` passed in 156.26 seconds (166.64 including preparation/display ownership), `logs/20261002-124448-892010ee/`. Actual input verifies six funded first-wave units and exactly six food paid at Ready, real stone production, retained wounded/researched veterans after Blacksmith sale, full initial land before selected expansion, Market stock/gold and food-preview refresh, mixed L1/L2 recruits, producer sale/fresh-generation rebuild, current stockpile thresholds and the existing supported-deck/terrace/roof/camera ownership assertions. Six PNGs were retained; `economy-materials-market-land.png` was inspected. This is two battles through early wave-three preparation, not a full graphical campaign. A second expanded-Market frame at 1100x820 and the latest summary/actual-receipt projection are included in subsequent verification. The initial trial's tower-only observer was replaced with ordinary soldiers and a retained-army Barracks-to-Catapult sale; it now survives normally. Pure `ProgressionPresentationTests` pass five current-state cases, including combat receipts versus stale forecasts, final victory/reward retention, mixed-level wounded veterans, queues/reserves, repeated snapshots/city switching/fresh sessions, paused boss identity and truthful stalled defeat.
+
+
+## Final progression integration checks (2026-10-02)
+
+The second full-CI attempt, `logs/20261002-140744-01add55f/`, passed all 333 gameplay/presentation/transport tests, 120 runner tests and six network scenarios. The real twenty-wave `authority-resume-victory` path took 162.73 seconds; fresh plot/sale/trade retries use an ordinary pause after the accepted transaction, compare its retained city state (excluding tick-relative cooldown displays before pause), compare the complete frozen snapshot after retry, then resume. This preserves spending, permanent land, investment, army/profile/research state and receipts. The first CI attempt, `logs/20261002-140215-03887120/`, exposed an overbroad retry comparison while legitimate post-clear death cleanup advanced the tick. Both attempts awaited owned cleanup. Redistribution passed in 26.04 seconds with unchanged food/upkeep receipts across transfer. Solo, playing-host lifecycle, defeat and failure cases also passed. The second attempt stopped at the initial economy HUD-height assertion; this is partial coverage until the completed full gate below.
+
+The specialist slice's uncompressed reliable messages measured approximately 90–125 KB. Temporary engine traces showed the client kept rendering and handled the ordinary command while about 350 ticks behind the authority; its acknowledgment and paused cleanup state arrived late. Whole-message Brotli/base64 RPC payloads now preserve complete JSON state while bounding encoded/expanded input to 16 MiB. Two cheap checks prove exact four-city catalog/state round trip, an encoded size below one quarter of plain JSON and bounded decompression. Packet-level compression did not resolve the delay and was removed; temporary traces are removed. The existing three-tick publication, reliable channels, authority stepping and visual cleanup bounds are unchanged. UI probes screen unrelated old observation ids before deserializing, retain exact fresh-id validation, and use the same 512-event history bound for UI as ordinary events.
+
+With whole-message payloads, all specialist attack/contact/casualty/frozen-pose/release assertions, including cleanup within two unpaused seconds, passed in the 51.15-second iteration `logs/20261002-135709-1cbbdb9f/`; that run then failed the fresh-session HUD-height bound. The compact forecast/spacing keeps all demand/payment/fed/reserve data and separate resource rows. The seed-one `mise run test-ui --scenario combat --checkpoint melee` passed in 27.54 seconds (38.18 overall), `logs/20261002-135946-cad7d473/`, with 56 live-node witnesses and four near-impact/far-windup overview/close PNGs. The near-impact overview frame was inspected. Tower captures now focus the observer city before battle and require a fresh current-battle impact instead of matching a previous wave's history. No full graphical campaign or new expensive scenario was added.
+
+
+The compact `mise run test-ui --scenario economy` passed in 93.44 seconds (103.51 overall), `logs/20261002-141623-20c8877e/`. Both expanded-Market frames at 1100x820 and 1280x720 retain all five resource-sale controls within bounds, six resource balances, purchased land/next price, forecast demand/payment/fed/reserve count, actual last reward and contextual exact refund. The 1100x820 frame was inspected. Real inputs also retain the existing picking/surface/roof/camera checks, two funded battles, unchanged recruitment food, wounded researched veterans after sale/rebuild, mixed L1/L2 army and authoritative food-sale forecast refresh. Pure current-state projections still pass all five cases after compacting the forecast. Cost-label dimming now follows the newly accepted affordability state on the same refresh.
+
+The completed reconnect slice passed in 47.06 seconds (59.56 overall), `logs/20261002-144732-9328c0cf/`, including current dying bodies, retained paused state, identity, adjusted camera, actual Barracks picking and owned process restart. The economy opening moved Barracks from plot one to plot two; the reconnect picker now targets that building at its current plot. It retains the panned-view selection check before resetting the camera. The final specialist combat slice passed in 51.06 seconds (63.35 overall), `logs/20261002-145132-f2a37ae3/`, including the fresh-session reset and countryside/HUD bounds. Fresh-session input now waits for settled HUD height and covered countryside within the existing bounded observation deadline, instead of asserting during an intermediate menu-to-game layout frame. These selected passes remain partial coverage until the complete CI gate.
+
+The fourth CI attempt, `logs/20261002-145300-056e2c77/`, passed cheap tests, all six network scenarios and economy/reconnect/settings, then exposed the launcher fixture's food-only recruitment assumption. The launcher now uses normal Farm/Metal Mine/Lumbermill production, constructs Barracks with produced gold, and sells the Metal Mine at its actual refund to fund Archery Range after three ordinary production turns. Both actual recruitment inputs, both viewport sizes, modal routing, fresh-session reset, invitation fixtures and hosted endpoint ownership remain checked, without any battle setup. The selected launcher passed in 90.66 seconds (103.71 overall), `logs/20261002-150122-cbaffdd3/`. Its first Farm purchase now compares both gold and wood against the resolved construction quote. The final combat fresh-session PNG from `logs/20261002-145132-f2a37ae3/` was inspected and retains six resources and five-open/four-locked land above the bounded panel.
+
+The fifth full gate was cancelled with owned cleanup after exposing a readiness observation race: its final Ready acknowledgment reported Preparation, but the next authority tick entered Combat before peers received that intermediate revision. The match cleared normally into wave eight while the runner waited for the obsolete preparation revision. `Advance` retains monotonic revision/turn checks and accepts a strictly later turn after Preparation. The selected real twenty-wave `authority-resume-victory` check then passed in 159.03 seconds (167.91 overall), `logs/20261002-150924-6036ad59/`, including final reward, economic retries, resume, rate rejection and expired-session refusal. No authority rules or spending assertions were changed.
+
+`mise run ci-linux-package` passed in 154.74 seconds (157.86 overall), `logs/20261002-152313-3adf6c0f/`, after sequential client/server exports. Headless package smoke passed in 1.31 seconds with normal Metal Mine production, resolved material spending and unchanged food during recruitment. The packed graphical scenario passed in 135.64 seconds (138.98 including owned display), retaining early wave-two actual food payment, six balances, land, level labels, prior clear reward, tower/locomotion/shooting and packed launcher/hosted-session checks at both sizes. `packed-locomotion.png` was inspected. Both source and packed paths retain the same numerical rules and ordinary material setup. The Windows solo smoke was likewise adapted to Metal Mine production, but no Windows runtime was executed here. The sixth full CI had passed all source checks and exports before its old headless smoke setup failed; that remains partial evidence until the next complete gate.
+
+
+### Completed full progression gate
+
+Full `mise run ci` passed in **640.75 seconds** (642.14 overall), [`logs/20261002-152630-eb9ef5de/ci-summary.json`](../logs/20261002-152630-eb9ef5de/ci-summary.json). All 43 change tasks are complete. The tested tree is the uncommitted feature work based on `ad771f7595db3a9db53a0a698bba281644597fcf`, with .NET SDK 10.0.401, Godot .NET 4.7.2 and unchanged dependency/tool locks. Protocol is eight and combat rules version four. Resolved default configuration fingerprint is `e2e6e9c9a6c2cd8046d3cda43dbc8b39aa3f5e9025f6e2d7ff1849365d8bef56` (the snapshot represents its four 64-bit parts numerically). Ordinary strategy samples use seeds 0, 1 and 123; the existing redistribution witness uses seed eight, and graphical combat uses seed one.
+
+The complete gate passed 333 core/presentation/transport tests (68.12s), 120 runner tests (1.76s), and all six network scenarios: authority-resume-victory 161.18s, redistribution 26.23s, defeat 7.64s, failure-cases 3.31s, solo-session 0.86s and playing-host-lifecycle 6.03s. It passed all five serial source UI slices: economy 92.69s, reconnect 46.20s, settings 25.45s, launcher 90.16s and combat 51.76s; source UI including display ownership took 309.58s. Sequential client/server exports passed in 4.93s/3.93s, headless package smoke in 1.46s and graphical package smoke in 134.40s (137.69s including owned display). Source and packed PNGs, per-process engine logs and phase/scenario summaries remain under that ignored run directory. Both Market viewport frames, melee near-impact overview, final fresh solo and packed locomotion frames were inspected in the selected runs recorded above. The separate seed-one melee checkpoint passed in 27.54s and is retained as additional partial coverage beyond this full gate.
+
+This complete gate supersedes the staged pending/red records above. No resources were granted to strategies or process/UI setup. All owned processes, endpoints, displays and temporary preferences were cleaned up. There was no upload, deployment or publication. The 21 numerical strategy campaigns remain a finite balance sample; software OpenGL/private X11 with Dummy audio establishes rendered assertions, not native compositor/GPU performance, physical input or listening quality. Native Windows runtime and real paired Steam/account checks were not executed here.

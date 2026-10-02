@@ -51,7 +51,7 @@ internal abstract record CombatAction
             long attackSequence = 0, long readyTick = 0, AttackRecord? previousAttack = null)
             : base(sequence, attackSequence, readyTick, previousAttack)
         {
-            if (sequence <= 0 || destination.Cell <= 0 || destination.Footprint <= 0 || transition <= 0 || startTick < 0 || endTick <= startTick || readyTick > startTick)
+            if (sequence <= 0 || destination.Cell <= 0 || destination.Anchor <= 0 || transition <= 0 || startTick < 0 || endTick <= startTick || readyTick > startTick)
                 throw new ArgumentException("Invalid committed movement interval or destination.");
             Destination = destination; Transition = transition; StartTick = startTick; EndTick = endTick;
         }

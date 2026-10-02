@@ -33,21 +33,22 @@ internal sealed partial class Runner
         Require(connected.PeerId == 1 && city.Id == connected.PlayerId && city.Slots.Length == 9
             && city.Slots.All(s => s.Type == Building.Empty) && occupied.Client.IsBound, "socketless solo binds one fresh nine-slot city and preserves endpoint owner");
         await SessionAction(solo, "build 0 farm", token);
-        await SessionAction(solo, "upgrade 0", token);
+        await SessionAction(solo, "upgrade 0", token, false);
         await SessionAction(solo, "build 1 barracks", token);
+        await SessionAction(solo, "build 2 metalmine", token);
         await SessionAction(solo, "build 9 mine", token, false);
         await SessionAction(solo, "build 2 mine", token, false);
         await SessionAction(solo, "ready", token);
         MatchSnapshot before = Latest(solo);
         GameEvent recruited = await SessionAction(solo, "recruit 1", token);
-        var request = new Command(recruited.Result!.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", solo.PlayerId, 1);
+        var request = new Command(recruited.Result!.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", solo.PlayerId, 1, ExpectedGeneration: before.Players.Single(p => p.Id == solo.PlayerId).Slots[1].Generation);
         string replay = "raw " + JsonSerializer.Serialize(request, WireJson.Options);
         int retryCount = solo.History().Count(e => e.Type == "ack" && e.Result?.Sequence == request.Sequence);
         await solo.Send(replay);
         GameEvent repeated = await solo.WaitFor(e => e.Type == "ack" && e.Result!.Sequence == request.Sequence && e.Message == recruited.Message
             && solo.History().Count(ack => ack.Type == "ack" && ack.Result?.Sequence == request.Sequence) > retryCount,
             "solo accepted-command retry", options.StartupTimeout, token);
-        Require(Gameplay(State(repeated)) == Gameplay(State(recruited)), "solo retry does not spend food or add another soldier");
+        Require(Gameplay(State(repeated)) == Gameplay(State(recruited)), "solo retry does not spend equipment or add another soldier");
         await SessionAction(solo, "pause", token);
         await SessionAction(solo, "ready", token, false);
         await SessionAction(solo, "resume", token);
@@ -57,7 +58,9 @@ internal sealed partial class Runner
         MatchSnapshot fresh = State(await solo.WaitFor(e => e.Type == "ack" && e.State?.MatchId != started.MatchId
             && e.Result!.Accepted && e.State?.Phase == Phase.Building, "fresh solo start", options.StartupTimeout, token));
         Require(fresh.Players.Length == 1 && fresh.Players[0].Slots.All(s => s.Type == Building.Empty)
-            && fresh.Players[0].Gold == city.Gold && fresh.Players[0].Food == 0 && fresh.Players[0].Soldiers.Length == 0,
+            && fresh.Players[0].Gold == city.Gold && fresh.Players[0].Food == 0 && fresh.Players[0].Soldiers.Length == 0
+            && fresh.Players[0].Stone == 0 && fresh.Players[0].Metal == 0 && fresh.Players[0].Cloth == 0
+            && fresh.Players[0].Slots.Count(s => s.Purchased) == 5 && fresh.Players[0].LastUpkeep is null && fresh.Players[0].LastReward is null,
             "second solo session discards unsaved gameplay and starts a new match");
         await solo.Send(replay);
         GameEvent stale = await solo.WaitFor(e => e.Type == "ack" && e.State?.MatchId == fresh.MatchId
@@ -93,7 +96,7 @@ internal sealed partial class Runner
         await Advance([host, guest], token);
         MatchSnapshot before = Latest(guest);
         GameEvent spent = await Action(guest, "recruit 1", token);
-        var request = new Command(spent.Result!.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", guest.PlayerId, 1);
+        var request = new Command(spent.Result!.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", guest.PlayerId, 1, ExpectedGeneration: before.Players.Single(p => p.Id == guest.PlayerId).Slots[1].Generation);
         string replay = "raw " + JsonSerializer.Serialize(request, WireJson.Options);
         MatchSnapshot frozen = State(await SessionAction(host, "pause", token));
         await Observe(guest, s => s.Paused && s.Revision >= frozen.Revision, "guest sees paused authority", token);

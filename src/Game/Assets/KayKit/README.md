@@ -42,3 +42,10 @@ Measured 30 fps hand-path markers for new role clips: two-handed axe chop
 and corresponding skeleton clips share these timelines. Checked-in binding
 validation requires the marker to fit each actual imported clip; playback tests
 map the marker to authoritative impacts and graphical combat samples the poses.
+
+
+Progression uses the already bundled free models: Stonecutter reuses the blue
+Blacksmith, Weaver the blue Lumbermill, and Market the neutral stage C. Explicit
+world labels identify each role. Metal Mine reuses the blue Mine with a bundled
+rock prop and its own label, keeping Gold Mine distinct. Their ground placement
+uses the same imported foot/bounds mapping. No new files or downloads are needed.

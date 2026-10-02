@@ -7,12 +7,12 @@ public sealed class CombatConfigurationTests
     [Theory]
     [InlineData(UnitType.Swordsman, 2, 10, 30, 1, 12, 48)]
     [InlineData(UnitType.Berserker, 2, 20, 27, 1, 18, 54)]
-    [InlineData(UnitType.Crossbowman, 1, 30, 30, 3, 18, 42)]
-    [InlineData(UnitType.Mage, 1, 40, 30, 3, 24, 66)]
+    [InlineData(UnitType.Crossbowman, 2, 30, 30, 3, 18, 42)]
+    [InlineData(UnitType.Mage, 2, 40, 30, 3, 24, 66)]
     public void CandidateProfilesAreCentralizedAndResearchChangesOnlyHealthAndDamage(UnitType type, int cost, int initiative, int move, int range, int windup, int recovery)
     {
         var config = new CombatConfiguration(new()); HexCombatProfile p = config.Unit(type);
-        Assert.Equal((cost, initiative, move, range, windup, recovery, 48), (p.CapacityCost, p.Initiative, p.MoveTicks, p.HexRange, p.WindupTicks, p.RecoveryTicks, p.DeathTicks));
+        Assert.Equal((cost, initiative, move, range, windup, recovery, 48), (p.Size, p.Initiative, p.MoveTicks, p.HexRange, p.WindupTicks, p.RecoveryTicks, p.DeathTicks));
         Assert.Equal(p with { Health = HealthPoints.Ranked(p.Health, 2), Damage = HealthPoints.Ranked(p.Damage, 2) }, config.Unit(type, 2));
         using var combat = new CombatSimulation(new());
         int a = combat.Create(type, 1, 1, 1, rank: 2), b = combat.Create(type, 0, 1, 1, Faction.Skeletons, 2);
@@ -23,11 +23,11 @@ public sealed class CombatConfigurationTests
     public void MageCandidateHasTwoVictimBenefitAndSingleTargetCadenceTradeoff()
     {
         var c = new CombatConfiguration(new()); HexCombatProfile mage = c.Unit(UnitType.Mage), crossbow = c.Unit(UnitType.Crossbowman);
-        Assert.Equal(400, mage.Damage); Assert.Equal(600, mage.Health);
+        Assert.Equal(1200, mage.Damage); Assert.Equal(2500, mage.Health);
         Assert.True((long)mage.Damage * crossbow.CadenceTicks < (long)crossbow.Damage * mage.CadenceTicks);
         Assert.True((long)mage.Damage * 2 * crossbow.CadenceTicks > (long)crossbow.Damage * mage.CadenceTicks);
         Assert.Equal(1, mage.SplashHexRadius); Assert.Equal(2, mage.VictimCap);
-        Assert.Equal(new ResourceCost(2, Food: 7), Catalogs.Units(new()).Single(u => u.Type == UnitType.Mage).Recruitment);
+        Assert.Equal(new ResourceCost(5, Cloth: 15), Catalogs.Units(new()).Single(u => u.Type == UnitType.Mage).Recruitment);
         // This is a profile check, not the still-required ordinary role fixture.
     }
     [Theory]
@@ -48,7 +48,7 @@ public sealed class CombatConfigurationTests
         {
             "move" => c with { Swordsman = c.Swordsman with { MoveTicks = 0 } },
             "death" => c with { Mage = c.Mage with { DeathTicks = 0 } },
-            "capacity" => c with { Swordsman = c.Swordsman with { CapacityCost = 5 } },
+            "capacity" => c with { Swordsman = c.Swordsman with { Size = 7 } },
             "initiative" => c with { Crossbowman = c.Crossbowman with { Initiative = -1 } },
             "windup" => c with { MageWindupTicks = 0 },
             "recovery" => c with { MageRecoveryTicks = 0 },
@@ -73,7 +73,7 @@ public sealed class CombatConfigurationTests
     {
         var rules = new Rules(); var a = new CombatConfiguration(rules);
         HexBoardDefinition reversed = rules.Combat.Board with
-        { Cells = rules.Combat.Board.Cells.Reverse().Select(c => c with { Neighbors = c.Neighbors.Reverse().ToArray() }).ToArray(), Footprints = rules.Combat.Board.Footprints.Reverse().ToArray() };
+        { Cells = rules.Combat.Board.Cells.Reverse().Select(c => c with { Neighbors = c.Neighbors.Reverse().ToArray() }).ToArray(), Anchors = rules.Combat.Board.Anchors.Reverse().ToArray() };
         Assert.Equal(a.Fingerprint, new CombatConfiguration(rules with { Combat = rules.Combat with { Board = reversed } }).Fingerprint);
         Assert.Equal(a.Fingerprint, new CombatConfiguration(rules with { StartingGold = 999 }).Fingerprint);
         Assert.NotEqual(a.Fingerprint, new CombatConfiguration(rules with { MageDamage = 3 }).Fingerprint);
@@ -101,6 +101,6 @@ public sealed class CombatConfigurationTests
         MatchSnapshot fresh = match.Snapshot();
         Assert.Equal(expected, fresh.Enemies.Single(u => u.Id == actor.Id).Decision!.Route[0]);
         Assert.DoesNotContain(999, fresh.Rules.Combat.Board.Cells[0].Neighbors);
-        Assert.Equal(123UL, fresh.CombatSeed); Assert.Equal(match.Configuration.Fingerprint, fresh.ConfigurationFingerprint);
+        Assert.Equal(123UL, fresh.CombatSeed); Assert.Equal(match.ConfigurationFingerprint, fresh.ConfigurationFingerprint);
     }
 }

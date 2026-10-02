@@ -20,15 +20,14 @@ internal sealed partial class UnitHealthBar : Control
         AddChild(_clip); _clip.Position = new(1.5f, 1.5f); _clip.Size = Size - new Vector2(3, 3);
         _clip.AddChild(_fill); _fill.Size = _clip.Size;
         _role.Position = new(0, 10); _role.Size = new(46, 16);
-        _role.AddThemeFontSizeOverride("font_size", 12);
+        _role.AddThemeFontSizeOverride("font_size", 10);
         _role.AddThemeConstantOverride("outline_size", 3);
         _role.AddThemeColorOverride("font_outline_color", new("182d36"));
         AddChild(_role);
     }
     internal void Sample(UnitView view, Camera3D camera, Rect2 worldArea)
     {
-        string role = view.State.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
-        _role.Text = (view.State.Faction == Faction.Skeletons ? "E" : "") + role;
+        _role.Text = ProgressionPresentation.UnitLabel(view.State);
         _role.AddThemeColorOverride("font_color", new(view.State.Faction == Faction.Skeletons ? "ffb4a4" : "b9dcff"));
         Current = view.State.Health; Maximum = view.State.Profile.Health;
         Fraction = PresentationLimits.HealthFraction(Current, Maximum);

@@ -6,6 +6,9 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Game/SnapshotPayload.cs" Link="SnapshotPayload.cs" />
+    <Compile Include="../../src/Game/ProgressionPresentation.cs" Link="ProgressionPresentation.cs" />
+    <Compile Include="../../tools/DevRunner/CampaignStrategy.cs" Link="Verification/CampaignStrategy.cs" />
     <Compile Include="../InProcessTests.cs" Link="InProcessTests.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

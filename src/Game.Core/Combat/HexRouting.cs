@@ -37,16 +37,16 @@ internal sealed class HexReachability
 internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
 {
     private long _revision = -1;
-    private readonly Dictionary<(int City, Faction Faction, int Capacity), Dictionary<int, HexFootprint[]>> _available = [];
+    private readonly Dictionary<(int City, Faction Faction, int Capacity), Dictionary<int, HexAnchor[]>> _available = [];
     internal int Searches { get; private set; }
-    private Dictionary<int, HexFootprint[]> Available(CombatUnit actor)
+    private Dictionary<int, HexAnchor[]> Available(CombatUnit actor)
     {
         if (_revision != occupancy.Revision) { _available.Clear(); _revision = occupancy.Revision; }
-        var key = (actor.Destination, actor.Faction, actor.Profile.CapacityCost);
-        if (!_available.TryGetValue(key, out Dictionary<int, HexFootprint[]>? cells))
+        var key = (actor.Destination, actor.Faction, actor.Profile.Size);
+        if (!_available.TryGetValue(key, out Dictionary<int, HexAnchor[]>? cells))
         {
             cells = board.Cells.ToDictionary(c => c.Id,
-                c => occupancy.Free(actor.Destination, actor.Faction, c.Id, actor.Profile.CapacityCost).OrderBy(f => f.Id).ToArray());
+                c => occupancy.Free(actor.Destination, actor.Faction, c.Id, actor.Profile.Size).OrderBy(f => f.Id).ToArray());
             _available.Add(key, cells);
         }
         return cells;
@@ -54,7 +54,7 @@ internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
     public void Clear() { _available.Clear(); _revision = -1; Searches = 0; }
     public HexReachability Search(CombatUnit actor, int[] excluded)
     {
-        Dictionary<int, HexFootprint[]> available = Available(actor); Searches++;
+        Dictionary<int, HexAnchor[]> available = Available(actor); Searches++;
         return new(board, actor.Location.Position.Cell, cell => available[cell].Length > 0 && !excluded.Contains(cell));
     }
     private bool Goal(CombatUnit actor, CombatTarget target, int targetCell, int cell)
@@ -80,7 +80,7 @@ internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
     }
     public HexPosition[] Route(CombatUnit actor, ApproachScore objective, CombatUnit[] all, CombatDecisionKey key, HexReachability search)
     {
-        Dictionary<int, HexFootprint[]> available = Available(actor);
+        Dictionary<int, HexAnchor[]> available = Available(actor);
         int shortest = search.Distances.Where(p => p.Value > 0 && Goal(actor, objective.Target, objective.Cell, p.Key))
             .Select(p => p.Value).DefaultIfEmpty(int.MaxValue).Min();
         if (shortest == int.MaxValue) return [];
@@ -91,16 +91,16 @@ internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
             && board.Distance(goal.Cell, u.Location.Position.Cell) + board.Distance(u.Location.Position.Cell, objective.Cell) == board.Distance(goal.Cell, objective.Cell));
         bool screened = goals.Any(Screened); var candidates = goals.Where(g => Screened(g) == screened).ToArray();
         int capacity = candidates.Min(g => occupancy.UsedCapacity(actor.Destination, g.Cell));
-        candidates = candidates.Where(g => occupancy.UsedCapacity(actor.Destination, g.Cell) == capacity).OrderBy(g => g.Cell).ThenBy(g => g.Footprint).ToArray();
-        HexPosition chosen = candidates[SeededDecision.Choose(key with { Purpose = CombatPurpose.GoalFootprint }, candidates.Length)];
+        candidates = candidates.Where(g => occupancy.UsedCapacity(actor.Destination, g.Cell) == capacity).OrderBy(g => g.Cell).ThenBy(g => g.Anchor).ToArray();
+        HexPosition chosen = candidates[SeededDecision.Choose(key with { Purpose = CombatPurpose.GoalAnchor }, candidates.Length)];
         var reversed = new List<HexPosition> { chosen }; int current = chosen.Cell;
         while (search.Distances[current] > 1)
         {
             int[] predecessors = search.Parents[current].Order().ToArray();
             current = predecessors[SeededDecision.Choose(key with { Purpose = CombatPurpose.Route, Generation = checked(key.Generation + search.Distances[current]) }, predecessors.Length)];
-            HexFootprint[] footprints = available[current];
-            HexFootprint footprint = footprints[SeededDecision.Choose(key with { Purpose = CombatPurpose.Route, Generation = checked(key.Generation + current) }, footprints.Length)];
-            reversed.Add(new(current, footprint.Id));
+            HexAnchor[] anchors = available[current];
+            HexAnchor anchor = anchors[SeededDecision.Choose(key with { Purpose = CombatPurpose.Route, Generation = checked(key.Generation + current) }, anchors.Length)];
+            reversed.Add(new(current, anchor.Id));
         }
         reversed.Reverse();
         return reversed.ToArray();

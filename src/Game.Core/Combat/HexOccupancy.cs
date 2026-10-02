@@ -1,19 +1,17 @@
-using System.Numerics;
-
 namespace Game.Core;
 
-public enum UnitLifecycle { Queued, Alive, Dying }
+public enum UnitLifecycle { Queued, Alive, Dying, Reserve }
 public enum UnitActionKind { Waiting, Moving, Windup, Recovery }
 public readonly record struct HexPosePoint(HexPosition Position, HexPosition Destination = default, int Transition = 0, int ElapsedTicks = 0, int DurationTicks = 0);
 public sealed record HexUnitState(int Id, int City, Faction Faction, UnitLifecycle Lifecycle, HexPosition Position,
     UnitActionKind Action = UnitActionKind.Waiting, HexPosition Destination = default, int Transition = 0,
     long ActionSequence = 0, long StartTick = 0, long EndTick = 0, long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0,
-    long AdmittedTick = 0, long? FrozenTick = null, HexPosePoint? FrozenAim = null)
+    long AdmittedTick = 0, long? FrozenTick = null, HexPosePoint? FrozenAim = null, int Size = 2)
 {
     public bool HoldsTransit => Action == UnitActionKind.Moving;
     public bool IsTargetable => Lifecycle == UnitLifecycle.Alive;
 }
-public readonly record struct PositionReservation(int City, int Cell, int Footprint, int UnitId, long ActionSequence, Faction Faction);
+public readonly record struct PositionReservation(int City, int Cell, int Anchor, int UnitId, long ActionSequence, Faction Faction, int Size);
 public readonly record struct TransitReservation(int City, int SourceCell, int DestinationCell, int EdgeToken, int UnitId, long ActionSequence);
 public sealed record CombatReservations(PositionReservation[] Positions, TransitReservation[] Transit)
 {
@@ -25,7 +23,7 @@ public sealed record CombatReservations(PositionReservation[] Positions, Transit
 }
 
 // An auxiliary index, not a second unit store. ECS owns the states supplied to
-// rebuild/commit; the index records only occupied masks and action ownership.
+// rebuild/commit; the index records only per-actor size claims and action ownership.
 // Its complete projection is independently derivable from those current states.
 internal sealed class HexOccupancy(HexBoard board)
 {
@@ -34,23 +32,23 @@ internal sealed class HexOccupancy(HexBoard board)
     private readonly Dictionary<(int City, int Edge), TransitReservation> _edgeTransit = [];
     public long Revision { get; private set; }
 
-    public int UsedMask(int city, int cell) => _positions.TryGetValue((city, cell), out var occupants)
-        ? occupants.Values.Aggregate(0, (mask, r) => mask | board.Footprint(r.Footprint).Mask) : 0;
-    public int UsedCapacity(int city, int cell) => BitOperations.PopCount((uint)UsedMask(city, cell));
-    public bool CanPlace(int city, Faction faction, HexPosition position)
+    public int UsedCapacity(int city, int cell) => _positions.TryGetValue((city, cell), out var occupants)
+        ? occupants.Values.Aggregate(0, (total, r) => checked(total + r.Size)) : 0;
+    public bool CanPlace(int city, Faction faction, HexPosition position, int size)
     {
-        if (city <= 0 || !board.Allows(faction, position.Cell)) return false;
-        int mask = board.Footprint(position.Footprint).Mask;
-        return !_positions.TryGetValue((city, position.Cell), out var occupants)
-            || occupants.Values.All(r => r.Faction == faction && (mask & board.Footprint(r.Footprint).Mask) == 0);
+        if (size is < 1 or > 6 || city <= 0 || !Enum.IsDefined(faction) || !board.Allows(faction, position.Cell)) return false;
+        _ = board.Anchor(position.Anchor);
+        return checked(UsedCapacity(city, position.Cell) + size) <= board.Capacity
+            && (!_positions.TryGetValue((city, position.Cell), out var occupants)
+                || occupants.Values.All(r => r.Faction == faction && r.Anchor != position.Anchor));
     }
-    public IEnumerable<HexFootprint> Free(int city, Faction faction, int cell, int cost)
-        => board.Fits(cost, UsedMask(city, cell)).Where(f => CanPlace(city, faction, new(cell, f.Id)));
+    public IEnumerable<HexAnchor> Free(int city, Faction faction, int cell, int size)
+        => board.Anchors.Where(f => CanPlace(city, faction, new(cell, f.Id), size));
     public bool TryPlace(ReservationOwner state)
     {
         if (state.Id <= 0 || state.Lifecycle != UnitLifecycle.Alive || state.HoldsTransit || Contains(state.Id)
-            || !CanPlace(state.City, state.Faction, state.Position)) return false;
-        AddPosition(new(state.City, state.Position.Cell, state.Position.Footprint, state.Id, state.ActionSequence, state.Faction));
+            || !CanPlace(state.City, state.Faction, state.Position, state.Size)) return false;
+        AddPosition(new(state.City, state.Position.Cell, state.Position.Anchor, state.Id, state.ActionSequence, state.Faction, state.Size));
         Revision = checked(Revision + 1); return true;
     }
     public bool TryMove(ReservationOwner state, HexPosition destination, long sequence)
@@ -59,16 +57,16 @@ internal sealed class HexOccupancy(HexBoard board)
         // ECS action only after this transaction succeeds.
         if (state.Lifecycle != UnitLifecycle.Alive || !state.Ready || sequence <= state.ActionSequence
             || !_positions.TryGetValue((state.City, state.Position.Cell), out var source)
-            || !source.TryGetValue(state.Id, out PositionReservation reservation) || reservation.Footprint != state.Position.Footprint || reservation.ActionSequence != state.ActionSequence
+            || !source.TryGetValue(state.Id, out PositionReservation reservation) || reservation.Anchor != state.Position.Anchor || reservation.ActionSequence != state.ActionSequence
             || reservation.Faction != state.Faction || !board.Cell(state.Position.Cell).Neighbors.Contains(destination.Cell)
-            || board.Footprint(state.Position.Footprint).CapacityCost != board.Footprint(destination.Footprint).CapacityCost
-            || !CanPlace(state.City, state.Faction, destination)) return false;
+            || reservation.Size != state.Size
+            || !CanPlace(state.City, state.Faction, destination, state.Size)) return false;
         HexTransition transition = board.Transition(state.Position, destination);
         if (_endpointTransit.ContainsKey((state.City, state.Position.Cell)) || _endpointTransit.ContainsKey((state.City, destination.Cell))
             || _edgeTransit.ContainsKey((state.City, transition.EdgeToken))) return false;
         var transit = new TransitReservation(state.City, state.Position.Cell, destination.Cell, transition.EdgeToken, state.Id, sequence);
         source[state.Id] = reservation with { ActionSequence = sequence };
-        AddPosition(new(state.City, destination.Cell, destination.Footprint, state.Id, sequence, state.Faction));
+        AddPosition(new(state.City, destination.Cell, destination.Anchor, state.Id, sequence, state.Faction, state.Size));
         _endpointTransit.Add((state.City, state.Position.Cell), transit); _endpointTransit.Add((state.City, destination.Cell), transit);
         _edgeTransit.Add((state.City, transition.EdgeToken), transit);
         Revision = checked(Revision + 1); return true;
@@ -83,7 +81,7 @@ internal sealed class HexOccupancy(HexBoard board)
         if (action is not CombatAction.Windup || before.Lifecycle != UnitLifecycle.Alive || !before.Ready || before.HoldsTransit || action.Sequence <= before.ActionSequence
             || !_positions.TryGetValue((before.City, before.Position.Cell), out var positions)
             || !positions.TryGetValue(before.Id, out PositionReservation reservation)
-            || reservation.ActionSequence != before.ActionSequence || reservation.Footprint != before.Position.Footprint || reservation.Faction != before.Faction)
+            || reservation.ActionSequence != before.ActionSequence || reservation.Anchor != before.Position.Anchor || reservation.Size != before.Size || reservation.Faction != before.Faction)
             return false;
         positions[before.Id] = reservation with { ActionSequence = action.Sequence };
         return true;
@@ -121,25 +119,28 @@ internal sealed class HexOccupancy(HexBoard board)
         foreach (ReservationOwner state in units.OrderBy(s => s.Id))
         {
             if (state.Id <= 0 || state.City <= 0 || !Enum.IsDefined(state.Faction) || !Enum.IsDefined(state.Lifecycle)
-                || state.ActionSequence < 0 || !identities.Add(state.Id))
+                || state.Size is < 1 or > 6 || state.ActionSequence < 0 || !identities.Add(state.Id))
                 throw new ArgumentException("Invalid or duplicate unit identities.", nameof(units));
-            if (state.Lifecycle == UnitLifecycle.Queued) continue;
+            if (state.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve)
+            {
+                if (state.HoldsTransit) throw new ArgumentException("Inactive/queued actors cannot retain transit.", nameof(units));
+                continue;
+            }
             if (state.Lifecycle == UnitLifecycle.Dying && (state.DeathStartTick < 0 || state.DeathEndTick <= state.DeathStartTick))
                 throw new ArgumentException("Invalid retained death interval.", nameof(units));
             if (state.HoldsTransit && (state.StartTick < 0 || state.EndTick <= state.StartTick || state.ActionSequence <= 0
                 || state.Lifecycle == UnitLifecycle.Dying && (state.FrozenMoveTicks < 0 || state.FrozenMoveTicks >= state.EndTick - state.StartTick)))
                 throw new ArgumentException("Invalid committed move interval/progress.", nameof(units));
-            if (!rebuilt.CanPlace(state.City, state.Faction, state.Position)) throw new ArgumentException("Overlapping or forbidden source reservations.", nameof(units));
-            rebuilt.AddPosition(new(state.City, state.Position.Cell, state.Position.Footprint, state.Id, state.ActionSequence, state.Faction));
+            if (!rebuilt.CanPlace(state.City, state.Faction, state.Position, state.Size)) throw new ArgumentException("Overlapping or forbidden source reservations.", nameof(units));
+            rebuilt.AddPosition(new(state.City, state.Position.Cell, state.Position.Anchor, state.Id, state.ActionSequence, state.Faction, state.Size));
             if (!state.HoldsTransit) continue;
             if (!board.Cell(state.Position.Cell).Neighbors.Contains(state.Destination.Cell)
-                || board.Footprint(state.Position.Footprint).CapacityCost != board.Footprint(state.Destination.Footprint).CapacityCost
-                || !rebuilt.CanPlace(state.City, state.Faction, state.Destination)) throw new ArgumentException("Invalid reserved destination.", nameof(units));
+                || !rebuilt.CanPlace(state.City, state.Faction, state.Destination, state.Size)) throw new ArgumentException("Invalid reserved destination.", nameof(units));
             HexTransition transition = board.Transition(state.Position, state.Destination);
             if (transition.Id != state.Transition || rebuilt._endpointTransit.ContainsKey((state.City, state.Position.Cell))
                 || rebuilt._endpointTransit.ContainsKey((state.City, state.Destination.Cell))) throw new ArgumentException("Invalid/conflicting declared transit.", nameof(units));
             var transit = new TransitReservation(state.City, state.Position.Cell, state.Destination.Cell, transition.EdgeToken, state.Id, state.ActionSequence);
-            rebuilt.AddPosition(new(state.City, state.Destination.Cell, state.Destination.Footprint, state.Id, state.ActionSequence, state.Faction));
+            rebuilt.AddPosition(new(state.City, state.Destination.Cell, state.Destination.Anchor, state.Id, state.ActionSequence, state.Faction, state.Size));
             rebuilt._endpointTransit.Add((state.City, state.Position.Cell), transit); rebuilt._endpointTransit.Add((state.City, state.Destination.Cell), transit);
             rebuilt._edgeTransit.Add((state.City, transition.EdgeToken), transit);
         }

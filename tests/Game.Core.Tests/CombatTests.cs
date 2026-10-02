@@ -5,7 +5,6 @@ namespace Game.Core.Tests;
 
 public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    private static readonly HexBoard TestBoard = new(HexBoardDefinition.Default());
     private static Match Battle(Rules? rules = null, int soldiers = 0, bool mixed = false, bool reverse = false)
     {
         var match = new Match(rules, combatSeed: 123); match.Join();
@@ -16,17 +15,18 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             match.Combat.Seed(new UnitState(id, match.Combat.Profile(type).Health, 0, 1, 1)
             { Owner = 1, Type = type, Deployed = false });
         }
+        match.Players[1].Food = match.Players[1].Soldiers.Sum(u => match.Economy.Upkeep(u.Type)); // Normally fed, deliberate seeded combat fixture.
         Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
         return match;
     }
     private static CommandResult Apply(Match match, string action, int slot = -1, UnitType type = UnitType.Swordsman)
-        => match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, action, 1, slot, SoldierType: type));
+        => match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, action, 1, slot, SoldierType: type, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[1].Slots[slot].Generation : 0));
     private static CombatSimulation Duel(Rules? rules = null, UnitType type = UnitType.Swordsman)
     {
-        var combat = new CombatSimulation(rules ?? new Rules { DefenderDamage = 0 });
+        var combat = new CombatSimulation(rules ?? new Rules { SoldierHealth = 10, SoldierDamage = 4, RangedHealth = 8, RangedDamage = 3, DefenderDamage = 0 });
         int soldier = combat.Create(type, 1, 1, 1), enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        combat.Seed(combat.Read(soldier) with { Hex = CombatFixture.At(combat.Read(soldier), 11, type == UnitType.Crossbowman ? 1 : 7), Deployed = true });
-        combat.Seed(combat.Read(enemy) with { Hex = CombatFixture.At(combat.Read(enemy), type == UnitType.Crossbowman ? 2 : 8, 7), Deployed = true });
+        combat.Seed(combat.Read(soldier) with { Hex = CombatFixture.At(combat.Read(soldier), 11, 1), Deployed = true });
+        combat.Seed(combat.Read(enemy) with { Hex = CombatFixture.At(combat.Read(enemy), type == UnitType.Crossbowman ? 2 : 8, 1), Deployed = true });
         return combat;
     }
     private static void Separated(UnitState[] units)
@@ -38,7 +38,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             {
                 if (unit.Hex.Position.Cell != other.Hex!.Position.Cell) continue;
                 Assert.Equal(unit.Faction, other.Faction);
-                Assert.Equal(0, TestBoard.Footprint(unit.Hex.Position.Footprint).Mask & TestBoard.Footprint(other.Hex.Position.Footprint).Mask);
+                Assert.NotEqual(unit.Hex.Position.Anchor, other.Hex.Position.Anchor);
+                Assert.True(units.Where(u => u.Deployed && u.Destination == unit.Destination && u.Hex!.Position.Cell == unit.Hex.Position.Cell).Sum(u => u.Size) <= 6);
             }
         }
     }
@@ -47,7 +48,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [InlineData(true)]
     public void CrowdedBattleIsSeparatedDeterministicAndMakesProgress(bool mixed)
     {
-        var rules = new Rules { WaveOne = 32, DefenderDamage = 0 };
+        var rules = new Rules { Campaign = CampaignFixture.Three(first: 32), DefenderDamage = 0 };
         using Match a = Battle(rules, 32, mixed); using Match b = Battle(rules, 32, mixed, reverse: true);
         Assert.NotEqual(a.Id, b.Id);
         bool hadDeaths = false, hadMageSecondary = false; var deaths = new HashSet<int>();
@@ -89,7 +90,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Fact]
     public void LargeEntryQueuesConserveUnitsAndNeverOverlap()
     {
-        using Match match = Battle(new Rules { WaveOne = 80 }, 80);
+        using Match match = Battle(new Rules { Campaign = CampaignFixture.Three(first: 80) }, 80);
         UnitState[] units = match.Combat.Snapshot();
         Assert.Equal(160, units.Length); Assert.Contains(units, u => !u.Deployed); Separated(units);
         match.Step(); Assert.Equal(160, match.Combat.Snapshot().Length); Separated(match.Combat.Snapshot());
@@ -113,7 +114,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Fact]
     public void MeleeStopsAtReachAndImpactsAreSimultaneous()
     {
-        using var combat = Duel(new Rules { SoldierDamage = 10, DefenderDamage = 0 });
+        using var combat = Duel(new Rules { SoldierHealth = 10, SoldierDamage = 10, DefenderDamage = 0 });
         for (int tick = 1; tick <= 12; tick++)
         {
             combat.Step(tick, []); UnitState[] units = combat.Snapshot();
@@ -162,7 +163,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         combat.Seed(combat.Read(1) with { Hex = CombatFixture.At(combat.Read(1), 17, 1) }); combat.Step(1, []);
         Assert.False(combat.Read(1).PendingImpact); Assert.Equal(UnitActionKind.Moving, combat.Read(1).Hex!.Action); Assert.Empty(combat.Events());
         using var close = Duel(type: UnitType.Crossbowman);
-        close.Seed(close.Read(2) with { Hex = CombatFixture.At(close.Read(2), 8, 7) });
+        close.Seed(close.Read(2) with { Hex = CombatFixture.At(close.Read(2), 8, 1) });
         for (int tick = 1; tick <= 19; tick++) { close.Step(tick, []); Separated(close.Snapshot()); }
         Assert.Equal(400, close.Read(1).Health); Assert.Equal(700, close.Read(2).Health);
         Assert.Equal(3, close.Read(1).Profile.HexRange);
@@ -171,7 +172,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void PauseFreezesPendingImpactAndEventIdentityAcrossResynchronization()
     {
         using Match match = Battle(new Rules { DefenderDamage = 0 }, 1);
-        CombatFixture.Change(match, match.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 7) });
+        CombatFixture.Change(match, match.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 1) });
         match.Step(); Assert.True(match.Players[1].Soldiers[0].PendingImpact); Apply(match, "pause");
         string frozen = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
         CombatFixture.Steps(match, 1000); Assert.Equal(frozen, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
@@ -179,22 +180,25 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Contains(match.Snapshot().CombatEvents, e => e.Type == CombatEventType.Impact && e.Unit?.Type == UnitType.Swordsman && e.Landed);
     }
     [Fact]
-    public void TypedRecruitmentIsAtomicAndFoodOnlyWithUpgradeReduction()
+    public void TypedRecruitmentIsAtomicAndChargesEquipmentWithoutFood()
     {
         using var match = new Match(); match.Join(); Apply(match, "start");
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 0, Building.Farm)).Accepted);
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 1, Building.Barracks)).Accepted);
+        match.Players[1].Metal = 20; // Explicit stock for this transaction fixture.
+        match.Players[1].Wood = 30;
         Apply(match, "ready"); Apply(match, "ready");
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 2, Building.ArcheryRange)).Accepted);
         string before = JsonSerializer.Serialize(match.Snapshot());
         Assert.False(Apply(match, "recruit", 1, (UnitType)999).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
         Assert.True(Apply(match, "recruit", 1).Accepted);
-        var command = new Command(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 2, SoldierType: UnitType.Crossbowman);
+        var command = new Command(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 2, SoldierType: UnitType.Crossbowman, ExpectedGeneration: match.Players[1].Slots[2].Generation);
         var ledger = new CommandLedger(); Assert.True(ledger.Execute(command, () => match.Apply(1, command)).Accepted);
         Assert.True(ledger.Execute(command, () => throw new InvalidOperationException("Applied twice")).Accepted);
         Assert.Equal(new[] { UnitType.Swordsman, UnitType.Crossbowman }, match.Players[1].Soldiers.Select(u => u.Type));
-        Assert.Equal(0, match.Players[1].Food); Assert.Equal(20, match.Players[1].Gold);
-        Assert.Equal(800, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
+        Assert.Equal(10, match.Players[1].Food); Assert.Equal(20, match.Players[1].Gold);
+        Assert.Equal(5, match.Players[1].Metal);
+        Assert.Equal(3000, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
         Apply(match, "ready"); Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
         Assert.False(Apply(match, "recruit", 1, UnitType.Crossbowman).Accepted);
     }
@@ -210,23 +214,26 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Theory]
     [InlineData(UnitType.Swordsman)]
     [InlineData(UnitType.Crossbowman)]
-    public void BothRecruitmentTypesRespectOwnershipPauseReadinessAndReducedCost(UnitType type)
+    public void BothRecruitmentTypesRespectOwnershipPauseReadinessAndLevelPrices(UnitType type)
     {
         using var match = new Match(); match.Join(); match.Join(); Apply(match, "start");
         match.Players[1].Slots[1] = new(type == UnitType.Crossbowman ? Building.ArcheryRange : Building.Barracks, 2); match.Players[1].Food = 8;
-        Command recruit = new(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 1, SoldierType: type);
+        ResourceCost equipment = match.Economy.Recruitment(type, 2);
+        match.Players[1].Metal = equipment.Metal * 2; match.Players[1].Wood = equipment.Wood * 2;
+        Command recruit = new(10, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 1, SoldierType: type, ExpectedGeneration: match.Players[1].Slots[1].Generation);
         Assert.False(match.Apply(2, recruit).Accepted); Assert.Equal(8, match.Players[1].Food);
         Apply(match, "pause"); Assert.False(match.Apply(1, recruit).Accepted); Apply(match, "resume");
         Apply(match, "ready"); Assert.False(match.Apply(1, recruit).Accepted); Apply(match, "unready");
-        Assert.True(match.Apply(1, recruit).Accepted); Assert.Equal(4, match.Players[1].Food);
-        Assert.True(match.Apply(1, recruit).Accepted); Assert.Equal(0, match.Players[1].Food);
+        Assert.True(match.Apply(1, recruit).Accepted); Assert.Equal(8, match.Players[1].Food);
+        Assert.True(match.Apply(1, recruit).Accepted); Assert.Equal(8, match.Players[1].Food);
+        Assert.All(match.Players[1].Soldiers, u => Assert.Equal(2, u.Level));
         string before = JsonSerializer.Serialize(match.Snapshot());
         Assert.False(match.Apply(1, recruit).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
     }
     [Fact]
     public void OccupiedTransferApproachConservesBodiesAndRecovery()
     {
-        using Match match = Battle(new Rules { WaveOne = 32, DefenderDamage = 0, SoldierDamage = 0, RangedDamage = 0, BerserkerDamage = 0, MageDamage = 0 }, 32, mixed: true);
+        using Match match = Battle(new Rules { Campaign = CampaignFixture.Three(first: 32), DefenderDamage = 0, SoldierDamage = 0, RangedDamage = 0, BerserkerDamage = 0, MageDamage = 0 }, 32, mixed: true);
         CombatFixture.Steps(match, 480);
         UnitState before = match.Enemies.OrderByDescending(e => e.Cooldown).First();
         Assert.True(before.Cooldown > 0); match.Combat.Transfer(before.Id, 2); match.Combat.Transfer(before.Id, 1);
@@ -241,7 +248,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         using Match match = Battle(new Rules
         {
-            WaveOne = 64,
+            Campaign = CampaignFixture.Three(first: 64),
             SoldierDamage = 0,
             RangedDamage = 0,
             BerserkerDamage = 0,

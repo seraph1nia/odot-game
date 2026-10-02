@@ -115,9 +115,13 @@ internal sealed partial class Runner
         await Action(client, "start", deadline.Token);
         await Action(client, "build 0 farm", deadline.Token);
         await Action(client, "build 1 barracks", deadline.Token);
+        await Action(client, "build 2 metalmine", deadline.Token);
         await Action(client, "ready", deadline.Token);
+        CityState equipped = Latest(client).Players.Single();
         GameEvent recruited = await Action(client, "recruit 1", deadline.Token);
-        Require(State(recruited).Players.Single().Soldiers.Length == 1 && State(recruited).Players.Single().Food == 0,
+        ResourceCost quote = new EconomyConfiguration(State(recruited).Rules).Recruitment(UnitType.Swordsman, 1);
+        Require(State(recruited).Players.Single().Soldiers.Length == 1 && State(recruited).Players.Single().Food == equipped.Food
+            && State(recruited).Players.Single().Metal == equipped.Metal - quote.Metal,
             "exported roles start, construct, produce and recruit through the normal protocol");
         await owned.DisposeAsync(); owned.CheckErrors();
     }

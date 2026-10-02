@@ -10,7 +10,7 @@ public enum UnitType { Swordsman, Crossbowman, Berserker, Mage }
 public enum CombatEventType { AttackStarted, Impact, Hit, Death, DefenderShot }
 public readonly record struct WeaponProfile(int Health, int Damage, int HexRange, int MoveTicks, int WindupTicks, int CadenceTicks)
 {
-    public int CapacityCost { get; init; }
+    public int Size { get; init; }
     public int Initiative { get; init; }
     public int DeathTicks { get; init; }
     public int SplashHexRadius { get; init; }
@@ -23,7 +23,7 @@ public sealed record CombatEvent(long Sequence, long Tick, CombatEventType Type,
     public int[] Victims { get; init; } = [];
 }
 
-internal readonly record struct UnitIdentity(int Id, UnitType Type, int Owner, int Origin, int Destination, Faction Faction, int Rank);
+internal readonly record struct UnitIdentity(int Id, UnitType Type, int Owner, int Origin, int Destination, Faction Faction, int Rank, bool IsBoss = false, int Level = 1);
 public sealed record CombatDecisionState(long Sequence, int Generation, ulong SchedulingRank, int ObjectiveId = 0, bool ObjectiveCity = false,
     int ObjectiveCell = 0, long ObservedRevision = -1, long RetryTick = 0)
 {

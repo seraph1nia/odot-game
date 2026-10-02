@@ -6,11 +6,11 @@ namespace Game.Core.Tests;
 
 public sealed class HexBattleTests(ITestOutputHelper output)
 {
-    private static int At(CombatSimulation combat, UnitType type, Faction faction, int cell, int footprint, bool wait = false)
+    private static int At(CombatSimulation combat, UnitType type, Faction faction, int cell, int anchor, bool wait = false)
     {
         int id = combat.Create(type, faction == Faction.Adventurers ? 1 : 0, 1, 1, faction);
         UnitState unit = combat.Read(id);
-        HexUnitState hex = CombatFixture.At(unit, cell, footprint);
+        HexUnitState hex = CombatFixture.At(unit, cell, anchor);
         combat.Seed(unit with { Hex = wait ? hex with { Action = UnitActionKind.Recovery, EndTick = 500 } : hex, Deployed = true, ReadyTick = wait ? 500 : 0 });
         return id;
     }
@@ -20,10 +20,10 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         using var combat = new CombatSimulation(new(), seed: 123);
         int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
         int nearer = At(combat, UnitType.Mage, Faction.Skeletons, 14, 1, wait: true);
-        int lower = At(combat, UnitType.Swordsman, Faction.Skeletons, 11, 7, wait: true);
+        int lower = At(combat, UnitType.Swordsman, Faction.Skeletons, 11, 1, wait: true);
         combat.Step(1, []); Assert.Equal(nearer, combat.Read(actor).TargetId);
         UnitState enemy = combat.Read(lower);
-        combat.Seed(enemy with { Hex = enemy.Hex! with { Position = new(16, 7) } });
+        combat.Seed(enemy with { Hex = enemy.Hex! with { Position = new(16, 1) } });
         for (int tick = 2; tick <= 60; tick++) combat.Step(tick, []);
         Assert.Equal(nearer, combat.Read(actor).TargetId);
         combat.Step(61, []); Assert.Equal(lower, combat.Read(actor).TargetId);
@@ -49,7 +49,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
                 ActionSequence = 1
             }
         });
-        int attacker = At(combat, UnitType.Swordsman, Faction.Skeletons, 14, 7);
+        int attacker = At(combat, UnitType.Swordsman, Faction.Skeletons, 14, 1);
         UnitState strike = combat.Read(attacker);
         combat.Seed(strike with
         {
@@ -63,7 +63,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         });
         combat.Advance(impact, []);
         CombatEvent hit = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact);
-        Assert.Equal(landed, hit.Landed); Assert.Equal(landed ? 400 : 800, combat.Read(mover).Health);
+        Assert.Equal(landed, hit.Landed); Assert.Equal(landed ? 2000 : 3000, combat.Read(mover).Health);
         Assert.Equal(landed ? 11 : 8, combat.Read(mover).Hex!.Position.Cell);
         Assert.Equal(landed ? 3 : 2, combat.Reservations.Positions.Length);
     }
@@ -71,7 +71,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     public void DeathFacingCapturesTheTargetPoseWithoutRetainingItsLiveState()
     {
         using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 7);
+        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 1);
         int target = At(combat, UnitType.Crossbowman, Faction.Skeletons, 14, 1);
         combat.Seed(combat.Read(actor) with { Health = 100 });
         for (int tick = 1; tick <= 19; tick++) combat.Step(tick, []);
@@ -88,8 +88,8 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     public void LethalImpactAtRecoveryEndPreventsANewAttackOnThatTick()
     {
         using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 7);
-        int enemy = At(combat, UnitType.Swordsman, Faction.Skeletons, 14, 7);
+        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 1);
+        int enemy = At(combat, UnitType.Swordsman, Faction.Skeletons, 14, 1);
         UnitState recovering = combat.Read(actor), striking = combat.Read(enemy);
         combat.Seed(recovering with
         { Health = 100, ReadyTick = 61, AttackSequence = 1, TargetId = enemy, Hex = recovering.Hex! with { Action = UnitActionKind.Recovery, ActionSequence = 1, StartTick = 1, EndTick = 61 } });
@@ -112,11 +112,11 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     public void FeasibleApproachBeatsACloserButFullyBlockedOpponent()
     {
         using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 16, 7);
-        int near = At(combat, UnitType.Swordsman, Faction.Skeletons, 11, 7, wait: true);
+        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 16, 1);
+        int near = At(combat, UnitType.Swordsman, Faction.Skeletons, 11, 1, wait: true);
         int reachable = At(combat, UnitType.Mage, Faction.Skeletons, 15, 1, wait: true);
         foreach (int cell in new[] { 7, 8, 10, 12, 13, 14 })
-            for (int footprint = 1; footprint <= 6; footprint++) At(combat, UnitType.Crossbowman, Faction.Adventurers, cell, footprint, wait: true);
+            for (int anchor = 1; anchor <= 3; anchor++) At(combat, UnitType.Crossbowman, Faction.Adventurers, cell, anchor, wait: true);
         Assert.Equal(2, combat.Board.Distance(16, combat.Read(near).Hex!.Position.Cell));
         Assert.Equal(3, combat.Board.Distance(16, combat.Read(reachable).Hex!.Position.Cell));
         combat.Step(1, []);
@@ -138,7 +138,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         Assert.All(melee, u => Assert.Contains(u.Hex!.Position.Cell, a.Board.Front(u.Faction)));
         var columns = melee.GroupBy(u => u.Hex!.Position.Cell).ToArray();
         Assert.Equal(3, columns.Length); Assert.All(columns, g => Assert.Equal(2, g.Count()));
-        Assert.All(columns, g => Assert.Collection(g.Select(u => u.Hex!.Position.Footprint).Order(), f => Assert.Equal(7, f), f => Assert.Equal(13, f)));
+        Assert.All(columns, g => Assert.Collection(g.Select(u => u.Hex!.Position.Anchor).Order(), f => Assert.Equal(1, f), f => Assert.Equal(2, f)));
         Assert.Equal(new HexPosition(20, 1), a.Snapshot().Single(u => u.Type == UnitType.Crossbowman).Hex!.Position);
         Assert.Equal(new HexPosition(19, 1), a.Snapshot().Single(u => u.Type == UnitType.Mage).Hex!.Position);
         Assert.All(a.Snapshot(), u => { Assert.False(u.PendingImpact); Assert.Equal(0, u.AttackSequence); });
@@ -148,11 +148,11 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     {
         using var combat = new CombatSimulation(new(), seed: 123);
         foreach (int cell in combat.Board.Front(Faction.Skeletons))
-            foreach (int footprint in new[] { 11, 12, 13 }) At(combat, UnitType.Swordsman, Faction.Adventurers, cell, footprint);
+            foreach (int anchor in new[] { 1, 2, 3 }) At(combat, UnitType.Swordsman, Faction.Adventurers, cell, anchor);
         foreach (int cell in combat.Board.Rear(Faction.Skeletons))
-            for (int footprint = 1; footprint <= 6; footprint++)
+            for (int anchor = 1; anchor <= 3; anchor++)
             {
-                int id = At(combat, UnitType.Crossbowman, Faction.Skeletons, cell, footprint);
+                int id = At(combat, UnitType.Crossbowman, Faction.Skeletons, cell, anchor);
                 UnitState body = combat.Read(id);
                 combat.Seed(body with
                 {
@@ -160,12 +160,12 @@ public sealed class HexBattleTests(ITestOutputHelper output)
                     Hex = body.Hex! with
                     {
                         Lifecycle = UnitLifecycle.Dying,
-                        DeathStartTick = footprint == 1 ? 0 : 24,
-                        DeathEndTick = footprint == 1 ? 48 : 72
+                        DeathStartTick = anchor == 1 ? 0 : 24,
+                        DeathEndTick = anchor == 1 ? 48 : 72
                     }
                 });
             }
-        int incoming = combat.Create(UnitType.Swordsman, 0, 2, 2, Faction.Skeletons);
+        int incoming = combat.Create(UnitType.Swordsman, 0, 2, 2, Faction.Skeletons, isBoss: true);
         combat.Advance(25, []); combat.Transfer(incoming, 1); combat.TrackClearedAdmission(1);
         AdmissionBound bound = Assert.Single(combat.Admissions); Assert.Equal(72, bound.FirstAdmissionBound);
         for (int tick = 26; tick < 72; tick++)
@@ -192,7 +192,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     [InlineData(UnitType.Mage, true)]
     public void RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes(UnitType type, bool retainedDeaths)
     {
-        using var match = new Match(new Rules { WaveOne = 1, DefenderDamage = 0 }, combatSeed: 123);
+        using var match = new Match(new Rules { Campaign = CampaignFixture.Three(first: 1), DefenderDamage = 0 }, combatSeed: 123);
         match.Join(); match.Join(); VillageStrategyTests.Act(match, 1, "start");
         for (int n = 0; n < 4; n++)
             foreach (int city in new[] { 1, 2 }) VillageStrategyTests.Act(match, city, "ready");
@@ -204,7 +204,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         match.Combat.Seed(enemy with
         {
             Health = enemy.Health - 100,
-            Hex = CombatFixture.At(enemy, 17, enemy.Profile.CapacityCost == 2 ? 7 : 1) with
+            Hex = CombatFixture.At(enemy, 17, 1) with
             { Action = UnitActionKind.Windup, ActionSequence = 1, StartTick = start, EndTick = ready },
             TargetId = 1,
             TargetCity = true,
@@ -225,7 +225,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
             UnitState guard = match.Combat.Read(id); long guardReady = 24 + guard.Profile.CadenceTicks;
             match.Combat.Seed(guard with
             {
-                Hex = CombatFixture.At(guard, cell, guard.Profile.CapacityCost == 2 ? 7 : 1) with
+                Hex = CombatFixture.At(guard, cell, 1) with
                 { Action = UnitActionKind.Windup, ActionSequence = 1, StartTick = 24, EndTick = guardReady },
                 TargetId = oldTarget,
                 AttackSequence = 1,
@@ -237,15 +237,15 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         }
         if (retainedDeaths)
             foreach (int cell in match.Combat.Board.Rear(Faction.Skeletons))
-                for (int footprint = 1; footprint <= 6; footprint++)
+                for (int anchor = 1; anchor <= 3; anchor++)
                 {
                     int id = match.Combat.Create(UnitType.Crossbowman, 0, 2, 2, Faction.Skeletons);
                     UnitState corpse = match.Combat.Read(id);
                     match.Combat.Seed(corpse with
                     {
                         Health = 0,
-                        Hex = CombatFixture.At(corpse, cell, footprint) with
-                        { Lifecycle = UnitLifecycle.Dying, DeathStartTick = footprint == 1 ? 0 : 24, DeathEndTick = footprint == 1 ? 48 : 72 }
+                        Hex = CombatFixture.At(corpse, cell, anchor) with
+                        { Lifecycle = UnitLifecycle.Dying, DeathStartTick = anchor == 1 ? 0 : 24, DeathEndTick = anchor == 1 ? 48 : 72 }
                     });
                 }
         UnitState before = match.Combat.Read(incoming); CombatFixture.Steps(match, 2);
@@ -254,7 +254,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         Assert.Equal((before.Id, before.Health, before.Profile, before.ReadyTick),
             (transferred.Id, transferred.Health, transferred.Profile, transferred.ReadyTick));
         Assert.Equal(2, transferred.Destination); Assert.False(transferred.PendingImpact);
-        long bound = retainedDeaths ? enemy.Profile.CapacityCost == 1 ? 48 : 72 : 27;
+        long bound = retainedDeaths ? 48 : 27;
         Assert.Equal(bound, Assert.Single(match.Snapshot().Admissions).FirstAdmissionBound);
         while (match.Tick < bound)
         {
@@ -312,10 +312,10 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     [Fact]
     public void MageMakesAnEffectiveContributionToOrdinaryTwoVictimClustering()
     {
-        RoleRun mage = Role(UnitType.Mage, 7, 7), crossbow = Role(UnitType.Crossbowman, 7, 7);
+        RoleRun mage = Role(UnitType.Mage, 6, 6), crossbow = Role(UnitType.Crossbowman, 6, 6);
         int interval = Math.Min(mage.SupportEndTick, crossbow.SupportEndTick);
         decimal Damage(RoleRun r) => r.Damage.Where(p => p.Key <= interval).Sum(p => p.Value);
-        output.WriteLine($"Ordinary 7-vs-7 screen: Mage food=7 gold=2 damage={Damage(mage)} secondary={mage.SecondaryHits} clear={mage.ClearTick} health={mage.Health}; Crossbow food=5 gold=0 damage={Damage(crossbow)} clear={crossbow.ClearTick} health={crossbow.Health}; shared live interval={interval}.");
+        output.WriteLine($"Ordinary 6-vs-6 screen: Mage equipment=15 cloth/5 gold upkeep=2 damage={Damage(mage)} secondary={mage.SecondaryHits} clear={mage.ClearTick} health={mage.Health}; Crossbow equipment=5 metal/10 wood upkeep=1 damage={Damage(crossbow)} clear={crossbow.ClearTick} health={crossbow.Health}; shared live interval={interval}.");
         Assert.NotEqual(int.MaxValue, mage.ClearTick); Assert.NotEqual(int.MaxValue, crossbow.ClearTick);
         Assert.True(mage.SecondaryHits > 0); Assert.True(Damage(mage) > Damage(crossbow));
         Assert.True(mage.ClearTick < crossbow.ClearTick || mage.Health > crossbow.Health);
@@ -338,7 +338,8 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         using var combat = new CombatSimulation(new(), seed: 123);
         for (int n = 0; n < 12; n++) combat.Create(UnitType.Swordsman, 1, 1, 1);
         for (int n = 0; n < 9; n++) combat.Create(UnitType.Crossbowman, 1, 1, 1);
-        for (int n = 0; n < 18; n++) combat.Create(Catalogs.EnemyRole(3, n), 0, 1, 1, Faction.Skeletons);
+        UnitType[] opponents = [UnitType.Swordsman, UnitType.Berserker, UnitType.Crossbowman, UnitType.Mage];
+        for (int n = 0; n < 18; n++) combat.Create(opponents[n % opponents.Length], 0, 1, 1, Faction.Skeletons);
         combat.BeginWave(); int[] queued = combat.Soldiers(1).Where(u => !u.Deployed && u.Class == UnitClass.Melee).Select(u => u.Id).ToArray();
         Assert.Equal(3, queued.Length); bool attacked = false;
         for (int tick = 1; tick <= 1000 && !attacked; tick++)
@@ -354,12 +355,12 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     {
         using var combat = new CombatSimulation(new Rules { RangedReach = 1, Combat = new() { Berserker = new(6, 20, 27, 48) } }, seed: 123);
         int support = At(combat, UnitType.Crossbowman, Faction.Adventurers, 14, 1);
-        int melee = At(combat, UnitType.Swordsman, Faction.Adventurers, 14, 8);
-        int independent = At(combat, UnitType.Swordsman, Faction.Adventurers, 7, 7);
-        At(combat, UnitType.Berserker, Faction.Adventurers, 13, 16, wait: true);
-        At(combat, UnitType.Berserker, Faction.Adventurers, 19, 16, wait: true);
-        At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 11, wait: true);
-        At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 13, wait: true);
+        int melee = At(combat, UnitType.Swordsman, Faction.Adventurers, 14, 2);
+        int independent = At(combat, UnitType.Swordsman, Faction.Adventurers, 7, 1);
+        At(combat, UnitType.Berserker, Faction.Adventurers, 13, 1, wait: true);
+        At(combat, UnitType.Berserker, Faction.Adventurers, 19, 1, wait: true);
+        At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 1, wait: true);
+        At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 3, wait: true);
         At(combat, UnitType.Mage, Faction.Skeletons, 16, 1, wait: true);
         At(combat, UnitType.Mage, Faction.Skeletons, 2, 1, wait: true);
         combat.Step(1, []);
@@ -373,9 +374,9 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     public void UnchangedBlockedEpisodeKeepsItsSeededRankAndObjective()
     {
         using var combat = new CombatSimulation(new Rules { Combat = new() { Swordsman = new(6, 10, 30, 48) } }, seed: 123);
-        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 11, 16);
-        foreach (int cell in combat.Board.Cell(11).Neighbors) At(combat, UnitType.Swordsman, Faction.Adventurers, cell, 16, wait: true);
-        At(combat, UnitType.Swordsman, Faction.Skeletons, 1, 16, wait: true);
+        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 11, 1);
+        foreach (int cell in combat.Board.Cell(11).Neighbors) At(combat, UnitType.Swordsman, Faction.Adventurers, cell, 1, wait: true);
+        At(combat, UnitType.Swordsman, Faction.Skeletons, 1, 1, wait: true);
         combat.Step(1, []); CombatDecisionState initial = combat.Read(actor).Decision!;
         for (int tick = 2; tick <= 50; tick++)
         {
@@ -386,7 +387,7 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         }
         int other = combat.Create(UnitType.Swordsman, 2, 2, 2);
         CombatUnit elsewhere = combat.Inspect(other);
-        HexTransition transition = combat.Board.Transition(new(17, 16), new(14, 16));
+        HexTransition transition = combat.Board.Transition(new(17, 1), new(14, 1));
         combat.Seed(elsewhere with
         {
             Location = new(UnitLifecycle.Alive, transition.Source),

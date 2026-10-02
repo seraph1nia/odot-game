@@ -10,7 +10,7 @@ public sealed class AuthoritySessionTests
         int slot = -1, Building building = Building.Empty)
     {
         MatchSnapshot state = session.Snapshot();
-        return new(sequence, state.MatchId, state.Phase, state.TurnSerial, action, player, slot, building);
+        return new(sequence, state.MatchId, state.Phase, state.TurnSerial, action, player, slot, building, ExpectedGeneration: slot is >= 0 and < 9 ? state.Players.FirstOrDefault(p => p.Id == player)?.Slots[slot].Generation ?? 0 : 0, ExpectedExpansionCount: (state.Players.FirstOrDefault(p => p.Id == player)?.Slots.Count(s => s.Purchased) ?? 5) - 5);
     }
     private static CommandResult Remote(AuthoritySession session, int peer, Command command, ulong time = 1000)
         => session.Request(peer, JsonSerializer.Serialize(command, WireJson.Options), time)!;
@@ -134,8 +134,9 @@ public sealed class AuthoritySessionTests
         Assert.True(Send(Cmd(session, player, 1, "start")).Accepted);
         Assert.True(Send(Cmd(session, player, 2, "build", 0, Building.Farm)).Accepted);
         Assert.True(Send(Cmd(session, player, 3, "build", 1, Building.Barracks)).Accepted);
-        Assert.True(Send(Cmd(session, player, 4, "ready")).Accepted);
-        Command request = Cmd(session, player, 5, "recruit", 1);
+        Assert.True(Send(Cmd(session, player, 4, "build", 2, Building.MetalMine)).Accepted);
+        Assert.True(Send(Cmd(session, player, 5, "ready")).Accepted);
+        Command request = Cmd(session, player, 6, "recruit", 1);
         CommandResult accepted = Send(request);
         Assert.True(accepted.Accepted);
         if (remote)
@@ -147,7 +148,8 @@ public sealed class AuthoritySessionTests
         Assert.Equal(accepted, Send(request));
         Assert.Equal(beforeRetry, State(session));
         CityState city = session.Snapshot().Players.Single();
-        Assert.Equal(0, city.Food);
+        Assert.Equal(5, city.Food);
+        Assert.Equal(new EconomyConfiguration(new Rules()).Buildings().Single(b => b.Type == Building.MetalMine).LevelOneOutput - new EconomyConfiguration(new Rules()).Recruitment(UnitType.Swordsman, 1).Metal, city.Metal);
         Assert.Single(city.Soldiers);
     }
 
@@ -180,7 +182,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void ResumeDuringPauseAndAfterEliminationRetainsCityAndLedger()
     {
-        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, WaveOne = 1 });
+        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, Campaign = CampaignFixture.Three(first: 1) });
         AdmissionResult player = Join(session, 2);
         Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 1, "start")).Accepted);
         for (int sequence = 2; sequence <= 5; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
@@ -207,7 +209,7 @@ public sealed class AuthoritySessionTests
         // The delivery adapter supplies these trusted identities; SDK lookup itself remains
         // separate Steam acceptance. Accelerated rules reach elimination through normal steps.
         using var session = new AuthoritySession(AuthorityPolicy.PlayingHost,
-            new Rules { CityHealth = 3, DefenderDamage = 0, WaveOne = 1 },
+            new Rules { CityHealth = 3, DefenderDamage = 0, Campaign = CampaignFixture.Three(first: 1) },
             originalHostIdentity: "original-host", requireTrustedIdentity: true);
         AdmissionResult guest = Join(session, 2, identity: "guest-account");
         Assert.True(guest.Accepted);
@@ -235,7 +237,10 @@ public sealed class AuthoritySessionTests
         Assert.Equal(guest.Credential, resumed.Credential);
         Assert.Equal(2, resumed.State!.Players.Length);
         CityState city = resumed.State.Players.Single(player => player.Id == guest.PlayerId);
-        Assert.Equal(new SlotState(Building.Farm, 1), city.Slots[0]);
+        Assert.Equal(Building.Farm, city.Slots[0].Type); Assert.Equal(1, city.Slots[0].Level);
+        Assert.True(city.Slots[0].Purchased); Assert.Equal(1, city.Slots[0].Generation);
+        Assert.Equal(new ResourceCost(20, 10), city.Slots[0].Investment);
+        Assert.Equal(new ResourceCost(10, 5), city.Slots[0].Refund);
         Assert.Equal(70, city.Gold); Assert.Equal(15, city.Food);
         string paused = State(session);
         Assert.Equal(purchased, Remote(session, 4, purchase));

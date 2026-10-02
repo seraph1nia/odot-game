@@ -4,7 +4,7 @@ using Godot;
 namespace Game;
 
 // Presentation-only mapping. Hex adjacency, range and reservations never read
-// these vectors. The footprint/transition identity selects one fixed route.
+// these vectors. The anchor/transition identity selects one fixed route.
 internal sealed class CombatLayout(HexBoard board)
 {
     private const float TransitRing = 1.5f;
@@ -17,8 +17,8 @@ internal sealed class CombatLayout(HexBoard board)
     }
     private static Vector3 Anchor(HexBoard board, HexPosition position)
     {
-        HexFootprint footprint = board.Footprint(position.Footprint);
-        return Cell(board, position.Cell) + new Vector3(footprint.AnchorX / 1000f, 0, footprint.AnchorForward / 1000f);
+        HexAnchor anchor = board.Anchor(position.Anchor);
+        return Cell(board, position.Cell) + new Vector3(anchor.AnchorX / 1000f, 0, anchor.AnchorForward / 1000f);
     }
     public Vector3 Position(UnitState unit, double tick)
     {
@@ -27,7 +27,7 @@ internal sealed class CombatLayout(HexBoard board)
     }
     private Vector3 Position(int city, HexUnitState hex, double tick)
     {
-        if (hex.Lifecycle == UnitLifecycle.Queued) return Center(city);
+        if (hex.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve) return Center(city);
         Vector3 position = Anchor(board, hex.Position);
         if (hex.HoldsTransit)
         {
@@ -82,7 +82,7 @@ internal sealed class CombatLayout(HexBoard board)
     }
     private static Vector3 Exit(HexBoard board, HexPosition position)
     {
-        HexFootprint f = board.Footprint(position.Footprint);
+        HexAnchor f = board.Anchor(position.Anchor);
         float x = f.AnchorX / 1000f;
         float sign = f.AnchorForward > 0 ? 1 : -1;
         return Cell(board, position.Cell) + new Vector3(x, 0, sign * Mathf.Sqrt(TransitRing * TransitRing - x * x));

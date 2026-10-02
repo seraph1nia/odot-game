@@ -11,7 +11,7 @@ public sealed class CombatLifecycleTests
         int mover = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
         int attacker = combat.Create(UnitType.Crossbowman, 1, 1, 1);
         UnitState unit = combat.Read(mover), enemy = combat.Read(attacker);
-        combat.Seed(unit with { Health = 100, Hex = CombatFixture.At(unit, 8, 7) });
+        combat.Seed(unit with { Health = 100, Hex = CombatFixture.At(unit, 8, 1) });
         combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 14, 1) });
         combat.Step(1, []);
         Assert.Equal(UnitActionKind.Moving, combat.Read(mover).Hex!.Action);
@@ -30,8 +30,8 @@ public sealed class CombatLifecycleTests
             Assert.Equal(18, frozen.FrozenMoveTicks); Assert.True(frozen.HoldsTransit);
             PositionReservation[] positions = combat.Reservations.Positions.Where(r => r.UnitId == mover).ToArray();
             Assert.Equal(2, positions.Length);
-            Assert.Contains(positions, r => r.Cell == frozen.Position.Cell && r.Footprint == frozen.Position.Footprint);
-            Assert.Contains(positions, r => r.Cell == frozen.Destination.Cell && r.Footprint == frozen.Destination.Footprint);
+            Assert.Contains(positions, r => r.Cell == frozen.Position.Cell && r.Anchor == frozen.Position.Anchor);
+            Assert.Contains(positions, r => r.Cell == frozen.Destination.Cell && r.Anchor == frozen.Destination.Anchor);
             Assert.Equal(frozen.ActionSequence, Assert.Single(combat.Reservations.Transit, r => r.UnitId == mover).ActionSequence);
             for (long tick = 20; tick < frozen.DeathEndTick; tick++)
             {

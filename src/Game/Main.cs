@@ -356,7 +356,7 @@ public partial class Main : Node, IGameSession
         AdmissionResult admission = _authority.Admit(peer, version, credential, Time.GetTicksMsec(), _authenticatedIdentity?.Invoke(peer), expectedMatchId.Length == 0 ? null : expectedMatchId);
         if (admission.Ignored) return;
         if (!admission.Accepted) { RpcId(peer, MethodName.Rejected, admission.Message, attempt); return; }
-        RpcId(peer, MethodName.Welcome, admission.PlayerId, admission.Credential, JsonSerializer.Serialize(admission.State, WireJson.Options), _authority.CanStart(admission.PlayerId), _authority.Policy == AuthorityPolicy.PlayingHost ? _authority.LocalPlayerId : 0, attempt);
+        RpcId(peer, MethodName.Welcome, admission.PlayerId, admission.Credential, SnapshotPayload.Encode(admission.State!), _authority.CanStart(admission.PlayerId), _authority.Policy == AuthorityPolicy.PlayingHost ? _authority.LocalPlayerId : 0, attempt);
         SetState(admission.State);
         Emit(new("joined", peer, State, PlayerId: admission.PlayerId));
     }
@@ -373,7 +373,7 @@ public partial class Main : Node, IGameSession
     private void Welcome(int player, string token, string json, bool mayStart, int hostPlayerId, string attempt)
     {
         if (_role != SessionRole.Guest || _finished || attempt != _attempt || !FromAuthority()) return;
-        MatchSnapshot state = JsonSerializer.Deserialize<MatchSnapshot>(json, WireJson.Options)!;
+        MatchSnapshot state = SnapshotPayload.Decode(json)!;
         if (_expectedNativeMatch is not null && state.MatchId != _expectedNativeMatch)
         { FailConnection("connection-failed", "The invited match has ended or changed. Request a new invitation."); return; }
         if (_session?.Value is { } previous && previous.MatchId != state.MatchId)
@@ -390,13 +390,13 @@ public partial class Main : Node, IGameSession
         CommandResult? result = _authority.Request(peer, json, Time.GetTicksMsec());
         if (result is null) return;
         MatchSnapshot state = _authority.Snapshot(); SetState(state);
-        RpcId(peer, MethodName.Acknowledged, JsonSerializer.Serialize(result, WireJson.Options), JsonSerializer.Serialize(state, WireJson.Options));
+        RpcId(peer, MethodName.Acknowledged, JsonSerializer.Serialize(result, WireJson.Options), SnapshotPayload.Encode(state));
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void Acknowledged(string json, string state)
     {
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
-        MatchSnapshot? received = JsonSerializer.Deserialize<MatchSnapshot>(state, WireJson.Options);
+        MatchSnapshot? received = SnapshotPayload.Decode(state);
         if (received is null || State is null || received.MatchId != State.MatchId) return;
         // Snapshots on channel 1 may overtake a channel 0 acknowledgment. Keep the
         // latest state while still delivering the result for this running match.
@@ -420,7 +420,7 @@ public partial class Main : Node, IGameSession
     }
     private bool AcceptState(string json)
     {
-        MatchSnapshot? state = JsonSerializer.Deserialize<MatchSnapshot>(json, WireJson.Options);
+        MatchSnapshot? state = SnapshotPayload.Decode(json);
         if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
         SetState(state); return true;
     }
@@ -431,11 +431,15 @@ public partial class Main : Node, IGameSession
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, UnitClass researchClass = UnitClass.Melee)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, UnitClass researchClass = UnitClass.Melee, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
-        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, city == 0 ? PlayerId : city, slot, building, soldierType, researchClass);
+        int owner = city == 0 ? PlayerId : city;
+        CityState? target = State.Players.FirstOrDefault(p => p.Id == owner);
+        long generation = target is not null && slot is >= 0 and < 9 ? target.Slots[slot].Generation : 0;
+        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, owner, slot, building, soldierType, researchClass,
+            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -453,6 +457,7 @@ public partial class Main : Node, IGameSession
     public override void _Process(double delta)
     {
         _steam?.Process(); _fixtureInvitations?.Process();
+
     }
 
     public override void _PhysicsProcess(double delta)
@@ -470,7 +475,7 @@ public partial class Main : Node, IGameSession
             {
                 MatchSnapshot state = _authority.Snapshot();
                 _broadcastTick = 0; _broadcastRevision = state.Revision; SetState(state);
-                if (_peer is not null && Multiplayer.GetPeers().Length != 0) Rpc(MethodName.Snapshot, JsonSerializer.Serialize(state, WireJson.Options));
+                if (_peer is not null && Multiplayer.GetPeers().Length != 0) Rpc(MethodName.Snapshot, SnapshotPayload.Encode(state));
                 if (Connected && (_automated || _supervised)) Emit(new("snapshot", 1, State, PlayerId: PlayerId));
             }
         }
@@ -524,12 +529,21 @@ public partial class Main : Node, IGameSession
                     SendRequest(new(ReserveSequence(), State!.MatchId, State.Phase, 1, "ready", PlayerId)); break;
                 case "raw" when Connected:
                     if (_authority is not null) AcknowledgeLocal(_authority.RequestLocal(text[4..])); else RpcId(1, MethodName.Request, text[4..]); break;
+                case "raw-burst" when _supervised && Connected && _role == SessionRole.Guest:
+                    int count = int.Parse(parts[1], CultureInfo.InvariantCulture);
+                    if (count is < 1 or > 256) throw new ArgumentOutOfRangeException(nameof(text));
+                    string payload = text[(text.IndexOf(parts[1], StringComparison.Ordinal) + parts[1].Length)..].TrimStart();
+                    for (int n = 0; n < count; n++) RpcId(1, MethodName.Request, payload);
+                    break;
                 case "retry" when Connected:
                     Command? saved = _sent.GetValueOrDefault(long.Parse(parts[1], CultureInfo.InvariantCulture));
                     if (saved is not null) SendRequest(saved); else Feedback = "Original request unavailable in this process; use raw to resend its identity.";
                     break;
                 case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
+                case "buy-plot":
+                case "sell":
                 case "upgrade": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "trade": SendAction("trade", int.Parse(parts[1], CultureInfo.InvariantCulture), resource: Enum.Parse<Game.Core.Resource>(parts[2], true), bundles: int.Parse(parts[3], CultureInfo.InvariantCulture)); break;
                 case "research": SendAction("research", int.Parse(parts[1], CultureInfo.InvariantCulture), researchClass: Enum.Parse<UnitClass>(parts[2], true)); break;
                 case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman); break;
                 default: SendAction(parts[0]); break;
@@ -730,4 +744,5 @@ public partial class Main : Node, IGameSession
             UnbindSignals(); _authority?.End(); _peer?.Close(); _peer?.Dispose(); _drainingPeer?.Close(); _drainingPeer?.Dispose(); _steam?.Dispose(); _steam = null;
         }
     }
+
 }

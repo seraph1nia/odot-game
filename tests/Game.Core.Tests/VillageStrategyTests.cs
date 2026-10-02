@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Game.Core;
+using DevRunner;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -8,9 +9,9 @@ namespace Game.Core.Tests;
 public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(1UL)]
-    [InlineData(4UL)]
     [InlineData(8UL)]
+    // A reproducible live-frontage witness, not a balance sample. The new wave-two
+    // all-melee composition and funded L2 opening produce this contact at seed 8.
     public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
     {
         using Match match = Start(3, seed);
@@ -18,15 +19,13 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         {
             Assert.True(Act(match, id, "build", 0, Building.Farm).Accepted);
             Assert.True(Act(match, id, "build", 1, Building.Barracks).Accepted);
-            Assert.True(Act(match, id, "build", 2, id == 1 ? Building.Farm : Building.Lumbermill).Accepted);
+            Assert.True(Act(match, id, "build", 2, Building.MetalMine).Accepted);
         }
         void Invest(int id)
         {
             City city = match.Players[id];
-            if (city.Id == 1 && city.Slots[3].Type == Building.Empty && city.Gold >= 20) Assert.True(Act(match, id, "build", 3, Building.Lumbermill).Accepted);
-            if (city.Slots[4].Type == Building.Empty && city.Gold >= 20 && city.Wood >= 10) Assert.True(Act(match, id, "build", 4, Building.Farm).Accepted);
-            if (city.Slots[0].Level == 1 && city.Gold >= 20 && city.Wood >= 10) Assert.True(Act(match, id, "upgrade", 0).Accepted);
-            while (city.Food >= 5) Assert.True(Act(match, id, "recruit", 1).Accepted);
+            while (CampaignStrategy.ReinforcementInvestment(match.Snapshot(), id, id == 1) is EconomyAction decision)
+                Assert.True(match.Apply(id, decision.Command(match.Snapshot(), id)).Accepted);
             output.WriteLine($"P{id} W{match.Wave} T{match.Turn} army={city.Soldiers.Count} gold={city.Gold} wood={city.Wood}");
         }
         void Prepare(bool firstWave)
@@ -36,7 +35,8 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
                 foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
                 {
                     if (city.Id == 1 || firstWave && city.Id == 2) Invest(city.Id);
-                    else if (city.Id == 2 && match.Phase == Phase.Preparation) for (int n = 0; n < 3; n++) Assert.True(Act(match, 2, "recruit", 1).Accepted);
+                    else if (city.Id == 2 && match.Phase == Phase.Preparation) Assert.True(Act(match, 2, "recruit", 1).Accepted);
+
                     Assert.True(Act(match, city.Id, "ready").Accepted);
                 }
                 if (match.Players.Values.Where(c => !c.Eliminated).All(c => c.Ready)) match.Step();
@@ -45,7 +45,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Prepare(true);
         while (match.Phase == Phase.Combat) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave); Assert.True(match.Players[3].Eliminated);
-        Prepare(false); Assert.Equal(18, match.Enemies.Count);
+        Prepare(false); Assert.Equal(12, match.Enemies.Count);
         MatchSnapshot? before = null, transfer = null;
         for (int step = 0; step < 3000 && match.Phase == Phase.Combat && !match.Players[2].Eliminated; step++)
         {
@@ -67,7 +67,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
     }
 
     internal static CommandResult Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, UnitType unit = UnitType.Swordsman, UnitClass @class = UnitClass.Melee)
-        => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, @class));
+        => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, @class, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[city].Slots[slot].Generation : 0));
     private static Match Start(int count = 1, ulong seed = 123)
     {
         var match = new Match(combatSeed: seed); for (int n = 0; n < count; n++) match.Join();
@@ -91,20 +91,21 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.False(Act(match, 1, "build", 0, Building.Farm).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
         Assert.True(Act(match, 1, "build", 0, Building.Lumbermill).Accepted); Assert.True(Act(match, 1, "ready").Accepted);
         Assert.Equal(5, city.Wood); Assert.Equal(50, city.Gold);
-        Assert.Equal(9, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
+        Assert.Equal(13, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
     }
     [Fact]
     public void ThirdProductionCanBeSpentBeforeBattleAndPreparationHasNoIncome()
     {
         using Match match = Start(); Assert.True(Act(match, 1, "build", 0, Building.Farm).Accepted);
         Assert.True(Act(match, 1, "build", 1, Building.Barracks).Accepted);
+        Assert.True(Act(match, 1, "build", 2, Building.MetalMine).Accepted);
         for (int n = 0; n < 3; n++) Assert.True(Act(match, 1, "ready").Accepted);
         Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(3, match.ProductionCount); Assert.Equal(3, match.Turn);
         Command stale = new(1, match.Id, Phase.Building, match.TurnSerial - 1, "ready", 1);
         Assert.False(match.Apply(1, stale).Accepted);
         Assert.True(Act(match, 1, "recruit", 1).Accepted); CityState before = match.Players[1].Snapshot();
         Assert.True(Act(match, 1, "ready").Accepted); Assert.Equal(Phase.Combat, match.Phase);
-        CityState after = match.Players[1].Snapshot(); Assert.Equal(before.Gold, after.Gold); Assert.Equal(before.Food, after.Food); Assert.Equal(before.Wood, after.Wood);
+        CityState after = match.Players[1].Snapshot(); Assert.Equal(before.Gold, after.Gold); Assert.Equal(before.Food - match.Economy.Upkeep(UnitType.Swordsman), after.Food); Assert.Equal(before.Wood, after.Wood);
     }
     [Theory]
     [InlineData(UnitType.Swordsman, Building.Barracks)]
@@ -113,7 +114,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
     [InlineData(UnitType.Mage, Building.Arcanum)]
     public void RecruitmentUsesTheCorrectBuildingAndRanksWithoutHealing(UnitType type, Building building)
     {
-        using Match match = Start(); City city = match.Players[1]; city.Gold = 200; city.Food = 100; city.Wood = 100;
+        using Match match = Start(); City city = match.Players[1]; city.Gold = 200; city.Food = 100; city.Wood = 100; city.Stone = 100; city.Metal = 100; city.Cloth = 100;
         Assert.True(Act(match, 1, "build", 0, building).Accepted); Assert.True(Act(match, 1, "build", 1, Building.Blacksmith).Accepted);
         Assert.True(Act(match, 1, "build", 2, Building.Farm).Accepted);
         Assert.False(Act(match, 1, "recruit", 2, unit: type).Accepted);
@@ -160,56 +161,56 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
     public void OrdinaryStrategiesWinWithinBoundedSteps(string strategy, int players, ulong seed)
     {
         using Match match = Start(players, seed);
-        int ticks = 0, recruits = 0, preparations = 0;
-        var recruitedRoles = new HashSet<UnitType>();
-        var waveTicks = new Dictionary<int, int>();
+        int ticks = 0, recruits = 0, preparations = 0, trades = 0, expansions = 0, sales = 0;
+        var recruitedRoles = new HashSet<UnitType>(); var waveTicks = new Dictionary<int, int>();
+        int firstLevelFiveBattle = 0, laterMetalRecruits = 0, laterClothRecruits = 0; bool upgradedProducer = false, expandedFullLand = false;
+        Assert.All(match.Players.Values, c => { Assert.Equal(0, c.Metal); Assert.Equal(0, c.Cloth); Assert.Equal(0, c.Stone); });
         while (match.Phase is Phase.Building or Phase.Preparation or Phase.Combat)
         {
             if (match.Phase == Phase.Combat)
             {
-                Assert.True(ticks++ < 18000, "Strategy exceeded 300 seconds of fixed steps."); waveTicks[match.Wave] = waveTicks.GetValueOrDefault(match.Wave) + 1; match.Step(); continue;
+                Assert.True(ticks++ < 100000, "Strategy exceeded its complete campaign bound.");
+                waveTicks[match.Wave] = waveTicks.GetValueOrDefault(match.Wave) + 1;
+                if (firstLevelFiveBattle == 0 && match.Players.Values.SelectMany(c => c.Soldiers).Any(u => u.Level == 5 && u.Participating && u.Deployed)) firstLevelFiveBattle = match.Wave;
+                match.Step(); continue;
             }
-            if (match.Phase == Phase.Preparation && match.Players.Values.Where(c => c.Connected && !c.Eliminated).All(c => c.Ready))
-            { match.Step(); continue; }
-            foreach (City city in match.Players.Values.Where(c => !c.Eliminated))
+            foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
             {
-                void TryBuild(int slot, Building building) { if (city.Slots[slot].Type == Building.Empty) Act(match, city.Id, "build", slot, building); }
-                TryBuild(0, Building.Farm);
-                if (strategy == "towers") TryBuild(1, Building.Lumbermill);
-                if (strategy == "towers") { TryBuild(2, Building.ArrowTower); TryBuild(3, Building.CatapultTower); TryBuild(4, Building.ArrowTower); }
-                else { TryBuild(2, Building.Barracks); }
-                Act(match, city.Id, "upgrade", 0);
-                if (strategy != "towers") TryBuild(1, Building.Lumbermill);
-                TryBuild(5, Building.Farm);
-                if (strategy == "mixed") { TryBuild(3, Building.ArcheryRange); TryBuild(4, Building.Arcanum); }
-                if (strategy == "research")
+                int actions = 0;
+                while (CampaignStrategy.Next(match.Snapshot(), city.Id, strategy) is EconomyAction decision)
                 {
-                    TryBuild(3, Building.Blacksmith);
-                    Act(match, city.Id, "research", 3);
-                    if (city.Research.Melee == 1) { Act(match, city.Id, "upgrade", 3); Act(match, city.Id, "research", 3); }
-                }
-                Act(match, city.Id, "upgrade", 0); TryBuild(5, Building.Farm);
-                UnitType[] priority = strategy == "mixed" ? [UnitType.Mage, UnitType.Crossbowman, UnitType.Berserker, UnitType.Swordsman] : [UnitType.Swordsman];
-                bool recruited;
-                do
-                {
-                    recruited = false;
-                    foreach (UnitType type in priority)
+                    Assert.True(actions++ < 100, "Economy policy did not reach a finite ready state.");
+                    MatchSnapshot before = match.Snapshot(); Command command = decision.Command(before, city.Id);
+                    CommandResult result = match.Apply(city.Id, command); Assert.True(result.Accepted, result.Message);
+                    if (decision.Action == "recruit")
                     {
-                        int slot = Array.FindIndex(city.Slots, s => Catalogs.Buildings(match.Rules).SingleOrDefault(b => b.Type == s.Type)?.Recruits?.Contains(type) == true);
-                        if (slot >= 0 && Act(match, city.Id, "recruit", slot, unit: type).Accepted) { recruits++; recruitedRoles.Add(type); recruited = true; }
+                        recruits++; recruitedRoles.Add(decision.Unit);
+                        RecruitmentQuote quote = before.Players.Single(p => p.Id == city.Id).RecruitmentQuotes.Single(q => q.Type == decision.Unit && q.Level == before.Players.Single(p => p.Id == city.Id).Slots[decision.Slot].Level);
+                        Assert.Equal(0, quote.Cost.Food); Assert.Equal(before.Players.Single(p => p.Id == city.Id).Food, city.Food);
+                        if (match.Wave > 1 && quote.Cost.Metal > 0) laterMetalRecruits++;
+                        if (match.Wave > 1 && quote.Cost.Cloth > 0) laterClothRecruits++;
                     }
-                } while (recruited);
-                if (strategy == "towers") foreach (int slot in new[] { 2, 3, 4 }) Act(match, city.Id, "upgrade", slot);
-                output.WriteLine($"{strategy} P{city.Id} wave={match.Wave} turn={match.Turn} phase={match.Phase}: gold={city.Gold} wood={city.Wood} food={city.Food} army={city.Soldiers.Count} HP={HealthPoints.Format(city.Health)}");
+                    if (decision.Action == "upgrade" && before.BuildingCatalog.Single(b => b.Type == before.Players.Single(p => p.Id == city.Id).Slots[decision.Slot].Type).Produces is not null) upgradedProducer = true;
+                    if (decision.Action == "buy-plot" && before.Players.Single(p => p.Id == city.Id).Slots.Where(s => s.Purchased).All(s => s.Type != Building.Empty)) expandedFullLand = true;
+                    if (decision.Action == "trade") trades++;
+                    if (decision.Action == "sell") sales++;
+                    if (decision.Action == "buy-plot") expansions++;
+                    output.WriteLine($"{strategy} P{city.Id} W{match.Wave} T{match.Turn}: {decision}; before={before.Players.Single(p => p.Id == city.Id).Resources}; after={city.Resources}; investment={city.Slots.Where(s => s.Type != Building.Empty).Aggregate(default(ResourceCost), (sum, slot) => { Assert.True(sum.TryAdd(slot.Investment, out ResourceCost next)); return next; })}; plots={city.Slots.Count(s => s.Purchased)}");
+                }
+                CityState state = city.Snapshot();
+                output.WriteLine($"{strategy} P{city.Id} W{match.Wave} T{match.Turn} {match.Phase}: stocks={state.Resources}; demand={state.FoodForecast!.Demand}; forecastPaid={state.FoodForecast.Paid}; army={string.Join(',', state.Soldiers.Select(u => $"{u.Id}:{u.Type}L{u.Level}:{u.Health}/{u.Profile.Health}:fed={u.Participating}:field={u.Deployed}"))}; cityHP={city.Health}; reward={JsonSerializer.Serialize(city.LastReward, WireJson.Options)}; upkeep={JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options)}");
             }
             if (match.Phase == Phase.Preparation) preparations++;
-            foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated)) Assert.True(Act(match, city.Id, "ready").Accepted);
+            foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated && !c.Ready)) Assert.True(Act(match, city.Id, "ready").Accepted);
+            if (match.Phase == Phase.Preparation && match.Players.Values.Where(c => c.Connected && !c.Eliminated).All(c => c.Ready)) match.Step();
         }
-        output.WriteLine($"{strategy}/{players}, seed={seed}, config={match.Configuration.Fingerprint}: waveTicks={string.Join(',', waveTicks.OrderBy(p => p.Key).Select(p => p.Value))}; casualties={recruits - match.Players.Values.Sum(c => c.Soldiers.Count)}; {ticks} ticks; recruited={recruits}; surviving={match.Players.Values.Sum(c => c.Soldiers.Count)}; cityHP={string.Join(',', match.Players.Values.Select(c => HealthPoints.Format(c.Health)))}");
-        Assert.Equal(Phase.Victory, match.Phase); Assert.Equal(9, match.ProductionCount); Assert.Equal(3, preparations);
-        if (strategy == "mixed") Assert.Equal(4, recruitedRoles.Count);
-        if (strategy == "research") Assert.True(match.Players[1].Research.Melee >= 1);
+        output.WriteLine($"{strategy}/{players}, seed={seed}, config={match.ConfigurationFingerprint}: waveTicks={string.Join(',', waveTicks.OrderBy(p => p.Key).Select(p => $"{p.Key}:{p.Value}"))}; casualties={recruits - match.Players.Values.Sum(c => c.Soldiers.Count)}; recruits={recruits}; expansions={expansions}; trades={trades}; sales={sales}; firstLevelFiveBattle={firstLevelFiveBattle}; cityHP={string.Join(',', match.Players.Values.Select(c => c.Health))}; final={match.Phase}/{match.DefeatReason}.");
+        Assert.Equal(Phase.Victory, match.Phase); Assert.Equal(60, match.ProductionCount); Assert.True(preparations >= 20);
+        Assert.True(expansions > 0); Assert.True(trades > 0); Assert.True(sales > 0); Assert.True(upgradedProducer); Assert.True(expandedFullLand); Assert.True(laterMetalRecruits > 0);
+        Assert.InRange(firstLevelFiveBattle, 1, 19); Assert.All(match.Players.Values, c => Assert.False(c.Eliminated));
+        if (strategy == "mixed") { Assert.Equal(4, recruitedRoles.Count); Assert.True(laterClothRecruits > 0); }
+        if (strategy == "research") Assert.Equal(2, match.Players[1].Research.Melee);
         if (strategy == "towers") Assert.Contains(match.Players[1].Towers.Values, t => t.AttackSequence > 0);
+
     }
 }

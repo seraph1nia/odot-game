@@ -8,7 +8,7 @@ public sealed class CombatDecisionRegressionTests
     {
         int id = combat.Create(type, faction == Faction.Adventurers ? 1 : 0, 1, 1, faction);
         UnitState unit = combat.Read(id);
-        combat.Seed(unit with { Hex = CombatFixture.At(unit, cell, unit.Profile.CapacityCost == 2 ? 7 : 1) });
+        combat.Seed(unit with { Hex = CombatFixture.At(unit, cell, 1) });
         return id;
     }
 

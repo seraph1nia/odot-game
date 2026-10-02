@@ -12,11 +12,12 @@ public sealed class HarnessTests
     [Fact]
     public void FullSourceUiHasABoundedAggregateBudgetAndPreservesOverrides()
     {
-        Assert.Equal(300000, Options.Parse(["ci"]).Timeout);
-        Assert.Equal(300000, Options.Parse(["ci-source"]).Timeout);
-        Assert.Equal(300000, Options.Parse(["test-ui"]).Timeout);
+        Assert.Equal(900000, Options.Parse(["ci"]).Timeout);
+        Assert.Equal(900000, Options.Parse(["ci-source"]).Timeout);
+        Assert.Equal(600000, Options.Parse(["test-ui"]).Timeout);
         Assert.Equal(180000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
-        Assert.Equal(180000, Options.Parse(["test-network"]).Timeout);
+        Assert.Equal(300000, Options.Parse(["test-ui", "--scenario", "economy"]).Timeout);
+        Assert.Equal(300000, Options.Parse(["test-network"]).Timeout);
         Assert.Equal(42, Options.Parse(["ci", "--timeout-ms", "42"]).Timeout);
         Assert.Equal(300000, Options.Parse(["_ui-worker", "--timeout-ms", "300000"]).Timeout);
     }

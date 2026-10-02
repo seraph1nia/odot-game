@@ -6,37 +6,41 @@ namespace Game.Core.Tests;
 public sealed class HexOccupancyTests
 {
     private readonly HexBoard _board = new(HexBoardDefinition.Default());
-    private ReservationOwner Unit(int id, int cell, int mask, Faction faction = Faction.Adventurers)
-        => new(id, 1, faction, UnitLifecycle.Alive, new(cell, _board.Footprints.Single(f => f.Mask == mask).Id), 0, true);
-    private ReservationOwner Move(ReservationOwner unit, int cell, int mask, long sequence = 1)
+    private static ReservationOwner Unit(int id, int cell, int anchor, Faction faction = Faction.Adventurers, int size = 1)
+        => new(id, 1, faction, UnitLifecycle.Alive, new(cell, anchor), 0, true, Size: size);
+    private ReservationOwner Move(ReservationOwner unit, int cell, int anchor, long sequence = 1)
     {
-        HexPosition to = new(cell, _board.Footprints.Single(f => f.Mask == mask).Id);
+        HexPosition to = new(cell, anchor);
         return unit with { Move = new(sequence, to, _board.Transition(unit.Position, to).Id, 100, 130), ActionSequence = sequence, Ready = false };
     }
     [Fact]
-    public void SharedMasksAndFactionProtectionApplyEvenWhenCapacityIsFree()
+    public void SharedSizesAndFactionProtectionApplyEvenWhenCapacityIsFree()
     {
         var occupancy = new HexOccupancy(_board);
-        Assert.True(occupancy.TryPlace(Unit(1, 11, 3))); Assert.True(occupancy.TryPlace(Unit(2, 11, 24))); Assert.True(occupancy.TryPlace(Unit(3, 11, 4)));
+        Assert.True(occupancy.TryPlace(Unit(1, 11, 1, size: 2)));
+        Assert.True(occupancy.TryPlace(Unit(2, 11, 3, size: 2)));
+        Assert.True(occupancy.TryPlace(Unit(3, 11, 5)));
         Assert.Equal(5, occupancy.UsedCapacity(1, 11));
-        Assert.False(occupancy.TryPlace(Unit(4, 11, 48))); Assert.False(occupancy.TryPlace(Unit(5, 11, 32, Faction.Skeletons)));
-        Assert.True(occupancy.TryPlace(Unit(6, 11, 32))); Assert.Equal(6, occupancy.UsedCapacity(1, 11));
+        Assert.False(occupancy.TryPlace(Unit(4, 11, 6, size: 2)));
+        Assert.False(occupancy.TryPlace(Unit(5, 11, 6, Faction.Skeletons)));
+        Assert.True(occupancy.TryPlace(Unit(6, 11, 6))); Assert.Equal(6, occupancy.UsedCapacity(1, 11));
         int enemyRear = _board.Rear(Faction.Skeletons)[0];
-        Assert.False(occupancy.TryPlace(Unit(7, enemyRear, 1))); Assert.True(occupancy.TryPlace(Unit(8, enemyRear, 1, Faction.Skeletons)));
+        Assert.False(occupancy.TryPlace(Unit(7, enemyRear, 1)));
+        Assert.True(occupancy.TryPlace(Unit(8, enemyRear, 1, Faction.Skeletons)));
         occupancy.Release(1, 8); Assert.False(occupancy.TryPlace(Unit(7, enemyRear, 1)));
     }
     [Fact]
     public void SourceDestinationAndTransitReserveAtomicallyAndIndependentMovesCanStartTogether()
     {
         var occupancy = new HexOccupancy(_board);
-        ReservationOwner a = Unit(1, 11, 1), b = Unit(2, 11, 2), c = Unit(3, 7, 4), independent = Unit(4, 16, 8);
+        ReservationOwner a = Unit(1, 11, 1), b = Unit(2, 11, 2), c = Unit(3, 7, 3), independent = Unit(4, 16, 4);
         foreach (ReservationOwner unit in new[] { a, b, c, independent }) Assert.True(occupancy.TryPlace(unit));
         ReservationOwner move = Move(a, 10, 1); Assert.True(occupancy.TryMove(a, move.Destination, 1));
         string before = JsonSerializer.Serialize(occupancy.Snapshot()); long revision = occupancy.Revision;
-        Assert.False(occupancy.TryMove(b, new(10, b.Position.Footprint), 1));
-        Assert.False(occupancy.TryMove(c, new(10, c.Position.Footprint), 1));
+        Assert.False(occupancy.TryMove(b, new(10, b.Position.Anchor), 1));
+        Assert.False(occupancy.TryMove(c, new(10, c.Position.Anchor), 1));
         Assert.Equal(before, JsonSerializer.Serialize(occupancy.Snapshot())); Assert.Equal(revision, occupancy.Revision);
-        Assert.True(occupancy.TryMove(independent, new(17, independent.Position.Footprint), 1));
+        Assert.True(occupancy.TryMove(independent, new(17, independent.Position.Anchor), 1));
         Assert.Equal(2, occupancy.Snapshot().Transit.Length);
         Assert.Equal(2, occupancy.UsedCapacity(1, 11)); Assert.Equal(1, occupancy.UsedCapacity(1, 10));
     }
@@ -49,7 +53,7 @@ public sealed class HexOccupancyTests
         Assert.Equal(2, occupancy.Snapshot().Positions.Length);
         Assert.True(occupancy.Arrive(move, 130));
         ReservationOwner arrived = move with { Position = move.Destination, Move = null, Ready = true };
-        Assert.Equal(10, arrived.Position.Cell); Assert.Equal(0, occupancy.UsedMask(1, 11));
+        Assert.Equal(10, arrived.Position.Cell); Assert.Equal(0, occupancy.UsedCapacity(1, 11));
         Assert.Single(occupancy.Snapshot().Positions); Assert.Empty(occupancy.Snapshot().Transit);
     }
     [Fact]

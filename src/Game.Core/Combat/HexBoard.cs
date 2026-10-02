@@ -1,6 +1,5 @@
 using System.Collections.Frozen;
 using System.Collections.ObjectModel;
-using System.Numerics;
 
 namespace Game.Core;
 
@@ -18,10 +17,10 @@ public readonly record struct HexCoordinate(int Q, int R)
 
 // Authoring DTOs are copied/validated by HexBoard; arrays never become live rules.
 public sealed record HexCellDefinition(int Id, HexCoordinate Coordinate, DeploymentAffinity Affinity, int[] Neighbors);
-public sealed record HexFootprint(int Id, int CapacityCost, int Mask, int AnchorX, int AnchorForward);
+public sealed record HexAnchor(int Id, int AnchorX, int AnchorForward);
 public sealed record HexEntryDefinition(Faction Faction, int[] RearCells, int[] FrontCells);
 public sealed record HexBoardDefinition(string Id, int Version, int Capacity, HexCellDefinition[] Cells,
-    HexFootprint[] Footprints, HexEntryDefinition[] Entries, int[] SiegeCells)
+    HexAnchor[] Anchors, HexEntryDefinition[] Entries, int[] SiegeCells)
 {
     public static HexBoardDefinition Default()
     {
@@ -32,19 +31,13 @@ public sealed record HexBoardDefinition(string Id, int Version, int Capacity, He
                     row == -5 ? DeploymentAffinity.Skeletons : row == 1 ? DeploymentAffinity.Adventurers : DeploymentAffinity.Neutral, []));
         HexCellDefinition[] graph = cells.Select(c => c with
         { Neighbors = cells.Where(n => n.Id != c.Id && n.Coordinate.Distance(c.Coordinate) == 1).Select(n => n.Id).ToArray() }).ToArray();
-        // Six authored positions in two rows. Anchors are thousandths of a world
-        // unit, solely for presentation. Masks, never anchors, decide legality.
+        // Six distinct render anchors accommodate up to six size-one actors.
+        // Anchors carry no size or geometry-based capacity rule.
         int[] x = [-900, 0, 900, -900, 0, 900], forward = [-550, -550, -550, 550, 550, 550];
-        int[] masks = [1, 2, 4, 8, 16, 32, 3, 6, 24, 48, 9, 18, 36, 7, 56, 63];
-        HexFootprint[] footprints = masks.Select((mask, index) =>
-        {
-            int[] positions = Enumerable.Range(0, 6).Where(p => (mask & (1 << p)) != 0).ToArray();
-            return new HexFootprint(index + 1, positions.Length, mask, positions.Sum(p => x[p]) / positions.Length,
-                positions.Sum(p => forward[p]) / positions.Length);
-        }).ToArray();
+        HexAnchor[] anchors = Enumerable.Range(0, 6).Select(i => new HexAnchor(i + 1, x[i], forward[i])).ToArray();
         int[] Row(int row, bool reverse = false) => graph.Where(c => c.Coordinate.R == row).OrderBy(c => Math.Abs(c.Coordinate.Column))
             .ThenBy(c => reverse ? -c.Coordinate.Column : c.Coordinate.Column).Select(c => c.Id).ToArray();
-        return new("village-hex", 1, 6, graph, footprints,
+        return new("village-hex", 2, 6, graph, anchors,
             [new(Faction.Adventurers, Row(1), Row(0)), new(Faction.Skeletons, Row(-5, true), Row(-4, true))], Row(0));
     }
 }
@@ -58,15 +51,15 @@ public sealed class HexCell
     internal HexCell(HexCellDefinition definition)
     { Id = definition.Id; Coordinate = definition.Coordinate; Affinity = definition.Affinity; Neighbors = Array.AsReadOnly(definition.Neighbors.Order().ToArray()); }
 }
-public readonly record struct HexPosition(int Cell, int Footprint);
+public readonly record struct HexPosition(int Cell, int Anchor);
 public readonly record struct HexTransition(int Id, HexPosition Source, HexPosition Destination, int EdgeToken);
 
-// Immutable graph/footprint catalog and precomputed queries. The city anchor is
+// Immutable graph/anchor catalog and precomputed queries. The city anchor is
 // a distance endpoint, deliberately absent from adjacency and transit routes.
 public sealed class HexBoard
 {
     private readonly FrozenDictionary<int, HexCell> _cells;
-    private readonly FrozenDictionary<int, HexFootprint> _footprints;
+    private readonly FrozenDictionary<int, HexAnchor> _anchors;
     private readonly FrozenDictionary<(int Source, int Destination), int> _distances;
     private readonly FrozenDictionary<(Faction Faction, int Source, int Destination), int> _movementDistances;
     private readonly FrozenDictionary<(HexPosition Source, HexPosition Destination), HexTransition> _transitions;
@@ -74,20 +67,19 @@ public sealed class HexBoard
     public string Id { get; }
     public int Version { get; }
     public int Capacity { get; }
-    public int FullMask => (1 << Capacity) - 1;
     public int Diameter { get; }
     public ReadOnlyCollection<HexCell> Cells { get; }
-    public ReadOnlyCollection<HexFootprint> Footprints { get; }
+    public ReadOnlyCollection<HexAnchor> Anchors { get; }
     public ReadOnlyCollection<int> SiegeCells { get; }
     public ReadOnlyCollection<HexTransition> Transitions { get; }
 
     public HexBoard(HexBoardDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        if (definition.Cells is null || definition.Footprints is null || definition.Entries is null || definition.SiegeCells is null)
+        if (definition.Cells is null || definition.Anchors is null || definition.Entries is null || definition.SiegeCells is null)
             throw new ArgumentException("Missing board data.", nameof(definition));
-        if (string.IsNullOrWhiteSpace(definition.Id) || definition.Version < 1 || definition.Capacity is < 1 or > 12
-            || definition.Cells.Length is < 2 or > 256 || definition.Footprints.Length is < 1 or > 128)
+        if (string.IsNullOrWhiteSpace(definition.Id) || definition.Version < 1 || definition.Capacity != 6
+            || definition.Cells.Length is < 2 or > 256 || definition.Anchors.Length != 6)
             throw new ArgumentException("Invalid board identity or bounded capacity/topology.", nameof(definition));
         Id = definition.Id; Version = definition.Version; Capacity = definition.Capacity;
         if (definition.Cells.Any(c => c is null || c.Neighbors is null || c.Id <= 0 || !Enum.IsDefined(c.Affinity)
@@ -113,15 +105,12 @@ public sealed class HexBoard
                 throw new ArgumentException("Combat board must be connected.", nameof(definition));
         }
         _distances = distances.ToFrozenDictionary(); Diameter = distances.Values.Max();
-        if (definition.Footprints.Any(f => f is null || f.Id <= 0 || f.CapacityCost <= 0 || f.Mask <= 0 || (f.Mask & ~FullMask) != 0
-            || BitOperations.PopCount((uint)f.Mask) != f.CapacityCost || Math.Abs((long)f.AnchorX) > 10000 || Math.Abs((long)f.AnchorForward) > 10000)
-            || definition.Footprints.Select(f => f.Id).Distinct().Count() != definition.Footprints.Length
-            || definition.Footprints.Select(f => f.Mask).Distinct().Count() != definition.Footprints.Length)
-            throw new ArgumentException("Invalid or duplicate footprint masks/anchors.", nameof(definition));
-        Footprints = Array.AsReadOnly(definition.Footprints.OrderBy(f => f.Id).ToArray());
-        _footprints = Footprints.ToFrozenDictionary(f => f.Id);
-        if (Footprints.Any(a => Footprints.Any(b => b.Id > a.Id && (a.Mask & b.Mask) == 0 && a.AnchorX == b.AnchorX && a.AnchorForward == b.AnchorForward)))
-            throw new ArgumentException("Disjoint footprints require distinct anchors.", nameof(definition));
+        if (definition.Anchors.Any(f => f is null || f.Id <= 0 || Math.Abs((long)f.AnchorX) > 10000 || Math.Abs((long)f.AnchorForward) > 10000)
+            || definition.Anchors.Select(f => f.Id).Distinct().Count() != 6
+            || definition.Anchors.Select(f => (f.AnchorX, f.AnchorForward)).Distinct().Count() != 6)
+            throw new ArgumentException("Six distinct bounded render anchors are required.", nameof(definition));
+        Anchors = Array.AsReadOnly(definition.Anchors.OrderBy(f => f.Id).ToArray());
+        _anchors = Anchors.ToFrozenDictionary(f => f.Id);
         if (definition.Entries.Length != 2 || definition.Entries.Any(e => e is null || e.RearCells is null || e.FrontCells is null)
             || definition.Entries.Select(e => e.Faction).Distinct().Count() != 2)
             throw new ArgumentException("Both factions need one entry definition.", nameof(definition));
@@ -159,16 +148,16 @@ public sealed class HexBoard
                 if (!Front(faction).Any(reachable.Contains) || !SiegeCells.Any(reachable.Contains))
                     throw new ArgumentException("Each protected entry needs a legal frontier and city approach.", nameof(definition));
             }
-        long transitionCount = Cells.Sum(c => c.Neighbors.Count) * Footprints.GroupBy(f => f.CapacityCost).Sum(g => (long)g.Count() * g.Count());
-        if (transitionCount > 500000) throw new ArgumentException("Board has too many footprint transitions.", nameof(definition));
+        long transitionCount = Cells.Sum(c => c.Neighbors.Count) * (long)Anchors.Count * Anchors.Count;
+        if (transitionCount > 500000) throw new ArgumentException("Board has too many anchor transitions.", nameof(definition));
         var transitions = new List<HexTransition>(); var edges = new Dictionary<(int, int), int>();
         foreach (HexCell source in Cells)
             foreach (int next in source.Neighbors)
             {
                 var edge = (Math.Min(source.Id, next), Math.Max(source.Id, next));
                 if (!edges.TryGetValue(edge, out int token)) edges.Add(edge, token = edges.Count + 1);
-                foreach (HexFootprint from in Footprints)
-                    foreach (HexFootprint to in Footprints.Where(f => f.CapacityCost == from.CapacityCost))
+                foreach (HexAnchor from in Anchors)
+                    foreach (HexAnchor to in Anchors)
                         transitions.Add(new(transitions.Count + 1, new(source.Id, from.Id), new(next, to.Id), token));
             }
         Transitions = Array.AsReadOnly(transitions.ToArray());
@@ -176,17 +165,16 @@ public sealed class HexBoard
     }
 
     public HexCell Cell(int id) => _cells[id];
-    public HexFootprint Footprint(int id) => _footprints[id];
+    public HexAnchor Anchor(int id) => _anchors[id];
     public int Distance(int source, int destination) => _distances[(source, destination)];
     public int MovementDistance(Faction faction, int source, int destination) => _movementDistances.GetValueOrDefault((faction, source, destination), int.MaxValue);
     public int CityDistance(int source) => SiegeCells.Min(cell => Distance(source, cell)) + 1;
     public bool Allows(Faction faction, int cell) => Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
     public ReadOnlyCollection<int> Rear(Faction faction) => _entries[faction].Rear;
     public ReadOnlyCollection<int> Front(Faction faction) => _entries[faction].Front;
-    public IEnumerable<HexFootprint> Fits(int capacityCost, int occupiedMask) => Footprints.Where(f => f.CapacityCost == capacityCost && (f.Mask & occupiedMask) == 0);
     public HexTransition Transition(HexPosition source, HexPosition destination) => _transitions[(source, destination)];
     public HexBoardDefinition Definition() => new(Id, Version, Capacity,
-        Cells.Select(c => new HexCellDefinition(c.Id, c.Coordinate, c.Affinity, c.Neighbors.ToArray())).ToArray(), Footprints.ToArray(),
+        Cells.Select(c => new HexCellDefinition(c.Id, c.Coordinate, c.Affinity, c.Neighbors.ToArray())).ToArray(), Anchors.ToArray(),
         Enum.GetValues<Faction>().Select(f => new HexEntryDefinition(f, Rear(f).ToArray(), Front(f).ToArray())).ToArray(), SiegeCells.ToArray());
     private static DeploymentAffinity Affinity(Faction faction) => faction switch
     { Faction.Adventurers => DeploymentAffinity.Adventurers, Faction.Skeletons => DeploymentAffinity.Skeletons, _ => throw new ArgumentOutOfRangeException(nameof(faction)) };

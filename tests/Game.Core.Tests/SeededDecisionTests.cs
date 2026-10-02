@@ -18,7 +18,7 @@ public sealed class SeededDecisionTests
         Assert.Equal(0x61e00b65c3c582e7UL, SeededDecision.State(Key()));
         Assert.Equal(0xa0ba958fc5a130caUL, SeededDecision.Rank(Key())); Assert.Equal(1, SeededDecision.Choose(Key(), 3));
         Assert.Equal(0xc677cd5257529401UL, SeededDecision.Rank(Key(purpose: CombatPurpose.MovementRank)));
-        Assert.Equal(0x61e590428c50a260UL, SeededDecision.Rank(Key(purpose: CombatPurpose.GoalFootprint)));
+        Assert.Equal(0x61e590428c50a260UL, SeededDecision.Rank(Key(purpose: CombatPurpose.GoalAnchor)));
         Assert.Equal(0xd40514418001d439UL, SeededDecision.Rank(Key(purpose: CombatPurpose.Route)));
         Assert.Equal(0x14f60986309fe9e3UL, SeededDecision.Rank(Key(purpose: CombatPurpose.Formation)));
         Assert.Equal(0x1f483c0e7d2579d1UL, SeededDecision.Rank(Key(purpose: CombatPurpose.Splash)));

@@ -9,11 +9,11 @@ public sealed class AuthorityCombatTests
     private static void Opening(Action<string, int, Building> act, Func<MatchSnapshot> snapshot)
     {
         act("start", -1, Building.Empty);
-        act("build", 0, Building.Farm); act("build", 2, Building.Farm); act("build", 1, Building.Barracks);
+        act("build", 0, Building.Farm); act("build", 2, Building.MetalMine); act("build", 1, Building.Barracks);
         for (int production = 1; production <= 3; production++)
         {
             act("ready", -1, Building.Empty);
-            while (snapshot().Players.Single().Food >= 5) act("recruit", 1, Building.Empty);
+            while (snapshot().Players.Single().Resources.TryPay(snapshot().Players.Single().RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Cost, out _)) act("recruit", 1, Building.Empty);
         }
         act("ready", -1, Building.Empty);
     }
@@ -31,7 +31,7 @@ public sealed class AuthorityCombatTests
             Assert.Equal(Json(published), Json(received));
             Assert.Equal(1UL, received.CombatSeed);
             var configuration = new CombatConfiguration(received.Rules);
-            Assert.Equal(configuration.Fingerprint, received.ConfigurationFingerprint);
+            Assert.Equal(RulesIdentity.Resolve(received.Rules), received.ConfigurationFingerprint);
             Assert.Equal(configuration.RulesVersion, received.CombatRulesVersion);
             UnitState[] units = CombatPlayback.All(received).Concat(received.DyingBodies).ToArray();
             Assert.All(units, u => { Assert.NotNull(u.Hex); Assert.NotNull(u.Decision); });
@@ -76,7 +76,7 @@ public sealed class AuthorityCombatTests
             foreach (AuthoritySession session in sessions)
             {
                 MatchSnapshot state = session.Snapshot();
-                var command = new Command(sequence, state.MatchId, state.Phase, state.TurnSerial, action, 1, slot, building);
+                var command = new Command(sequence, state.MatchId, state.Phase, state.TurnSerial, action, 1, slot, building, ExpectedGeneration: slot is >= 0 and < 9 ? state.Players[0].Slots[slot].Generation : 0);
                 CommandResult result = session.Policy == AuthorityPolicy.Dedicated
                     ? session.Request(2, JsonSerializer.Serialize(command, WireJson.Options), 1000)!
                     : session.ExecuteLocal(command);

@@ -79,7 +79,7 @@ public sealed class CombatPlaybackTests
         Assert.Equal(UnitLifecycle.Queued, transferred.Hex!.Lifecycle); Assert.False(transferred.Deployed); Assert.Equal(90, transferred.ReadyTick);
     }
     [Fact]
-    public void BufferedAttackKeepsRecoveryAndSharedFootprintsUntilTheDeclaredStart()
+    public void BufferedAttackKeepsRecoveryAndSharedAnchorsUntilTheDeclaredStart()
     {
         UnitState recovering = new(1, 800, 0, 1, 1)
         {

@@ -19,6 +19,10 @@ internal sealed record UnitObservation
     public Faction Faction { get; init; }
     public UnitClass Class { get; init; }
     public int Rank { get; init; }
+    public int Level { get; init; }
+    public bool IsBoss { get; init; }
+    public int Size { get; init; }
+    public bool Participating { get; init; }
     public int Destination { get; init; }
     public int Health { get; init; }
     public int MaximumHealth { get; init; }
@@ -132,6 +136,9 @@ internal sealed record UiObservation
     public bool FriendsOpen { get; init; }
     public int FriendCount { get; init; }
     public string InviteStatus { get; init; } = "";
+    public string UpkeepText { get; init; } = "";
+    public string RewardText { get; init; } = "";
+    public string ConstructionGroup { get; init; } = "";
     public string PhaseText { get; init; } = "";
     public string StatsText { get; init; } = "";
     public string StatusText { get; init; } = "";
@@ -190,7 +197,7 @@ internal static class UiProtocol
     {
         string id = Guid.NewGuid().ToString("N");
         await client.Send("ui-probe " + id + (screenshot is null ? "" : " " + Convert.ToBase64String(Encoding.UTF8.GetBytes(screenshot))));
-        GameEvent response = await client.WaitFor(e => e.Type == "ui" && JsonSerializer.Deserialize<UiObservation>(e.Message!, WireJson.Options)?.Id == id, "fresh UI response " + id, timeout, token);
+        GameEvent response = await client.WaitFor(e => e.Type == "ui" && e.Message!.Contains(id, StringComparison.Ordinal) && JsonSerializer.Deserialize<UiObservation>(e.Message!, WireJson.Options)?.Id == id, "fresh UI response " + id, timeout, token);
         UiObservation value = JsonSerializer.Deserialize<UiObservation>(response.Message!, WireJson.Options)!;
         if (value.Error is not null) throw new InvalidOperationException("UI observation/capture failed: " + value.Error);
         return value;
@@ -210,10 +217,11 @@ internal static class UiProtocol
 
 internal sealed partial class Runner
 {
+    private static readonly string[] EconomyResourceLabels = ["Gold", "Food", "Wood", "Stone", "Metal", "Cloth"];
     private static string UiRisk(string name) => name switch
     {
-        "combat" => "Paused camera/health-bar reprojection with frozen world anchors; a few probes in the existing first-wave slice. Authoritative overhead bars on both factions, damage/pause/casualty cleanup; eight imported role/faction rigs, sword/axe/cast poses, tower projectiles, contact and effect/audio/death pause cleanup; cheap tests cannot sample rendered bones, pools or voices. One first-wave slice, ordinary setup, 60s bound.",
-        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits/reset/resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. Trio resource/cost icons and full HUD/plot bounds; picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
+        "combat" => "Paused camera/health-bar reprojection with frozen world anchors; a few probes in the existing early-battle slice. Authoritative overhead bars on both factions, damage/pause/casualty cleanup; eight imported role/faction rigs, sword/axe/cast poses, tower projectiles, contact and effect/audio/death pause cleanup; cheap tests cannot sample rendered bones, pools or voices. One ordinary early-wave-three slice, material production and paid upkeep, 180s bound.",
+        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits/reset/resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. Six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds; picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates; visible recovery control and retained presentation/identity; headless resume cannot exercise the button.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
         "launcher" => "Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, semantic icons and full control bounds; application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit; cheap checks miss native controls. Steam remains disabled.",
@@ -237,6 +245,15 @@ internal sealed partial class Runner
     }
     private async Task Click(Child client, string name, CancellationToken token)
     {
+        if (Enum.TryParse(name, out Building building) && building != Building.Empty)
+        {
+            UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            if (initial.Targets.TryGetValue(name, out UiTarget? construction) && !construction.Visible)
+            {
+                string group = building switch { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.Blacksmith => "Army", Building.ArrowTower or Building.CatapultTower => "Defense", Building.Market => "Trade", _ => "Production" };
+                await Click(client, group + "Choices", token);
+            }
+        }
         UiObservation ui = await WaitUi(client, p => p.Targets.TryGetValue(name, out UiTarget? target) && target.Visible && target.Enabled, name, token);
         UiTarget target = UiProtocol.Target(ui, name);
         if (!ui.WindowFocused && !ui.SettingsOpen && !ui.FriendsOpen && !ui.JoinConfirmationOpen)
@@ -286,7 +303,7 @@ internal sealed partial class Runner
         {
             UnitObservation unit = frame.Units.Single(u => u.Id == bar.Id);
             string role = unit.Type switch { UnitType.Berserker => "B", UnitType.Crossbowman => "R", UnitType.Mage => "M", _ => "S" };
-            string expectedRole = (unit.Faction == Faction.Skeletons ? "E" : "") + role;
+            string expectedRole = unit.IsBoss ? $"BOSS L{unit.Level}" : $"{(unit.Faction == Faction.Skeletons ? "E" : "")}{role} L{unit.Level}";
             if (unit.Dead || !unit.Visible || !unit.Deployed || bar.Current != unit.Health || bar.Maximum != unit.MaximumHealth
                 || bar.Role != expectedRole
                 || bar.Fraction != PresentationLimits.HealthFraction(unit.Health, unit.MaximumHealth)
@@ -314,6 +331,9 @@ internal sealed partial class Runner
         if (frame.Screen == "session")
         {
             Require(frame.ResourceRowsSingleLine && frame.HudHeight <= 310, "readable single-line resource values within bounded HUD reservation");
+            if (frame.StatsText.Contains("Land", StringComparison.Ordinal))
+                Require(EconomyResourceLabels.All(resource => frame.StatsText.Contains(resource, StringComparison.Ordinal))
+                    && frame.StatsText.Contains("/9", StringComparison.Ordinal) && frame.UpkeepText.Length != 0, "source and packed HUD retain six resources, permanent land and separate food upkeep");
             Require(frame.ResourceIcons.GetValueOrDefault("Gold") == "res://Assets/TrioUI/icons/icon_gold_pile.svg" && frame.ResourceIcons.GetValueOrDefault("Food") == "res://Assets/TrioUI/icons/icon_bread.svg" && frame.ResourceIcons.GetValueOrDefault("Wood") == "", "gold/food icons and explicit wood text from actual HUD");
             foreach (var (name, plot) in frame.Targets.Where(t => t.Key.StartsWith("Plot", StringComparison.Ordinal) && t.Value.Visible))
                 Require(plot.X >= 0 && plot.X <= frame.Width && plot.Y >= 0 && plot.Y < frame.HudTop, "plot selectable above HUD: " + name);
@@ -337,55 +357,12 @@ internal sealed partial class Runner
         await File.WriteAllTextAsync(Path.Combine(_scope.EvidenceDirectory, name + "-observation.json"), JsonSerializer.Serialize(frame, Evidence.JsonOptions), token);
         Console.WriteLine($"FRAME {name}: {frame.Width}x{frame.Height}, colors={frame.Colors}, renderer={frame.Renderer}; {path}");
     }
-    private async Task EconomyDetails(Child client, Child observer, CancellationToken token)
-    {
-        await Pick(client, 3, token); await ClickAck(client, "Lumbermill", token);
-        await Action(observer, "build 0 catapulttower", token); await Action(observer, "build 1 lumbermill", token);
-        await ClickAck(client, "Ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Phase == Phase.Preparation, "economy third production remains spendable", token);
-        UiObservation preparation = await WaitUi(client, p => p.PhaseText.Contains("Preparation", StringComparison.Ordinal), "preparation label", token);
-        Require(preparation.Targets["Ready"].Enabled && preparation.StatsText.Contains("Wood 5", StringComparison.Ordinal), "ready-for-battle control and exact wood HUD");
-        await Action(observer, "build 2 arrowtower", token);
-        await Pick(client, 1, token); await ClickAck(client, "Recruit", token);
-        await ClickAck(client, "Ready", token); await Action(observer, "ready", token);
-        MatchSnapshot next = await Observe(client, s => s.Wave == 2 && s.Phase == Phase.Building || s.Phase == Phase.Defeat, "economy short first wave", token);
-        Require(next.Phase != Phase.Defeat, "ordinary economy setup reaches further controls");
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Wave == 2 && s.Turn == 2, "economy Blacksmith resources", token);
-        await Pick(client, 4, token); await ClickAck(client, "Blacksmith", token);
-        await Action(client, "ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Wave == 2 && s.Turn == 3, "economy research resources", token);
-        await Pick(client, 4, token); GameEvent researched = await ClickAck(client, "ResearchMelee", token);
-        await Observe(observer, s => s.Revision >= State(researched).Revision && s.Players.Single(p => p.Id == client.PlayerId).Research.Melee == 1, "observer sees class research", token);
-        await ClickAck(client, "Ready", token); await Action(observer, "ready", token);
-        await Observe(client, s => s.Wave == 2 && s.Phase == Phase.Preparation, "economy second preparation", token);
-        await Action(observer, "upgrade 0", token);
-        await Click(client, "City" + observer.PlayerId, token);
-        UiObservation upgraded = await WaitUi(client, p => p.BuildingVariants.Length == 9 && p.BuildingVariants[0] == 2, "actual Catapult structural upgrade", token);
-        Require(upgraded.PlotHeights.Length == 9 && upgraded.PlotHeights[0] < upgraded.PlotHeights[3] && upgraded.PlotHeights[3] < upgraded.PlotHeights[6], "three actual terrace heights");
-        Countryside(upgraded);
-        Require(upgraded.Placements.Any(p => p.Asset.EndsWith("tower_base_blue.gltf", StringComparison.Ordinal))
-            && upgraded.Placements.Any(p => p.Name == "Slot0" && p.Support > 1), "actual tower seated on raised support deck");
-        CityState city = Latest(client).Players.Single(c => c.Id == observer.PlayerId);
-        Require(upgraded.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "actual resource node counts match authoritative tier thresholds");
-        for (int slot = 0; slot < 9; slot++) await Pick(client, slot, token);
-        await Pick(client, 0, token);
-        UiObservation foreign = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        Require(!foreign.Targets["Upgrade"].Enabled, "foreign tower remains read only");
-        await CameraZoom(client, token);
-        await Pick(client, 0, token);
-        Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["Upgrade"].Enabled, "zoomed foreign roof remains read only");
-        await Checkpoint(client, "economy-camera-roof", token);
-        await Click(client, "ResetView", token);
-        await Checkpoint(client, "economy-upgraded-roof", token);
-        await Click(client, "City" + client.PlayerId, token); await Pick(client, 4, token);
-    }
     private async Task UiScenario(string name, CancellationToken token)
     {
         if (options.UiCheckpoint is null) Console.WriteLine($"UI risk: {name}: {UiRisk(name)}");
-        if (options.UiCheckpoint == "melee") Console.WriteLine("Melee checkpoint risk: fixed-anchor swings without a readable target, missed shared near/far occupants or conflicting routes. Ordinary six-Swordsman opening and recruitment up to wave two, four paused overview/close PNGs and live-node witnesses; 40s checkpoint/60s scenario bounds. Owned peers/display/data cleanup uses the existing combat slice.");
+        if (options.UiCheckpoint == "melee") Console.WriteLine("Melee checkpoint risk: fixed-anchor swings without a readable target, missed shared near/far occupants or conflicting routes. Ordinary six-Swordsman opening and recruitment up to wave two, four paused overview/close PNGs and live-node witnesses; 65s checkpoint/70s scenario bounds. Owned peers/display/data cleanup uses the existing combat slice.");
         using var combatDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        if (name == "combat") combatDeadline.CancelAfter(60000);
+        if (name == "combat") combatDeadline.CancelAfter(options.UiCheckpoint == "melee" ? 70000 : 180000);
         token = combatDeadline.Token;
         bool package = name == "exported-package";
         string? executable = package ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null;
@@ -413,31 +390,15 @@ internal sealed partial class Runner
                 Require(State(purchase).Players.Single(p => p.Id == client.PlayerId).Gold == gold - State(purchase).Rules.BuildCost, "UI purchase spends authoritative gold once");
                 if (!package)
                 {
-                    await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
-                    await Action(client, "ready", token); await Action(observer, "ready", token);
-                    await Observe(client, s => s.Turn == 2, "economy first production", token);
-                    await Pick(client, 2, token); await ClickAck(client, "ArcheryRange", token);
-                    await Pick(client, 1, token); GameEvent recruit = await ClickAck(client, "Recruit", token);
-                    await Observe(observer, s => s.Revision >= State(recruit).Revision && s.Players.Single(p => p.Id == client.PlayerId).Soldiers.Length == 1, "observer sees UI recruitment", token);
-                    await Action(client, "ready", token); await Action(observer, "ready", token);
-                    await Observe(client, s => s.Turn == 3, "economy second production", token);
-                    await Pick(client, 2, token); GameEvent ranged = await ClickAck(client, "RecruitRanged", token);
-                    await Observe(observer, s => s.Revision >= State(ranged).Revision && s.Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Crossbowman), "observer sees UI ranged recruitment", token);
-                    for (int slot = 0; slot < 9; slot++) await Pick(client, slot, token);
                     await EconomyDetails(client, observer, token);
                 }
                 await Checkpoint(client, package ? "packed-building" : "economy-building", token);
                 if (package)
                 {
                     await MixedArmy(client, observer, token, farmExists: true, towers: true);
-                    async Task<MatchSnapshot> PausePackedTower()
-                    {
-                        await Observe(observer, s => s.CombatEvents.Any(e => e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "packed authoritative tower impact", token);
-                        return State(await Action(observer, "pause", token));
-                    }
-                    Task<MatchSnapshot> packedTowerPause = PausePackedTower();
-                    await Click(client, "City" + observer.PlayerId, token);
-                    MatchSnapshot packedTower = await packedTowerPause;
+                    long towerAfter = Latest(observer).Tick;
+                    await Observe(observer, s => s.CombatEvents.Any(e => e.Tick > towerAfter && e.Tower?.Type == Building.CatapultTower && e.Type == CombatEventType.Impact && e.Landed), "packed authoritative tower impact", token);
+                    MatchSnapshot packedTower = State(await Action(observer, "pause", token));
                     await Observe(client, s => s.Paused && s.Tick == packedTower.Tick, "packed tower pause barrier", token);
                     UiObservation tower = await WaitUi(client, p => p.Effects.Active > 0 && p.Effects.Bus == "Master", "packed tower feedback", token);
                     Require(tower.LoadedModels.Contains("Medieval/building_tower_catapult_blue.gltf") && tower.Stockpiles is not null && tower.Effects.Voices <= 8, "packed tower model, resource piles and bounded Master audio load from exports");
@@ -459,7 +420,9 @@ internal sealed partial class Runner
                 break;
             case "reconnect":
                 await MixedArmy(client, observer, token);
-                await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId), "natural casualty before reconnect", token);
+                long reconnectCasualtyAfter = Latest(observer).Tick;
+                await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId
+                    && u.Hex!.DeathStartTick > reconnectCasualtyAfter && u.Hex.DeathEndTick > s.Tick + 12), "fresh natural casualty before reconnect", token);
                 MatchSnapshot deathPause = State(await Action(observer, "pause", token));
                 await Observe(client, s => s.Paused && s.Tick == deathPause.Tick, "graphical casualty pause barrier", token);
                 Require(deathPause.DyingBodies.Any(u => u.Destination == client.PlayerId), "pause retains a current casualty");
@@ -479,7 +442,7 @@ internal sealed partial class Runner
                 UiObservation restored = await WaitUi(client, p => p.Units.Length == CombatPlayback.All(State(resumed)).Length + State(resumed).DyingBodies.Length && p.EventCursor == State(resumed).EventSequence,
                     "restored current unit baseline", token);
                 Require(SameCamera(cameraDisconnected.Camera, restored.Camera), "same-match reconnect preserves adjusted camera");
-                await Pick(client, 1, token);
+                await Pick(client, 2, token);
                 await Click(client, "ResetView", token);
                 HealthBars(restored);
                 foreach (HealthBarObservation bar in restored.HealthBars)

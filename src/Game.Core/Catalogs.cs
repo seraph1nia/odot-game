@@ -16,16 +16,12 @@ public static class HealthPoints
 }
 public enum Faction { Adventurers, Skeletons }
 public enum UnitClass { Melee, Ranged, Magic }
-public readonly record struct ResourceCost(int Gold, int Wood = 0, int Food = 0)
-{
-    public bool CanPay(int gold, int wood, int food) => gold >= Gold && wood >= Wood && food >= Food;
-}
-public sealed record BuildingDefinition(Building Type, ResourceCost Construction, ResourceCost Upgrade, int LevelOneOutput = 0, int LevelTwoOutput = 0, UnitType[]? Recruits = null)
+public sealed record BuildingDefinition(Building Type, ResourceCost Construction, ResourceCost Upgrade, int LevelOneOutput = 0, int LevelTwoOutput = 0, UnitType[]? Recruits = null, int MaximumLevel = 2, Resource? Produces = null)
 {
     public int Output(int level) => level switch { 1 => LevelOneOutput, 2 => LevelTwoOutput, _ => 0 };
 }
 public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, int SplashHexRadius);
-public sealed record UnitDefinition(UnitType Type, UnitClass Class, ResourceCost Recruitment, WeaponProfile Profile);
+public sealed record UnitDefinition(UnitType Type, UnitClass Class, ResourceCost Recruitment, WeaponProfile Profile, int Upkeep = 1);
 public readonly record struct ResearchRanks(int Melee = 0, int Ranged = 0, int Magic = 0)
 {
     public int For(UnitClass @class) => @class switch { UnitClass.Melee => Melee, UnitClass.Ranged => Ranged, UnitClass.Magic => Magic, _ => throw new ArgumentOutOfRangeException(nameof(@class)) };
@@ -35,26 +31,29 @@ public static class Catalogs
 {
     public static BuildingDefinition[] Buildings(Rules rules) =>
     [
-        new(Building.Farm, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), rules.FarmOutput, rules.FarmOutputLevelTwo),
-        new(Building.Mine, new(rules.BuildCost), new(rules.UpgradeCost, 10), rules.MineOutput, rules.MineOutputLevelTwo),
-        new(Building.Lumbermill, new(rules.BuildCost), new(rules.UpgradeCost, 10), rules.WoodOutput, rules.WoodOutputLevelTwo),
-        new(Building.Barracks, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Swordsman, UnitType.Berserker]),
-        new(Building.ArcheryRange, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Crossbowman]),
-        new(Building.Arcanum, new(25, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Mage]),
-        new(Building.Blacksmith, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10)),
-        new(Building.ArrowTower, new(rules.BuildCost, 15), new(rules.UpgradeCost, 10)),
-        new(Building.CatapultTower, new(30, 20), new(rules.UpgradeCost, 10))
+        new(Building.Farm, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.FarmOutput, rules.FarmOutputLevelTwo, Produces: Resource.Food),
+        new(Building.Mine, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.MineOutput, rules.MineOutputLevelTwo, Produces: Resource.Gold),
+        new(Building.Lumbermill, new(rules.BuildCost), new(rules.UpgradeCost, 10, Stone: 10), rules.WoodOutput, rules.WoodOutputLevelTwo, Produces: Resource.Wood),
+        new(Building.Barracks, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Swordsman, UnitType.Berserker], MaximumLevel: 5),
+        new(Building.ArcheryRange, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Crossbowman], MaximumLevel: 5),
+        new(Building.Arcanum, new(25, 10, Stone: 15), new(rules.UpgradeCost, 10), Recruits: [UnitType.Mage], MaximumLevel: 5),
+        new(Building.Blacksmith, new(rules.BuildCost, 10, Stone: 10), new(rules.UpgradeCost, 10, Stone: 10)),
+        new(Building.ArrowTower, new(rules.BuildCost, 15), new(rules.UpgradeCost, 10, Stone: 10)),
+        new(Building.CatapultTower, new(30, 20, Stone: 15, Metal: 10), new(rules.UpgradeCost, 10, Stone: 10, Metal: 5)),
+        new(Building.Stonecutter, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.StoneOutput, rules.StoneOutputLevelTwo, Produces: Resource.Stone),
+        new(Building.MetalMine, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.MetalOutput, rules.MetalOutputLevelTwo, Produces: Resource.Metal),
+        new(Building.Weaver, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.ClothOutput, rules.ClothOutputLevelTwo, Produces: Resource.Cloth),
+        new(Building.Market, new(rules.BuildCost, 10, Stone: 10), default, MaximumLevel: 1)
     ];
     public static TowerDefinition[] Towers(Rules? rules = null) => CombatConfiguration.TowerProfiles(rules ?? new());
     public static UnitDefinition[] Units(Rules rules) =>
     [
-        new(UnitType.Swordsman, UnitClass.Melee, new(0, Food: rules.RecruitCost), CombatConfiguration.Profile(rules, UnitType.Swordsman).Runtime()),
-        new(UnitType.Berserker, UnitClass.Melee, new(0, Food: 6), CombatConfiguration.Profile(rules, UnitType.Berserker).Runtime()),
-        new(UnitType.Crossbowman, UnitClass.Ranged, new(0, Food: rules.RangedRecruitCost), CombatConfiguration.Profile(rules, UnitType.Crossbowman).Runtime()),
-        new(UnitType.Mage, UnitClass.Magic, new(2, Food: 7), CombatConfiguration.Profile(rules, UnitType.Mage).Runtime())
+        new(UnitType.Swordsman, UnitClass.Melee, new(Metal: rules.SwordMetalCost), CombatConfiguration.Profile(rules, UnitType.Swordsman).Runtime(), rules.SwordUpkeep),
+        new(UnitType.Berserker, UnitClass.Melee, new(Metal: rules.BerserkerMetalCost), CombatConfiguration.Profile(rules, UnitType.Berserker).Runtime(), rules.BerserkerUpkeep),
+        new(UnitType.Crossbowman, UnitClass.Ranged, new(Wood: rules.CrossbowWoodCost, Metal: rules.CrossbowMetalCost), CombatConfiguration.Profile(rules, UnitType.Crossbowman).Runtime(), rules.CrossbowUpkeep),
+        new(UnitType.Mage, UnitClass.Magic, new(rules.MageGoldCost, Cloth: rules.MageClothCost), CombatConfiguration.Profile(rules, UnitType.Mage).Runtime(), rules.MageUpkeep)
     ];
     public static UnitClass Class(UnitType type) => type switch { UnitType.Swordsman or UnitType.Berserker => UnitClass.Melee, UnitType.Crossbowman => UnitClass.Ranged, UnitType.Mage => UnitClass.Magic, _ => throw new ArgumentOutOfRangeException(nameof(type)) };
-    public static UnitType EnemyRole(int wave, int allocationIndex) => (wave switch
-    { 1 => new[] { UnitType.Swordsman, UnitType.Berserker }, 2 => [UnitType.Swordsman, UnitType.Berserker, UnitType.Crossbowman], _ => [UnitType.Swordsman, UnitType.Berserker, UnitType.Crossbowman, UnitType.Mage] })[allocationIndex % (wave + 1)];
+
 }
 public sealed record TowerState(int City, int Slot, Building Type, int Level, long AttackSequence = 0, int TargetId = 0, long ActionStartTick = 0, long ImpactTick = 0, long ReadyTick = 0, bool PendingImpact = false);

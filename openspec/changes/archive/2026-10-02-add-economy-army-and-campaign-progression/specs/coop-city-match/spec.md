@@ -334,7 +334,7 @@ Owning at least one Market SHALL allow a living, connected, unready city to expl
 - **THEN** the building refund has been paid once and the resource-sale request is rejected without changing stock
 
 ### Requirement: Simple boss rounds
-Waves ten and twenty SHALL each contain exactly one boss per original roster allocation and no ordinary escorts. The first default boss SHALL be a level-three Swordsman and the final boss a level-five Swordsman. Each boss SHALL use eight times the level-scaled maximum health and twice the level-scaled damage, with ordinary Swordsman targeting, movement, capacity, range, attack cadence and death rules. Bosses SHALL have no special abilities, summons, phases or immunity. Clearing wave ten SHALL continue the match; clearing wave twenty SHALL end in shared victory if a city survives. A boss moved between cities SHALL retain its remaining health and modifiers without resetting or multiplying them.
+Waves ten and twenty SHALL each contain exactly one boss per original roster allocation and no ordinary escorts. The first default boss SHALL be a level-three Swordsman and the final boss a level-five Swordsman. Each boss SHALL use eight times the level-scaled maximum health and twice the level-scaled damage, with ordinary Swordsman targeting, movement, range, attack cadence and death rules, with size six instead of the ordinary size two. Bosses SHALL have no special abilities, summons, phases or immunity. Clearing wave ten SHALL continue the match; clearing wave twenty SHALL end in shared victory if a city survives. A boss moved between cities SHALL retain its remaining health and modifiers without resetting or multiplying them.
 
 #### Scenario: Solo boss wave
 - **WHEN** a solo match enters wave ten
@@ -356,6 +356,11 @@ A wave SHALL clear only when no living assigned or queued enemies remain across 
 - **WHEN** a shared wave clears while a living city is disconnected and that player later reconnects
 - **THEN** its resource balances include exactly one reward and its last-clear summary identifies the completed wave and amount
 - **AND** repeated snapshots, command retries and death cleanup grant nothing further
+
+#### Scenario: Checked reward capacity before battle entry
+- **WHEN** a preparation ready check would start a battle whose eventual clear reward cannot fit a living city's bounded balances after its food payment
+- **THEN** readiness rejects atomically before food payment, formation or phase progression
+- **AND** the city can spend resources before retrying; the authority never wraps a reward, drops part of it or substitutes a stalled battle for a successful clear
 
 #### Scenario: Final reward precedes victory
 - **WHEN** the final boss dies and a city survives

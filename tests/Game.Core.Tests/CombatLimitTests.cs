@@ -9,7 +9,7 @@ public sealed class CombatLimitTests
     {
         var rules = new Rules
         {
-            WaveOne = 1,
+            Campaign = CampaignFixture.Three(first: 1),
             DefenderDamage = 0,
             SoldierHealth = 100,
             SoldierDamage = progress ? 1 : 0,

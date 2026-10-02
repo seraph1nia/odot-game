@@ -5,7 +5,7 @@ namespace DevRunner;
 [Flags]
 internal enum MeleeCoverage { None = 0, Shared = 1, Near = 2, Far = 4, Simultaneous = 8, Windup = 16, Impact = 32 }
 internal sealed record MeleeWitness(int Actor, int Target, long Sequence, long ImpactTick, int ActorCell, int TargetCell,
-    int ActorFootprint, int TargetFootprint, double Distance, MeleeCoverage Coverage);
+    int ActorAnchor, int TargetAnchor, double Distance, MeleeCoverage Coverage);
 
 // Measures live rendered nodes. Distances classify visual near/far positions;
 // authoritative graph adjacency alone establishes whether the attack is legal.
@@ -63,7 +63,7 @@ internal static class MeleeVisualProof
                 if (tick >= strike.ImpactTick && strike.AttackLanded == true && strike.ImpactVisible) coverage |= MeleeCoverage.Impact;
             }
             result.Add(new(actor.Id, target.Id, strike.AttackSequence, strike.ImpactTick, actor.Hex.Position.Cell, target.Hex.Position.Cell,
-                actor.Hex.Position.Footprint, target.Hex.Position.Footprint, distance, coverage));
+                actor.Hex.Position.Anchor, target.Hex.Position.Anchor, distance, coverage));
         }
         return result.Select(w => (w.Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact)) != 0 && result.Any(other => other.ActorCell == w.TargetCell && other.TargetCell == w.ActorCell
             && other.ImpactTick == w.ImpactTick && other.Actor != w.Actor && (other.Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact)) != 0)

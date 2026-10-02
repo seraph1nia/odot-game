@@ -52,9 +52,17 @@ internal sealed partial class VillageLandscape : Node3D
             Name = "Plot" + slot,
             Position = VillageLayout.Slot(slot) + new Vector3(0, .018f, 0),
             Mesh = surface.Commit(),
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new("e0dbaf"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, CullMode = BaseMaterial3D.CullModeEnum.Disabled },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new(slot < 5 ? "e0dbaf" : "757d78"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, CullMode = BaseMaterial3D.CullModeEnum.Disabled },
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
         });
+    }
+    internal void SetPlots(Game.Core.SlotState[] slots)
+    {
+        for (int slot = 0; slot < slots.Length; slot++)
+        {
+            var plot = GetNode<MeshInstance3D>("Plot" + slot);
+            ((StandardMaterial3D)plot.MaterialOverride).AlbedoColor = new(slots[slot].Purchased ? "e0dbaf" : "757d78");
+        }
     }
     internal static Vector3[] Footprint(Camera3D camera, Rect2 area, Vector3 center)
     {

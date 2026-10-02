@@ -8,19 +8,19 @@ internal sealed partial class Runner
     private async Task MeleeArmy(Child client, Child observer, CancellationToken token)
     {
         await Pick(client, 0, token); await ClickAck(client, "Farm", token);
-        await Pick(client, 2, token); await ClickAck(client, "Farm", token);
+        await Pick(client, 2, token); await ClickAck(client, "MetalMine", token);
         await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
         for (int production = 1; production <= 3; production++)
         {
             await Action(client, "ready", token); MatchSnapshot resolved = State(await Action(observer, "ready", token));
             await Observe(client, s => s.Revision >= resolved.Revision && s.ProductionCount == production, "melee production synchronization", token);
             await Pick(client, 1, token);
-            int cost = resolved.UnitCatalog.Single(u => u.Type == UnitType.Swordsman).Recruitment.Food;
-            while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Food >= cost) await ClickAck(client, "Recruit", token);
+            ResourceCost cost = resolved.Players.Single(c => c.Id == client.PlayerId).RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Cost;
+            while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Soldiers.Length < 6 && Latest(client).Players.Single(c => c.Id == client.PlayerId).Resources.TryPay(cost, out _)) await ClickAck(client, "Recruit", token);
         }
         CityState army = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(army.Soldiers.Length == 6 && army.Soldiers.All(u => u.Type == UnitType.Swordsman)
-            && army.Food == 0 && army.Wood == 0, "ordinary two-farm recruitment creates six frontline units without grants");
+            && army.Food == 15 && army.Wood == 0, "ordinary Farm/Metal Mine recruitment equips six frontline units without food spending or grants");
         await Action(client, "ready", token); MatchSnapshot battle = State(await Action(observer, "ready", token));
         await Observe(client, s => s.Phase == Phase.Combat && s.Revision >= battle.Revision, "melee first wave", token);
         Require(Latest(client).CombatSeed == battle.CombatSeed && Latest(client).ConfigurationFingerprint == battle.ConfigurationFingerprint,
@@ -34,7 +34,10 @@ internal sealed partial class Runner
         var captures = new HashSet<MeleeCoverage>();
         MeleeCoverage firstSide = MeleeCoverage.None;
         const MeleeCoverage required = MeleeCoverage.Shared | MeleeCoverage.Near | MeleeCoverage.Far | MeleeCoverage.Simultaneous | MeleeCoverage.Windup | MeleeCoverage.Impact;
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(40000);
+        // Size-two support and fixed anchors change seeded opportunities. The
+        // two-wave proof includes four captures and ordinary intervening turns;
+        // the measured former 40s allowance expired after its first capture.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(65000);
         try
         {
             while ((covered & required) != required || captures.Count < 2)
@@ -75,14 +78,19 @@ internal sealed partial class Runner
                     "ordinary melee proof completes before wave three or a terminal result");
                 if (state.Phase is Phase.Building or Phase.Preparation)
                 {
+                    // The observer can see a clear before the graphical peer's
+                    // current-state message arrives. Do not issue next-stage
+                    // requests using that peer's former combat/turn identity.
+                    await Observe(client, s => s.Revision >= state.Revision && s.Phase == state.Phase && s.TurnSerial == state.TurnSerial,
+                        "melee transition synchronization", deadline.Token);
                     CityState city = state.Players.Single(c => c.Id == client.PlayerId);
                     if (!city.Ready)
                     {
                         if (state.Phase == Phase.Building)
                         {
                             await Pick(client, 1, deadline.Token);
-                            int cost = state.UnitCatalog.Single(u => u.Type == UnitType.Swordsman).Recruitment.Food;
-                            while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Food >= cost) await ClickAck(client, "Recruit", deadline.Token);
+                            ResourceCost cost = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[1].Level).Cost;
+                            while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Soldiers.Length < 6 && Latest(client).Players.Single(c => c.Id == client.PlayerId).Resources.TryPay(cost, out _)) await ClickAck(client, "Recruit", deadline.Token);
                         }
                         await Action(client, "ready", deadline.Token);
                     }

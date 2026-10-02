@@ -64,6 +64,7 @@ internal sealed partial class Runner
             "standalone Windows solo starts through normal authority", options.StartupTimeout, deadline.Token);
         await worker.SessionAction(solo, "build 0 farm", deadline.Token);
         await worker.SessionAction(solo, "build 1 barracks", deadline.Token);
+        await worker.SessionAction(solo, "build 2 metalmine", deadline.Token);
         await worker.SessionAction(solo, "ready", deadline.Token);
         GameEvent recruited = await worker.SessionAction(solo, "recruit 1", deadline.Token);
         Require(State(recruited).Players.Single().Soldiers.Length == 1, "Windows standalone runtime/PCK and normal solo requests work without Steam or SDK PATH");

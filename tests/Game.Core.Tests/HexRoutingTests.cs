@@ -24,8 +24,8 @@ public sealed class HexRoutingTests
     public void OccupiedDirectApproachUsesAFeasibleDetourWithoutEnteringOpposingCells()
     {
         using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 7);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 8, 7);
+        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 1);
+        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 8, 1);
         At(combat, UnitType.Crossbowman, Faction.Skeletons, 13, 1);
         At(combat, UnitType.Crossbowman, Faction.Skeletons, 14, 1);
         var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
@@ -43,8 +43,8 @@ public sealed class HexRoutingTests
     {
         using var combat = new CombatSimulation(new());
         int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 7);
-        int screen = At(combat, UnitType.Swordsman, Faction.Adventurers, 8, 7);
+        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 1);
+        int screen = At(combat, UnitType.Swordsman, Faction.Adventurers, 8, 1);
         At(combat, UnitType.Crossbowman, Faction.Adventurers, 11, 1);
         At(combat, UnitType.Crossbowman, Faction.Skeletons, 12, 1);
         var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
@@ -61,7 +61,7 @@ public sealed class HexRoutingTests
             Assert.Equal(2, approach.Route.Length); Assert.Equal(10, approach.Route[^1].Cell);
         }
         var blockers = new List<int>();
-        for (int footprint = 1; footprint <= 6; footprint++) blockers.Add(At(combat, UnitType.Crossbowman, Faction.Adventurers, 10, footprint));
+        for (int footprint = 1; footprint <= 3; footprint++) blockers.Add(At(combat, UnitType.Crossbowman, Faction.Adventurers, 10, footprint));
         occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
         Assert.Equal(11, Query(combat, actor, target, occupancy, routing: routing).Route[^1].Cell);
         foreach (int id in blockers) combat.Remove(id);
@@ -73,7 +73,7 @@ public sealed class HexRoutingTests
     {
         using var combat = new CombatSimulation(new());
         int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 7);
+        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 1);
         int moving = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 2);
         UnitState mover = combat.Read(moving); HexPosition to = new(14, 1);
         combat.Seed(mover with
@@ -94,7 +94,7 @@ public sealed class HexRoutingTests
     {
         using var combat = new CombatSimulation(new());
         int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 7);
+        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 1);
         var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
         var alternative = Query(combat, actor, target, occupancy, [13]);
         Assert.Equal(2, alternative.Route.Length); Assert.DoesNotContain(alternative.Route, p => p.Cell == 13);

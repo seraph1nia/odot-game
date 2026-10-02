@@ -35,7 +35,7 @@ internal sealed class CombatSimulation : IDisposable
     internal CombatReservations Reservations => _occupancy.Snapshot();
     internal AdmissionBound[] Admissions => _admissions.Values.ToArray();
     internal int[] HealthProgressCities => _healthProgress.ToArray();
-    public WeaponProfile Profile(UnitType type, int rank = 0) => _configuration.Unit(type, rank).Runtime();
+    public WeaponProfile Profile(UnitType type, int rank = 0, bool isBoss = false, int level = 1) => _configuration.Unit(type, rank, isBoss, level).Runtime();
     private ref CombatUnit Unit(int id) => ref _world.Get<CombatUnit>(_entities[id]);
     internal CombatUnit Inspect(int id) => Unit(id);
     internal CombatUnit[] Units() => All();
@@ -45,12 +45,13 @@ internal sealed class CombatSimulation : IDisposable
     private CombatDecisionState NewDecision(int id, int city, long sequence)
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
 
-    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0)
+    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0, bool isBoss = false, int level = 1)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (destination <= 0 || origin <= 0 || !Enum.IsDefined(faction)) throw new ArgumentException("Invalid unit identity.");
-        int id = _nextId; _nextId = checked(_nextId + 1); WeaponProfile profile = Profile(type, rank);
-        Entity entity = _world.Create(new CombatUnit(new(id, type, owner, origin, destination, faction, rank), profile.Health, profile,
+        WeaponProfile profile = Profile(type, rank, isBoss, level);
+        int id = _nextId; _nextId = checked(_nextId + 1);
+        Entity entity = _world.Create(new CombatUnit(new(id, type, owner, origin, destination, faction, rank, isBoss, level), profile.Health, profile,
             new(UnitLifecycle.Queued, default), new CombatAction.Waiting(), NewDecision(id, destination, 0)));
         _entities.Add(id, entity); return id;
     }
@@ -58,7 +59,7 @@ internal sealed class CombatSimulation : IDisposable
     {
         foreach (CombatUnit unit in Living().Where(u => u.Owner == city && u.Faction == Faction.Adventurers && u.Class == @class))
         {
-            Unit(unit.Id) = unit with { Identity = unit.Identity with { Rank = rank }, Profile = Profile(unit.Type, rank) };
+            Unit(unit.Id) = unit with { Identity = unit.Identity with { Rank = rank }, Profile = Profile(unit.Type, rank, unit.Identity.IsBoss, unit.Identity.Level) };
         }
     }
     private CombatUnit[] All()
@@ -78,18 +79,18 @@ internal sealed class CombatSimulation : IDisposable
         => CombatProjection.Snapshot(Unit(id), _tick);
     internal void Seed(UnitState state)
     {
-        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank);
+        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank, state.IsBoss, state.Level);
         CombatUnit unit = CombatProjection.Restore(state, profile, state.Decision ?? NewDecision(state.Id, state.Destination, 0), _tick);
         Seed(unit);
     }
     internal void Seed(CombatUnit unit)
     {
-        if (unit.Id <= 0 || unit.Origin <= 0 || unit.Destination <= 0 || !Enum.IsDefined(unit.Type) || !Enum.IsDefined(unit.Faction)
+        if (unit.Id <= 0 || unit.Identity.Level is < 1 or > Progression.MaximumExponentLevel || unit.Origin <= 0 || unit.Destination <= 0 || !Enum.IsDefined(unit.Type) || !Enum.IsDefined(unit.Faction)
             || !Enum.IsDefined(unit.Location.Lifecycle) || unit.Health < 0 || unit.Health > unit.Profile.Health
             || unit.Location.Lifecycle != UnitLifecycle.Dying && unit.Health == 0
-            || unit.Location.Lifecycle == UnitLifecycle.Queued && unit.Action is CombatAction.Moving or CombatAction.Windup
-            || unit.Location.Lifecycle != UnitLifecycle.Queued && _board.Footprint(unit.Location.Position.Footprint).CapacityCost != unit.Profile.CapacityCost)
-            throw new ArgumentException("Invalid unit health, identity or profile footprint.", nameof(unit));
+            || unit.Location.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve && unit.Action is CombatAction.Moving or CombatAction.Windup
+            || unit.Profile.Size is < 1 or > 6 || unit.Identity.IsBoss && unit.Profile.Size != 6)
+            throw new ArgumentException("Invalid unit health, identity or profile anchor.", nameof(unit));
         int nextId = Math.Max(_nextId, checked(unit.Id + 1));
         // Validate a complete prospective index before replacing the ECS entity.
         _occupancy.Rebuild(All().Where(u => u.Id != unit.Id).Select(u => u.Reservation).Append(unit.Reservation));
@@ -102,15 +103,16 @@ internal sealed class CombatSimulation : IDisposable
         if (!_entities.TryGetValue(id, out Entity entity)) return;
         _occupancy.Release(Unit(id).Destination, id); _observations.Remove(id); _entities.Remove(id); _world.Destroy(entity);
     }
-    public void BeginWave(int wave = 1)
+    public void BeginWave(int wave = 1, IEnumerable<int>? unfed = null)
     {
         if (HasDeaths) throw new InvalidOperationException("Cannot reform while prior deaths hold space.");
+        var reserves = (unfed ?? []).ToHashSet();
         _wave = wave; _events.Clear(); _occupancy.Clear(); _routing.Clear(); _admissions.Clear(); _observations.Clear();
         foreach (CombatUnit unit in Living())
         {
             Unit(unit.Id) = unit with
             {
-                Location = new(UnitLifecycle.Queued, default),
+                Location = new(reserves.Contains(unit.Id) ? UnitLifecycle.Reserve : UnitLifecycle.Queued, default),
                 Decision = NewDecision(unit.Id, unit.Destination, checked(unit.Decision.Sequence + 1)),
                 Action = CombatActions.Cancel(unit.Action, _tick)
             };
@@ -130,7 +132,7 @@ internal sealed class CombatSimulation : IDisposable
             {
                 HexPosition? position = band.Select((cell, preference) => new { cell, preference })
                     .OrderBy(c => _occupancy.UsedCapacity(unit.Destination, c.cell)).ThenBy(c => c.preference)
-                    .SelectMany(c => _occupancy.Free(unit.Destination, unit.Faction, c.cell, unit.Profile.CapacityCost)
+                    .SelectMany(c => _occupancy.Free(unit.Destination, unit.Faction, c.cell, unit.Profile.Size)
                         .OrderBy(f => unit.Faction == Faction.Adventurers ? f.AnchorForward : -f.AnchorForward).ThenBy(f => f.Id)
                         .Select(f => (HexPosition?)new HexPosition(c.cell, f.Id))).FirstOrDefault();
                 if (position is null) continue;
@@ -155,7 +157,7 @@ internal sealed class CombatSimulation : IDisposable
         CombatUnit[] current = All();
         CombatUnit[] incoming = current.Where(u => u.Destination == city && u.Faction == Faction.Skeletons && u.Location.Lifecycle == UnitLifecycle.Queued).ToArray();
         if (incoming.Length == 0 || current.Any(u => u.Destination == city && u.Faction == Faction.Skeletons && u.IsTargetable)) return;
-        bool Fits(HexOccupancy index) => incoming.Any(u => _board.Rear(Faction.Skeletons).Any(cell => index.Free(city, Faction.Skeletons, cell, u.Profile.CapacityCost).Any()));
+        bool Fits(HexOccupancy index) => incoming.Any(u => _board.Rear(Faction.Skeletons).Any(cell => index.Free(city, Faction.Skeletons, cell, u.Profile.Size).Any()));
         long bound = _tick;
         if (!Fits(_occupancy))
         {
@@ -296,7 +298,7 @@ internal sealed class CombatSimulation : IDisposable
                 d = d with { Visited = [], Route = [] }; key = key with { Generation = d.Generation };
             }
             bool retain = unchanged && winner.Reachable && d.Route.Length == winner.Steps
-                && d.Route.All(p => _occupancy.CanPlace(actor.Destination, actor.Faction, p));
+                && d.Route.All(p => _occupancy.CanPlace(actor.Destination, actor.Faction, p, actor.Profile.Size));
             HexPosition[] route;
             if (retain) route = d.Route;
             else

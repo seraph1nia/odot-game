@@ -1,6 +1,6 @@
 namespace Game.Core;
 
-public enum CombatPurpose : ulong { Target = 1, MovementRank = 2, GoalFootprint = 3, Route = 4, Formation = 5, Splash = 6 }
+public enum CombatPurpose : ulong { Target = 1, MovementRank = 2, GoalAnchor = 3, Route = 4, Formation = 5, Splash = 6 }
 public enum CombatActorKind : ulong { Unit = 1, Defender = 2, Tower = 3 }
 public readonly record struct CombatDecisionKey(ulong Seed, CombatFingerprint Configuration, int Wave, int City,
     CombatActorKind ActorKind, int ActorId, long Sequence, int Generation, CombatPurpose Purpose);

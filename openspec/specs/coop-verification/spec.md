@@ -7,14 +7,14 @@ Verify the cooperative match's rules and real multiplayer lifecycle through the 
 ## Requirements
 
 ### Requirement: Engine-independent cooperative rules tests
-The rules task SHALL verify economy/ownership validation, typed recruitment, multi-resource costs, building upgrades, bounded research, symmetric faction profiles, mage/tower splash, exactly-once production, ready eligibility, three-production wave cadence and income-free final preparation, persistent soldiers, city defense, simultaneous eliminations, current/future enemy redistribution with integer remainders, and victory/defeat. It SHALL additionally verify typed recruitment and invalid-type atomicity, range-based holding, legal shared-hex footprints/capacity, faction-exclusive reservations, crowded entry queues, closest/initiative/seeded targeting, fixed-tick movement/windup/impact/recovery/death, event deduplication and bounded history, stable combat identities and session cleanup. Tests SHALL include a deterministic mixed-army case with at least thirty-two soldiers and thirty-two enemies and check ordinary completion without battle-stalled defeat, board bounds, capacity/footprint separation and conservation. It SHALL verify that pause freezes simulation, moves, pending impacts, death-space releases, no-progress deadlines and events and resume does not catch up. Cheap tests SHALL compare seeded combat traces under reversed insertion order and different session identities, validate configuration, exercise exact scheduling/target/route ties and unchanged retries, prove same-tick arrival/impact/death ordering, and verify no-progress/duration defeat reasons and normal-result precedence. Fixed-seed crowded setups SHALL cover bounded waiting, cleanup and transfer without requiring graphical processes. Cleared-board transfer coverage SHALL assert actual protected-entry admission at its compatible release bound and ensuing engagement, not just conserved queues. Small paired normal-profile/formation fixtures SHALL establish frontline support protection, queued melee access, effective Mage contribution against ordinary two-victim clustering and Crossbowman single-target advantage. Required ordinary three-wave strategies and these role/admission/crowd checks SHALL run at the early gameplay gate before broad protocol/reconnect/package integration. Tests SHALL run without Godot, Steam, or a display and fail with nonzero exit status on violations. Shared authority/session tests SHALL verify equivalent solo, host-local, and guest request validation, authenticated identity binding, command retry protection, and stale-session rejection without changing gameplay rules.
+The rules task SHALL verify economy/ownership validation, typed recruitment, multi-resource costs, building upgrades, bounded research, symmetric faction profiles, mage/tower splash, exactly-once production, ready eligibility, three-production wave cadence and income-free final preparation, persistent soldiers, city defense, simultaneous eliminations, current/future enemy redistribution with integer remainders, and victory/defeat. It SHALL additionally verify typed recruitment and invalid-type atomicity, range-based holding, legal shared-hex size totals with six capacity, faction-exclusive reservations, crowded entry queues, closest/initiative/seeded targeting, fixed-tick movement/windup/impact/recovery/death, event deduplication and bounded history, stable combat identities and session cleanup. Tests SHALL include a deterministic mixed-army case with at least thirty-two soldiers and thirty-two enemies and check ordinary completion without battle-stalled defeat, board bounds, size-budget and distinct-anchor invariants and conservation. It SHALL verify that pause freezes simulation, moves, pending impacts, death-space releases, no-progress deadlines and events and resume does not catch up. Cheap tests SHALL compare seeded combat traces under reversed insertion order and different session identities, validate configuration, exercise exact scheduling/target/route ties and unchanged retries, prove same-tick arrival/impact/death ordering, and verify no-progress/duration defeat reasons and normal-result precedence. Fixed-seed crowded setups SHALL cover bounded waiting, cleanup and transfer without requiring graphical processes. Cleared-board transfer coverage SHALL assert actual protected-entry admission at its compatible release bound and ensuing engagement, not just conserved queues. Small paired normal-profile/formation fixtures SHALL establish frontline support protection, queued melee access, effective Mage contribution against ordinary two-victim clustering and Crossbowman single-target advantage. Required ordinary twenty-wave strategies and these role/admission/crowd checks SHALL run at the early gameplay gate before broad protocol/reconnect/package integration. Economy coverage SHALL verify all six resources, the construction/material graph without producer ownership gates, zero-food recruitment, direct production, five purchased/nine total plots, escalating gold expansion quotes, locked-plot rejection, actual investment and per-resource half-refund rounding, retained land/army/research, fresh replacement instances, Market availability and fixed bundles, stale target/price rejection, checked arithmetic, and once-only per-battle upkeep including stronger-first/stable-identity allocation, skipped expensive units, inactive reserve persistence, capacity-queue distinction, exposed city siege and disconnected cities. Size coverage SHALL verify all values one through six, ordinary size two, boss size six, mixed totals, no shape-fragmentation rejection, atomic endpoint/death claims, no cross-cell pooling and fitting arrivals past a blocked larger actor. Progression coverage SHALL verify all twenty authored compositions, mixed levels, both boss rounds, independent building and unit levels, rounded prices, unchanged veteran health, level-aware research, checked scaling, reward eligibility/deduplication, final reward ordering and no reward on defeat. Tests SHALL run without Godot, Steam, or a display and fail with nonzero exit status on violations. Shared authority/session tests SHALL verify equivalent solo, host-local, and guest request validation, authenticated identity binding, command retry protection, and stale-session rejection without changing gameplay rules.
 
 #### Scenario: Redistribution regression
 - **WHEN** enemy transfer duplicates an enemy, restores its health, loses a remainder, or assigns an enemy to a fallen city
 - **THEN** a rule test fails and identifies the violated invariant
 
 #### Scenario: Progression regression
-- **WHEN** repeated readiness creates extra production, a wave begins at the wrong turn, or a fourth wave starts
+- **WHEN** repeated readiness creates extra production, a wave begins at the wrong turn, victory occurs before wave twenty, or a twenty-first wave starts
 - **THEN** a rule test fails
 
 #### Scenario: Host and guest validation diverge
@@ -51,12 +51,29 @@ The rules task SHALL verify economy/ownership validation, typed recruitment, mul
 - **AND** reaching the stalled-fight deadline cannot count as passing ordinary reinforcement admission
 
 #### Scenario: Reinforcement bound accounts for fragmentation
-- **WHEN** a cleared protected entry has multiple death deadlines and its earliest release does not fit any queued profile
-- **THEN** a cheap fixture verifies the retained first-admission bound from cumulative legal footprint releases and actual admission at the compatible deadline
+- **WHEN** a cleared protected entry has multiple death deadlines and its earliest release leaves less free size in every cell than each queued actor requires
+- **THEN** a cheap fixture verifies the retained first-admission bound from cumulative whole-actor size releases in each protected cell and actual admission at the compatible deadline
 - **AND** retries cannot postpone the bound or require the whole overflow allocation to fit at once
 
+#### Scenario: Reward or leveling regression
+- **WHEN** death cleanup pays twice, a disconnected survivor misses its reward, an upgrade changes a veteran's level, or clients and authority disagree about recruitment cost
+- **THEN** a cheap rule, catalog or authority test fails with the violated invariant
+
+
+#### Scenario: Economy transaction regression
+- **WHEN** construction spends only some required resources, a locked plot accepts a building, a refund includes land/research/recruits, or a Market trade works without a Market
+- **THEN** a cheap rules or authority test fails with the incorrect resource, plot or transaction state
+
+#### Scenario: Replacement and retry regression
+- **WHEN** a sale retry pays twice or a delayed request aimed at a sold building changes its replacement
+- **THEN** a cheap authority test fails and verifies the replacement investment and state remain intact
+
+#### Scenario: Upkeep transition regression
+- **WHEN** recruitment spends food, ready/unready charges upkeep, prior-death cleanup charges early, reconnect charges twice or a disconnected city's shortage follows different rules, or an unfed reserve deploys or screens city health
+- **THEN** cheap rules and authority tests identify the wrong payment boundary or participation result without launching Godot
+
 ### Requirement: Real-process cooperative network verification
-The network task SHALL retain separate real headless dedicated-server/client scenarios and add a playing host with separate real guest processes using the normal session protocol over local networking. It SHALL validate at least two players, sender ownership, host-local validation, rejected actions, matching authoritative revisions, production and recruitment, automatic battles, and a terminal three-wave outcome. It SHALL cover a real guest disconnect and resumed process with a changed transport connection, pause/resume during combat, invalid credentials, duplicate/retried spending, current state restoration, original-host termination, and fresh hosting after leaving. A targeted three-player scenario SHALL validate immediate redistribution to two survivors and future wave allocation. Scenario actions SHALL use normal requests; no client-only test message SHALL award resources, kill cities, or set authoritative combat state. Local scenarios SHALL run without Steam accounts, internet access, or Steam initialization.
+The network task SHALL retain separate real headless dedicated-server/client scenarios and add a playing host with separate real guest processes using the normal session protocol over local networking. It SHALL validate at least two players, sender ownership, host-local validation, rejected actions, matching authoritative revisions, production and recruitment, automatic battles, and a terminal twenty-wave outcome. It SHALL cover a real guest disconnect and resumed process with a changed transport connection, pause/resume during combat, invalid credentials, duplicate/retried spending, current state restoration including unit levels, boss identity and unit size, all six balances, purchased plots, building investment/instance state, resolved transaction catalogs, upkeep forecasts/results and last-clear rewards, original-host termination, and fresh hosting after leaving. A targeted three-player scenario SHALL validate immediate redistribution to two survivors and future wave allocation. Scenario actions SHALL use normal requests; no client-only test message SHALL award resources, kill cities, or set authoritative combat state. Local scenarios SHALL run without Steam accounts, internet access, or Steam initialization.
 
 #### Scenario: Resume a paused battle
 - **WHEN** one client disconnects during combat, another pauses, and a replacement process resumes the disconnected player's session
@@ -64,7 +81,7 @@ The network task SHALL retain separate real headless dedicated-server/client sce
 
 #### Scenario: Retry an accepted economic action
 - **WHEN** the network scenario resends a previously accepted recruitment command after reconnecting
-- **THEN** clients observe one food deduction and one recruited soldier for that command
+- **THEN** clients observe one material/gold deduction, no recruitment food deduction and one recruited soldier for that command
 
 #### Scenario: Redistribute in real combat
 - **WHEN** an under-defended city falls in a three-client scenario through normal combat
@@ -77,6 +94,16 @@ The network task SHALL retain separate real headless dedicated-server/client sce
 #### Scenario: Fresh host after returning to menu
 - **WHEN** a process ends a hosted session and hosts again
 - **THEN** the runner observes a new match identity and no effect from old requests or connections
+
+#### Scenario: Restore the expanded economy
+- **WHEN** a city buys a plot, upgrades and sells a building and executes a Market sale through ordinary requests before reconnecting
+- **THEN** peers agree on all six balances, permanent plot state, current building instances/refund quotes and the next expansion price
+- **AND** retries of accepted transactions change none of those values a second time
+
+#### Scenario: Reconnect across the upkeep boundary
+- **WHEN** a disconnected living city crosses from preparation into combat and later resumes
+- **THEN** its retained army and latest upkeep result agree with the authority and other clients
+- **AND** the resumed process neither repays food nor changes this wave's already-resolved participation
 
 ### Requirement: Bounded lifecycle and continued CI gates
 Network and graphical scenarios SHALL retain configurable endpoints, readiness and assertion deadlines, attributable non-secret diagnostics, and cleanup of only their owned processes and displays on success, failure, or interruption. Each automated client SHALL use isolated resume storage, and graphical verification SHALL use isolated preferences on a private display. Existing unavailable-server, stopped-server, occupied-port, and startup/child-failure checks SHALL remain meaningful under serial and bounded parallel network execution. Tests SHALL wait for observable session/state conditions rather than fixed sleeps. The existing task names SHALL remain, with a Linux `test-ui` task. Verification SHALL complete formatting, preparation, cooperative rules, all network scenarios and source graphical smoke before client/server exports. Independent checks SHALL be allowed to overlap after shared preparation, but a failed pre-export check SHALL prevent both exports. After successful exports, headless exported-role smoke and private-display exported-client graphical smoke SHALL gate overall success. Ordinary push/PR verification and `mise run ci` SHALL NOT upload artifacts, publish releases, or deploy. A separate manually published-release workflow SHALL build and attach distributable packages after lightweight tag/profile/identity/checksum checks without rerunning the test suites; this permission SHALL NOT extend to uploading verification logs, screenshots, or runtime data. Normal verification SHALL NOT require Steam login, accounts, relay availability, or internet for gameplay verification after dependencies are prepared. A separate explicitly invoked Steam verification SHALL report missing prerequisites or failed assertions distinctly; skipped or missing evidence SHALL NOT count as a Steam pass.
@@ -160,7 +187,7 @@ One independently selectable source graphical combat slice SHALL exercise the ac
 #### Scenario: Selected graphical combat slice
 - **WHEN** only the combat presentation slice is selected on a prepared supported machine
 - **THEN** it runs from its own fresh state, observes the required animation/hex-position/death-deadline milestones, retains non-secret PNG/log/timing evidence and releases its owned peers and display
-- **AND** it does not depend on another slice, require a full three-wave graphical match or manipulate authoritative state through a test-only command
+- **AND** it does not depend on another slice, require a full twenty-wave graphical match or manipulate authoritative state through a test-only command
 
 #### Scenario: Headless behavior stays graphical-independent
 - **WHEN** typed armies battle on a stripped dedicated-server export or an automated headless role
@@ -178,14 +205,19 @@ One independently selectable source graphical combat slice SHALL exercise the ac
 
 #### Scenario: Independently selected early melee proof
 - **WHEN** `test-ui --scenario combat --checkpoint melee` is selected
-- **THEN** the ordinary authority uses explicit seed 1 and ordinary two-Farm/Barracks recruitment supplies six Swordsmen, with ordinary progression into wave two permitted and a stop before wave three
+- **THEN** ordinary authority seed 1 and an ordinary material-funded, fed melee opening provide simultaneous near/far attack opportunities within a documented bounded early-wave setup
 - **AND** a shared simultaneous windup and later opposite near/far landed impact retain overview and close-view PNGs linked to actual actor/target nodes and action identities
 - **AND** ordinary pause requests are timed from authoritative action milestones while live graphical observations establish the rendered proof
 - **AND** the bounded checkpoint retains seed/configuration and live-node witnesses on success or failure and uses the existing owned combat setup and cleanup
-- **AND** cheap seeded opportunity checks do not substitute for imported-rig, cue-readability or route-clearance evidence
+- **AND** cheap seeded opportunity checks do not substitute for imported-rig, cue-readability or route-clearance evidence, and the setup does not require a full twenty-wave graphical match
+
+#### Scenario: Focused progression UI coverage
+- **WHEN** the existing economy and reconnect slices exercise resource-gated construction, plot purchase, building/Market sales, a recruitment-building upgrade, a subsequent material-funded recruit, upkeep resolution and an ordinary early-wave clear
+- **THEN** real controls, current observations and retained frames verify displayed costs/refunds/lock state, disabled-action explanations, material recruitment without a food charge, battle-start food handling and restored economy/level/upkeep/last-clear state
+- **AND** they do not need to replay twenty waves graphically to prove these mappings
 
 ### Requirement: Recorded strategy and focused graphical coverage
-Verification SHALL compare checked-in ordinary-gameplay frontline, mixed-army, tower-heavy and research-heavy strategies in solo matches and retain a shared winning strategy across one through four players without privileged resource or casualty commands. Evidence SHALL record costs, production/spending stages, recruited archetypes, wave duration, casualties, remaining resources and city health. At least one reproducible ordinary strategy in each family SHALL win the default three-wave solo match; a no-investment strategy SHALL still lose. Cooperative success, elimination and redistribution assertions SHALL remain mandatory. These finite strategies SHALL NOT be reported as proof that every possible build is balanced. Graphical coverage SHALL extend existing selectable economy, combat, reconnect, settings and exported-package cases where practical; new expensive cases SHALL document their unique defect, missed cheaper coverage and expected cost before admission.
+Verification SHALL compare checked-in ordinary-gameplay frontline, mixed-army, tower-heavy and research-heavy strategies in solo matches and retain a shared winning strategy across one through four players without privileged resource or casualty commands. Evidence SHALL record costs across all six resources, production/spending stages, plot purchases, building sales and exact refunds, Market trades, recruited archetypes and levels, building upgrade timing, upkeep demand/payment and participation, wave rewards, boss outcomes, wave duration, casualties, remaining resources and city health. At least one reproducible ordinary strategy in each family SHALL win the default twenty-wave solo match; a no-investment strategy SHALL still lose. Cooperative success, elimination and redistribution assertions SHALL remain mandatory. These finite strategies SHALL NOT be reported as proof that every possible build is balanced. Graphical coverage SHALL extend existing selectable economy, combat, reconnect, settings and exported-package cases where practical; new expensive cases SHALL document their unique defect, missed cheaper coverage and expected cost before admission.
 
 #### Scenario: New option has no viable strategy
 - **WHEN** a default tower-heavy or research-heavy strategy cannot win despite correct ordinary actions
@@ -196,6 +228,22 @@ Verification SHALL compare checked-in ordinary-gameplay frontline, mixed-army, t
 - **WHEN** private-display combat coverage observes a Mage cast or a Catapult Tower impact
 - **THEN** it checks actual rendered poses/effects against current authoritative events and captures attributable frames
 - **AND** an overlapping snapshot or reconnect does not replay an old sound or effect
+
+#### Scenario: Twenty-wave balance evidence
+- **WHEN** the checked-in fixed-seed strategy sample runs
+- **THEN** frontline, mixed-army, tower-heavy and research-heavy solo strategies each demonstrate a complete ordinary-command twenty-wave win and a shared strategy wins with one through four players
+- **AND** an ordinary strategy can afford, recruit and field a level-five unit before wave twenty, no-investment play loses through city-health defeat, and battle-stalled defeat never substitutes for a successful run
+
+
+#### Scenario: Resource graph and first-wave viability
+- **WHEN** ordinary strategies start with five usable plots and zero stone, metal and cloth
+- **THEN** a checked-in opening can produce equipment, recruit and feed defenders before wave one
+- **AND** later mixed/advanced paths demonstrate cloth/metal consumption, stone-funded upgrades and paid expansion or half-refund reconfiguration without hidden grants or capacity
+
+#### Scenario: Spatial and food pressure across the campaign
+- **WHEN** the twenty-wave strategy sample runs the integrated economy
+- **THEN** evidence records producer upgrades versus plot purchases, Market versus Gold Mine investment and food supply against persistent armies
+- **AND** nominal strategy success cannot omit upkeep, bypass required materials or silently enlarge the board
 
 ### Requirement: Isolated numerical action and decision acceptance
 

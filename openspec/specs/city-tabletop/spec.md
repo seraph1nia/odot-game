@@ -7,11 +7,11 @@ Present authoritative cities and battles as a readable miniature 3D tabletop usi
 ## Requirements
 
 ### Requirement: City interaction and match feedback
-Clients SHALL expose building selection for empty owned slots, building upgrades, explicit building-specific archetype recruitment and Blacksmith research, ready/unready, and pause/resume through a compact control panel anchored to the bottom of the game window. The interface SHALL show gold/wood construction costs, recruitment/research costs, gold, food, wood, class research ranks, city health, soldier count, building level, phase including final preparation, turn within the three-turn cycle, wave out of three, readiness, connection status, and outcome, distinguishing all-cities-fallen defeat from battle-stalled defeat. A stalled result SHALL explain that the battle could not finish, rather than claim every city fell. City inspection controls SHALL identify the player's own city and the observed city. Construction, upgrade, research and recruitment actions SHALL be contextual to the directly selected world plot or building; without a selection, the panel SHALL display a prompt to select in the world and SHALL NOT offer an actionable default plot. The interface SHALL NOT include a duplicate numbered grid for selecting building slots. A cooperative lobby SHALL expose the current roster, identify the host where applicable, and expose the start action only to eligible players. Hosted lobbies SHALL offer Invite friends; solo play SHALL enter the first building turn directly. Lobby, match, outcome, and disconnected views SHALL offer Return to menu. Connection and host-loss feedback SHALL reflect the selected session mode. Unavailable actions SHALL be visibly disabled or explained, and server rejection SHALL be surfaced. A disconnected guest SHALL offer reconnect without discarding its private resume information while the original authority may still be available, and input SHALL remain disabled until resynchronization completes. An ended hosted session SHALL offer return to the start screen without suggesting authority migration.
+Clients SHALL expose construction on empty purchased plots, locked-plot purchases, building upgrades and sales, explicit building-specific archetype recruitment, Blacksmith research, Market sales, ready/unready, and pause/resume through a compact control panel anchored to the bottom of the game window. The interface SHALL show complete construction/upgrade/recruitment/research costs, building refund and Market quotes, gold, food, wood, stone, metal, cloth, purchased plot count, next expansion cost, current army upkeep demand and food balance, class research ranks, city health, soldier count, building level, phase including final preparation, turn within the three-turn cycle, wave out of twenty and whether it is a boss wave, readiness, connection status, and outcome, distinguishing all-cities-fallen defeat from battle-stalled defeat. A stalled result SHALL explain that the battle could not finish, rather than claim every city fell. City inspection controls SHALL identify the player's own city and the observed city. Construction, plot purchase, building sale, upgrade, research, Market trade and recruitment actions SHALL be contextual to the directly selected world plot or building; without a selection, the panel SHALL display a prompt to select in the world and SHALL NOT offer an actionable default plot. The interface SHALL NOT include a duplicate numbered grid for selecting building slots. A cooperative lobby SHALL expose the current roster, identify the host where applicable, and expose the start action only to eligible players. Hosted lobbies SHALL offer Invite friends; solo play SHALL enter the first building turn directly. Lobby, match, outcome, and disconnected views SHALL offer Return to menu. Connection and host-loss feedback SHALL reflect the selected session mode. Unavailable actions SHALL be visibly disabled or explained, and server rejection SHALL be surfaced. A disconnected guest SHALL offer reconnect without discarding its private resume information while the original authority may still be available, and input SHALL remain disabled until resynchronization completes. An ended hosted session SHALL offer return to the start screen without suggesting authority migration.
 
 #### Scenario: Recruit through the graphical interface
 - **WHEN** a player clicks their recruitment building during an eligible building or preparation phase
-- **THEN** the bottom panel displays its level and explicit recruitment actions for each archetype that building unlocks and its displayed resource costs
+- **THEN** the bottom panel displays its level and explicit recruitment actions for each archetype that building unlocks and its authoritative recruit level, resulting health/damage, rounded material/gold costs and separate per-battle food upkeep
 - **AND** activating recruitment shows the authoritative resource and army changes after acceptance
 
 #### Scenario: Pause and reconnect feedback
@@ -21,7 +21,7 @@ Clients SHALL expose building selection for empty owned slots, building upgrades
 
 #### Scenario: No plot has been selected
 - **WHEN** a synchronized player first views a city or switches to another city
-- **THEN** the panel asks them to click a plot or building and no build, upgrade, or recruitment can target a previously selected plot
+- **THEN** the panel asks them to click a plot or building and no economic action can target a previously selected plot
 - **AND** resources, city inspection, and available match controls remain accessible
 
 #### Scenario: Inspect another player's city
@@ -30,7 +30,7 @@ Clients SHALL expose building selection for empty owned slots, building upgrades
 
 #### Scenario: Recruit a ranged soldier through controls
 - **WHEN** the player selects their Archery Range and activates its enabled Crossbowman control
-- **THEN** the accepted request adds a Crossbowman and displays the authoritative food deduction and army count
+- **THEN** the accepted request adds a Crossbowman and displays the authoritative material deduction and army count without a food recruitment charge
 - **AND** observing a foreign recruitment building, becoming ready, pausing or entering combat disables its recruitment controls
 
 #### Scenario: Inspect research and preparation
@@ -38,18 +38,29 @@ Clients SHALL expose building selection for empty owned slots, building upgrades
 - **THEN** the panel shows melee, ranged and magic ranks, next-rank effects and authoritative costs
 - **AND** Ready is labeled to start battle rather than produce resources
 
+#### Scenario: Preview a recruitment-building upgrade
+- **WHEN** the player selects a recruitment building below level five
+- **THEN** the panel shows its current recruit level, next level, upgrade cost and the next level's material recruitment price, health/damage and per-battle upkeep
+- **AND** it explains that existing soldiers retain their level, shows no food-discount claim and disables an unavailable upgrade
+
+#### Scenario: Inspect maximum recruitment level
+- **WHEN** the player selects a level-five recruitment building
+- **THEN** recruitment remains available under normal eligibility while upgrading is shown as complete
+- **AND** a level-two production building or tower and a level-one Market remain at their own maxima
+
+
 #### Scenario: Stalled defeat is truthful
 - **WHEN** the authority reports defeat due to a combat limit while city health remains positive
 - **THEN** the panel displays the battle-stalled reason and ordinary return-to-menu controls
 - **AND** it does not describe surviving cities as fallen
 
 ### Requirement: Requested free asset palette
-The game SHALL use the free KayKit Medieval Hexagon Pack as the primary building/environment palette, KayKit Prototype Bits for missing non-character objects and markers, and KayKit Resource Bits for resource visuals such as gold. Grass, river terrain, hills, trees, rocks, and medieval village props SHALL use matching ready-made assets from the free medieval pack. Farm visuals SHALL be represented by an appropriate free medieval building or prop, with a clear farm label. Food scenery SHALL use a medieval prop such as a sack with clear food labeling instead of the prototype can. Combat units SHALL use free rigged Adventurers and Skeletons characters with compatible locomotion, melee, ranged shooting, casting, hit and death clips and matching weapons. Berserker SHALL use the free Barbarian and Mage the free Mage; Skeleton Warrior, Minion, Rogue and Mage SHALL supply their enemy counterparts. Required character animations SHALL NOT be replaced by dummy models, scale pulses, or labeled markers. Paid tiers SHALL NOT be required. Gold, food and wood SHALL be the only gameplay currencies. Resource Bits SHALL supply free gold and wood props; free medieval sacks/grain SHALL supply food. Paid food, coin, character or source tiers SHALL NOT be required. The selected assets, required textures/buffers, included license texts, and recorded official source/version information SHALL be available from a clean checkout without runtime downloads.
+The game SHALL use the free KayKit Medieval Hexagon Pack as the primary building/environment palette, KayKit Prototype Bits for missing non-character objects and markers, and KayKit Resource Bits for resource visuals such as gold. Grass, river terrain, hills, trees, rocks, and medieval village props SHALL use matching ready-made assets from the free medieval pack. Farm visuals SHALL be represented by an appropriate free medieval building or prop, with a clear farm label. Food scenery SHALL use a medieval prop such as a sack with clear food labeling instead of the prototype can. Combat units SHALL use free rigged Adventurers and Skeletons characters with compatible locomotion, melee, ranged shooting, casting, hit and death clips and matching weapons. Berserker SHALL use the free Barbarian and Mage the free Mage; Skeleton Warrior, Minion, Rogue and Mage SHALL supply their enemy counterparts. Required character animations SHALL NOT be replaced by dummy models, scale pulses, or labeled markers. Paid tiers SHALL NOT be required. Gold, food, wood, stone, metal and cloth SHALL be the six economy resources. Stonecutter, Metal Mine, Weaver and Market SHALL have identifiable labeled representations using the bundled free palette; Gold Mine and Metal Mine SHALL be distinguishable. New resource labels and suitable bundled props SHALL distinguish stone, metal and cloth without claiming that decorative assets grant resources. Resource Bits SHALL supply free gold and wood props; free medieval sacks/grain SHALL supply food. Paid food, coin, character or source tiers SHALL NOT be required. The selected assets, required textures/buffers, included license texts, and recorded official source/version information SHALL be available from a clean checkout without runtime downloads.
 
 #### Scenario: Free assets cover the match
 - **WHEN** a contributor prepares and runs the graphical game from a clean checkout
 - **THEN** buildings, grass plots, river, hills, and decorations use the medieval palette and combat units use rigged characters and their required animations without paid content
-- **AND** food uses a labeled medieval prop and gold, food and wood are the only economy resources
+- **AND** food uses a labeled medieval prop and all six resources and new buildings are identifiable using bundled free assets
 
 #### Scenario: Clean checkout contains animated characters
 - **WHEN** a contributor imports source or launches a packed graphical export without downloading assets at runtime
@@ -72,12 +83,12 @@ The authoritative dedicated server and automated headless roles, including a pla
 - **THEN** the tabletop and normal gameplay controls work without source-project access, a network socket, or an external server
 
 ### Requirement: Medieval landscape and visible battles
-Graphical clients SHALL display each city as a medieval countryside landscape with nine hexagonal building plots arranged in three staggered rows and surrounding terrain continuing beyond the visible world edges. The landscape SHALL include surrounding grass, a river along one side, wooded hills, rocks, and small village props, including when all building plots are empty. A raised rear terrace, lower riverbank and wooded slopes SHALL create visible elevation differences; peripheral mountains, a bridge and appropriate building props SHALL enrich the scenery without hiding plots or battles. Terrain elevation SHALL remain cosmetic and unit rendering SHALL meet its visible ground surface without changing authoritative contact or targeting. The battlefield SHALL be a readable grassy approach with no painted road markings or modern road slab. Decorations and terrain SHALL NOT occupy building slots or change movement, damage, economy, or city capacity. Players SHALL be able to inspect every player's city and battle, identify their own city, and distinguish soldiers from enemies. The visual representation SHALL follow authoritative state, including enemy transfers, casualties, and eliminated cities. The game SHALL NOT require manual unit control, movable terrain, or a board-folding effect.
+Graphical clients SHALL display each city as a medieval countryside landscape with nine stable hexagonal building plots arranged in three staggered rows, with purchased and locked plots visibly distinct and surrounding terrain continuing beyond the visible world edges. The landscape SHALL include surrounding grass, a river along one side, wooded hills, rocks, and small village props, including when all building plots are empty. A raised rear terrace, lower riverbank and wooded slopes SHALL create visible elevation differences; peripheral mountains, a bridge and appropriate building props SHALL enrich the scenery without hiding plots or battles. Terrain elevation SHALL remain cosmetic and unit rendering SHALL meet its visible ground surface without changing authoritative contact or targeting. The battlefield SHALL be a readable grassy approach with no painted road markings or modern road slab. Decorations and terrain SHALL NOT occupy building slots or change movement, damage, economy, or city capacity. Players SHALL be able to inspect every player's city and battle, identify their own city, and distinguish soldiers from enemies. The visual representation SHALL follow authoritative state, including enemy transfers, casualties, and eliminated cities. The game SHALL NOT require manual unit control, movable terrain, or a board-folding effect.
 
 #### Scenario: Attractive empty starting village
 - **WHEN** a match starts with all nine plots empty
 - **THEN** the player sees a coherent grass landscape with the home, defender, river, wooded hills, rocks, and village props continuing beyond the visible world edges
-- **AND** all nine buildable plots and the battle approach remain distinguishable from scenery
+- **AND** five initially usable plots, four locked expansion plots and the battle approach remain distinguishable from scenery
 
 #### Scenario: Watch a redistributed wave
 - **WHEN** another city falls during a wave
@@ -85,17 +96,17 @@ Graphical clients SHALL display each city as a medieval countryside landscape wi
 - **AND** the player can inspect the surviving cities while combat continues
 
 #### Scenario: Upgraded buildings are recognizable
-- **WHEN** a building is upgraded to level two
+- **WHEN** a building is upgraded from level one to level two or higher
 - **THEN** its structure or surrounding props visibly distinguish the upgrade without relying only on uniform scaling
 - **AND** clicking its visible roof or raised plot still selects the same stable slot
 
 ### Requirement: Direct world selection
-A player SHALL select a building slot by clicking its visible hexagonal plot or the visible building occupying it. Both targets SHALL resolve to the same authoritative slot identity, including after construction, upgrading, and reconnecting. Hover and selection feedback SHALL be restrained and SHALL NOT obscure the terrain or imported building materials. Clicking a plot or building SHALL select it without automatically spending resources. Clicking scenery, gaps outside buildable plots, or the bottom panel SHALL NOT select a different world slot or cause an unintended gameplay action.
+A player SHALL select a building slot by clicking its visible hexagonal plot or the visible building occupying it. Both targets SHALL resolve to the same authoritative slot identity, including while locked and after purchase, construction, upgrading, sale and reconnecting. Hover and selection feedback SHALL be restrained and SHALL NOT obscure the terrain or imported building materials. Clicking a plot or building SHALL select it without automatically spending resources. Clicking scenery, gaps outside buildable plots, or the bottom panel SHALL NOT select a different world slot or cause an unintended gameplay action.
 
 #### Scenario: Select each empty hex plot
 - **WHEN** the player clicks each of the nine empty plot centers in turn
-- **THEN** each click selects exactly the corresponding slot and shows its available construction actions
-- **AND** no resources are spent until a construction action is activated
+- **THEN** each click selects exactly the corresponding slot and shows construction actions for a purchased plot or the gold purchase quote for a locked plot
+- **AND** no resources are spent until the player explicitly activates construction or plot purchase
 
 #### Scenario: Click a raised building
 - **WHEN** the player clicks the visible roof or body of a building, including a level-two building
@@ -284,12 +295,12 @@ At 1100x820 and 1280x720 and after supported viewport or HUD changes, all visibl
 - **AND** Reset view restores the complete playable composition
 
 ### Requirement: Menu shares the starting countryside
-The start screen and multiplayer entry backdrop SHALL render the same terrain arrangement, elevations, home, defender, empty nine plots, river, bridge and static decorations as a fresh starting village, with consistent asset scale, materials and lighting. Menu framing SHALL fill the background around its readable controls and use the same landscape coverage rules for its viewport. Menu scenery SHALL remain non-interactive and SHALL NOT create a gameplay session, connect to an authority or expose match actions. Returning to the menu SHALL restore the empty starting countryside without retaining a previous match's constructed buildings or units. Source and exported graphical clients SHALL provide this same presentation; headless roles SHALL remain free of visual instantiation.
+The start screen and multiplayer entry backdrop SHALL render the same terrain arrangement, elevations, home, defender, nine empty plots with the starting five-purchased/four-locked appearance, river, bridge and static decorations as a fresh starting village, with consistent asset scale, materials and lighting. Menu framing SHALL fill the background around its readable controls and use the same landscape coverage rules for its viewport. Menu scenery SHALL remain non-interactive and SHALL NOT create a gameplay session, connect to an authority or expose match actions. Returning to the menu SHALL restore the empty starting countryside without retaining a previous match's purchased expansions, constructed buildings or units. Source and exported graphical clients SHALL provide this same presentation; headless roles SHALL remain free of visual instantiation.
 
 #### Scenario: Enter a solo match from the menu
 - **WHEN** the player views the start screen and then starts a fresh solo match
 - **THEN** the same starting countryside arrangement, assets and scales are recognizable in both views
-- **AND** the menu has no match state while the match exposes its nine empty selectable plots
+- **AND** the menu has no match state while the match exposes its nine empty selectable plots with five usable and four offering expansion
 
 #### Scenario: Return after construction
 - **WHEN** the player returns to the menu after constructing buildings in a match
@@ -299,3 +310,63 @@ The start screen and multiplayer entry backdrop SHALL render the same terrain ar
 #### Scenario: Run the packed menu
 - **WHEN** an exported graphical client displays its start screen and enters solo play without access to the source project
 - **THEN** both views load the shared countryside and fill their visible world areas from bundled assets
+
+### Requirement: Readable unit progression and wave rewards
+The graphical match view SHALL expose an observed army's unit levels, distinguish a boss with a boss label and level, and use authoritative resolved profiles for displayed health and damage. Army inspection SHALL show authoritative unit size, with normal units at size two and bosses at size six. Mixed-level soldiers SHALL remain distinguishable through labels or grouped army details without adding individual upgrade controls. The view SHALL show the latest completed wave's actual gold, food and wood reward for the observed city, including on the final victory screen. A summary SHALL identify its wave and SHALL NOT imply a second payment on repeated snapshots, city switches or reconnect. A fresh match SHALL clear the prior match's reward summary. Unit levels SHALL NOT require new character assets or modify unit size through visual scaling.
+
+#### Scenario: Observe a boss
+- **WHEN** the observed city receives a boss allocation or a transferred boss
+- **THEN** the view identifies the boss and its level and displays its authoritative current and maximum health and size six
+
+#### Scenario: Restore the reward summary
+- **WHEN** a player reconnects after wave ten clears
+- **THEN** the current balances and latest summary show that city's actual wave-ten reward without playing another payment effect
+
+#### Scenario: View mixed-level survivors
+- **WHEN** level-one veterans and level-three recruits belong to the observed army
+- **THEN** army details distinguish their levels and use their own profiles rather than displaying all soldiers at the current building level
+
+### Requirement: Readable resource progression and contextual economy controls
+Construction choices SHALL be grouped into production, recruitment and advanced/defensive buildings with stable ordering. Affordable eligible choices SHALL be visually emphasized; unavailable choices SHALL remain visible and greyed, with readable missing resource amounts and producer names or the applicable ownership, readiness, pause or phase reason. Explanation SHALL remain accessible even when the purchase button is disabled and SHALL NOT rely only on color. Buildings SHALL NOT be hidden until a resource is discovered. Selected locked plots SHALL offer only their purchase quote and inspection; purchased empty plots SHALL offer construction. Selecting occupied plots SHALL expose their normal actions and an explicit Sell action with the exact refund and retained-army/research explanation. Markets SHALL expose fixed sale bundles, available stock and exact gold proceeds; food-sale previews SHALL update the projected upkeep balance. Affordability, costs, refunds, rates and upkeep SHALL derive from authoritative state/catalogs and refresh after accepted actions, production, city switches and reconnects without guessing that a request succeeded. Layout SHALL keep all six resource balances and essential actions readable at 1100x820 and 1280x720 while preserving world selection and the nine-plot overview. Economically unavailable controls SHALL never become enabled solely by a presentation calculation.
+
+#### Scenario: Explain an unavailable Arcanum
+- **WHEN** an owner selects an empty purchased plot with enough gold and wood but insufficient stone
+- **THEN** Arcanum remains visible and greyed with the missing stone amount and Stonecutter as its production source
+- **AND** acquiring the required resources highlights the eligible action without requiring ownership of a Stonecutter or any cloth
+
+#### Scenario: Purchase land through actual world selection
+- **WHEN** the player selects a locked plot and explicitly activates its affordable purchase
+- **THEN** authoritative acceptance makes that same plot usable and displays construction choices and the updated next expansion price
+- **AND** selecting or hovering the plot alone spends nothing
+
+#### Scenario: Sell a building and inspect the cleared plot
+- **WHEN** the player activates the selected building's displayed Sell action
+- **THEN** acceptance shows the exact resource refund, removes its model and actions and keeps that plot selected as usable empty land
+- **AND** existing army and research remain visible without being refunded or healed
+
+#### Scenario: Sell resources through a Market
+- **WHEN** the player selects an owned Market and activates a valid displayed sale bundle
+- **THEN** accepted resource and gold changes match the quote and duplicate observations replay no sale
+- **AND** selling the last Market removes trading controls immediately
+
+#### Scenario: Wider economy stays readable
+- **WHEN** the six-resource view is displayed at either supported verification size with a selected building and the expanded city
+- **THEN** balances, complete costs, upkeep and actions remain readable and reachable without horizontal clipping
+- **AND** plots, home and battle approach retain the supported overview and click targets
+
+### Requirement: Visible upkeep forecast and reserve participation
+During editable building and preparation the observed city's view SHALL show current food, total next-battle upkeep, projected food payment and which soldiers would participate or sit out under the authoritative stronger-first, stable-identity allocation. Recruitment SHALL show equipment costs separately from per-battle food upkeep. A shortage SHALL be explained before Ready without disabling readiness solely for food. Accepted recruitment or food sales SHALL refresh the forecast. During combat the view SHALL distinguish participating soldiers, fed capacity-queued soldiers and unfed reserves, showing actual paid upkeep for that wave. Reserves SHALL remain in army details with retained level and health but SHALL NOT be rendered as deployed combatants, walking capacity queues or casualties. Reconnect SHALL restore the current status without replaying a feeding, death or recruitment effect.
+
+#### Scenario: Preview a food sale's consequence
+- **WHEN** selling a food bundle would leave insufficient food for the whole army
+- **THEN** the Market preview identifies the resulting payment and units that would sit out before the sale is activated
+- **AND** acceptance updates the common upkeep forecast from authoritative state
+
+#### Scenario: Start a battle underfed
+- **WHEN** the player readies with a visible shortage and the shared battle starts
+- **THEN** the displayed food deduction and participating/reserve army agree with the preview if no relevant inputs changed
+- **AND** unfed soldiers remain inspectable without appearing on the active battlefield or playing a death animation
+
+#### Scenario: Reconnect with reserves
+- **WHEN** a client reconnects to a wave containing unfed soldiers
+- **THEN** it sees the retained current payment and reserve status without paying food again or admitting those reserves to combat

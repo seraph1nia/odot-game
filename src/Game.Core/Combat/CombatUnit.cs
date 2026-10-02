@@ -15,7 +15,7 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
     public int Destination => Identity.Destination;
     public Faction Faction => Identity.Faction;
     public UnitClass Class => Catalogs.Class(Type);
-    public bool Deployed => Location.Lifecycle != UnitLifecycle.Queued;
+    public bool Deployed => Location.Lifecycle is UnitLifecycle.Alive or UnitLifecycle.Dying;
     public bool IsTargetable => Location.Lifecycle == UnitLifecycle.Alive;
     public bool CanAct => IsTargetable && Location.FrozenTick is null;
     public bool PendingImpact => CanAct && Action is CombatAction.Windup;
@@ -24,7 +24,7 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
         : Decision.ObjectiveId > 0 ? new(Decision.ObjectiveCity ? CombatTargetKind.City : CombatTargetKind.Unit, Decision.ObjectiveId)
         : Action.Attack?.Target;
     public ReservationOwner Reservation => new(Id, Destination, Faction, Location.Lifecycle, Location.Position, Action.Sequence,
-        Action is CombatAction.Waiting, Action as CombatAction.Moving, Location.DeathStartTick, Location.DeathEndTick, Location.FrozenMoveTicks);
+        Action is CombatAction.Waiting, Action as CombatAction.Moving, Location.DeathStartTick, Location.DeathEndTick, Location.FrozenMoveTicks, Profile.Size);
     public HexPosePoint? Pose(long tick)
     {
         if (!Deployed) return null;
@@ -36,10 +36,10 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
     }
 }
 
-// Occupancy receives only the evidence needed for footprint/transit ownership.
+// Occupancy receives only the evidence needed for size/anchor/transit ownership.
 // It does not retain a competing action store or schedule attacks.
 internal sealed record ReservationOwner(int Id, int City, Faction Faction, UnitLifecycle Lifecycle, HexPosition Position,
-    long ActionSequence, bool Ready, CombatAction.Moving? Move = null, long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0)
+    long ActionSequence, bool Ready, CombatAction.Moving? Move = null, long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0, int Size = 2)
 {
     public bool HoldsTransit => Move is not null;
     public HexPosition Destination => Move?.Destination ?? default;
@@ -53,7 +53,7 @@ internal sealed record ReservationOwner(int Id, int City, Faction Faction, UnitL
         return new(state.Id, state.City, state.Faction, state.Lifecycle, state.Position,
             state.ActionSequence, state.Action == UnitActionKind.Waiting,
             state.HoldsTransit ? new(state.ActionSequence, state.Destination, state.Transition, state.StartTick, state.EndTick) : null,
-            state.DeathStartTick, state.DeathEndTick, state.FrozenMoveTicks);
+            state.DeathStartTick, state.DeathEndTick, state.FrozenMoveTicks, state.Size);
     }
 }
 
@@ -69,9 +69,11 @@ internal static class CombatProjection
             Hex = new(unit.Id, unit.Destination, unit.Faction, location.Lifecycle, location.Position, action.Kind,
                 move?.Destination ?? default, move?.Transition ?? 0, action.Sequence,
                 move?.StartTick ?? attack?.StartTick ?? 0, move?.EndTick ?? action.ReadyTick,
-                location.DeathStartTick, location.DeathEndTick, location.FrozenMoveTicks, location.AdmittedTick, location.FrozenTick, location.FrozenAim),
+                location.DeathStartTick, location.DeathEndTick, location.FrozenMoveTicks, location.AdmittedTick, location.FrozenTick, location.FrozenAim, unit.Profile.Size),
             Decision = unit.Decision with { Route = unit.Decision.Route.ToArray(), Visited = unit.Decision.Visited.ToArray() },
             Type = unit.Type,
+            IsBoss = unit.Identity.IsBoss,
+            Level = unit.Identity.Level,
             Faction = unit.Faction,
             Rank = unit.Identity.Rank,
             Owner = unit.Owner,
@@ -92,8 +94,8 @@ internal static class CombatProjection
     public static CombatUnit Restore(UnitState state, WeaponProfile profile, CombatDecisionState decision, long tick)
     {
         HexUnitState hex = state.Hex ?? (state.Deployed ? throw new ArgumentException("Deployed fixtures require explicit hex state.", nameof(state))
-            : new(state.Id, state.Destination, state.Faction, UnitLifecycle.Queued, default));
-        if (hex.Id != state.Id || hex.City != state.Destination || hex.Faction != state.Faction || !Enum.IsDefined(hex.Action))
+            : new(state.Id, state.Destination, state.Faction, UnitLifecycle.Queued, default, Size: profile.Size));
+        if (hex.Id != state.Id || hex.City != state.Destination || hex.Faction != state.Faction || hex.Size != profile.Size || !Enum.IsDefined(hex.Action))
             throw new ArgumentException("Fixture identity/action mismatch.", nameof(state));
         long ready = Math.Max(state.ReadyTick, checked(tick + state.Cooldown));
         AttackRecord? attack = null;
@@ -117,7 +119,7 @@ internal static class CombatProjection
             _ => ready > tick ? new CombatAction.Recovery(hex.ActionSequence, state.AttackSequence, ready, attack)
                 : new CombatAction.Waiting(hex.ActionSequence, state.AttackSequence, ready, attack)
         };
-        return new(new(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank), state.Health, profile,
+        return new(new(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank, state.IsBoss, state.Level), state.Health, profile,
             new(hex.Lifecycle, hex.Position, hex.AdmittedTick, hex.DeathStartTick, hex.DeathEndTick, hex.FrozenMoveTicks, hex.FrozenTick, hex.FrozenAim), action, decision);
     }
 }

@@ -9,7 +9,7 @@ public sealed class DefensePolicyTests
     {
         var defaults = new CombatConfiguration(new());
         Assert.Equal(new DefenseProfile(200, 12, 48, 1, 0), defaults.BuiltInDefense);
-        Assert.Equal(2, defaults.RulesVersion);
+        Assert.Equal(4, defaults.RulesVersion);
         var custom = new CombatConfiguration(new() { Combat = new() { Defender = new(7, 23, 3, 2) } });
         Assert.Equal(new DefenseProfile(200, 7, 23, 3, 2), custom.BuiltInDefense);
         Assert.NotEqual(defaults.Fingerprint, custom.Fingerprint);
@@ -26,7 +26,7 @@ public sealed class DefensePolicyTests
     [InlineData(2, 1, true, 0)]
     public void DefenderUsesCapRadiusAndLockedPrimaryWithoutFriendlyFire(int cap, int radius, bool removePrimary, int count)
     {
-        using var match = new Match(new Rules { Combat = new() { Defender = new(1, 1, cap, radius) } }, combatSeed: 123);
+        using var match = new Match(new Rules { SoldierHealth = 10, Combat = new() { Defender = new(1, 1, cap, radius) } }, combatSeed: 123);
         City city = match.Join()!;
         int primary = CombatDecisionRegressionTests.At(match.Combat, Faction.Skeletons, 8);
         int secondary = CombatDecisionRegressionTests.At(match.Combat, Faction.Skeletons, 9);

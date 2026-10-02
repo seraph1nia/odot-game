@@ -101,7 +101,11 @@ internal sealed class Child : IAsyncDisposable
             if (line.StartsWith("ODOT_UI ", StringComparison.Ordinal))
             {
                 var value = new GameEvent("ui", Message: line[8..]);
-                lock (_gate) _history.Add(value);
+                lock (_gate)
+                {
+                    _history.Add(value);
+                    if (_history.Count > 512) _history.RemoveAt(0);
+                }
                 _events.Writer.TryWrite(value);
             }
             else if (line.StartsWith(WireJson.EventPrefix, StringComparison.Ordinal))

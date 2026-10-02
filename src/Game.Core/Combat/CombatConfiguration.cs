@@ -6,19 +6,19 @@ using System.Text;
 
 namespace Game.Core;
 
-public sealed record UnitSpace(int CapacityCost, int Initiative, int MoveTicks, int DeathTicks);
+public sealed record UnitSpace(int Size, int Initiative, int MoveTicks, int DeathTicks);
 public sealed record DefenseTiming(int WindupTicks, int RecoveryTicks, int VictimCap = 1, int SplashHexRadius = 0)
 {
     public int CadenceTicks => checked(WindupTicks + RecoveryTicks);
 }
 public sealed record CombatSettings
 {
-    public int RulesVersion { get; init; } = 2;
+    public int RulesVersion { get; init; } = 4;
     public HexBoardDefinition Board { get; init; } = HexBoardDefinition.Default();
     public UnitSpace Swordsman { get; init; } = new(2, 10, 30, 48);
     public UnitSpace Berserker { get; init; } = new(2, 20, 27, 48);
-    public UnitSpace Crossbowman { get; init; } = new(1, 30, 30, 48);
-    public UnitSpace Mage { get; init; } = new(1, 40, 30, 48);
+    public UnitSpace Crossbowman { get; init; } = new(2, 30, 30, 48);
+    public UnitSpace Mage { get; init; } = new(2, 40, 30, 48);
     public int BerserkerWindupTicks { get; init; } = 18;
     public int BerserkerRecoveryTicks { get; init; } = 54;
     public int MageWindupTicks { get; init; } = 24;
@@ -37,14 +37,14 @@ public sealed record CombatSettings
     public int NoHealthProgressTicks { get; init; } = 3600;
     public int MaximumWaveTicks { get; init; } = 18000;
 }
-public sealed record HexCombatProfile(UnitType Type, int Health, int Damage, int CapacityCost, int Initiative,
+public sealed record HexCombatProfile(UnitType Type, int Health, int Damage, int Size, int Initiative,
     int HexRange, int MoveTicks, int WindupTicks, int RecoveryTicks, int DeathTicks, int VictimCap = 1, int SplashHexRadius = 0)
 {
     public int CadenceTicks => checked(WindupTicks + RecoveryTicks);
     public HexCombatProfile Researched(int rank) => this with { Health = HealthPoints.Ranked(Health, rank), Damage = HealthPoints.Ranked(Damage, rank) };
     internal WeaponProfile Runtime() => new(Health, Damage, HexRange, MoveTicks, WindupTicks, CadenceTicks)
     {
-        CapacityCost = CapacityCost,
+        Size = Size,
         Initiative = Initiative,
         DeathTicks = DeathTicks,
         VictimCap = VictimCap,
@@ -88,10 +88,10 @@ public sealed class CombatConfiguration
         Units = Array.AsReadOnly(Enum.GetValues<UnitType>().Select(type => Profile(rules, type)).ToArray());
         foreach (HexCombatProfile profile in Units)
         {
-            if (profile.Health <= 0 || profile.Damage < 0 || profile.CapacityCost <= 0 || profile.Initiative < 0 || profile.HexRange < 1
+            if (profile.Health <= 0 || profile.Damage < 0 || profile.Size is < 1 or > 6 || profile.Initiative < 0 || profile.HexRange < 1
                 || profile.MoveTicks <= 0 || profile.WindupTicks <= 0 || profile.RecoveryTicks <= 0 || profile.DeathTicks <= 0
-                || profile.VictimCap <= 0 || profile.SplashHexRadius < 0 || !Board.Fits(profile.CapacityCost, 0).Any())
-                throw new ArgumentException("Invalid combat profile or unavailable protected-entry footprint.", nameof(rules));
+                || profile.VictimCap <= 0 || profile.SplashHexRadius < 0)
+                throw new ArgumentException("Invalid combat profile or invalid size.", nameof(rules));
             _ = profile.Researched(2); _ = profile.CadenceTicks;
         }
         _profiles = Units.ToFrozenDictionary(p => p.Type);
@@ -115,10 +115,26 @@ public sealed class CombatConfiguration
             + Units.Max(p => p.DeathTicks) + RetryTicks;
         if (NoHealthProgressTicks < approachAllowance)
             throw new ArgumentException("No-health-progress allowance is shorter than an ordinary approach/action/cleanup interval.", nameof(rules));
+        foreach (UnitType type in Enum.GetValues<UnitType>())
+            for (int level = 1; level <= 6; level++) _ = Unit(type, rank: 2, level: level);
+        _ = Unit(UnitType.Swordsman, rank: 2, isBoss: true, level: 3);
+        _ = Unit(UnitType.Swordsman, rank: 2, isBoss: true, level: 5);
         Fingerprint = ComputeFingerprint();
     }
 
-    public HexCombatProfile Unit(UnitType type, int rank = 0) => _profiles[type].Researched(rank);
+    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1)
+    {
+        if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
+        HexCombatProfile original = _profiles[type];
+        int health = Progression.ScaleWhole(original.Health / HealthPoints.Scale, level);
+        int damage = Progression.ScaleWhole(original.Damage / HealthPoints.Scale, level);
+        if (isBoss) { health = checked(health * Progression.BossHealthMultiplier); damage = checked(damage * Progression.BossDamageMultiplier); }
+        HexCombatProfile resolved = (original with
+        { Health = HealthPoints.FromWhole(health), Damage = HealthPoints.FromWhole(damage), Size = isBoss ? 6 : original.Size }).Researched(rank);
+        int maximumActors = checked(Board.Cells.Count * Board.Capacity + 10);
+        if (resolved.Damage > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
+        return resolved;
+    }
     internal static HexCombatProfile Profile(Rules rules, UnitType type)
     {
         CombatSettings c = rules.Combat;
@@ -131,7 +147,7 @@ public sealed class CombatConfiguration
         int range = type switch { UnitType.Swordsman or UnitType.Berserker => 1, UnitType.Crossbowman => (int)rules.RangedReach, _ => c.MageHexRange };
         int windup = type switch { UnitType.Swordsman => rules.MeleeWindupTicks, UnitType.Berserker => c.BerserkerWindupTicks, UnitType.Crossbowman => rules.RangedWindupTicks, _ => c.MageWindupTicks };
         int recovery = type switch { UnitType.Swordsman or UnitType.Crossbowman => checked(rules.AttackTicks - windup), UnitType.Berserker => c.BerserkerRecoveryTicks, _ => c.MageRecoveryTicks };
-        return new(type, HealthPoints.FromWhole(health), HealthPoints.FromWhole(damage), space.CapacityCost, space.Initiative, range,
+        return new(type, HealthPoints.FromWhole(health), HealthPoints.FromWhole(damage), space.Size, space.Initiative, range,
             space.MoveTicks, windup, recovery, space.DeathTicks, type == UnitType.Mage ? c.MageVictimCap : 1, type == UnitType.Mage ? c.MageSplashHexRadius : 0);
     }
     internal static TowerDefinition[] TowerProfiles(Rules rules)
@@ -149,16 +165,18 @@ public sealed class CombatConfiguration
         {
             // BinaryWriter integers are little endian; fields/collections have
             // fixed order, explicit lengths, and no runtime object hashes.
-            writer.Write(RulesVersion); writer.Write(Board.Id); writer.Write(Board.Version); writer.Write(Board.Capacity);
+            writer.Write(RulesVersion); writer.Write(Progression.Growth); writer.Write(Progression.MaximumExponentLevel);
+            writer.Write(Progression.BossHealthMultiplier); writer.Write(Progression.BossDamageMultiplier); writer.Write(6); // Boss size and size-budget semantics.
+            writer.Write(Board.Id); writer.Write(Board.Version); writer.Write(Board.Capacity);
             writer.Write(Board.Cells.Count);
             foreach (HexCell cell in Board.Cells)
             {
                 writer.Write(cell.Id); writer.Write(cell.Coordinate.Q); writer.Write(cell.Coordinate.R); writer.Write((int)cell.Affinity);
                 writer.Write(cell.Neighbors.Count); foreach (int n in cell.Neighbors) writer.Write(n);
             }
-            writer.Write(Board.Footprints.Count);
-            foreach (HexFootprint f in Board.Footprints)
-            { writer.Write(f.Id); writer.Write(f.CapacityCost); writer.Write(f.Mask); writer.Write(f.AnchorX); writer.Write(f.AnchorForward); }
+            writer.Write(Board.Anchors.Count);
+            foreach (HexAnchor f in Board.Anchors)
+            { writer.Write(f.Id); writer.Write(f.AnchorX); writer.Write(f.AnchorForward); }
             foreach (Faction faction in Enum.GetValues<Faction>())
             {
                 writer.Write((int)faction); writer.Write(Board.Rear(faction).Count); foreach (int c in Board.Rear(faction)) writer.Write(c);
@@ -167,11 +185,11 @@ public sealed class CombatConfiguration
             writer.Write(Board.SiegeCells.Count); foreach (int c in Board.SiegeCells) writer.Write(c);
             writer.Write(Board.Transitions.Count);
             foreach (HexTransition t in Board.Transitions)
-            { writer.Write(t.Id); writer.Write(t.Source.Cell); writer.Write(t.Source.Footprint); writer.Write(t.Destination.Cell); writer.Write(t.Destination.Footprint); writer.Write(t.EdgeToken); }
+            { writer.Write(t.Id); writer.Write(t.Source.Cell); writer.Write(t.Source.Anchor); writer.Write(t.Destination.Cell); writer.Write(t.Destination.Anchor); writer.Write(t.EdgeToken); }
             writer.Write(Units.Count);
             foreach (HexCombatProfile p in Units)
             {
-                writer.Write((int)p.Type); writer.Write(p.Health); writer.Write(p.Damage); writer.Write(p.CapacityCost); writer.Write(p.Initiative);
+                writer.Write((int)p.Type); writer.Write(p.Health); writer.Write(p.Damage); writer.Write(p.Size); writer.Write(p.Initiative);
                 writer.Write(p.HexRange); writer.Write(p.MoveTicks); writer.Write(p.WindupTicks); writer.Write(p.RecoveryTicks); writer.Write(p.DeathTicks);
                 writer.Write(p.VictimCap); writer.Write(p.SplashHexRadius);
             }

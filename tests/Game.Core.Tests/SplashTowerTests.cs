@@ -7,7 +7,7 @@ public sealed class SplashTowerTests
 {
     private static CombatSimulation Cluster(bool invalid = false)
     {
-        var combat = new CombatSimulation(new Rules { DefenderDamage = 0, Combat = new() { MageVictimCap = 3 } });
+        var combat = new CombatSimulation(new Rules { SoldierHealth = 10, RangedHealth = 8, MageDamage = 4, DefenderDamage = 0, Combat = new() { MageVictimCap = 3, Crossbowman = new(1, 30, 30, 48) } });
         int mage = combat.Create(UnitType.Mage, 1, 1, 1, rank: 1);
         for (int n = 0; n < 5; n++)
         {
@@ -20,7 +20,7 @@ public sealed class SplashTowerTests
             });
         }
         int friendly = combat.Create(UnitType.Swordsman, 1, 1, 1);
-        combat.Seed(combat.Read(friendly) with { Hex = CombatFixture.At(combat.Read(friendly), 10, 7), Deployed = true, Profile = combat.Read(friendly).Profile with { Damage = 0 } });
+        combat.Seed(combat.Read(friendly) with { Hex = CombatFixture.At(combat.Read(friendly), 10, 1), Deployed = true, Profile = combat.Read(friendly).Profile with { Damage = 0 } });
         UnitState actor = combat.Read(mage);
         combat.Seed(actor with
         {
@@ -61,7 +61,7 @@ public sealed class SplashTowerTests
     [InlineData(130, true)]
     public void SplashUsesMovingPrimarySourceUntilArrivalAndExcludesQueuedAndDying(int impactTick, bool arrived)
     {
-        using var combat = new CombatSimulation(new Rules { Combat = new() { MageSplashHexRadius = 0 } });
+        using var combat = new CombatSimulation(new Rules { RangedHealth = 8, MageDamage = 4, Combat = new() { MageSplashHexRadius = 0 } });
         int actor = combat.Create(UnitType.Mage, 1, 1, 1);
         int primary = combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
         int source = combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
@@ -104,13 +104,15 @@ public sealed class SplashTowerTests
     {
         using var match = new Match(combatSeed: 123); match.Join(); VillageStrategyTests.Act(match, 1, "start");
         Assert.True(VillageStrategyTests.Act(match, 1, "build", 0, Building.ArrowTower).Accepted);
+        Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+        Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "buy-plot", 1, 8, ExpectedExpansionCount: 0)).Accepted);
         Assert.True(VillageStrategyTests.Act(match, 1, "build", 8, Building.ArrowTower).Accepted);
-        for (int n = 0; n < 4; n++) VillageStrategyTests.Act(match, 1, "ready");
+        for (int n = 0; n < 3; n++) VillageStrategyTests.Act(match, 1, "ready");
         foreach (UnitState enemy in match.Enemies) match.Combat.Remove(enemy.Id);
         int near = match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
         int far = match.Combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
         match.Combat.Seed(match.Combat.Read(near) with { Hex = CombatFixture.At(match.Combat.Read(near), 8, 1) });
-        match.Combat.Seed(match.Combat.Read(far) with { Hex = CombatFixture.At(match.Combat.Read(far), 2, 7) });
+        match.Combat.Seed(match.Combat.Read(far) with { Hex = CombatFixture.At(match.Combat.Read(far), 2, 1) });
         match.Step();
         Assert.Equal(near, match.Players[1].Towers[0].TargetId); Assert.Equal(near, match.Players[1].Towers[8].TargetId);
         Assert.Equal(near, match.Players[1].Defender.TargetId);
@@ -122,14 +124,21 @@ public sealed class SplashTowerTests
     public void OrdinaryTowerOpeningHasStableTimedSourceAndNoUnitBody(Building building, int windup, int cadence, int cap)
     {
         using var match = new Match(); match.Join(); Assert.True(VillageStrategyTests.Act(match, 1, "start").Accepted);
-        Assert.True(VillageStrategyTests.Act(match, 1, "build", 8, building).Accepted);
-        for (int n = 0; n < 4; n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+        if (building == Building.CatapultTower)
+        {
+            Assert.True(VillageStrategyTests.Act(match, 1, "build", 0, Building.Stonecutter).Accepted);
+            Assert.True(VillageStrategyTests.Act(match, 1, "build", 1, Building.MetalMine).Accepted);
+            Assert.True(VillageStrategyTests.Act(match, 1, "build", 2, Building.Lumbermill).Accepted);
+            for (int n = 0; n < 3; n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+        }
+        Assert.True(VillageStrategyTests.Act(match, 1, "build", 4, building).Accepted);
+        for (int n = 0; n < (building == Building.CatapultTower ? 1 : 4); n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
         int bodies = match.Combat.Snapshot().Length; match.Step();
-        TowerState tower = match.Players[1].Towers[8]; Assert.Equal(1, tower.AttackSequence); Assert.Equal(1 + windup, tower.ImpactTick); Assert.Equal(1 + cadence, tower.ReadyTick);
-        Assert.True(VillageStrategyTests.Act(match, 1, "pause").Accepted); CombatFixture.Steps(match, 100); Assert.Equal(tower, match.Players[1].Towers[8]);
+        TowerState tower = match.Players[1].Towers[4]; Assert.Equal(1, tower.AttackSequence); Assert.Equal(1 + windup, tower.ImpactTick); Assert.Equal(1 + cadence, tower.ReadyTick);
+        Assert.True(VillageStrategyTests.Act(match, 1, "pause").Accepted); CombatFixture.Steps(match, 100); Assert.Equal(tower, match.Players[1].Towers[4]);
         Assert.True(VillageStrategyTests.Act(match, 1, "resume").Accepted); CombatFixture.Steps(match, windup);
-        CombatEvent impact = Assert.Single(match.Snapshot().CombatEvents, e => e.Type == CombatEventType.Impact && e.Tower?.Slot == 8);
-        Assert.Null(impact.Unit); Assert.True(impact.Landed); Assert.InRange(impact.Victims.Length, 1, cap); Assert.Equal(8, impact.Tower!.Slot);
+        CombatEvent impact = Assert.Single(match.Snapshot().CombatEvents, e => e.Type == CombatEventType.Impact && e.Tower?.Slot == 4);
+        Assert.Null(impact.Unit); Assert.True(impact.Landed); Assert.InRange(impact.Victims.Length, 1, cap); Assert.Equal(4, impact.Tower!.Slot);
         Assert.Equal(bodies, match.Combat.Snapshot().Length); Assert.Empty(match.Players[1].Soldiers);
     }
 }

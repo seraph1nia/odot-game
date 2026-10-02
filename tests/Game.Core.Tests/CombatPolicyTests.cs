@@ -5,7 +5,7 @@ namespace Game.Core.Tests;
 public sealed class CombatPolicyTests
 {
     [Fact]
-    public void ReleasedFootprintsMakeTheCloserOpponentEligibleAtArrival()
+    public void ReleasedAnchorsMakeTheCloserOpponentEligibleAtArrival()
     {
         using var combat = new CombatSimulation(new(), seed: 123);
         int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 16);
@@ -14,10 +14,10 @@ public sealed class CombatPolicyTests
         foreach (int id in new[] { nearer, reachable }) combat.Seed(combat.Inspect(id) with { Action = new CombatAction.Recovery(0, 0, 1000) });
         var blockers = new List<int>();
         foreach (int cell in new[] { 7, 8, 10, 12, 13, 14 })
-            for (int footprint = 1; footprint <= 6; footprint++)
+            for (int anchor = 1; anchor <= 3; anchor++)
             {
                 int id = combat.Create(UnitType.Crossbowman, 1, 1, 1);
-                combat.Seed(combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, footprint)), Action = new CombatAction.Recovery(0, 0, 1000) });
+                combat.Seed(combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, anchor)), Action = new CombatAction.Recovery(0, 0, 1000) });
                 if (cell == 13) blockers.Add(id);
             }
         combat.StartActions([]);
@@ -123,12 +123,12 @@ public sealed class CombatPolicyTests
         BattlefieldObservation Capture() => BattlefieldObservation.Capture(1, 4, combat.Reservations, combat.Units());
         BattlefieldObservation first = Capture();
         int other = combat.Create(UnitType.Swordsman, 2, 2, 2);
-        combat.Seed(combat.Inspect(other) with { Location = new(UnitLifecycle.Alive, new(17, 7)) });
+        combat.Seed(combat.Inspect(other) with { Location = new(UnitLifecycle.Alive, new(17, 1)) });
         Assert.True(first.Matches(Capture()));
         CombatUnit unit = combat.Inspect(actor);
         combat.Seed(unit with { Health = unit.Health - 100, Action = new CombatAction.Waiting(3) });
         Assert.True(first.Matches(Capture()));
-        combat.Seed(combat.Inspect(actor) with { Location = new(UnitLifecycle.Alive, new(14, 7)) });
+        combat.Seed(combat.Inspect(actor) with { Location = new(UnitLifecycle.Alive, new(14, 1)) });
         Assert.False(first.Matches(Capture()));
     }
 }
