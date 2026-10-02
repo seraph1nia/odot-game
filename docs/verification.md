@@ -1,5 +1,62 @@
 # Cooperative POC verification
 
+## Combat math and flow simplification, 2026-10-02
+
+The before baseline passed full `mise run ci` in 431.98 seconds: 256 gameplay
+tests, 120 runner tests, all six network cases, source UI, sequential exports
+and headless/graphical package smoke. Evidence:
+`logs/20261002-082928-4fad0b89/ci-summary.json`, with `source-head.txt` and
+`source-sha256.txt` recording the source inputs. No required stage was skipped.
+
+`CombatDecisionRegressionTests` covers two review defects: a swordsman at cell
+17 must replace its farther retained cell-2 objective with the shorter legal
+approach to cell 8, and a defender configured with victim cap two/radius one
+must damage an eligible adjacent secondary. Their recurring acceptance command
+is `mise run test`; these numerical checks use C# and launch no Godot process.
+Existing network/UI/export gates cover integration; these defects require no
+new expensive scenario.
+
+The implementation stores one immutable `CombatUnit` action component; snapshots
+and occupancy evidence derive from it. Pure C# action transitions, shared
+distance/initiative/seed ranking, reachability and victim selection can be tested
+independently of ECS and `Match`. `CombatPolicyTests` compares integer BFS against
+bounded reference relaxation, checks one expansion for seven opponents and at
+most two for retained-episode repair, and covers changed objectives, arrival,
+released footprints and local observations. `CombatActionTests` checks exact
+deadlines and rejects conflicting fixture state atomically. `DefensePolicyTests`
+checks full profiles, cap/radius, invalid primary, no friendly fire and exactly-once
+unit/defender/tower contributions against a shared pre-damage view. Existing
+pause, elimination, ordering, snapshot reconstruction, lifecycle and session
+tests remain mandatory.
+
+Combat rules version 2 changes seeded outcomes; SplitMix algorithm version 1,
+protocol v6, serialized shape and all default numerical profiles remain unchanged.
+The ordinary solo frontline/mixed/tower/research and two-to-four-city frontline
+strategies still cover seeds 0, 1 and 123. The cleared-forward transfer witness
+uses seeds 1, 4 and 8; all cleared-city, held-forward-footprint, bounded admission
+and continued-progression assertions are retained. The simpler upgraded-farm/
+barracks opening uses seed 1. C# witness probes confirmed those setups under the
+new identity in `logs/20261002-082928-4fad0b89/rules-v2-strategy-witnesses.log`;
+old witnesses no longer establish their specific battlefield preconditions.
+These finite witnesses do not prove balance for every seed. The historical
+rules-v1 measurements below remain historical evidence, not current traces.
+
+`mise run test` passed 275 gameplay and 120 runner tests after the coherent
+refactor (`logs/20261002-082928-4fad0b89/refactor-final-cheap.log`). No engine,
+dependency, tool-lock, economy or campaign changes were needed.
+
+Final full `mise run ci` passed in **421.81 seconds**: 275 gameplay tests, 120
+runner tests, all six network scenarios, all five source UI slices, sequential
+client/server exports, headless package smoke and graphical package smoke.
+Evidence: `logs/20261002-092110-29c7d1ba/ci-summary.json`; source UI 236.60 seconds,
+exported UI 111.14 seconds. The complete console log and source hashes are
+`logs/20261002-082928-4fad0b89/refactor-final-ci.log` and
+`refactor-source-sha256.txt`. Locked solution restore, solution formatting and
+build passed. No required stages failed or were skipped; nothing was published.
+Software-rendered UI evidence does not establish native GPU performance or
+physical input/listening behavior; ordinary CI does not establish real-account
+Steam acceptance.
+
 ## Deterministic hex combat implementation, 2026-10-02
 
 Final full `mise run ci` **passed**: 256 gameplay tests, 120 runner tests, all six

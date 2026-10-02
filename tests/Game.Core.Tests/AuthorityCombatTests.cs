@@ -35,7 +35,7 @@ public sealed class AuthorityCombatTests
             Assert.Equal(configuration.RulesVersion, received.CombatRulesVersion);
             UnitState[] units = CombatPlayback.All(received).Concat(received.DyingBodies).ToArray();
             Assert.All(units, u => { Assert.NotNull(u.Hex); Assert.NotNull(u.Decision); });
-            var occupancy = new HexOccupancy(configuration.Board); occupancy.Rebuild(units.Select(u => u.Hex!));
+            var occupancy = new HexOccupancy(configuration.Board); occupancy.Rebuild(units.Select(u => ReservationOwner.FromSnapshot(u.Hex!)));
             Assert.Equal(JsonSerializer.Serialize(received.Reservations), JsonSerializer.Serialize(occupancy.Snapshot()));
             movement |= units.Any(u => u.Hex!.HoldsTransit);
             death |= received.DyingBodies.Length > 0;

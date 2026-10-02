@@ -13,7 +13,7 @@ public sealed record DefenseTiming(int WindupTicks, int RecoveryTicks, int Victi
 }
 public sealed record CombatSettings
 {
-    public int RulesVersion { get; init; } = 1;
+    public int RulesVersion { get; init; } = 2;
     public HexBoardDefinition Board { get; init; } = HexBoardDefinition.Default();
     public UnitSpace Swordsman { get; init; } = new(2, 10, 30, 48);
     public UnitSpace Berserker { get; init; } = new(2, 20, 27, 48);
@@ -61,6 +61,9 @@ public readonly record struct CombatFingerprint(ulong A, ulong B, ulong C, ulong
 public sealed class CombatConfiguration
 {
     private readonly FrozenDictionary<UnitType, HexCombatProfile> _profiles;
+    private readonly FrozenDictionary<(Building Type, int Level), DefenseProfile> _towerProfiles;
+    internal DefenseProfile BuiltInDefense { get; }
+    internal DefenseProfile Tower(Building type, int level) => _towerProfiles[(type, level)];
     public int RulesVersion { get; }
     public HexBoard Board { get; }
     public ReadOnlyCollection<HexCombatProfile> Units { get; }
@@ -99,6 +102,9 @@ public sealed class CombatConfiguration
             _ = timing.CadenceTicks;
         }
         Towers = Array.AsReadOnly(TowerProfiles(rules));
+        BuiltInDefense = new(DefenderDamage, Defender.WindupTicks, Defender.RecoveryTicks, Defender.VictimCap, Defender.SplashHexRadius);
+        _towerProfiles = Towers.ToFrozenDictionary(p => (p.Type, p.Level),
+            p => new DefenseProfile(p.Damage, p.WindupTicks, checked(p.CadenceTicks - p.WindupTicks), p.VictimCap, p.SplashHexRadius));
         // Reject values that could overflow the shared same-tick accumulator
         // even if every deployed body plus all nine towers hit one victim.
         int maxActors = checked(Board.Cells.Count * Board.Capacity + 10);

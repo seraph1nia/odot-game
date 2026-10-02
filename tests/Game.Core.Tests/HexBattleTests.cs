@@ -384,6 +384,20 @@ public sealed class HexBattleTests(ITestOutputHelper output)
             Assert.Equal(initial.Sequence, unit.Decision.Sequence); Assert.Equal(initial.Generation, unit.Decision.Generation);
             Assert.Equal(UnitActionKind.Waiting, unit.Hex!.Action); Assert.Equal(11, unit.Hex.Position.Cell); Assert.False(unit.Hex.HoldsTransit);
         }
+        int other = combat.Create(UnitType.Swordsman, 2, 2, 2);
+        CombatUnit elsewhere = combat.Inspect(other);
+        HexTransition transition = combat.Board.Transition(new(17, 16), new(14, 16));
+        combat.Seed(elsewhere with
+        {
+            Location = new(UnitLifecycle.Alive, transition.Source),
+            Action = CombatActions.Move(elsewhere.Action, transition, 50, 30)
+        });
+        int searches = combat.RouteSearches;
+        for (int tick = 51; tick <= 80; tick++) combat.Step(tick, []);
+        Assert.Equal(initial.Generation, combat.Read(actor).Decision!.Generation);
+        Assert.Equal(initial.SchedulingRank, combat.Read(actor).Decision!.SchedulingRank);
+        Assert.Equal(initial.ObjectiveId, combat.Read(actor).Decision!.ObjectiveId);
+        Assert.Equal(searches, combat.RouteSearches);
     }
     [Fact]
     public void IsolatedOpponentPreservesCrossbowmansCadenceAndSurvivalAdvantage()

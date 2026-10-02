@@ -12,6 +12,14 @@ Third-party materials retain their own terms and are excluded from Odot's GPL gr
 
 ## Setup
 
+Combat math runs entirely in C# under `src/Game.Core`: one canonical action per
+unit, shared integer graph search and complete defense profiles. `mise run test`
+verifies transitions, targeting, simultaneous impacts and lifecycle behavior
+without starting Godot. Combat rules version 2 changes seeded battle outcomes;
+the decision mixer remains version 1 and the snapshot protocol remains v6.
+See [gameplay rules](docs/gameplay.md#deterministic-hex-combat) and
+[verification evidence](docs/verification.md).
+
 Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Linux graphical clients need OpenGL 3.3 and a display. Rules/network tests and servers are headless; graphical verification uses an owned virtual display and software OpenGL without a physical screen, GPU or audio device.
 
 ```sh

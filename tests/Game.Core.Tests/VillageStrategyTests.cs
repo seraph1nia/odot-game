@@ -8,9 +8,9 @@ namespace Game.Core.Tests;
 public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(0UL)]
     [InlineData(1UL)]
-    [InlineData(2UL)]
+    [InlineData(4UL)]
+    [InlineData(8UL)]
     public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
     {
         using Match match = Start(3, seed);

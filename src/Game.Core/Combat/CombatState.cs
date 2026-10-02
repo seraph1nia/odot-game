@@ -24,9 +24,6 @@ public sealed record CombatEvent(long Sequence, long Tick, CombatEventType Type,
 }
 
 internal readonly record struct UnitIdentity(int Id, UnitType Type, int Owner, int Origin, int Destination, Faction Faction, int Rank);
-internal readonly record struct UnitHealth(int Value);
-internal readonly record struct UnitTarget(int Id, bool City);
-internal readonly record struct UnitAttack(long Sequence, long StartTick, long ImpactTick, long ReadyTick, bool Pending, int TargetId, bool TargetCity, bool? Landed = null);
 public sealed record CombatDecisionState(long Sequence, int Generation, ulong SchedulingRank, int ObjectiveId = 0, bool ObjectiveCity = false,
     int ObjectiveCell = 0, long ObservedRevision = -1, long RetryTick = 0)
 {

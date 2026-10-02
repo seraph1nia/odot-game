@@ -118,11 +118,11 @@ The start screen and multiplayer entry backdrop SHALL render the same terrain ar
 ## ADDED Requirements
 
 ### Requirement: Readable unit progression and wave rewards
-The graphical match view SHALL expose an observed army's unit levels, distinguish a boss with a boss label and level, and use authoritative resolved profiles for displayed health and damage. Mixed-level soldiers SHALL remain distinguishable through labels or grouped army details without adding individual upgrade controls. The view SHALL show the latest completed wave's actual gold, food and wood reward for the observed city, including on the final victory screen. A summary SHALL identify its wave and SHALL NOT imply a second payment on repeated snapshots, city switches or reconnect. A fresh match SHALL clear the prior match's reward summary. Unit levels SHALL NOT require new character assets or modify numerical footprints through visual scaling.
+The graphical match view SHALL expose an observed army's unit levels, distinguish a boss with a boss label and level, and use authoritative resolved profiles for displayed health and damage. Army inspection SHALL show authoritative unit size, with normal units at size two and bosses at size six. Mixed-level soldiers SHALL remain distinguishable through labels or grouped army details without adding individual upgrade controls. The view SHALL show the latest completed wave's actual gold, food and wood reward for the observed city, including on the final victory screen. A summary SHALL identify its wave and SHALL NOT imply a second payment on repeated snapshots, city switches or reconnect. A fresh match SHALL clear the prior match's reward summary. Unit levels SHALL NOT require new character assets or modify unit size through visual scaling.
 
 #### Scenario: Observe a boss
 - **WHEN** the observed city receives a boss allocation or a transferred boss
-- **THEN** the view identifies the boss and its level and displays its authoritative current and maximum health
+- **THEN** the view identifies the boss and its level and displays its authoritative current and maximum health and size six
 
 #### Scenario: Restore the reward summary
 - **WHEN** a player reconnects after wave ten clears

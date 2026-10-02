@@ -115,8 +115,11 @@ focus and changes neither readiness nor shared pause.
 
 ## Deterministic hex combat
 
-Each authoritative `Match` owns one private Arch 2.1.0 world. Identity, health,
-hex footprint, lifecycle, action timers and decision state are components;
+Each authoritative `Match` owns one private Arch 2.1.0 world. A single immutable
+`CombatUnit` component owns identity, health, location/lifecycle, decision state
+and a closed waiting/moving/windup/recovery action. The action owns its timing,
+sequence and explicit unit/city target once. Attack ordinals remain separate
+from movement sequences for animation identity. Serialized timing/target fields,
 city armies and reservation indexes are projections of that authority. IDs are
 stable and never reused. All session modes use the same synchronous 60 Hz rules;
 guests render complete snapshots. Engine animation never applies damage.
@@ -162,17 +165,32 @@ hundredths; it changes no spatial/timing attributes and never heals survivors.
 
 At a new attack select the closest in-range living deployed opponent, then the
 lowest target initiative, then a seeded exact tie. Melee requires distance one.
-Ranged units hold when anything is in range. Otherwise query legal attack
-positions, rank targets by feasible route steps, and approach along committed
-steps. Equal shortest support goals prefer a friendly melee screen, then less
-used capacity. Unchanged congestion causes bounded waits, preserving tie choices
-and scheduling rank. Rendering frames never trigger numerical decisions.
+Ranged units hold when anything is in range. Otherwise one integer BFS per
+actor scores all opponents by reachable attack-position steps, target initiative
+and a seeded exact tie. If none is reachable, legal static movement distance
+ranks blocked objectives. Every eligible action boundary reevaluates all targets;
+a retained objective has no priority over a newly shorter approach. Only the
+winning target gets a route. Equal shortest support goals prefer a friendly melee
+screen, then less used capacity, then a seeded footprint choice. Shortest-path
+predecessors reconstruct a simple route without searching for each opponent.
+
+Exact local target and footprint observations invalidate a blocked decision;
+unrelated cities and nonlethal health changes preserve its key and scheduling
+rank. Temporary transit conflicts are checked at atomic move commit. Unchanged
+episodes retain their visited cells to avoid walking back through congestion;
+only repairing that winning episode may require one extra BFS. Changing the
+objective clears the old exclusions. Unchanged blocked retries preserve choices
+and wait for local changes. Rendering frames never trigger numerical decisions.
 
 A move starting at tick 100 and ending at 130 locks its source, destination and
 transit conflicts together. Before tick 130 attacks see only the source; at 130
 arrival commits before impacts, so attacks see only the destination. No attack
 or route change occurs mid-step. Lower actor initiative wins conflicting moves;
 seeded ranks resolve equal initiative, while independent actions start together.
+Each tick expires retained deaths, completes arrivals and recoveries, resolves
+all due impacts against the same pre-damage view, applies checked accumulated
+damage, retains new deaths, admits queued arrivals and finally starts actions.
+An unsuccessful reservation commit leaves the actor waiting with no partial move.
 
 An attack started at T impacts at T + windup and finishes at T + windup +
 recovery. The unit stays anchored through both intervals. All due unit/defense
@@ -185,6 +203,11 @@ is one primary hit. Defender and towers have independent positive windup/recover
 using the shared city distance anchor regardless of plot. Candidate defender
 damage is 2 per second; Arrow levels deal 5/7 per second and Catapult 6/8 per two
 seconds. These values are tuned separately from unit approach speed.
+Defender and tower identities are explicit. Every defense receives a complete
+frozen damage/windup/recovery/victim-cap/radius profile and uses the same pure
+attack-deadline and victim-selection rules as units. The default defender remains
+single-target (cap one, radius zero); configured splash applies to its actual
+impact rather than only its fingerprint.
 
 Death immediately removes a unit from living counts, actions and targeting, but
 retains its footprint until death end. A transit death freezes route progress and
@@ -199,7 +222,9 @@ Ending or replacing a session disposes those retained locks and events rather
 than carrying them into a fresh battlefield.
 
 A fight retains a non-secret 64-bit seed and immutable configuration fingerprint.
-The same canonical setup, seed, rules/algorithm version and ordered accepted
+Combat rules version is two; the decision mixer stays at algorithm version one.
+Corrected targeting changes seeded outcomes, while protocol v6 and its serialized
+shape remain unchanged. The same canonical setup, seed, rules/algorithm version and ordered accepted
 commands reproduce the same normalized trace. Version-one SplitMix decision
 keys separate targeting, movement ranks, route/goal, formation and splash choices.
 Credentials, session GUIDs and cosmetic randomness are separate. Core strategy

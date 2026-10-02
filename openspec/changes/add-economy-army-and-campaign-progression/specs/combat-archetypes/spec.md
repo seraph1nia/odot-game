@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Shared archetypes and faction identity
-Units SHALL independently identify faction, archetype, melee/ranged/magic class, positive unit level and ordinary/boss identity. Swordsman and Berserker SHALL be melee, Crossbowman ranged, and Mage magic. Equal archetype, unit level, research rank and explicit boss modifiers SHALL use identical maximum health, damage, capacity cost and legal footprints, initiative, integer hex range, move duration, windup, recovery, death duration and splash rules across factions. Faction SHALL determine allegiance, entry direction and presentation, not a hidden strength modifier. Swordsman SHALL be the durable baseline, Berserker a more damaging but less durable melee role, Crossbowman reliable single-target support, and Mage fragile slower splash support. Class SHALL NOT introduce a damage-counter multiplier in this change. Identity-based targeting, bounded hex occupancy, simultaneous damage, seeded tie-breaking and queued arrivals SHALL apply to every archetype. Character-type initiative SHALL use lower values first for equal-distance targeting and contested movement. Automatic placement SHALL preserve the declared forward melee/rear support policy and legal protected reinforcement fallback. Research SHALL continue to change only maximum health and damage; it SHALL NOT change capacity, initiative, range or action durations.
+All ordinary archetypes SHALL have size two and bosses SHALL have size six. Size SHALL be an integer from one through six; no current ordinary archetype SHALL use size one. Units SHALL independently identify faction, archetype, melee/ranged/magic class, positive unit level and ordinary/boss identity. Swordsman and Berserker SHALL be melee, Crossbowman ranged, and Mage magic. Equal archetype, unit level, research rank and explicit boss modifiers SHALL use identical maximum health, damage, unit size, initiative, integer hex range, move duration, windup, recovery, death duration and splash rules across factions. Faction SHALL determine allegiance, entry direction and presentation, not a hidden strength modifier. Swordsman SHALL be the durable baseline, Berserker a more damaging but less durable melee role, Crossbowman reliable single-target support, and Mage fragile slower splash support. Class SHALL NOT introduce a damage-counter multiplier in this change. Identity-based targeting, bounded hex occupancy, simultaneous damage, seeded tie-breaking and queued arrivals SHALL apply to every archetype. Character-type initiative SHALL use lower values first for equal-distance targeting and contested movement. Automatic placement SHALL preserve the declared forward melee/rear support policy and legal protected reinforcement fallback. Research SHALL continue to change only maximum health and damage; it SHALL NOT change capacity, initiative, range or action durations.
 
 #### Scenario: Mirrored combat profiles
 - **WHEN** an allied Mage and enemy skeleton Mage have equal unit level, research rank and boss modifiers
@@ -16,7 +16,7 @@ Units SHALL independently identify faction, archetype, melee/ranged/magic class,
 
 #### Scenario: Mixed capacity and initiative
 - **WHEN** different archetypes share an allied hex and request actions
-- **THEN** their type-defined footprints consume the declared capacity without overlap
+- **THEN** their sizes sum to at most six and each actor has a distinct rendered anchor
 - **AND** lower initiative receives contested movement priority while equal initiative uses the fight seed
 
 ### Requirement: Small bounded class research
@@ -64,6 +64,25 @@ Arrow and Catapult Towers SHALL each occupy one purchased owned building slot an
 - **THEN** the old tower can produce no attacks and the new level-one tower has its own investment and fresh action lifecycle
 - **AND** neither built-in defense nor another tower changes
 
+### Requirement: Measurable frontline and support roles
+
+Default profiles and automatic formation SHALL demonstrate distinct roles in small paired fixtures using normal profiles and placement policy. A nearer living melee screen SHALL protect support through its initial attacks, with an otherwise identical unscreened control taking earlier support damage. A crowded mixed formation SHALL give a queued melee unit actual access to an attack while opponents remain. A normal clustered fixture with at least two actual splash victims SHALL compare one Mage with one Crossbowman on the same other-unit setup and seed; the Mage SHALL deliver greater effective non-overkill support damage over a shared interval when both supports are alive and improve clear time or surviving friendly/city health. An isolated single-target control SHALL retain superior Crossbowman sustained damage. Evidence SHALL include per-role action/victim counts, actual material/gold recruitment costs and separate food upkeep, remaining health and outcome; a winning mixed strategy containing an ineffective Mage SHALL NOT satisfy this requirement. Comparisons SHALL disclose the different recruitment costs and SHALL NOT claim universal equal-cost superiority or rely on manually fabricated clustering, inflated target health or friendly-fire damage.
+
+#### Scenario: Frontline protects the Crossbowman
+- **WHEN** paired ordinary formations run with a nearer melee screen and with that screen absent
+- **THEN** the screened support completes its initial attacks before taking the damage observed earlier in the unscreened control
+- **AND** enemy target identities demonstrate why the screen provided protection
+
+#### Scenario: Mage contributes against ordinary clustering
+- **WHEN** normal enemy placement and combat create a two-or-more-victim cluster and the paired support comparison runs
+- **THEN** the Mage's real secondary hits provide the required effective damage and clear-time or surviving-health benefit
+- **AND** replacing the Mage with a Crossbowman is compared under the same seed and disclosed costs
+
+#### Scenario: Crossbowman retains its single-target role
+- **WHEN** the two support profiles attack an isolated valid target at their declared full cadence
+- **THEN** Crossbowman sustained damage exceeds Mage primary-only damage
+- **AND** profiles remain identical across factions at equal research rank
+
 ## ADDED Requirements
 
 ### Requirement: Equipment and upkeep costs in role comparisons
@@ -75,12 +94,12 @@ The retained paired frontline/support and Mage/Crossbowman role comparisons SHAL
 - **AND** the Mage still demonstrates its clustered contribution while Crossbowman retains the isolated single-target advantage
 
 ### Requirement: Shared geometric unit progression
-Each archetype SHALL declare level-one maximum health and damage. The initial shared health/damage growth multiplier SHALL be 1.35; an archetype with no explicit override SHALL use that shared multiplier. For each stat, level L SHALL resolve from its original base as round(base times multiplier raised to L minus one), to the nearest whole point with midpoint ties upward. Level one SHALL equal the declared base. Explicit boss multipliers SHALL apply after level scaling, and the existing additive research factor SHALL then apply without rounding away its fractional effect. Levels SHALL NOT alter movement, initiative, range, footprint, attack timing or splash rules. Ordinary faction identity SHALL NOT modify numerical strength. Authored enemy levels SHALL be independent of the recruit-building cap, subject to configuration validation of representable health/damage and safe combat accumulation. Invalid levels, invalid multipliers, unknown archetypes and overflowing profiles SHALL be rejected before a match starts or an economic action spends resources. Equivalent configuration and inputs SHALL resolve identical profiles.
+Each archetype SHALL declare level-one maximum health and damage. The initial shared health/damage growth multiplier SHALL be 1.35; an archetype with no explicit override SHALL use that shared multiplier. For each stat, level L SHALL resolve from its original base as round(base times multiplier raised to L minus one), to the nearest whole point with midpoint ties upward. Level one SHALL equal the declared base. Explicit boss multipliers SHALL apply after level scaling, and the existing additive research factor SHALL then apply without rounding away its fractional effect. Levels SHALL NOT alter movement, initiative, range, size, attack timing or splash rules. Ordinary faction identity SHALL NOT modify numerical strength. Authored enemy levels SHALL be independent of the recruit-building cap, subject to configuration validation of representable health/damage and safe combat accumulation. Invalid levels, invalid multipliers, unknown archetypes and overflowing profiles SHALL be rejected before a match starts or an economic action spends resources. Equivalent configuration and inputs SHALL resolve identical profiles.
 
 #### Scenario: Baseline Swordsman progression
 - **WHEN** the default Swordsman base is 40 health and 10 damage and its level increases from one through five
 - **THEN** the unresearched ordinary health values are 40, 54, 73, 98 and 133 and damage values are 10, 14, 18, 25 and 33
-- **AND** movement, attack cadence and footprint are unchanged
+- **AND** movement, attack cadence and ordinary size two are unchanged
 
 #### Scenario: An authored wave mixes arbitrary supported levels
 - **WHEN** one wave contains level-one Crossbowmen and a level-six Swordsman

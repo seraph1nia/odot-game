@@ -6,12 +6,12 @@ namespace Game.Core.Tests;
 public sealed class HexOccupancyTests
 {
     private readonly HexBoard _board = new(HexBoardDefinition.Default());
-    private HexUnitState Unit(int id, int cell, int mask, Faction faction = Faction.Adventurers)
-        => new(id, 1, faction, UnitLifecycle.Alive, new(cell, _board.Footprints.Single(f => f.Mask == mask).Id));
-    private HexUnitState Move(HexUnitState unit, int cell, int mask, long sequence = 1)
+    private ReservationOwner Unit(int id, int cell, int mask, Faction faction = Faction.Adventurers)
+        => new(id, 1, faction, UnitLifecycle.Alive, new(cell, _board.Footprints.Single(f => f.Mask == mask).Id), 0, true);
+    private ReservationOwner Move(ReservationOwner unit, int cell, int mask, long sequence = 1)
     {
         HexPosition to = new(cell, _board.Footprints.Single(f => f.Mask == mask).Id);
-        return unit with { Action = UnitActionKind.Moving, Destination = to, Transition = _board.Transition(unit.Position, to).Id, ActionSequence = sequence, StartTick = 100, EndTick = 130 };
+        return unit with { Move = new(sequence, to, _board.Transition(unit.Position, to).Id, 100, 130), ActionSequence = sequence, Ready = false };
     }
     [Fact]
     public void SharedMasksAndFactionProtectionApplyEvenWhenCapacityIsFree()
@@ -29,9 +29,9 @@ public sealed class HexOccupancyTests
     public void SourceDestinationAndTransitReserveAtomicallyAndIndependentMovesCanStartTogether()
     {
         var occupancy = new HexOccupancy(_board);
-        HexUnitState a = Unit(1, 11, 1), b = Unit(2, 11, 2), c = Unit(3, 7, 4), independent = Unit(4, 16, 8);
-        foreach (HexUnitState unit in new[] { a, b, c, independent }) Assert.True(occupancy.TryPlace(unit));
-        HexUnitState move = Move(a, 10, 1); Assert.True(occupancy.TryMove(a, move.Destination, 1));
+        ReservationOwner a = Unit(1, 11, 1), b = Unit(2, 11, 2), c = Unit(3, 7, 4), independent = Unit(4, 16, 8);
+        foreach (ReservationOwner unit in new[] { a, b, c, independent }) Assert.True(occupancy.TryPlace(unit));
+        ReservationOwner move = Move(a, 10, 1); Assert.True(occupancy.TryMove(a, move.Destination, 1));
         string before = JsonSerializer.Serialize(occupancy.Snapshot()); long revision = occupancy.Revision;
         Assert.False(occupancy.TryMove(b, new(10, b.Position.Footprint), 1));
         Assert.False(occupancy.TryMove(c, new(10, c.Position.Footprint), 1));
@@ -43,22 +43,22 @@ public sealed class HexOccupancyTests
     [Fact]
     public void ArrivalChangesOneAttackableCellOnlyAtTheDeclaredTick()
     {
-        var occupancy = new HexOccupancy(_board); HexUnitState unit = Unit(1, 11, 1), move = Move(unit, 10, 1);
+        var occupancy = new HexOccupancy(_board); ReservationOwner unit = Unit(1, 11, 1), move = Move(unit, 10, 1);
         Assert.True(occupancy.TryPlace(unit)); Assert.True(occupancy.TryMove(unit, move.Destination, 1));
         Assert.False(occupancy.Arrive(move, 129)); Assert.Equal(11, move.Position.Cell);
         Assert.Equal(2, occupancy.Snapshot().Positions.Length);
         Assert.True(occupancy.Arrive(move, 130));
-        HexUnitState arrived = move with { Position = move.Destination, Destination = default, Action = UnitActionKind.Waiting, Transition = 0 };
+        ReservationOwner arrived = move with { Position = move.Destination, Move = null, Ready = true };
         Assert.Equal(10, arrived.Position.Cell); Assert.Equal(0, occupancy.UsedMask(1, 11));
         Assert.Single(occupancy.Snapshot().Positions); Assert.Empty(occupancy.Snapshot().Transit);
     }
     [Fact]
     public void ATransitDeathKeepsBothEndpointsAndCanBeReconstructedWithoutEvents()
     {
-        HexUnitState dead = Move(Unit(1, 11, 1), 10, 1) with
+        ReservationOwner dead = Move(Unit(1, 11, 1), 10, 1) with
         { Lifecycle = UnitLifecycle.Dying, DeathStartTick = 115, DeathEndTick = 163, FrozenMoveTicks = 15 };
         var occupancy = new HexOccupancy(_board); occupancy.Rebuild([dead]);
-        Assert.False(dead.IsTargetable); Assert.False(occupancy.Arrive(dead, 130)); Assert.False(occupancy.ExpireDeath(dead, 162));
+        Assert.Equal(UnitLifecycle.Dying, dead.Lifecycle); Assert.False(occupancy.Arrive(dead, 130)); Assert.False(occupancy.ExpireDeath(dead, 162));
         Assert.Equal(2, occupancy.Snapshot().Positions.Length); Assert.Single(occupancy.Snapshot().Transit);
         var restored = new HexOccupancy(_board); restored.Rebuild([dead]);
         Assert.Equal(JsonSerializer.Serialize(occupancy.Snapshot()), JsonSerializer.Serialize(restored.Snapshot()));
@@ -68,14 +68,14 @@ public sealed class HexOccupancyTests
     [Fact]
     public void ReconstructionRejectsConflictsWithoutMutatingTheCurrentIndexAndTransferReleasesAllLocks()
     {
-        var occupancy = new HexOccupancy(_board); HexUnitState a = Unit(1, 11, 1), b = Unit(2, 7, 2);
-        HexUnitState move = Move(a, 10, 1); occupancy.Rebuild([move, b]);
+        var occupancy = new HexOccupancy(_board); ReservationOwner a = Unit(1, 11, 1), b = Unit(2, 7, 2);
+        ReservationOwner move = Move(a, 10, 1); occupancy.Rebuild([move, b]);
         string before = JsonSerializer.Serialize(occupancy.Snapshot());
         Assert.Throws<ArgumentException>(() => occupancy.Rebuild([move, move]));
         Assert.Throws<ArgumentException>(() => occupancy.Rebuild([move, Move(b, 10, 2)]));
         Assert.Equal(before, JsonSerializer.Serialize(occupancy.Snapshot()));
         occupancy.Release(1, a.Id); Assert.Single(occupancy.Snapshot().Positions); Assert.Empty(occupancy.Snapshot().Transit);
         var queued = a with { City = 2, Lifecycle = UnitLifecycle.Queued, Position = default }; occupancy.Rebuild([queued, b]);
-        Assert.Single(occupancy.Snapshot().Positions); Assert.False(queued.IsTargetable);
+        Assert.Single(occupancy.Snapshot().Positions); Assert.Equal(UnitLifecycle.Queued, queued.Lifecycle);
     }
 }

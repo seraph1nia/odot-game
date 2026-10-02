@@ -8,9 +8,9 @@ public sealed class WorldTests
 {
     private static Command Cmd(Match m, int id, string action, int slot = -1, Building building = Building.Empty, long seq = 1) => new(seq, m.Id, m.Phase, m.TurnSerial, action, id, slot, building);
     private static void Act(Match m, int id, string action, int slot = -1, Building building = Building.Empty) => Assert.True(m.Apply(id, Cmd(m, id, action, slot, building)).Accepted);
-    private static Match Started(int count = 1, Rules? rules = null)
+    private static Match Started(int count = 1, Rules? rules = null, ulong seed = 123)
     {
-        var m = new Match(rules, combatSeed: 123);
+        var m = new Match(rules, combatSeed: seed);
         for (int i = 0; i < count; i++) Assert.NotNull(m.Join());
         Act(m, 1, "start"); return m;
     }
@@ -208,7 +208,15 @@ public sealed class WorldTests
         using var defeat = Started(new Rules { DefenderDamage = 10, WaveOne = 1, MeleeWindupTicks = 1, Combat = new() { Defender = new(1, 59) } });
         Battle(defeat); defeat.Players[1].Health = 2;
         CombatFixture.AtCityEdge(defeat); defeat.Combat.Seed(defeat.Enemies[0] with
-        { TargetId = 1, TargetCity = true, PendingImpact = true, ImpactTick = 2, ReadyTick = 60, AttackSequence = 1 }); defeat.Step(); defeat.Step();
+        {
+            TargetId = 1,
+            TargetCity = true,
+            PendingImpact = true,
+            ImpactTick = 2,
+            ReadyTick = 60,
+            AttackSequence = 1,
+            Hex = defeat.Enemies[0].Hex! with { Action = UnitActionKind.Windup, ActionSequence = 1, StartTick = 0, EndTick = 60 }
+        }); defeat.Step(); defeat.Step();
         Assert.Empty(defeat.Enemies); Assert.Equal(Phase.Defeat, defeat.Phase);
     }
     private static Match Started(Rules rules) => Started(1, rules);
@@ -235,7 +243,7 @@ public sealed class WorldTests
     [Fact]
     public void StandardWinningEconomyCompletesThreeWaves()
     {
-        using Match m = Started(); Act(m, 1, "build", 0, Building.Farm); Act(m, 1, "upgrade", 0); Act(m, 1, "build", 1, Building.Barracks);
+        using Match m = Started(seed: 1); Act(m, 1, "build", 0, Building.Farm); Act(m, 1, "upgrade", 0); Act(m, 1, "build", 1, Building.Barracks);
         for (int wave = 1; wave <= 3; wave++)
         {
             for (int turn = 1; turn <= 3; turn++)

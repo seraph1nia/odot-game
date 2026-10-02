@@ -19,7 +19,7 @@ public sealed record CombatReservations(PositionReservation[] Positions, Transit
 {
     public static CombatReservations Reconstruct(HexBoard board, IEnumerable<HexUnitState> units)
     {
-        var occupancy = new HexOccupancy(board); occupancy.Rebuild(units);
+        var occupancy = new HexOccupancy(board); occupancy.Rebuild(units.Select(ReservationOwner.FromSnapshot));
         return occupancy.Snapshot();
     }
 }
@@ -46,18 +46,18 @@ internal sealed class HexOccupancy(HexBoard board)
     }
     public IEnumerable<HexFootprint> Free(int city, Faction faction, int cell, int cost)
         => board.Fits(cost, UsedMask(city, cell)).Where(f => CanPlace(city, faction, new(cell, f.Id)));
-    public bool TryPlace(HexUnitState state)
+    public bool TryPlace(ReservationOwner state)
     {
         if (state.Id <= 0 || state.Lifecycle != UnitLifecycle.Alive || state.HoldsTransit || Contains(state.Id)
             || !CanPlace(state.City, state.Faction, state.Position)) return false;
         AddPosition(new(state.City, state.Position.Cell, state.Position.Footprint, state.Id, state.ActionSequence, state.Faction));
         Revision = checked(Revision + 1); return true;
     }
-    public bool TryMove(HexUnitState state, HexPosition destination, long sequence)
+    public bool TryMove(ReservationOwner state, HexPosition destination, long sequence)
     {
         // All validation precedes all mutations. The caller commits the matching
         // ECS action only after this transaction succeeds.
-        if (state.Lifecycle != UnitLifecycle.Alive || state.Action is not UnitActionKind.Waiting || sequence <= state.ActionSequence
+        if (state.Lifecycle != UnitLifecycle.Alive || !state.Ready || sequence <= state.ActionSequence
             || !_positions.TryGetValue((state.City, state.Position.Cell), out var source)
             || !source.TryGetValue(state.Id, out PositionReservation reservation) || reservation.Footprint != state.Position.Footprint || reservation.ActionSequence != state.ActionSequence
             || reservation.Faction != state.Faction || !board.Cell(state.Position.Cell).Neighbors.Contains(destination.Cell)
@@ -73,14 +73,22 @@ internal sealed class HexOccupancy(HexBoard board)
         _edgeTransit.Add((state.City, transition.EdgeToken), transit);
         Revision = checked(Revision + 1); return true;
     }
-    public void SynchronizeAction(HexUnitState state)
+    public bool TryAction(ReservationOwner before, CombatAction action)
     {
-        if (state.HoldsTransit) throw new InvalidOperationException("Committed transit identity cannot change.");
-        if (!_positions.TryGetValue((state.City, state.Position.Cell), out var positions) || !positions.TryGetValue(state.Id, out PositionReservation reservation))
-            throw new InvalidOperationException("Standing action lacks its footprint reservation.");
-        positions[state.Id] = reservation with { ActionSequence = state.ActionSequence };
+        if (action is CombatAction.Moving move)
+        {
+            if (board.Transition(before.Position, move.Destination).Id != move.Transition) return false;
+            return TryMove(before, move.Destination, action.Sequence);
+        }
+        if (action is not CombatAction.Windup || before.Lifecycle != UnitLifecycle.Alive || !before.Ready || before.HoldsTransit || action.Sequence <= before.ActionSequence
+            || !_positions.TryGetValue((before.City, before.Position.Cell), out var positions)
+            || !positions.TryGetValue(before.Id, out PositionReservation reservation)
+            || reservation.ActionSequence != before.ActionSequence || reservation.Footprint != before.Position.Footprint || reservation.Faction != before.Faction)
+            return false;
+        positions[before.Id] = reservation with { ActionSequence = action.Sequence };
+        return true;
     }
-    public bool Arrive(HexUnitState state, long tick)
+    public bool Arrive(ReservationOwner state, long tick)
     {
         if (state.Lifecycle != UnitLifecycle.Alive || !state.HoldsTransit || tick < state.EndTick) return false;
         if (!_positions.TryGetValue((state.City, state.Destination.Cell), out var destination)
@@ -98,22 +106,22 @@ internal sealed class HexOccupancy(HexBoard board)
         { ReleaseTransit(city, id, transit.ActionSequence); changed = true; }
         if (changed) Revision = checked(Revision + 1);
     }
-    public bool ExpireDeath(HexUnitState state, long tick)
+    public bool ExpireDeath(ReservationOwner state, long tick)
     {
         if (state.Lifecycle != UnitLifecycle.Dying || tick < state.DeathEndTick) return false;
         Release(state.City, state.Id); return true;
     }
     public CombatReservations Snapshot() => new(_positions.Values.SelectMany(p => p.Values).OrderBy(p => p.City).ThenBy(p => p.Cell).ThenBy(p => p.UnitId).ToArray(),
         _edgeTransit.Values.OrderBy(t => t.City).ThenBy(t => t.EdgeToken).ThenBy(t => t.UnitId).ToArray());
-    public void Rebuild(IEnumerable<HexUnitState> units)
+    public void Rebuild(IEnumerable<ReservationOwner> units)
     {
         // Build separately so a malformed restoration cannot partially replace
         // the current valid index. Queued/dying data needs no event history.
         var rebuilt = new HexOccupancy(board); var identities = new HashSet<int>();
-        foreach (HexUnitState state in units.OrderBy(s => s.Id))
+        foreach (ReservationOwner state in units.OrderBy(s => s.Id))
         {
             if (state.Id <= 0 || state.City <= 0 || !Enum.IsDefined(state.Faction) || !Enum.IsDefined(state.Lifecycle)
-                || !Enum.IsDefined(state.Action) || state.ActionSequence < 0 || !identities.Add(state.Id))
+                || state.ActionSequence < 0 || !identities.Add(state.Id))
                 throw new ArgumentException("Invalid or duplicate unit identities.", nameof(units));
             if (state.Lifecycle == UnitLifecycle.Queued) continue;
             if (state.Lifecycle == UnitLifecycle.Dying && (state.DeathStartTick < 0 || state.DeathEndTick <= state.DeathStartTick))

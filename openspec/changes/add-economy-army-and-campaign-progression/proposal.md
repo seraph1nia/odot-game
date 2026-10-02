@@ -2,9 +2,11 @@
 
 ## Why
 
-The current three-wave match offers most building choices immediately and provides little long-term army progression. Extend it to twenty waves where resource production, limited building space and paid recruitment-building levels support stronger armies, with readable choices, modest clear rewards and two simple boss encounters.
+The current footprint-based combat restricts mixed occupancy even when a tile has enough total capacity. The three-wave match offers most building choices immediately and provides little long-term army progression. Extend it to twenty waves where resource production, limited building space and paid recruitment-building levels support stronger armies, with readable choices, modest clear rewards and two simple boss encounters.
 
 ## What Changes
+
+- **BREAKING:** First replace shape-dependent combat footprints with unit sizes 1–6 and a total size budget of six per hex. All ordinary archetypes use size two, bosses size six, and no current archetype uses size one. Same-team units can mix whenever their total fits; preserve faction exclusivity, atomic movement/death reservations, protected deployment and deterministic fitting-queue admission.
 
 - **BREAKING:** Replace the three hardcoded waves with twenty authored compositions. Each entry declares archetype, level, count and ordinary/boss identity; waves ten and twenty contain one strong boss per original roster allocation.
 - Scale unit health and damage from per-archetype level-one bases with a shared initial `1.35^(level - 1)` curve. Ordinary allies and enemies share the same profiles; boss health/damage multipliers are explicit. Preserve combat timing, movement, capacity and roles across levels.
@@ -26,12 +28,13 @@ None; extend existing gameplay and presentation capabilities.
 ### Modified Capabilities
 
 - `coop-city-match`: Six-resource production and construction, material recruitment, battle upkeep, expandable plots, Market trades, building sales, twenty-wave outcomes, persistent recruit levels and exactly-once clear rewards.
-- `combat-archetypes`: Shared level scaling, explicit boss profiles, retained research after selling a Blacksmith and tower lifecycle after a sale.
+- `ecs-unit-combat`: Size-based shared occupancy, reservation accounting, formation and protected admission without footprint fragmentation.
+- `combat-archetypes`: Ordinary size-two and boss size-six profiles, shared level scaling, explicit boss profiles, retained research after selling a Blacksmith and tower lifecycle after a sale.
 - `city-tabletop`: Six-resource and upkeep feedback, grouped affordable/unaffordable choices, locked plot and sale controls, new building presentation, level-aware recruitment, twenty-wave/boss feedback and clear-reward summaries.
 - `coop-verification`: Resource-graph and twenty-wave strategy coverage, transaction/upkeep/progression/reward invariants and focused transport/UI integration checks.
 
 ## Impact
 
-Numerical work belongs in `src/Game.Core/World.cs`, resource/purchase catalogs, combat profile/configuration and authoritative snapshots. `src/Game/Tabletop.cs`, village/menu layout, resource visuals, unit inspection and diagnostics consume the same resolved catalogs; remove duplicated discount arithmetic in the UI and DevRunner. Implement resource transactions and upkeep before the full-run numerical balance gate, then complete protocol/UI integration. Bump the protocol from the version present at implementation time and update configuration identity. Update core/authority tests, existing DevRunner scenarios, README and gameplay/verification documentation without introducing dependencies or changing tool locks.
+Numerical work belongs in `src/Game.Core/World.cs`, resource/purchase catalogs, combat profile/configuration and authoritative snapshots. `src/Game/Tabletop.cs`, village/menu layout, resource visuals, unit inspection and diagnostics consume the same resolved catalogs; remove duplicated discount arithmetic in the UI and DevRunner. Implement size-based combat and its crowd/role/admission gate first, then resource transactions and upkeep before the full-run numerical balance gate, then complete protocol/UI integration. Bump the protocol from the version present at implementation time and update configuration identity. Update core/authority tests, existing DevRunner scenarios, README and gameplay/verification documentation without introducing dependencies or changing tool locks.
 
-This change follows `rework-deterministic-hex-combat`. That active change still specifies three-wave outcomes and old balance expectations; preserve its spatial, deterministic, lifecycle and cooperative guarantees, then supersede its wave-count/economy assumptions with these deltas. Do not apply competing edits to its in-progress implementation or alter its planning artifacts as part of this proposal. All files created here are planning artifacts only.
+This change follows the archived and synced `rework-deterministic-hex-combat`. Preserve its deterministic, lifecycle and cooperative guarantees while replacing footprint-shape restrictions first and its wave-count/economy assumptions later. The separate `simplify-combat-math-and-flow` proposal may alter the same combat interfaces: reconcile against whichever revision lands first and preserve its action/targeting guarantees without absorbing that refactor here. The former change name was `add-twenty-wave-progression`; the new name reflects combat size, economy, army development and campaign scope. Planning updates do not implement gameplay or reopen the archived change.
