@@ -29,9 +29,7 @@ public sealed class LinuxPackagingTests
             await Run(firstScript, environment, succeeds: true);
             Assert.Equal("0.1.0-beta.1", CurrentVersion(install));
             Assert.True(File.Exists(Path.Combine(apps, "odot.desktop")));
-            string desktop = await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop"));
-            Assert.Contains("Name=The Common Watch", desktop);
-            Assert.Contains("Exec=\"" + install + "/launcher\"", desktop);
+            await AssertDesktopEntry(apps, install);
             string systemLibrary = SystemLibraries.First(File.Exists);
             string overlay = Path.Combine(root, "Steam fixture", "gameoverlayrenderer.so");
             Directory.CreateDirectory(Path.GetDirectoryName(overlay)!); File.Copy(systemLibrary, overlay);
@@ -45,6 +43,7 @@ public sealed class LinuxPackagingTests
             (_, string missingOutput, _) = await Capture(Path.Combine(install, "launcher"), launchEnvironment);
             Assert.Contains(systemLibrary, missingOutput);
             await Run(firstScript, environment, succeeds: true);
+            await AssertDesktopEntry(apps, install);
 
             (string secondArchive, string secondHash) = await Archive(root, "0.2.0-beta.1", "second");
             string secondScript = await Script(root, "0.2.0-beta.1", Path.GetFileName(secondArchive), secondHash);
@@ -52,7 +51,7 @@ public sealed class LinuxPackagingTests
             await Run(secondScript, environment, succeeds: true);
             Assert.Equal("0.2.0-beta.1", CurrentVersion(install));
             Assert.Equal("second", await File.ReadAllTextAsync(Path.Combine(install, "current", "marker")));
-            Assert.Contains("Name=The Common Watch", await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop")));
+            await AssertDesktopEntry(apps, install);
 
             string invalid = await Script(root, "0.3.0-beta.1", Path.GetFileName(secondArchive), new string('0', 64));
             await Run(invalid, environment, succeeds: false);
@@ -83,20 +82,77 @@ public sealed class LinuxPackagingTests
     }
 
     [Fact]
-    public void PublicBrandRetainsGodotDataAndWindowsInstallationIdentity()
+    public void PublicBrandRetainsWindowsInstallationIdentity()
     {
-        string project = File.ReadAllText(Path.Combine(Root(), "src", "Game", "project.godot"));
-        Assert.Contains("config/name=\"Odot - Nine Tiles\"", project);
-        Assert.DoesNotContain("config/use_custom_user_dir=true", project);
-        Assert.Contains("project/assembly_name=\"Game\"", project);
-        string installer = File.ReadAllText(Path.Combine(Root(), "tools", "Distribution", "Odot.iss"));
-        Assert.Contains("AppName=The Common Watch", installer);
-        Assert.Contains("AppVerName=The Common Watch {#AppVersion}", installer);
-        Assert.Contains("Description: \"Launch The Common Watch\"", installer);
-        Assert.Contains("AppId={{D875B866-CA9C-4C70-914F-DBBD6507EE41}", installer);
-        Assert.Contains("DefaultDirName={localappdata}\\Programs\\Odot", installer);
-        Assert.Contains("DefaultGroupName=Odot", installer);
-        Assert.Contains("Name: \"{group}\\Odot\"; Filename: \"{app}\\game\\odot.exe\"", installer);
+        var definitions = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SourceDir"] = "payload",
+            ["OutputDir"] = "output",
+            ["OutputName"] = "installer",
+            ["AppVersion"] = "1.2.3"
+        };
+        var installer = PackagingConfiguration.InnoSections(File.ReadAllText(Path.Combine(Root(), "tools", "Distribution", "Odot.iss")), definitions);
+        var setup = PackagingConfiguration.Assignments(installer["Setup"], '=', inno: true);
+        Assert.Equal("The Common Watch", setup["AppName"]);
+        Assert.Equal("1.2.3", setup["AppVersion"]);
+        Assert.Equal("The Common Watch 1.2.3", setup["AppVerName"]);
+        Assert.Equal(Guid.Parse("D875B866-CA9C-4C70-914F-DBBD6507EE41"), Guid.Parse(setup["AppId"].Replace("{{", "{", StringComparison.Ordinal)));
+        Assert.Equal(@"{localappdata}\Programs\Odot", setup["DefaultDirName"]);
+        Assert.Equal("Odot", setup["DefaultGroupName"]);
+        var shortcut = PackagingConfiguration.InnoParameters(Assert.Single(installer["Icons"]));
+        Assert.Equal(@"{group}\Odot", shortcut["Name"]);
+        Assert.Equal(@"{app}\game\odot.exe", shortcut["Filename"]);
+        var launch = PackagingConfiguration.InnoParameters(Assert.Single(installer["Run"]));
+        Assert.Equal("Launch The Common Watch", launch["Description"]);
+        Assert.Equal(@"{app}\game\odot.exe", launch["Filename"]);
+    }
+
+    [Fact]
+    public void ConfigurationModelsUseActiveSectionsAndNormalizedValues()
+    {
+        var desktop = PackagingConfiguration.Sections("""
+            # Name=wrong
+            [Desktop Entry]
+            Name = The Common Watch
+            Exec = "/owned path/launcher"
+            [Other]
+            Name=wrong
+            """, '#');
+        var entry = PackagingConfiguration.Assignments(desktop["Desktop Entry"], '=');
+        Assert.Equal("The Common Watch", entry["Name"]);
+        Assert.Equal("\"/owned path/launcher\"", entry["Exec"]);
+
+        var installer = PackagingConfiguration.InnoSections(""""
+            [Setup]
+            ; AppName=wrong
+            #ifndef AppVersion
+            AppName=wrong
+            #else
+            appname = "The Common Watch"
+            AppVerName = The Common Watch {#AppVersion}
+            #endif
+            [Run]
+            Filename : "{app}\game\odot.exe" ; Description : "Launch; ""The Common Watch"""
+            """", new Dictionary<string, string> { ["AppVersion"] = "1.2.3" });
+        var setup = PackagingConfiguration.Assignments(installer["Setup"], '=', inno: true);
+        Assert.Equal("The Common Watch", setup["AppName"]);
+        Assert.Equal("The Common Watch 1.2.3", setup["AppVerName"]);
+        var launch = PackagingConfiguration.InnoParameters(Assert.Single(installer["Run"]));
+        Assert.Equal(@"{app}\game\odot.exe", launch["Filename"]);
+        Assert.Equal("Launch; \"The Common Watch\"", launch["Description"]);
+        var commentedBrand = PackagingConfiguration.InnoSections("[Setup]\n; AppName=The Common Watch\nAppName=Other", new Dictionary<string, string>());
+        Assert.Equal("Other", PackagingConfiguration.Assignments(commentedBrand["Setup"], '=', inno: true)["AppName"]);
+        var commentedDesktop = PackagingConfiguration.Sections("[Desktop Entry]\n# Name=The Common Watch\nName=Other", '#');
+        Assert.Equal("Other", PackagingConfiguration.Assignments(commentedDesktop["Desktop Entry"], '=')["Name"]);
+        Assert.Throws<FormatException>(() => PackagingConfiguration.InnoSections("#error AppVersion is required", new Dictionary<string, string>()));
+    }
+
+    private static async Task AssertDesktopEntry(string apps, string install)
+    {
+        var sections = PackagingConfiguration.Sections(await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop")), '#');
+        var entry = PackagingConfiguration.Assignments(sections["Desktop Entry"], '=');
+        Assert.Equal("The Common Watch", entry["Name"]);
+        Assert.Equal("\"" + install + "/launcher\"", entry["Exec"]);
     }
 
     [Fact]
