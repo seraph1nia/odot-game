@@ -1,9 +1,9 @@
 ---
 id: IDEA-001
 title: Easier verification command selection
-status: exploring
+status: promoted
 created: 2026-10-03
-related_changes: [speed-up-verification, optimize-core-simulation, setup-agent-workflow-poc]
+related_changes: [poc-verification-command-guide]
 supersedes: []
 tags: [verification, documentation, developer-experience]
 ---
@@ -77,15 +77,27 @@ undecided; the recommendation does not authorize implementation.
 
 # Decisions
 
-Record `IDEA-001` as `exploring`. Active and archived idea directories contained
+At scenario 1 intake, record `IDEA-001` as `exploring`. Active and archived idea directories contained
 only their README files at intake, so this is the next unused stable ID.
 One human shaping intervention selected "Documentation guide," relayed by
 FirstMate in task inbox message `002.msg` at 2026-10-03T09:37:13Z. Retain
-`exploring`: the audience, document location, content boundaries, acceptance
+`exploring` at that stage: the audience, document location, content boundaries, acceptance
 examples and roadmap position remain undecided. No proposal, implementation
 approval or promotion was created. The questions above concern possible future
 shaping; none requires an answer to finish this planning-only intake, which
 FirstMate explicitly instructed the worker to finish without starting scenario 2.
+
+On 2026-10-03, the separate scenario 2 brief authorized promotion into a small
+task-based documentation proposal, [poc-verification-command-guide](../../openspec/changes/poc-verification-command-guide/proposal.md).
+A fresh [ten-question preflight](../evidence/setup-agent-workflow-poc/scenario-2-proposal.md#standalone-proposal-preflight)
+found no hard dependency, duplicate proposal or material product/architecture
+decision blocking planning. Mark this idea `promoted`; the new roadmap item's
+`source_ideas: [IDEA-001]` is reciprocal. `related_changes` now identifies the
+proposal sourced by this idea; earlier verification/optimization/workflow overlap
+references remain in the body and are not retroactively claimed as its outputs.
+Recommend routine human/agent readers and a compact README entry point for later
+review. Those are proposed defaults, not additional human decisions. No concrete
+usability incident has been supplied, and no implementation approval is created.
 
 # Relevant code
 
@@ -118,7 +130,8 @@ does not already solve command selection.
 
 See the [standalone scenario report](../evidence/setup-agent-workflow-poc/scenario-1-fuzzy-intake.md).
 The scenario runbook's `poc-verification-command-guide` is a possible later trial
-name, not an existing proposal created by this intake.
+name in the scenario 1 record, not a proposal created by that intake. Scenario 2
+now captures it separately as the promoted documentation proposal linked above.
 
 # Promotion criteria
 
@@ -128,3 +141,9 @@ verification guarantees. A fresh proposal-preflight Scout must assess overlap,
 especially completed-but-unsynced `speed-up-verification`, before any proposal.
 Only then consider coherent OpenSpec planning and reciprocal idea/roadmap links.
 Implementation and landing still require their separate explicit authorizations.
+
+Scenario 2 completes preflight and proposal capture under its narrower task-based
+brief. Its proposal/design/tasks make the recommended scope and acceptance
+examples concrete for review; the remaining audience/surface choices above are
+review choices before implementation approval, not unresolved decisions needed
+to complete this planning-only promotion.
