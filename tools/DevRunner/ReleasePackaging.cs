@@ -80,6 +80,8 @@ internal sealed partial class Runner
                 _root, evidenceDirectory: _evidence.Directory);
             int code = await child.WaitExit(cancellation);
             if (code != 0) throw new InvalidOperationException($"Inno Setup compilation failed with exit code {code}.");
+            // Close the writer before reopening its transcript (Windows sharing rules).
+            await child.DisposeAsync();
             ValidateInnoCompilerVersion(await File.ReadAllTextAsync(child.LogPath, cancellation));
         });
         string installer = name + ".exe";

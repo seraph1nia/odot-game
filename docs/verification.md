@@ -2317,7 +2317,13 @@ The fix therefore reads the **loaded compiler engine** banner from a successful
 nonquiet compilation (as implemented in upstream `ISCC.dpr`), retaining the
 6.7.3 acquisition checksum and rejecting another/missing compiler version
 before writing the platform manifest. Neither help failures nor zero-valued
-executable metadata are accepted as version evidence.
+executable metadata are accepted as version evidence. The subsequent native run
+https://github.com/seraph1nia/odot-game/actions/runs/37143381683
+successfully compiled the intended setup executable in 58.578 seconds, then
+exposed Windows file-sharing rules when reopening the still-owned transcript.
+The final fix awaits compiler disposal before reading its exact engine banner;
+this keeps the ordinary process owner and cleanup rather than weakening the
+version check.
 
 The release workflow again requires both native packages, transfers their exact
 allowlisted artifacts, assembles matching two-target public metadata and checks
