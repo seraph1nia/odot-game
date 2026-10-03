@@ -4,6 +4,7 @@
 /dist/
 /logs/
 /.cache/
+/.test-runtime/
 /mise.local.toml
 /mise.local.lock
 **/*.user

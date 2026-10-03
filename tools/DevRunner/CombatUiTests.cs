@@ -110,18 +110,25 @@ internal sealed partial class Runner
         await WaitUi(client, p => p.Effects.Active > 0 && p.Effects.Bus == "Master", "tower projectiles in observed city", token);
         await Checkpoint(client, "combat-catapult", token);
         await Click(client, "City" + client.PlayerId, token);
-        MatchSnapshot towerResume = State(await Action(observer, "resume", token));
-        await Observe(client, s => !s.Paused && s.Revision >= towerResume.Revision, "combat resumes after tower capture", token);
     }
 
     private async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
     {
         await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
+        // The source tower capture leaves combat paused. Sample its retained
+        // route before resuming; pacing/probe round trips must not consume it.
         UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Running_A"), "actual locomotion pose", token);
         HealthBars(moving);
         Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
         UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Running_A");
         Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "running model follows a declared timed route with endpoint reservations");
+        if (!shortCheck)
+        {
+            Require(Latest(client).Paused && moving.PhaseText.Contains("PAUSED", StringComparison.Ordinal),
+                "first locomotion witness retains the tower capture pause");
+            MatchSnapshot towerResume = State(await Action(observer, "resume", token));
+            await Observe(client, s => !s.Paused && s.Revision >= towerResume.Revision, "combat resumes after tower capture", token);
+        }
         UiObservation moved = await WaitUi(client, p => p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation), "moving skeleton changes position and pose", token);
         Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
         UiObservation swordPose = shortCheck ? moved : await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "1H_Melee_Attack_Slice_Horizontal" && u.AttackActive), "rendered sword attack before inspection", token);
