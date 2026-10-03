@@ -7,11 +7,13 @@ internal sealed partial class Runner
 {
     internal static void RenderedContact(UiObservation observation)
     {
-        UnitObservation[] units = observation.Units.Where(u => u.Visible && u.Deployed).ToArray();
+        // Numerical transit claims still hold. Only committed visual crossings
+        // are exempt; settled living/death anchors must never collapse.
+        UnitObservation[] units = observation.Units.Where(u => u.Visible && u.Deployed && u.Hex?.HoldsTransit != true).ToArray();
         foreach (UnitObservation unit in units)
             foreach (UnitObservation other in units.Where(u => u.Id > unit.Id && u.Destination == unit.Destination))
                 if (Math.Sqrt(Math.Pow(unit.X - other.X, 2) + Math.Pow(unit.Z - other.Z, 2)) < 0.4 - 1e-4)
-                    throw new InvalidOperationException("Rendered bodies crossed contact: " + unit.Id + "/" + other.Id);
+                    throw new InvalidOperationException("Settled rendered anchors collapsed: " + unit.Id + "/" + other.Id);
         foreach (StrikeObservation strike in observation.Strikes.Where(s => s.Visible))
         {
             UnitObservation actor = observation.Units.Single(u => u.Id == strike.Id);
@@ -26,6 +28,11 @@ internal sealed partial class Runner
             if (target is not null && target.Destination == actor.Destination)
                 Require(Math.Abs(strike.TargetX - target.X) < .02 && Math.Abs(strike.TargetZ - target.Z) < .02,
                     "melee connection follows the actual sampled target position");
+            Require(strike.CueStyle == "dashed-intent-local-strike" && strike.IntentDashes == 12 && strike.StrikeRadius <= .35f,
+                "melee uses bounded dashed intent and a local strike rather than a spanning beam");
+            Require(tick < strike.ImpactTick ? strike.Phase == "intent" && strike.IntentVisible && !strike.StrikeVisible
+                : strike.Phase == (strike.AttackLanded == true ? "landed" : "miss") && !strike.IntentVisible && strike.StrikeVisible,
+                "melee intention and local strike are separate current-action phases");
             Require(!strike.ImpactVisible || strike.AttackLanded == true && tick >= strike.ImpactTick && target is not null,
                 "target-side impact is shown only for an authoritative landed strike");
         }
@@ -117,11 +124,11 @@ internal sealed partial class Runner
     private async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
     {
         await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
-        UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Running_A"), "actual locomotion pose", token);
+        UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Walking_A" && u.WalkingBlend > 0), "actual walking pose", token);
         HealthBars(moving);
         Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
-        UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Running_A");
-        Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "running model follows a declared timed route with endpoint reservations");
+        UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Walking_A" && u.WalkingBlend > 0);
+        Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "walking model follows a declared direct timed step with endpoint reservations");
         UiObservation moved = await WaitUi(client, p => p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation), "moving skeleton changes position and pose", token);
         Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
         UiObservation swordPose = shortCheck ? moved : await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "1H_Melee_Attack_Slice_Horizontal" && u.AttackActive), "rendered sword attack before inspection", token);

@@ -57,10 +57,11 @@ internal static class MeleeVisualProof
             }
             double tick = actor.Hex.FrozenTick ?? frame.CombatTick;
             bool linked = Math.Abs(strike.TargetX - target.X) < .02 && Math.Abs(strike.TargetZ - target.Z) < .02;
-            if (linked && actor.WeaponAttached && actor.AttackActive && actor.BoneRotation.Length > 0)
+            if (linked && actor.WeaponAttached && actor.AttackActive && actor.BoneRotation.Length > 0
+                && strike.CueStyle == "dashed-intent-local-strike" && strike.IntentDashes == 12 && strike.StrikeRadius is > 0 and <= .35f)
             {
-                if (tick >= actor.ActionStartTick && tick < strike.ImpactTick) coverage |= MeleeCoverage.Windup;
-                if (tick >= strike.ImpactTick && strike.AttackLanded == true && strike.ImpactVisible) coverage |= MeleeCoverage.Impact;
+                if (tick >= actor.ActionStartTick && tick < strike.ImpactTick && strike.Phase == "intent" && strike.IntentVisible && !strike.StrikeVisible) coverage |= MeleeCoverage.Windup;
+                if (tick >= strike.ImpactTick && strike.AttackLanded == true && strike.Phase == "landed" && strike.StrikeVisible && !strike.IntentVisible && strike.ImpactVisible) coverage |= MeleeCoverage.Impact;
             }
             result.Add(new(actor.Id, target.Id, strike.AttackSequence, strike.ImpactTick, actor.Hex.Position.Cell, target.Hex.Position.Cell,
                 actor.Hex.Position.Anchor, target.Hex.Position.Anchor, distance, coverage));
