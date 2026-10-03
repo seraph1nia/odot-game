@@ -280,3 +280,16 @@ for phase boundaries, counter meanings, scope and comparison limitations.
 Campaign checks retain compact complete summaries and expand their latest 64
 domain records on failure. Set `ODOT_CAMPAIGN_TRACE=1` for detailed successful
 transactions; leave it unset for matched performance measurements.
+
+## Agent workflow POC
+
+Git-backed planning lives in [planning/README.md](planning/README.md). Use
+`mise run planning-validate` to check references, lifecycle receipts and hard
+dependencies, and `mise run planning-next -- --json` for deterministic approved
+next-work selection. These commands start no Godot or agents.
+
+The single Pi/FirstMate primary uses native Herdr/Treehouse/Codex execution;
+[setup and startup](docs/agent-workflow.md) require user-provided runtime tools and
+an owned managed pane. [Five real-project acceptance scenarios](docs/agent-workflow-scenarios.md)
+remain distinct from the bootstrap tooling tests. Incomplete live acceptance is
+not POC viability; every merge requires explicit approval.

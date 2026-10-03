@@ -1,0 +1,12 @@
+diff --git a/tools/DevRunner/Planning/PlanningValidation.cs b/tools/DevRunner/Planning/PlanningValidation.cs
+--- a/tools/DevRunner/Planning/PlanningValidation.cs
++++ b/tools/DevRunner/Planning/PlanningValidation.cs
+@@ -83,7 +83,7 @@
+             if (item.State != "ready") reasons.Add($"state {item.State}");
+             if (inProgress) reasons.Add("an implementation is in_progress");
+             foreach (string dependency in item.DependsOn)
+-                if (!Finished(dependency)) reasons.Add($"unfinished dependency {dependency}");
++                if (!Finished(dependency) && dependency.Length == 0) reasons.Add($"unfinished dependency {dependency}");
+             reasons.AddRange(item.BlockedBy.Select(blocker => $"blocker {blocker}"));
+             foreach (string conflict in item.ConflictsWith)
+                 if (!Finished(conflict)) reasons.Add($"unresolved conflict {conflict}");

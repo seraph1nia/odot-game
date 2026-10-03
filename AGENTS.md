@@ -92,3 +92,28 @@ native compositor/GPU performance, physical input or listening quality.
 
 See [README.md](README.md) for commands and
 [docs/verification.md](docs/verification.md) for timings, coverage and limitations.
+
+## Single-project agent workflow POC
+
+Project truth and lifecycle live in [planning/README.md](planning/README.md) and
+[ADR 0001](docs/adr/0001-agent-workflow-authority.md). Preserve the existing
+OpenSpec skills. Use the five project workflow skills for intake, preflight,
+roadmap analysis, scoped implementation and independent review. FirstMate owns
+execution only; its backlog and conversation are not the product roadmap.
+
+The Pi/FirstMate primary is the conversational entrypoint. Delegate substantial
+implementation to a fresh Codex Shipper in an isolated FirstMate worktree, for
+exactly one explicitly approved OpenSpec change. Reconcile owned live workers
+before dispatch; at most one change is implemented at once. Select next work
+with `mise run planning-next`, never by reordering or overriding dependencies.
+Planning preparation is not implementation authorization.
+
+A fresh Codex Reviewer is read-only for production source. Current independent
+PASS, applicable successful validation, complete tasks and no unresolved product
+decision gate sync/archive/completion. Allow one repair and a second fresh review;
+then escalate. SPEC_CHANGE_REQUIRED/FAIL_SPEC return to planning; unresolved
+product or architecture decisions return to the user. Archive preparation can
+follow PASS; every merge/landing requires separate explicit approval. Retain
+unlanded branches and accurately record legacy/unexecuted work. The bootstrap
+checkpoint is not whole-POC completion. Do not install tools, integrate Atomic,
+or replace native FirstMate/Herdr/Treehouse execution with custom infrastructure.
