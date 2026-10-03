@@ -42,13 +42,13 @@ queue:
     notes: "Local bootstrap checkpoint passed independent review2 after one repair; Shipper stopped. Pi integration v9 confirmed. Awaiting live Pi/FirstMate acceptance; further tests paused by user. No whole-change PASS or completion."
     approval: planning/evidence/setup-agent-workflow-poc/approval.md
   - change: add-city-research-and-status-effects
-    state: proposed
+    state: legacy_completed
     priority: normal
     source_ideas: []
     depends_on: []
     blocked_by: []
     conflicts_with: []
-    notes: "Existing complete planning, 0/40 implementation tasks; no implementation approval inferred. Relative future priority requires a product decision."
+    notes: "Archived on developer main at 6a7a179 with 40/40 tasks complete. This happened outside the new workflow; no retrospective independent PASS is claimed."
   - change: poc-verification-command-guide
     state: verified
     priority: normal
@@ -59,3 +59,11 @@ queue:
     notes: "User approved the exact current README-only documentation proposal after the scenario 2 planning landing; exactly one implementation is admitted. Game code/tests remain untouched; implementation stays unmerged pending separate approval. No additional production trial changes. No hard dependencies or semantic conflicts; speed-up-verification canonical sync is separate. Installed workflow checkpoint supports the trial, not completed whole-POC acceptance. Future research README edits need ordinary text integration."
     approval: planning/evidence/poc-verification-command-guide/approval.md
     verification: planning/evidence/poc-verification-command-guide/review-1.md
+  - change: simplify-building-economy
+    state: proposed
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Imported proposal from developer main 6a7a179. Appended without a priority decision or implementation approval; proposal preflight and relative order remain to be reconciled."
