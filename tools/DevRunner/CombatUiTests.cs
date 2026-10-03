@@ -5,6 +5,10 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
+    internal static bool CasualtyInspectionReady(MatchSnapshot state, int city, long after)
+        => state.DyingBodies.Any(u => u.Destination == city && u.Hex!.DeathStartTick > after && u.Hex.DeathEndTick > state.Tick + 12)
+            && state.Enemies.Any(u => u.Destination == city && u.Health > 0 && u.Health < u.Profile.Health);
+
     internal static void RenderedContact(UiObservation observation)
     {
         // Numerical transit claims still hold. Only committed visual crossings
@@ -63,6 +67,7 @@ internal sealed partial class Runner
         await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
         await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
         await Pick(client, 4, token); int food = Latest(client).Players.Single(p => p.Id == client.PlayerId).Food;
+        await EnsureFieldRoom(client, token);
         GameEvent ranged = await ClickAck(client, "RecruitRanged", token); CityState army = State(ranged).Players.Single(p => p.Id == client.PlayerId);
         Require(army.Soldiers.Any(u => u.Type == UnitType.Swordsman) && army.Soldiers.Any(u => u.Type == UnitType.Crossbowman) && army.Food == food,
             "ordinary building-specific UI recruitment pays equipment and retains food");
@@ -89,13 +94,14 @@ internal sealed partial class Runner
         for (int production = 0; production < 3; production++) { await UiReadyPair(client, observer, token, actualInput: false); await TowerInvestment(observer, token); }
         await Action(client, "sell 1", token); await Action(client, "build 1 weaver", token);
         await Action(client, "sell 4", token); await Action(client, "build 4 arcanum", token);
-        await Pick(client, 2, token); await ClickAck(client, "RecruitBerserker", token);
+        await Pick(client, 2, token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitBerserker", token);
         await UiSwords(client, 2, 6, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 2, token);
         await UiReadyPair(client, observer, token, actualInput: false);
-        await Pick(client, 4, token); await ClickAck(client, "RecruitMage", token);
+        await Pick(client, 4, token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitMage", token);
         await Pick(client, 2, token);
-        if (!Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Berserker)) await ClickAck(client, "RecruitBerserker", token);
-        await ClickAck(client, "Sell", token); await ClickAck(client, "ArcheryRange", token); await ClickAck(client, "RecruitRanged", token);
+        if (!Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Berserker))
+        { await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitBerserker", token); }
+        await ClickAck(client, "Sell", token); await ClickAck(client, "ArcheryRange", token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitRanged", token);
         await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
         UiObservation piles = await UiProtocol.Probe(client, options.StartupTimeout, token); CityState city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(piles.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "specialist equipment updates exact current stockpile tiers");
@@ -104,7 +110,8 @@ internal sealed partial class Runner
         // and Catapult while restoring ordinary frontline supply for research's
         // later opening; replacement and recruitment pay the existing quotes.
         await Action(client, "sell 1", token); await Action(client, "build 1 barracks", token);
-        await Action(client, "recruit 1 berserker", token); await Action(client, "recruit 1 berserker", token);
+        await EnsureFieldRoom(client, token, actualInput: false); await Action(client, "recruit 1 berserker", token);
+        await EnsureFieldRoom(client, token, actualInput: false); await Action(client, "recruit 1 berserker", token);
         await Action(observer, "sell 4", token); await Action(observer, "build 4 barracks", token);
         await UiSwords(observer, 4, 12, token, actualInput: false);
         await Click(client, "City" + observer.PlayerId, token);
@@ -208,8 +215,10 @@ internal sealed partial class Runner
         long casualtyAfter = Latest(observer).Tick;
         async Task<MatchSnapshot> PauseFreshCasualty()
         {
-            await Observe(observer, s => s.DyingBodies.Any(u => u.Destination == client.PlayerId
-                && u.Hex!.DeathStartTick > casualtyAfter && u.Hex.DeathEndTick > s.Tick + 12), "fresh focused-city casualty after resume", token);
+            // The next frozen checkpoint needs both a fresh corpse and a living
+            // damaged opponent. Never freeze first and wait for damage afterward.
+            await Observe(observer, s => CasualtyInspectionReady(s, client.PlayerId, casualtyAfter),
+                "fresh focused-city casualty and damaged opponent after resume", token);
             return State(await Action(observer, "pause", token));
         }
         Task<MatchSnapshot> casualtyPause = PauseFreshCasualty();

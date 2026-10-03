@@ -70,8 +70,16 @@ status without forcibly destroying an existing match; Valve documents the live
 connection semantics of [BLoggedOn](https://partner.steamgames.com/doc/api/ISteamUser#BLoggedOn).
 
 
-Protocol v4 adds typed recruitment, scalar forward/lateral bodies, movement,
-profile and target/action timing, and bounded ordered combat-event history.
+Current protocol v11 includes typed recruitment, hex movement/profile/action
+state and bounded ordered combat-event history, plus purchased army homes,
+field/Town hall assignments, independent hall levels/quotes and completed-paid
+recovery eligibility. `Command.UnitId` targets retire/store/send;
+`ExpectedHomeCount` binds the next home price, `ExpectedTrackLevel` binds the
+selected hall upgrade quote, and `ExpectedGeneration` binds the hall instance.
+The existing authenticated owner, match/phase/stage, ready/pause and sequence
+ledger checks still apply. Full snapshots detach assignments, all-owned food
+forecast/funded/field-participant receipts and current wounds; reconnect never
+replays production, food payment or healing.
 `recruit <slot>` still means Swordsman; automation also accepts
 `recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
 is no mixed-version play. Stable unit IDs and event sequences are match-scoped,

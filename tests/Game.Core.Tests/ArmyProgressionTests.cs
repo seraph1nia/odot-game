@@ -199,17 +199,21 @@ public sealed class ArmyProgressionTests
     }
 
     [Fact]
-    public void FedCapacityQueuedSoldiersPayAtEntryAndReceiptsAreProjectionCopies()
+    public void FedPurchasedHomeSoldiersPayAtEntryAndReceiptsAreProjectionCopies()
     {
         using Match match = Start(); City city = match.Players[1]; Stock(city);
         Build(match, 0, Building.Barracks);
+        for (int purchase = 0; purchase < 2; purchase++)
+            Assert.True(match.Apply(1, Request(match, "buy-home") with { ExpectedHomeCount = city.PurchasedHomes }).Accepted);
         for (int recruit = 0; recruit < 12; recruit++) Act(match, "recruit", 0);
         city.Food = 12; Prepare(match); Assert.Equal(12, city.Snapshot().FoodForecast!.Demand);
         Act(match, "ready"); Assert.Equal(0, city.Food); Assert.Equal(12, city.LastUpkeep!.Paid);
         Assert.Equal(12, city.LastUpkeep.Participating.Length); Assert.Empty(city.LastUpkeep.Unfed);
-        Assert.Equal(3, city.Soldiers.Count(u => !u.Deployed && u.Participating));
-        CityState projection = city.Snapshot(); projection.LastUpkeep!.Participating[0] = 999;
-        Assert.DoesNotContain(999, city.Snapshot().LastUpkeep!.Participating);
+        Assert.Equal(12, city.Soldiers.Count(u => u.Deployed && u.Participating));
+        Assert.All(city.Soldiers, u => Assert.Equal(u.Assignment!.Position, u.Hex!.Position));
+        Assert.All(city.Soldiers.GroupBy(u => u.Assignment!.Tile), home => Assert.InRange(home.Sum(u => u.Size), 1, 6));
+        CityState projection = city.Snapshot(); projection.LastUpkeep!.Participating[0] = 999; projection.LastUpkeep.Funded[0] = 999;
+        Assert.DoesNotContain(999, city.Snapshot().LastUpkeep!.Participating); Assert.DoesNotContain(999, city.Snapshot().LastUpkeep!.Funded);
         long revision = match.Revision; match.Snapshot(); Assert.Equal(revision, match.Revision); Assert.Equal(0, city.Food);
     }
 
