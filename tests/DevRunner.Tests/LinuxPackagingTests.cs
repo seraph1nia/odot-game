@@ -156,6 +156,14 @@ public sealed class LinuxPackagingTests
     }
 
     [Fact]
+    public void InnoCompilerFileVersionMustMatchPinnedCompiler()
+    {
+        Runner.ValidateInnoCompilerVersion(new Version(6, 7, 3));
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion(new Version(6, 7, 2)));
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion(new Version(0, 0, 0)));
+    }
+
+    [Fact]
     public void InnoCompilerAcquisitionIsPinned()
     {
         using JsonDocument pin = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root(), "tools", "Distribution", "inno-setup.json")));

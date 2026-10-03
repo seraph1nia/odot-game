@@ -25,7 +25,19 @@ public sealed partial class WorkflowPolicyTests
         Assert.Contains("\n  windows-package:", ci, StringComparison.Ordinal);
         Assert.Contains("on:\n  release:\n    types: [published]", release, StringComparison.Ordinal);
         Assert.DoesNotContain("\n  push:", release, StringComparison.Ordinal);
-        Assert.DoesNotContain("\n  pull_request:", release, StringComparison.Ordinal);
+        Assert.Contains("\n  pull_request:", release, StringComparison.Ordinal);
+        Assert.Contains("if: github.event_name == 'release'\n        env:\n          GH_TOKEN:", release, StringComparison.Ordinal);
+        Assert.Contains("needs: [linux-package, windows-package]", release, StringComparison.Ordinal);
+        Assert.Contains("\n  windows-package:\n    needs: preflight\n    runs-on: windows-2025", release, StringComparison.Ordinal);
+        Assert.Contains("name: windows-release-assets", release, StringComparison.Ordinal);
+        Assert.Contains("odot-${{ env.VERSION }}-windows-x64-setup.exe", release, StringComparison.Ordinal);
+        Assert.Contains("SHA256SUMS.windows-x64", release, StringComparison.Ordinal);
+        Assert.Contains("pattern: '*-release-assets'", release, StringComparison.Ordinal);
+        Assert.Contains("mise run assemble-release-assets", release, StringComparison.Ordinal);
+        Assert.Contains("sha256sum --check --strict SHA256SUMS", release, StringComparison.Ordinal);
+        Assert.Contains("- name: Attach verified bytes to the existing published release\n        if: github.event_name == 'release'", release, StringComparison.Ordinal);
+        Assert.DoesNotContain("--clobber", release, StringComparison.Ordinal);
+        Assert.Contains("Release already has assets", release, StringComparison.Ordinal);
         Assert.DoesNotContain("workflow_dispatch:", release, StringComparison.Ordinal);
     }
 
