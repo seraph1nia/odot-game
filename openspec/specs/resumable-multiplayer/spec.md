@@ -59,9 +59,9 @@ A disconnected guest player's city, resources, buildings, soldiers, health, elim
 - **AND** no guest continues combat as a new authority
 
 ### Requirement: Complete authoritative resynchronization
-Initial joins and successful resumes SHALL receive complete current match state before gameplay input is enabled. The state SHALL include the stable roster and connection status, every city's economy/slots/upgrades/army/health, live enemies and their current destination/health, soldier and enemy types/profiles, formation positions and entry status, targets, movement state, action identities and simulation timing, phase and turn/wave counters, readiness, pause state, and outcome. State updates SHALL carry a monotonically increasing revision within the match, including changes while simulation time is paused. Clients SHALL discard stale updates and reconstruct their view from the server state rather than restoring an old local simulation.
+Initial joins and successful resumes SHALL receive complete current match state before gameplay input is enabled. The state SHALL include the stable roster and connection status, every city's economy/slots/upgrades/army/health/research points/production progress/purchased technologies/exclusive choices, live enemies and their current destination/health, soldier and enemy types/profiles, formation positions and entry status, targets, movement state, action identities and simulation timing, technology-derived capabilities, active burn/poison/chill strengths, bounded stack identities and absolute application/expiry/next-damage timing, phase and turn/wave counters, readiness, pause state, and outcome. State updates SHALL carry a monotonically increasing revision within the match, including changes while simulation time is paused. Clients SHALL discard stale updates and reconstruct their view from the server state rather than restoring an old local simulation.
 
-The state SHALL also carry bounded, sequenced recent combat events sufficient to observe actions and deaths between regular snapshots, with retained final casualty position and type. Event identity SHALL be scoped to the match. Clients SHALL deduplicate overlapping event history and baseline newly joined/resumed clients at the current state rather than replaying older effects. A gap beyond retained history SHALL recover from the current state without synthesizing damage, resurrecting units or accumulating an unbounded backlog. Protocol admission SHALL reject builds incompatible with typed recruitment or this combat state before accepting gameplay commands.
+The state SHALL also carry bounded, sequenced recent combat events sufficient to observe actions and deaths between regular snapshots, with retained final casualty position and type. Event identity SHALL be scoped to the match. Clients SHALL deduplicate overlapping event history and baseline newly joined/resumed clients at the current state rather than replaying older effects. A gap beyond retained history SHALL recover from the current state without synthesizing damage, resurrecting units or accumulating an unbounded backlog. Protocol admission SHALL reject builds incompatible with typed technology purchases, research or this status-aware combat state before accepting gameplay commands.
 
 #### Scenario: Reconnect after match progression
 - **WHEN** turns or combat progressed while a player was absent
@@ -88,6 +88,11 @@ The state SHALL also carry bounded, sequenced recent combat events sufficient to
 - **WHEN** a build without the compatible typed-recruitment and combat-state protocol attempts to join
 - **THEN** the authority refuses clearly before binding that connection to gameplay
 
+#### Scenario: Reconnect restores research and periodic effects
+- **WHEN** a city reconnects after earning points and choosing Fire while a current enemy remains poisoned
+- **THEN** the complete state restores balances, partial progress, purchased nodes, Frost lock and the enemy's current stack deadlines before enabling input
+- **AND** the client neither grants points nor reapplies historical poison damage
+
 ### Requirement: Command retry safety
 The same logical command SHALL mutate authoritative state at most once, including when retried after a lost response or a reconnect. The server SHALL retain duplicate protection with the stable player identity, report duplicate/stale requests without another mutation, and reject delayed commands whose match or turn no longer matches. Clients SHALL preserve command identity across retransmission. A genuinely new user action SHALL use a new command identity.
 
@@ -98,6 +103,11 @@ The same logical command SHALL mutate authoritative state at most once, includin
 #### Scenario: Delayed ready request
 - **WHEN** a ready request from a resolved turn arrives during a later turn
 - **THEN** it does not mark the player ready or trigger production for the later turn
+
+#### Scenario: Lost technology purchase response
+- **WHEN** a technology purchase succeeds and the same request is retried after a lost response or reconnect
+- **THEN** it retains exactly one point deduction, one acquired node and its original exclusive lock
+- **AND** a genuinely new request for that acquired or conflicting node is rejected without mutation
 
 ### Requirement: Whole-match pause and resume
 Any connected roster member SHALL be able to request pause or resume during a building phase or battle. Pause SHALL freeze production, phase advancement, combat movement, attack timing, health changes, combat event progression, and outcomes; economic and ready actions SHALL be rejected while paused. Connection handling, resynchronization, and pause/resume requests SHALL remain active. Resume SHALL continue from the frozen state without consuming accumulated wall-clock time. Repeated pause/resume requests SHALL be harmless. A disconnect SHALL NOT itself pause or resume the match.
