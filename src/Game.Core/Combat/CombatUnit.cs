@@ -8,6 +8,8 @@ internal sealed record CombatLocation(UnitLifecycle Lifecycle, HexPosition Posit
 internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfile Profile, CombatLocation Location,
     CombatAction Action, CombatDecisionState Decision)
 {
+    public UnitCapabilities Capabilities { get; init; }
+    public StatusState Statuses { get; init; } = new();
     public int Id => Identity.Id;
     public UnitType Type => Identity.Type;
     public int Owner => Identity.Owner;
@@ -61,9 +63,9 @@ internal static class CombatProjection
 {
     internal static UnitState Detach(UnitState unit, WorkCounters? work = null)
     {
-        if (unit.Decision is not { } decision) return unit;
+        if (unit.Decision is not { } decision) return unit with { Statuses = unit.Statuses.Detach() };
         work?.Add(WorkMetric.RouteElementsCopied, decision.Route.Length); work?.Add(WorkMetric.VisitedElementsCopied, decision.Visited.Length);
-        return unit with { Decision = decision with { Route = decision.Route.ToArray(), Visited = decision.Visited.ToArray() } };
+        return unit with { Statuses = unit.Statuses.Detach(), Decision = decision with { Route = decision.Route.ToArray(), Visited = decision.Visited.ToArray() } };
     }
     public static UnitState Snapshot(CombatUnit unit, long tick, WorkCounters? work = null)
     {
@@ -93,7 +95,9 @@ internal static class CombatProjection
             ReadyTick = action.ReadyTick,
             PendingImpact = unit.PendingImpact,
             AttackLanded = attack?.Landed,
-            Profile = unit.Profile
+            Profile = unit.Profile,
+            Capabilities = unit.Capabilities,
+            Statuses = unit.Statuses.Detach()
         };
     }
 
@@ -127,6 +131,7 @@ internal static class CombatProjection
                 : new CombatAction.Waiting(hex.ActionSequence, state.AttackSequence, ready, attack)
         };
         return new(new(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank, state.IsBoss, state.Level), state.Health, profile,
-            new(hex.Lifecycle, hex.Position, hex.AdmittedTick, hex.DeathStartTick, hex.DeathEndTick, hex.FrozenMoveTicks, hex.FrozenTick, hex.FrozenAim), action, decision);
+            new(hex.Lifecycle, hex.Position, hex.AdmittedTick, hex.DeathStartTick, hex.DeathEndTick, hex.FrozenMoveTicks, hex.FrozenTick, hex.FrozenAim), action, decision)
+        { Capabilities = state.Capabilities, Statuses = state.Statuses.Detach() };
     }
 }

@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 
 namespace Game.Core;
 
-public sealed record ResearchQuote(int Rank, ResourceCost Cost, int RequiredBlacksmithLevel);
 
 public sealed record RecruitmentQuote(UnitType Type, int Level, ResourceCost Cost, int Upkeep, WeaponProfile Profile);
 
@@ -18,9 +17,10 @@ public sealed class EconomyConfiguration
     private readonly FrozenDictionary<Resource, MarketRate> _rates;
     private readonly FrozenDictionary<(UnitType Type, int Level), ResourceCost> _recruitment;
     private readonly FrozenDictionary<UnitType, int> _upkeep;
-    private readonly ResearchQuote[] _research = [new(1, new(10), 1), new(2, new(15), 2)];
+    public ResearchCatalog Research { get; }
+    private readonly ResearchSettings _researchSettings;
     private readonly int[] _expansionPrices = [25, 40, 60, 90];
-    private readonly Dictionary<ResearchRanks, RecruitmentQuote[]> _quotes = [];
+    private readonly Dictionary<ulong, RecruitmentQuote[]> _quotes = [];
     private CombatConfiguration? _quoteConfiguration;
     private readonly BuildingDefinition[] _buildingCatalog;
     private readonly MarketRate[] _marketCatalog;
@@ -32,6 +32,8 @@ public sealed class EconomyConfiguration
     public EconomyConfiguration(Rules rules)
     {
         ArgumentNullException.ThrowIfNull(rules);
+        _researchSettings = rules.Research; Research = new(rules.Research);
+        if (_researchSettings.TowerLevelOneProgress != 1 || _researchSettings.TowerLevelTwoProgress != 2) throw new ArgumentException("Invalid research production.");
         StartingResources = new(rules.StartingGold, rules.StartingWood);
         BaseProduction = new(rules.BaseGold);
         BuildingDefinition[] buildings = Catalogs.Buildings(rules);
@@ -81,7 +83,7 @@ public sealed class EconomyConfiguration
                 UnitType[] recruits = b.Recruits ?? []; writer.Write(recruits.Length);
                 foreach (UnitType type in recruits) writer.Write((int)type);
             }
-            foreach (ResearchQuote quote in _research) { writer.Write(quote.Rank); Write(writer, quote.Cost); writer.Write(quote.RequiredBlacksmithLevel); }
+            Research.Write(writer, prices: true); writer.Write(_researchSettings.TowerLevelOneProgress); writer.Write(_researchSettings.TowerLevelTwoProgress);
             foreach (int price in _expansionPrices) writer.Write(price);
             foreach (var entry in _recruitment.OrderBy(p => p.Key.Type).ThenBy(p => p.Key.Level))
             { writer.Write((int)entry.Key.Type); writer.Write(entry.Key.Level); Write(writer, entry.Value); }
@@ -94,22 +96,21 @@ public sealed class EconomyConfiguration
 
     private static BuildingDefinition Copy(BuildingDefinition definition) => definition with { Recruits = definition.Recruits?.ToArray() };
     public ResourceCost Recruitment(UnitType type, int level = 1) => _recruitment[(type, level)];
-    public ResearchQuote[] ResearchQuotes() => _research.ToArray();
     public int Upkeep(UnitType type) => _upkeep[type];
-    public RecruitmentQuote[] RecruitmentQuotes(CombatConfiguration configuration, ResearchRanks ranks = default)
+    public RecruitmentQuote[] RecruitmentQuotes(CombatConfiguration configuration, ResearchState research = default)
     {
         if (!ReferenceEquals(_quoteConfiguration, configuration)) { _quotes.Clear(); _quoteConfiguration = configuration; }
-        if (!_quotes.TryGetValue(ranks, out RecruitmentQuote[]? quotes))
+        if (!_quotes.TryGetValue(research.Owned, out RecruitmentQuote[]? quotes))
         {
             quotes = _recruitmentOrder.Select(p => new RecruitmentQuote(p.Key.Type, p.Key.Level, p.Value,
-                Upkeep(p.Key.Type), configuration.Unit(p.Key.Type, ranks.For(Catalogs.Class(p.Key.Type)), level: p.Key.Level).Runtime())).ToArray();
-            _quotes.Add(ranks, quotes);
+                Upkeep(p.Key.Type), configuration.Unit(p.Key.Type, level: p.Key.Level, capabilities: Research.Capabilities(research, p.Key.Type)).Runtime())).ToArray();
+            _quotes.Add(research.Owned, quotes);
         }
         return quotes.ToArray();
     }
     internal void ClearCache() { _quotes.Clear(); _quoteConfiguration = null; }
     internal BuildingDefinition? BuildingRule(Building type) => _buildings.GetValueOrDefault(type);
-    internal ResearchQuote ResearchRule(int rank) => _research[rank - 1];
+    public int ResearchProduction(IEnumerable<SlotState> slots) => checked((int)slots.Where(s => s.Type == Game.Core.Building.ResearchTower).Sum(s => (long)(s.Level == 2 ? _researchSettings.TowerLevelTwoProgress : _researchSettings.TowerLevelOneProgress)));
     public BuildingDefinition Building(Building type) => Copy(_buildings[type]);
     public BuildingDefinition[] Buildings() => _buildingCatalog.Select(Copy).ToArray();
     public int[] PlotPrices() => _expansionPrices.ToArray();

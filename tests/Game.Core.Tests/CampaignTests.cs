@@ -117,7 +117,7 @@ public sealed class CampaignTests
         Assert.All(claims, p => { Assert.Equal(6, p.Size); Assert.Equal(2, p.City); });
         Assert.Equal(food, match.Players[2].Food); Assert.Equal(foodBefore, JsonSerializer.Serialize(match.Players[2].LastUpkeep));
         Clear(match); Assert.Equal(11, match.Wave); Assert.Equal(10, match.LastRewardedWave);
-        Assert.Equal(10, match.Players[2].LastReward!.Wave); Assert.Equal(new ResourceCost(20, 10, 10), match.Players[2].LastReward!.Amount);
+        Assert.Equal(10, match.Players[2].LastReward!.Wave); Assert.Equal(1, match.Players[2].LastReward!.Research); Assert.Equal(10, match.Players[2].Research.Points); Assert.Equal(new ResourceCost(20, 10, 10), match.Players[2].LastReward!.Amount);
         Assert.Equal(9, match.Players[1].LastReward!.Wave); Assert.Equal(9, match.Players[3].LastReward!.Wave);
         match.SetConnected(2, true); Begin(match); Assert.Equal(15, match.Enemies.Count);
         Assert.All(match.Enemies, e => Assert.Equal(2, e.Destination));
@@ -146,7 +146,7 @@ public sealed class CampaignTests
         {
             Begin(match); Assert.Equal(wave, match.Wave); Assert.Equal(wave, match.Players[1].LastUpkeep!.Wave); Assert.Equal(0, match.Players[1].LastUpkeep!.Paid);
             if (wave is 10 or 20) Assert.True(Assert.Single(match.Enemies).IsBoss);
-            Clear(match); Assert.Equal(wave, match.LastRewardedWave); Assert.Equal(wave, match.Players[1].LastReward!.Wave);
+            Clear(match); Assert.Equal(wave, match.LastRewardedWave); Assert.Equal(wave, match.Players[1].LastReward!.Wave); Assert.Equal(1, match.Players[1].LastReward!.Research); Assert.Equal(wave, match.Players[1].Research.Points);
             Assert.Equal(wave == 20 ? Phase.Victory : Phase.Building, match.Phase);
         }
         Assert.Equal(20, match.Wave); Assert.Equal(60, match.ProductionCount);
@@ -162,7 +162,7 @@ public sealed class CampaignTests
         using Match fallen = Start(); Begin(fallen); fallen.Players[1].Health = 0; Clear(fallen);
         Assert.Equal(Phase.Defeat, fallen.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, fallen.DefeatReason);
         Assert.Equal(0, fallen.LastRewardedWave); Assert.Null(fallen.Players[1].LastReward);
-        using Match stalled = Start(rules: new Rules { SoldierDamage = 0, DefenderDamage = 0, Combat = new() { NoHealthProgressTicks = 400, MaximumWaveTicks = 500 } });
+        using Match stalled = Start(rules: new Rules { SoldierDamage = 0, DefenderDamage = 0, Combat = new() { NoHealthProgressTicks = 600, MaximumWaveTicks = 700 } });
         Begin(stalled); ResourceCost before = stalled.Players[1].Resources;
         while (stalled.Phase == Phase.Combat) stalled.Step();
         Assert.Equal(DefeatReason.BattleStalled, stalled.DefeatReason); Assert.Equal(before, stalled.Players[1].Resources);

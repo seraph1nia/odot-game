@@ -94,17 +94,17 @@ public sealed class ArmyProgressionTests
     public void IndependentRecruitmentLevelsAndResearchPreserveWoundedVeteransAcrossSales()
     {
         using Match match = Start(); City city = match.Players[1]; Stock(city); city.Food = 17;
-        Build(match, 0, Building.Barracks); Build(match, 1, Building.Barracks); Build(match, 2, Building.Blacksmith);
+        Build(match, 0, Building.Barracks); Build(match, 1, Building.Barracks); Build(match, 2, Building.ResearchTower);
         Act(match, "recruit", 0); UnitState veteran = Assert.Single(city.Soldiers);
         match.Combat.Seed(veteran with { Health = veteran.Health - 100 });
         for (int upgrade = 0; upgrade < 4; upgrade++) Act(match, "upgrade", 1);
         Assert.Equal(5, city.Slots[1].Level); Assert.Equal(1, city.Slots[0].Level); Assert.Single(city.Soldiers);
         Act(match, "recruit", 1); Assert.Equal(17, city.Food);
         Assert.Equal(1, city.Soldiers[0].Level); Assert.Equal(5, city.Soldiers[1].Level);
-        Act(match, "research", 2); Assert.Equal(3900, city.Soldiers[0].Health); Assert.Equal(13300, city.Soldiers[1].Health);
+        city.Research = city.Research.Income(points: 3); Assert.True(match.Apply(1, Request(match, "research-tech") with { Technology = TechnologyId.MeleeFoundation }).Accepted); Assert.Equal(3900, city.Soldiers[0].Health); Assert.Equal(13300, city.Soldiers[1].Health);
         Assert.Equal(13965, city.Soldiers[1].Profile.Health); Assert.Equal(3465, city.Soldiers[1].Profile.Damage);
         UnitState[] old = city.Soldiers.ToArray(); Act(match, "sell", 1); Act(match, "sell", 2);
-        Assert.Equal(old, city.Soldiers); Assert.Equal(1, city.Research.Melee);
+        Assert.Equal(old, city.Soldiers); Assert.True(city.Research.Has(TechnologyId.MeleeFoundation));
         Assert.False(match.Apply(1, Request(match, "research", 2)).Accepted);
         Build(match, 1, Building.Barracks); Assert.Equal(1, city.Slots[1].Level); Assert.Equal(2, city.Soldiers.Count);
         Act(match, "recruit", 1); Assert.Equal(1, city.Soldiers[^1].Level); Assert.Equal(4200, city.Soldiers[^1].Health);
@@ -117,7 +117,7 @@ public sealed class ArmyProgressionTests
         using var combat = new CombatSimulation(new());
         int ally = combat.Create(UnitType.Swordsman, 1, 1, 1, rank: 0, isBoss: true, level: 5);
         UnitState initial = combat.Read(ally); combat.Seed(initial with { Health = initial.Health - 100 });
-        combat.Research(1, UnitClass.Melee, 1); combat.Transfer(ally, 2);
+        combat.Research(1, new(Owned: 1UL << (int)TechnologyId.MeleeFoundation), new()); combat.Transfer(ally, 2);
         UnitState transferred = combat.Read(ally); Assert.Equal(5, transferred.Level); Assert.True(transferred.IsBoss); Assert.Equal(6, transferred.Size);
         Assert.Equal(initial.Health - 100, transferred.Health); Assert.Equal(111720, transferred.Profile.Health); Assert.Equal(6930, transferred.Profile.Damage);
         string json = JsonSerializer.Serialize(transferred, WireJson.Options);

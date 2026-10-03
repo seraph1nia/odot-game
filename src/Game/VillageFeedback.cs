@@ -50,10 +50,11 @@ internal sealed partial class VillageFeedback : Node3D
     }
     public void Action(Command request, int focus, double seconds, bool audible)
     {
-        if (request.City != focus || request.Slot is < 0 or >= 9) return;
-        Vector3 point = new((focus - 1) * 40, 0, 0); point += VillageLayout.Slot(request.Slot) + new Vector3(0, .6f, 0);
+        if (request.City != focus || request.Action != "research-tech" && request.Slot is < 0 or >= 9) return;
+        Vector3 point = new((focus - 1) * 40, 0, 0);
+        point += (request.Action == "research-tech" ? VillageLandscape.Defender : VillageLayout.Slot(request.Slot)) + new Vector3(0, .6f, 0);
         for (int n = 0; n < 5; n++) Spawn(point, point + new Vector3((n - 2) * .18f, .7f, (n % 2) * .2f), seconds, .5, false);
-        Sound(request.Action == "research" ? 1 : 0, audible);
+        Sound(request.Action == "research-tech" ? 1 : 0, audible);
     }
     public void Combat(CombatEvent entry, int focus, double seconds, bool audible, Vector3? sampledSource, Vector3? sampledImpact)
     {

@@ -9,7 +9,7 @@ public sealed class DefensePolicyTests
     {
         var defaults = new CombatConfiguration(new());
         Assert.Equal(new DefenseProfile(200, 12, 48, 1, 0), defaults.BuiltInDefense);
-        Assert.Equal(4, defaults.RulesVersion);
+        Assert.Equal(5, defaults.RulesVersion);
         var custom = new CombatConfiguration(new() { Combat = new() { Defender = new(7, 23, 3, 2) } });
         Assert.Equal(new DefenseProfile(200, 7, 23, 3, 2), custom.BuiltInDefense);
         Assert.NotEqual(defaults.Fingerprint, custom.Fingerprint);

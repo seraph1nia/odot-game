@@ -113,6 +113,8 @@ internal sealed record CameraObservation
 }
 internal sealed record UiObservation
 {
+    public Dictionary<int, string> StatusBadges { get; init; } = [];
+    public string ResearchText { get; init; } = "";
     public CameraObservation Camera { get; init; } = new();
     public LandscapeObservation Landscape { get; init; } = new();
     public AssetPlacementObservation[] Placements { get; init; } = [];
@@ -234,9 +236,9 @@ internal sealed partial class Runner
     private static string UiRisk(string name) => name switch
     {
         "combat-playback" => "Selected fixed-input runtime measurement of normal playback/views; owned 600-frame replay, no default-suite or large graphical fight",
-        "combat" => "Paused focus away/return verifies current visible bones without historical cues using two clicks/probes in the existing battle. Unit inspection stats/preview/interior/outside/drag, using the existing pause and a few extra probes/one frame at each size; no new battle. Paused camera/health-bar reprojection with frozen world anchors; a few probes in the existing early-battle slice. Authoritative overhead bars on both factions, damage/pause/casualty cleanup; eight imported role/faction rigs, sword/axe/cast poses, tower projectiles, contact and effect/audio/death pause cleanup; cheap tests cannot sample rendered bones, pools or voices. One ordinary early-wave-three slice, material production and paid upkeep, 180s bound.",
-        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds; picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
-        "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates; visible recovery control and retained presentation/identity; headless resume cannot exercise the button.",
+        "combat" => "Paused focus away/return, current bones and inspection, camera/health-bar projection, rig/action/tower/effect/audio/casualty cleanup using the existing owned peers/display. Adds ordinary earned research through at most wave ten: actual global Fire purchase, permanent Frost lock and current paused burn badge/inspection. Research is separately selectable with 120s setup/30s feature bounds; default reuses the existing match, 300s total. Cheap tests cannot sample rendered controls, bones, pools or voices; no branch matrix or full graphical campaign.",
+        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep; no added battle. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
+        "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or badges.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
         "launcher" => "Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
         "exported-package" => "Packed shared countryside and contacts through existing captures; no additional match. Packed cursor zoom/pan/reset/picking parity using actual events in existing setup. Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
@@ -296,7 +298,7 @@ internal sealed partial class Runner
             UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
             if (initial.Targets.TryGetValue(name, out UiTarget? construction) && !construction.Visible)
             {
-                string group = building switch { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.Blacksmith => "Army", Building.ArrowTower or Building.CatapultTower => "Defense", Building.Market => "Trade", _ => "Production" };
+                string group = building switch { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.ResearchTower => "Army", Building.ArrowTower or Building.CatapultTower => "Defense", Building.Market => "Trade", _ => "Production" };
                 await Click(client, group + "Choices", token);
             }
         }
@@ -419,7 +421,7 @@ internal sealed partial class Runner
         if (options.UiCheckpoint is null) Console.WriteLine($"UI risk: {name}: {UiRisk(name)}");
         if (options.UiCheckpoint == "melee") Console.WriteLine("Melee checkpoint risk: fixed-anchor swings without a readable target, missed shared near/far occupants or conflicting routes. Ordinary six-Swordsman opening and recruitment up to wave two, four paused overview/close PNGs and live-node witnesses; 65s checkpoint/70s scenario bounds. Owned peers/display/data cleanup uses the existing combat slice.");
         using var combatDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        if (name == "combat") combatDeadline.CancelAfter(options.UiCheckpoint == "melee" ? 70000 : 180000);
+        if (name == "combat") combatDeadline.CancelAfter(options.UiCheckpoint == "melee" ? 70000 : options.UiCheckpoint == "research" ? 150000 : 300000);
         token = combatDeadline.Token;
         bool package = name == "exported-package";
         string? executable = package ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null;
@@ -460,6 +462,7 @@ internal sealed partial class Runner
                     await MeleeCheckpoint(client, observer, token);
                     break;
                 }
+                if (options.UiCheckpoint == "research") { await ResearchCheckpoint(client, observer, token); break; }
                 await SpecialistArmy(client, observer, token);
                 await CombatCheckpoint(client, observer, token);
                 break;

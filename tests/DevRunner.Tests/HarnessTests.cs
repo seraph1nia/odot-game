@@ -15,7 +15,9 @@ public sealed class HarnessTests
         Assert.Equal(900000, Options.Parse(["ci"]).Timeout);
         Assert.Equal(900000, Options.Parse(["ci-source"]).Timeout);
         Assert.Equal(600000, Options.Parse(["test-ui"]).Timeout);
-        Assert.Equal(180000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
+        Assert.Equal(300000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
+        Assert.Equal(180000, Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).Timeout);
+        Assert.Equal("research", Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).UiCheckpoint);
         Assert.Equal(300000, Options.Parse(["test-ui", "--scenario", "economy"]).Timeout);
         Assert.Equal(300000, Options.Parse(["test-network"]).Timeout);
         Assert.Equal(42, Options.Parse(["ci", "--timeout-ms", "42"]).Timeout);

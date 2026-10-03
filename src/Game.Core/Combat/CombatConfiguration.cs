@@ -13,7 +13,8 @@ public sealed record DefenseTiming(int WindupTicks, int RecoveryTicks, int Victi
 }
 public sealed record CombatSettings
 {
-    public int RulesVersion { get; init; } = 4;
+    public int RulesVersion { get; init; } = 5;
+    public StatusRules Statuses { get; init; } = new();
     public HexBoardDefinition Board { get; init; } = HexBoardDefinition.Default();
     public UnitSpace Swordsman { get; init; } = new(2, 10, 30, 48);
     public UnitSpace Berserker { get; init; } = new(2, 20, 27, 48);
@@ -66,13 +67,14 @@ public sealed class CombatConfiguration
         get => _work;
         set { _work = value; value?.Support(WorkMetric.ProfileResolutions, WorkMetric.ProfileCacheMisses, WorkMetric.ProfileCacheHits); }
     }
-    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level), HexCombatProfile> _resolved = [];
+    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level, UnitCapabilities Capabilities), HexCombatProfile> _resolved = [];
     internal int CachedProfiles => _resolved.Count;
     internal void ClearCache() { _resolved.Clear(); Work = null; }
     private readonly FrozenDictionary<UnitType, HexCombatProfile> _profiles;
     private readonly FrozenDictionary<(Building Type, int Level), DefenseProfile> _towerProfiles;
     internal DefenseProfile BuiltInDefense { get; }
     internal DefenseProfile Tower(Building type, int level) => _towerProfiles[(type, level)];
+    public StatusRules Statuses { get; }
     public int RulesVersion { get; }
     public HexBoard Board { get; }
     public ReadOnlyCollection<HexCombatProfile> Units { get; }
@@ -89,6 +91,7 @@ public sealed class CombatConfiguration
         ArgumentNullException.ThrowIfNull(rules);
         CombatSettings settings = rules.Combat;
         ArgumentNullException.ThrowIfNull(settings);
+        Statuses = settings.Statuses; ArgumentNullException.ThrowIfNull(Statuses); Statuses.Validate();
         Board = new(settings.Board); RulesVersion = settings.RulesVersion;
         RetryTicks = settings.RetryTicks; NoHealthProgressTicks = settings.NoHealthProgressTicks; MaximumWaveTicks = settings.MaximumWaveTicks;
         Defender = settings.Defender; DefenderDamage = HealthPoints.FromWhole(rules.DefenderDamage);
@@ -116,11 +119,12 @@ public sealed class CombatConfiguration
             p => new DefenseProfile(p.Damage, p.WindupTicks, checked(p.CadenceTicks - p.WindupTicks), p.VictimCap, p.SplashHexRadius));
         // Reject values that could overflow the shared same-tick accumulator
         // even if every deployed body plus all nine towers hit one victim.
-        int maxActors = checked(Board.Cells.Count * Board.Capacity + 10);
+        int maxActors = checked(Board.Cells.Count * Board.Capacity + 14);
         if (Units.Any(p => p.Researched(2).Damage > int.MaxValue / maxActors)
             || Towers.Any(p => p.Damage > int.MaxValue / maxActors) || DefenderDamage > int.MaxValue / maxActors)
             throw new ArgumentException("Damage could overflow a simultaneous accumulator.", nameof(rules));
-        long approachAllowance = (long)Board.Diameter * Units.Max(p => p.MoveTicks) + Units.Max(p => p.CadenceTicks)
+        long approachAllowance = (long)Board.Diameter * StatusPolicy.Duration(Units.Max(p => p.MoveTicks), 50)
+            + Units.Max(p => (long)StatusPolicy.Duration(p.WindupTicks, 50) + StatusPolicy.Duration(p.RecoveryTicks, 50))
             + Units.Max(p => p.DeathTicks) + RetryTicks;
         if (NoHealthProgressTicks < approachAllowance)
             throw new ArgumentException("No-health-progress allowance is shorter than an ordinary approach/action/cleanup interval.", nameof(rules));
@@ -131,10 +135,11 @@ public sealed class CombatConfiguration
         Fingerprint = ComputeFingerprint();
     }
 
-    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1)
+    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default)
     {
         Work?.Add(WorkMetric.ProfileResolutions);
-        var key = (type, rank, isBoss, level);
+        capabilities.Validate();
+        var key = (type, rank, isBoss, level, capabilities);
         if (_resolved.TryGetValue(key, out HexCombatProfile? cached)) { Work?.Add(WorkMetric.ProfileCacheHits); return cached; }
         Work?.Add(WorkMetric.ProfileCacheMisses);
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
@@ -144,8 +149,10 @@ public sealed class CombatConfiguration
         if (isBoss) { health = checked(health * Progression.BossHealthMultiplier); damage = checked(damage * Progression.BossDamageMultiplier); }
         HexCombatProfile resolved = (original with
         { Health = HealthPoints.FromWhole(health), Damage = HealthPoints.FromWhole(damage), Size = isBoss ? 6 : original.Size }).Researched(rank);
-        int maximumActors = checked(Board.Cells.Count * Board.Capacity + 10);
-        if (resolved.Damage > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
+        WeaponProfile modified = capabilities.Apply(resolved.Runtime());
+        resolved = resolved with { Health = modified.Health, Damage = modified.Damage };
+        int maximumActors = checked(Board.Cells.Count * Board.Capacity + 14);
+        if (UnitCapabilities.Scale(UnitCapabilities.Scale(resolved.Damage, 10), 20) > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
         _resolved.Add(key, resolved); return resolved;
     }
     internal static HexCombatProfile Profile(Rules rules, UnitType type)
@@ -178,6 +185,7 @@ public sealed class CombatConfiguration
         {
             // BinaryWriter integers are little endian; fields/collections have
             // fixed order, explicit lengths, and no runtime object hashes.
+            new ResearchCatalog().Write(writer, prices: false); Statuses.Write(writer);
             writer.Write(RulesVersion); writer.Write(Progression.Growth); writer.Write(Progression.MaximumExponentLevel);
             writer.Write(Progression.BossHealthMultiplier); writer.Write(Progression.BossDamageMultiplier); writer.Write(6); // Boss size and size-budget semantics.
             writer.Write(Board.Id); writer.Write(Board.Version); writer.Write(Board.Capacity);

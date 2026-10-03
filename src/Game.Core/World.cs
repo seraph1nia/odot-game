@@ -4,10 +4,11 @@ using System.Security.Cryptography;
 namespace Game.Core;
 
 public enum Phase { Lobby, Building, Preparation, Combat, Victory, Defeat }
-public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, Blacksmith, ArrowTower, CatapultTower, Stonecutter, MetalMine, Weaver, Market }
+public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, ResearchTower = 7, ArrowTower, CatapultTower, Stonecutter, MetalMine, Weaver, Market }
 public sealed record Rules
 {
     public CombatSettings Combat { get; init; } = new();
+    public ResearchSettings Research { get; init; } = new();
     public int CityHealth { get; init; } = 100;
     public int StartingGold { get; init; } = 60;
     public int BaseGold { get; init; } = 10;
@@ -82,6 +83,8 @@ public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin 
     public bool PendingImpact { get; init; }
     public bool? AttackLanded { get; init; }
     public WeaponProfile Profile { get; init; }
+    public UnitCapabilities Capabilities { get; init; }
+    public StatusState Statuses { get; init; } = new();
 }
 public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int Food, int Health, SlotState[] Slots, UnitState[] Soldiers, int DefenderCooldown)
 {
@@ -91,7 +94,8 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
     public int Metal { get; init; }
     public int Cloth { get; init; }
     public ResourceCost Resources => new(Gold, Wood, Food, Stone, Metal, Cloth);
-    public ResearchRanks Research { get; init; }
+    public ResearchState Research { get; init; }
+    public TechnologyEligibility[] Technologies { get; init; } = [];
     public RecruitmentQuote[] RecruitmentQuotes { get; init; } = [];
     public BattleFoodForecast? FoodForecast { get; init; }
     public WaveClearReceipt? LastReward { get; init; }
@@ -117,7 +121,7 @@ public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Pha
     public WaveDefinition[] WaveCatalog { get; init; } = [];
     public int ProductionCount { get; init; }
     public BuildingDefinition[] BuildingCatalog { get; init; } = [];
-    public ResearchQuote[] ResearchQuotes { get; init; } = [];
+    public TechnologyDefinition[] TechnologyCatalog { get; init; } = [];
     public MarketRate[] MarketRates { get; init; } = [];
     public int[] PlotPrices { get; init; } = [];
     public TowerDefinition[] TowerCatalog { get; init; } = [];
@@ -126,7 +130,7 @@ public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Pha
     public long OldestEventSequence { get; init; } = 1;
     public CombatEvent[] CombatEvents { get; init; } = [];
 }
-public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase, int TurnSerial, string Action, int City = 0, int Slot = -1, Building Building = Building.Empty, UnitType SoldierType = UnitType.Swordsman, UnitClass ResearchClass = UnitClass.Melee, long ExpectedGeneration = 0, int ExpectedExpansionCount = -1, Resource Resource = Resource.Wood, int Bundles = 0);
+public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase, int TurnSerial, string Action, int City = 0, int Slot = -1, Building Building = Building.Empty, UnitType SoldierType = UnitType.Swordsman, long ExpectedGeneration = 0, int ExpectedExpansionCount = -1, Resource Resource = Resource.Wood, int Bundles = 0, TechnologyId Technology = TechnologyId.None);
 public sealed record CommandResult(long Sequence, bool Accepted, string Message);
 public sealed class City
 {
@@ -158,7 +162,7 @@ public sealed class City
     }
     public WaveClearReceipt? LastReward { get; internal set; }
     public BattleUpkeepReceipt? LastUpkeep { get; internal set; }
-    public ResearchRanks Research { get; set; }
+    public ResearchState Research { get; set; }
     public Dictionary<int, TowerState> Towers { get; } = [];
     public int Health { get; set; }
     public bool Eliminated => Health <= 0;
@@ -170,7 +174,7 @@ public sealed class City
     public TowerState Defender { get; set; }
     public CityState Snapshot() => Snapshot(_combat.Soldiers(Id));
     internal CityState Snapshot(UnitState[] soldiers, bool terminal = false) => new(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
-    { Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+    { Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
 }
 
 public sealed class Match : IDisposable
@@ -262,7 +266,7 @@ public sealed class Match : IDisposable
             ProductionCount = ProductionCount,
             BuildingCatalog = Economy.Buildings(),
             MarketRates = Economy.MarketRates(),
-            ResearchQuotes = Economy.ResearchQuotes(),
+            TechnologyCatalog = Economy.Research.Definitions(),
             PlotPrices = Economy.PlotPrices(),
             TowerCatalog = Configuration.Towers.ToArray(),
             UnitCatalog = _unitCatalog.ToArray(),
@@ -314,6 +318,16 @@ public sealed class Match : IDisposable
             return new(command.Sequence, true, city.Ready ? "Ready." : "Readiness updated.");
         }
         if (city.Ready) return Reject("Unready before editing.");
+        if (command.Action == "research-tech")
+        {
+            TechnologyEligibility eligibility = Economy.Research.Eligibility(city.Research, command.Technology);
+            if (!eligibility.Available) return Reject(eligibility.Reason);
+            ResearchState next = city.Research.Purchase(command.Technology, Economy.Research);
+            try { _combat.Research(city.Id, next, Economy.Research); }
+            catch (Exception e) when (e is OverflowException or ArgumentException) { return Reject("Unsafe technology profile."); }
+            city.Research = next; Revision++;
+            return new(command.Sequence, true, "research-tech accepted.");
+        }
         if (command.Slot is < 0 or >= 9) return Reject("Choose a slot from 0 to 8.");
         SlotState slot = city.Slots[command.Slot];
         BuildingDefinition? definition = Economy.BuildingRule(slot.Type);
@@ -323,7 +337,7 @@ public sealed class Match : IDisposable
             city.Resources = balance;
         }
         bool CanPay(ResourceCost cost) => city.Resources.TryPay(cost, out _);
-        if (command.Action is "upgrade" or "recruit" or "research" or "sell" or "trade"
+        if (command.Action is "upgrade" or "recruit" or "sell" or "trade"
             && (slot.Type == Building.Empty || command.ExpectedGeneration != slot.Generation)) return Reject("Stale building instance.");
         switch (command.Action)
         {
@@ -366,19 +380,9 @@ public sealed class Match : IDisposable
                 break;
             case "recruit":
                 if (definition?.Recruits?.Contains(command.SoldierType) != true) return Reject("This building cannot recruit that role.");
-                UnitDefinition recruit = Catalogs.Units(Rules).Single(u => u.Type == command.SoldierType);
                 ResourceCost cost = Economy.Recruitment(command.SoldierType, slot.Level);
                 if (!CanPay(cost)) return Reject("Not enough resources.");
-                Pay(cost); _combat.Create(command.SoldierType, city.Id, city.Id, city.Id, rank: city.Research.For(recruit.Class), level: slot.Level); _combat.AdmitEntries();
-                break;
-            case "research":
-                if (slot.Type != Building.Blacksmith || !Enum.IsDefined(command.ResearchClass)) return Reject("Select your Blacksmith and a valid class.");
-                int rank = city.Research.For(command.ResearchClass);
-                if (rank >= 2 || rank >= slot.Level) return Reject("Upgrade the Blacksmith or choose an uncompleted class.");
-                ResourceCost researchCost = Economy.ResearchRule(rank + 1).Cost;
-                if (!CanPay(researchCost)) return Reject("Not enough resources.");
-                Pay(researchCost); city.Research = city.Research.Increase(command.ResearchClass);
-                _combat.Research(city.Id, command.ResearchClass, rank + 1);
+                Pay(cost); _combat.Create(command.SoldierType, city.Id, city.Id, city.Id, level: slot.Level, capabilities: Economy.Research.Capabilities(city.Research, command.SoldierType)); _combat.AdmitEntries();
                 break;
             default: return Reject("Unknown action.");
         }
@@ -392,6 +396,7 @@ public sealed class Match : IDisposable
         if (required.Length == 0 || required.Any(p => !p.Ready)) return true;
         if (Phase == Phase.Preparation && _combat.HasDeaths) return true;
         var balances = new Dictionary<int, ResourceCost>();
+        var research = new Dictionary<int, ResearchState>();
         if (Phase == Phase.Building)
         {
             try
@@ -401,6 +406,7 @@ public sealed class Match : IDisposable
                     ResourceCost income = Economy.Production(city.Slots);
                     if (!city.Resources.TryAdd(income, out ResourceCost balance)) return false;
                     balances.Add(city.Id, balance);
+                    research.Add(city.Id, city.Research.Income(progress: Economy.ResearchProduction(city.Slots)));
                 }
             }
             catch (OverflowException) { return false; }
@@ -411,13 +417,14 @@ public sealed class Match : IDisposable
             foreach (City city in Players.Values.Where(c => !c.Eliminated))
             {
                 BattleFoodForecast forecast = _combat.FoodForecast(city.Id, city.Food, Economy);
+                try { _ = city.Research.Income(points: 1); } catch (OverflowException) { return false; }
                 if (!city.Resources.TryPay(new(Food: forecast.Paid), out ResourceCost afterFood) || !afterFood.TryAdd(reward, out _)) return false;
             }
         }
         foreach (City city in Players.Values) city.Ready = false;
         TurnSerial++;
         if (Phase == Phase.Preparation) { BeginWave(); Revision++; return true; }
-        foreach ((int id, ResourceCost balance) in balances) Players[id].Resources = balance;
+        foreach ((int id, ResourceCost balance) in balances) { Players[id].Resources = balance; Players[id].Research = research[id]; }
         ProductionCount++;
         if (Turn == 3) Phase = Phase.Preparation;
         else Turn++;
@@ -487,10 +494,10 @@ public sealed class Match : IDisposable
             foreach (City city in survivors)
             {
                 if (!city.Resources.TryAdd(completed.Reward, out ResourceCost balance)) throw new InvalidOperationException("Previously validated clear reward exceeds resource bounds.");
-                awards.Add(city.Id, balance);
+                _ = city.Research.Income(points: 1); awards.Add(city.Id, balance);
             }
             foreach (City city in survivors)
-            { city.Resources = awards[city.Id]; city.LastReward = new(Wave, completed.IsBoss, completed.Reward); }
+            { city.Resources = awards[city.Id]; city.Research = city.Research.Income(points: 1); city.LastReward = new(Wave, completed.IsBoss, completed.Reward) { Research = 1 }; }
             LastRewardedWave = Wave;
         }
         if (Wave == Campaign.TotalWaves) Phase = Phase.Victory;

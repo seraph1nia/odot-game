@@ -26,6 +26,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         AttackSeek = "parameters/attackseek/seek_request", HitSeek = "parameters/hitseek/seek_request", DeathBlend = "parameters/death/blend_amount",
         DeathSeek = "parameters/deathseek/seek_request", AttackRequest = "parameters/attack/request", HitRequest = "parameters/hit/request",
         AttackActive = "parameters/attack/active", HitActive = "parameters/hit/active";
+    private Label3D _statusBadge = null!;
+    public string StatusBadge => _statusBadge?.Text ?? "";
     public UnitState State { get; private set; } = initial;
     public bool Dead => State.Hex?.Lifecycle == UnitLifecycle.Dying;
     public string Clip { get; private set; } = "Idle";
@@ -79,6 +81,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             MaterialOverride = new StandardMaterial3D { AlbedoColor = new(State.Faction == Faction.Skeletons ? "bb4b43" : "487ecc"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
         };
         AddChild(_marker);
+        _statusBadge = new Label3D { Name = "StatusBadge", Position = new(0, 3.5f, 0), FontSize = 32, PixelSize = .018f, VerticalAlignment = VerticalAlignment.Bottom, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Modulate = new Color("b8f5ef"), OutlineModulate = new Color("233a3f"), OutlineSize = 3, NoDepthTest = true }; AddChild(_statusBadge);
         _shot = UnitAssets.Instantiate("arrow.gltf"); _shot.Scale = Vector3.One * 0.35f; _shot.Visible = false; AddChild(_shot);
     }
     internal Aabb PickingBounds()
@@ -110,6 +113,10 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         UnitState state = State;
         tick = state.Hex?.FrozenTick ?? tick;
         Visible = PresentationLimits.SamplesPose(state, focus);
+        _statusBadge.Text = Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
+        _statusBadge.Visible = !Dead && _statusBadge.Text.Length > 0;
+        _statusBadge.Modulate = state.Statuses.Burn is { } burn && tick < burn.ExpiresTick ? new Color("ffb078")
+            : state.Statuses.Poison.Any(p => tick < p.ExpiresTick) ? new Color("b6ef78") : new Color("b8f5ef");
         Position = layout.Position(state, tick);
         Rotation = new(0, layout.Facing(state, tick, units), 0);
         bool moving = !Dead && state.Hex?.HoldsTransit == true;

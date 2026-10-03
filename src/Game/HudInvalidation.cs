@@ -34,12 +34,23 @@ internal sealed class HudInvalidation
         if (city?.LastUpkeep is { } upkeep)
         { economy.Add((upkeep.Wave, upkeep.Paid)); Add(economy, upkeep.Participating.Cast<object>()); Add(economy, upkeep.Unfed.Cast<object>()); }
         else economy.Add(null);
-        Add(economy, city?.Soldiers.Select(u => (object)(u.Id, u.Type, u.Level, u.IsBoss, u.Health, u.Profile, u.Participating, u.Deployed)));
+        Add(economy, city?.Soldiers.Select(u => (object)(u.Id, u.Type, u.Level, u.IsBoss, u.Health, u.Profile, u.Capabilities, u.Participating, u.Deployed)));
+        foreach (UnitState unit in city?.Soldiers ?? [])
+        {
+            economy.Add(unit.Statuses.Burn); economy.Add(unit.Statuses.Chill); Add(economy, unit.Statuses.Poison.Cast<object>());
+        }
+        UnitState[] enemies = state?.Enemies.Where(u => u.Destination == focus).ToArray() ?? [];
+        Add(economy, enemies.Select(u => (object)(u.Id, u.Type, u.Deployed)));
+        foreach (UnitState unit in enemies)
+        {
+            economy.Add(unit.Statuses.Burn); economy.Add(unit.Statuses.Chill); Add(economy, unit.Statuses.Poison.Cast<object>());
+        }
+        if (city?.Soldiers.Any(u => u.Statuses.Active) == true || enemies.Any(u => u.Statuses.Active)) economy.Add(state?.Tick);
         result[HudSection.Economy] = economy.ToArray();
         List<object?> context = [.. Common(), connected, focus, slot, group, player, city?.Resources, city?.Research, me?.Resources, me?.Ready, me?.Eliminated];
         Add(context, city?.Slots.Cast<object>()); Add(context, city?.RecruitmentQuotes.Cast<object>());
         Add(context, state?.TowerCatalog.Cast<object>()); Add(context, state?.MarketRates.Cast<object>());
-        Add(context, state?.ResearchQuotes.Cast<object>()); Add(context, state?.PlotPrices.Cast<object>());
+        Add(context, state?.TechnologyCatalog.Cast<object>()); Add(context, state?.PlotPrices.Cast<object>());
         if (state is null) context.Add(null);
         else foreach (BuildingDefinition building in state.BuildingCatalog)
         {

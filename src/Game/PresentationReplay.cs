@@ -20,7 +20,7 @@ internal sealed class ReplaySession : IGameSession
     public bool CanStart => false;
     public bool CanInvite => false;
     public int HostPlayerId => 1;
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, UnitClass researchClass = UnitClass.Melee, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0) => throw new InvalidOperationException("Replay input is read-only.");
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0) => throw new InvalidOperationException("Replay input is read-only.");
     public Command[] DrainActionCues() => [];
     public void Connect(bool fresh = false) { }
 }

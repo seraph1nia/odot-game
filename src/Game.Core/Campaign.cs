@@ -79,4 +79,5 @@ public sealed class CampaignConfiguration
     public CampaignDefinition Definition() => new(_catalog.Select(Copy).ToArray());
 }
 
-public sealed record WaveClearReceipt(int Wave, bool IsBoss, ResourceCost Amount);
+public sealed record WaveClearReceipt(int Wave, bool IsBoss, ResourceCost Amount)
+{ public int Research { get; init; } }

@@ -49,3 +49,5 @@ Blacksmith, Weaver the blue Lumbermill, and Market the neutral stage C. Explicit
 world labels identify each role. Metal Mine reuses the blue Mine with a bundled
 rock prop and its own label, keeping Gold Mine distinct. Their ground placement
 uses the same imported foot/bounds mapping. No new files or downloads are needed.
+
+Research Tower uses the already bundled blue tower A, with a structural tower base at level two. Stonecutter continues to reuse the original blacksmith asset. No asset or provenance record was added or altered.

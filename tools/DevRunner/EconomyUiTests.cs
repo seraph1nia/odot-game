@@ -76,13 +76,17 @@ internal sealed partial class Runner
         await Action(client, "build 4 stonecutter", token);
         for (int production = 0; production < 3; production++) { await UiReadyPair(client, observer, token); await TowerInvestment(observer, token); }
         await Pick(client, 1, token); await ClickAck(client, "Sell", token);
-        await ClickAck(client, "Blacksmith", token); await ClickAck(client, "ResearchMelee", token);
-        UnitState veteran = Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.First();
-        await ClickAck(client, "Sell", token); await ClickAck(client, "MetalMine", token);
-        CityState rebuilt = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-        Require(rebuilt.Research.Melee == 1 && rebuilt.Soldiers.Single(u => u.Id == veteran.Id).Health == veteran.Health, "selling research building preserves rank and wounded veteran health");
+        await ClickAck(client, "ResearchTower", token);
+
         await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token); await UiClear(client, observer, 2, token);
-        await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
+        await UiReadyPair(client, observer, token);
+        await Pick(client, 1, token); await ClickAck(client, "Upgrade", token);
+        await UiReadyPair(client, observer, token);
+        UnitState veteran = Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.First(u => u.Health < u.Profile.Health);
+        await Click(client, "Research", token); await Click(client, "ResearchMelee", token); await ClickAck(client, "TechMeleeFoundation", token); await Click(client, "CloseResearch", token);
+        await Pick(client, 1, token); await ClickAck(client, "Sell", token); await ClickAck(client, "MetalMine", token);
+        CityState rebuilt = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        Require(rebuilt.Research.Has(TechnologyId.MeleeFoundation) && rebuilt.Soldiers.Single(u => u.Id == veteran.Id).Health == veteran.Health, "selling research tower preserves technology and veteran wounds");
         CityState full = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(full.Slots.Where(s => s.Purchased).All(s => s.Type != Building.Empty), "five purchased plots are full before expansion");
         await Pick(client, 5, token);
@@ -95,8 +99,28 @@ internal sealed partial class Runner
         await UiReadyPair(client, observer, token);
         await Pick(client, 4, token); await ClickAck(client, "Sell", token);
         await Pick(client, 5, token); await ClickAck(client, "Market", token);
+        async Task FundGold(int target, int metalReserve, int foodReserve)
+        {
+            for (int trade = 0; trade < 20; trade++)
+            {
+                MatchSnapshot state = Latest(client); CityState current = state.Players.Single(p => p.Id == client.PlayerId);
+                if (current.Gold >= target) return;
+                MarketRate? rate = new[] { Resource.Metal, Resource.Stone, Resource.Cloth, Resource.Food }
+                    .Select(resource => state.MarketRates.Single(r => r.Resource == resource))
+                    .FirstOrDefault(r => current.Resources.Amount(r.Resource) >= r.Units
+                        + (r.Resource == Resource.Metal ? metalReserve : r.Resource == Resource.Food ? foodReserve : 0));
+                Require(rate is not null, "ordinary surplus stocks fund the quoted economy purchase");
+                await Action(client, $"trade 5 {rate!.Resource} 1", token);
+            }
+            throw new InvalidOperationException("Economy funding exceeds its bounded ordinary trades.");
+        }
+        CityState marketCity = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        ResourceCost upgradeQuote = marketCity.Slots[2].UpgradeQuote!.Value;
+        RecruitmentQuote futureRecruit = marketCity.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 2);
+        ResourceCost equipmentQuote = futureRecruit.Cost;
+        int retainedFood = checked((int)(marketCity.FoodForecast!.Demand + futureRecruit.Upkeep + Latest(client).MarketRates.Single(r => r.Resource == Resource.Food).Units));
         await ClickAck(client, "TradeMetal", token);
-        for (int bundle = 1; bundle < 8; bundle++) await Action(client, "trade 5 metal 1", token);
+        await FundGold(upgradeQuote.Gold + equipmentQuote.Gold, equipmentQuote.Metal, retainedFood);
         await Pick(client, 2, token); await ClickAck(client, "Upgrade", token);
         int food = Latest(client).Players.Single(p => p.Id == client.PlayerId).Food;
         GameEvent leveled = await ClickAck(client, "Recruit", token);
@@ -105,7 +129,8 @@ internal sealed partial class Runner
         await Pick(client, 5, token); GameEvent foodSale = await ClickAck(client, "TradeFood", token);
         CityState soldFood = State(foodSale).Players.Single(p => p.Id == client.PlayerId);
         Require(soldFood.Food == food - Latest(client).MarketRates.Single(r => r.Resource == Resource.Food).Units && soldFood.FoodForecast!.Available == soldFood.Food, "food sale refreshes the authoritative next-battle preview");
-        for (int bundle = 0; bundle < 4; bundle++) await Action(client, "trade 5 metal 1", token);
+        ResourceCost lumberQuote = Latest(client).BuildingCatalog.Single(b => b.Type == Building.Lumbermill).Construction;
+        await FundGold(Math.Max(0, lumberQuote.Gold - soldFood.Slots[3].Refund.Gold), 0, (int)soldFood.FoodForecast!.Demand);
         await Pick(client, 3, token); long generation = Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3].Generation;
         await ClickAck(client, "Sell", token); await ClickAck(client, "Lumbermill", token);
         Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3] is { Level: 1 } replacement && replacement.Generation > generation, "sale and rebuild establish a fresh producer on retained land");

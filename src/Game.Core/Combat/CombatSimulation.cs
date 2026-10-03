@@ -4,7 +4,7 @@ using EcsWorld = Arch.Core.World;
 namespace Game.Core;
 
 // ECS is the only unit store. Reservations are a derived index.
-internal sealed class CombatSimulation : IDisposable
+internal sealed partial class CombatSimulation : IDisposable
 {
     public const int HistoryTicks = 120, HistoryLimit = 4096;
     private readonly CombatConfiguration _configuration;
@@ -59,22 +59,25 @@ internal sealed class CombatSimulation : IDisposable
     private CombatDecisionState NewDecision(int id, int city, long sequence)
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
 
-    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0, bool isBoss = false, int level = 1)
+    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (destination <= 0 || origin <= 0 || !Enum.IsDefined(faction)) throw new ArgumentException("Invalid unit identity.");
-        WeaponProfile profile = Profile(type, rank, isBoss, level);
+        WeaponProfile profile = _configuration.Unit(type, rank, isBoss, level, capabilities).Runtime();
         int id = _nextId; _nextId = checked(_nextId + 1);
         Entity entity = _world.Create(new CombatUnit(new(id, type, owner, origin, destination, faction, rank, isBoss, level), profile.Health, profile,
-            new(UnitLifecycle.Queued, default), new CombatAction.Waiting(), NewDecision(id, destination, 0)));
+            new(UnitLifecycle.Queued, default), new CombatAction.Waiting(), NewDecision(id, destination, 0))
+        { Capabilities = capabilities });
         _entities.Add(id, entity); return id;
     }
-    public void Research(int city, UnitClass @class, int rank)
+    public void Research(int city, ResearchState research, ResearchCatalog catalog)
     {
-        foreach (CombatUnit unit in Living().Where(u => u.Owner == city && u.Faction == Faction.Adventurers && u.Class == @class))
+        var updates = Living().Where(u => u.Owner == city && u.Faction == Faction.Adventurers).Select(unit =>
         {
-            Unit(unit.Id) = unit with { Identity = unit.Identity with { Rank = rank }, Profile = Profile(unit.Type, rank, unit.Identity.IsBoss, unit.Identity.Level) };
-        }
+            UnitCapabilities capabilities = catalog.Capabilities(research, unit.Type);
+            return unit with { Capabilities = capabilities, Profile = _configuration.Unit(unit.Type, unit.Identity.Rank, unit.Identity.IsBoss, unit.Identity.Level, capabilities).Runtime() };
+        }).ToArray();
+        foreach (CombatUnit unit in updates) Unit(unit.Id) = unit;
     }
     private CombatUnit[] All()
     {
@@ -108,7 +111,7 @@ internal sealed class CombatSimulation : IDisposable
         return (ordered.Where(u => u.Location.Lifecycle != UnitLifecycle.Dying).Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray(),
             ordered.Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray());
     }
-    public CombatEvent[] Events() => _events.Select(e => e with { Unit = e.Unit is null ? null : CombatProjection.Detach(e.Unit, _work), Victims = e.Victims.ToArray() }).ToArray();
+    public CombatEvent[] Events() => _events.Select(e => e with { Unit = e.Unit is null ? null : CombatProjection.Detach(e.Unit, _work), Victims = e.Victims.ToArray(), Periodic = e.Periodic.ToArray() }).ToArray();
     internal BattleFoodForecast FoodForecast(int city, int food, EconomyConfiguration economy)
         => BattleFood.Forecast(SoldierMembership(city), food, economy);
     public long OldestEventSequence => _events.Count == 0 ? EventSequence + 1 : _events[0].Sequence;
@@ -128,6 +131,8 @@ internal sealed class CombatSimulation : IDisposable
             || unit.Location.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve && unit.Action is CombatAction.Moving or CombatAction.Windup
             || unit.Profile.Size is < 1 or > 6 || unit.Identity.IsBoss && unit.Profile.Size != 6)
             throw new ArgumentException("Invalid unit health, identity or profile anchor.", nameof(unit));
+        unit.Capabilities.Validate(); StatusPolicy.Validate(unit.Statuses, _configuration.Statuses);
+        if (unit.Statuses.Poison.Append(unit.Statuses.Burn).OfType<StatusEffect>().Any(e => e.Strength > int.MaxValue / checked(_board.Cells.Count * _board.Capacity + 14))) throw new ArgumentException("Unsafe restored potency.");
         int nextId = Math.Max(_nextId, checked(unit.Id + 1));
         // Validate a complete prospective index before replacing the ECS entity.
         _occupancy.Rebuild(All().Where(u => u.Id != unit.Id).Select(u => u.Reservation).Append(unit.Reservation));
@@ -151,7 +156,8 @@ internal sealed class CombatSimulation : IDisposable
             {
                 Location = new(reserves.Contains(unit.Id) ? UnitLifecycle.Reserve : UnitLifecycle.Queued, default),
                 Decision = NewDecision(unit.Id, unit.Destination, checked(unit.Decision.Sequence + 1)),
-                Action = CombatActions.Cancel(unit.Action, _tick)
+                Action = CombatActions.Cancel(unit.Action, _tick),
+                Statuses = StatusState.Empty
             };
         }
         AdmitEntries(initial: true);
@@ -266,6 +272,8 @@ internal sealed class CombatSimulation : IDisposable
         _work?.Add(WorkMetric.UnitVisits, alive.Length);
         var stage = new CombatStage(alive); var current = stage.ById;
         var damage = new SortedDictionary<int, int>(); var cityDamage = new SortedDictionary<int, int>();
+        var pendingStatuses = new List<StatusApplication>();
+        Dictionary<int, StatusState> statusUpdates = GatherPeriodic(before, tick, damage);
         foreach (CombatUnit unit in alive.Where(u => u.PendingImpact && tick >= u.Action.Attack!.ImpactTick))
         {
             var action = (CombatAction.Windup)unit.Action; AttackRecord attack = action.Attack!;
@@ -277,7 +285,8 @@ internal sealed class CombatSimulation : IDisposable
             int[] victims = valid && !targetCity ? CombatDecisions.Victims(_board, primary!, stage.Faction(primary!.Destination, primary.Faction), unit.Profile.VictimCap, unit.Profile.SplashHexRadius,
                 Key(unit.Id, unit.Destination, unit.Decision.Sequence, 0, CombatPurpose.Splash), _work) : [];
             if (valid && targetCity) Accumulate(cityDamage, targetId, unit.Profile.Damage);
-            foreach (int id in victims) Accumulate(damage, id, unit.Profile.Damage);
+            foreach (int id in victims)
+            { Accumulate(damage, id, current[id].Capabilities.Reduce(unit.Profile.Damage)); GatherApplications(unit, id, tick, pendingStatuses); }
             Emit(CombatEventType.Impact, unit, targetId, targetCity, unit.Profile.Damage, valid, primary, victims);
             Unit(unit.Id) = unit with { Action = CombatActions.Impact(action, tick, valid) };
         }
@@ -288,7 +297,7 @@ internal sealed class CombatSimulation : IDisposable
         foreach ((int id, int amount) in damage)
         {
             CombatUnit unit = Unit(id); int effective = Math.Min(unit.Health, amount); Unit(id) = unit with { Health = unit.Health - effective };
-            if (effective > 0) { _healthProgress.Add(current[id].Destination); Emit(CombatEventType.Hit, Unit(id), damage: effective, landed: true); }
+            if (effective > 0) { _healthProgress.Add(unit.Destination); Emit(CombatEventType.Hit, Unit(id), damage: effective, landed: true); }
         }
         foreach (City city in cities)
         {
@@ -296,7 +305,8 @@ internal sealed class CombatSimulation : IDisposable
             if (next < city.Health) _healthProgress.Add(city.Id);
             city.Health = next;
         }
-        foreach (CombatUnit member in alive)
+        CommitStatuses(statusUpdates, pendingStatuses);
+        foreach (CombatUnit member in before.Where(u => u.Location.Lifecycle != UnitLifecycle.Dying))
         {
             CombatUnit unit = Unit(member.Id);
             if (unit.Health <= 0) Kill(unit);
@@ -319,7 +329,7 @@ internal sealed class CombatSimulation : IDisposable
         if (primary is not null && (primary.Faction != Faction.Skeletons || primary.Destination != city.Id)) primary = null;
         int[] victims = primary is null ? [] : CombatDecisions.Victims(_board, primary, stage.Faction(city.Id, Faction.Skeletons), profile.VictimCap, profile.SplashHexRadius,
             Key(identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Splash, identity.Kind), _work);
-        foreach (int id in victims) Accumulate(damage, id, profile.Damage);
+        foreach (int id in victims) Accumulate(damage, id, stage.ById[id].Capabilities.Reduce(profile.Damage));
         EmitTower(CombatEventType.Impact, tower, primary, profile.Damage, primary is not null, victims);
         defense.Commit(city, tower with { PendingImpact = false });
         if (identity.Kind == CombatActorKind.Defender && primary is not null) Emit(CombatEventType.DefenderShot, primary, primary.Id, damage: profile.Damage, landed: true);
@@ -393,7 +403,7 @@ internal sealed class CombatSimulation : IDisposable
         }
         foreach (var move in WorkOrdering.Input(moves, _work).OrderBy(m => m.Actor.Profile.Initiative).ThenBy(m => m.Actor.Decision!.SchedulingRank).ThenBy(m => m.Actor.Id))
         {
-            CombatAction.Moving action = CombatActions.Move(move.Actor.Action, _board.Transition(move.Actor.Location.Position, move.To), _tick, move.Actor.Profile.MoveTicks);
+            CombatAction.Moving action = CombatActions.Move(move.Actor.Action, _board.Transition(move.Actor.Location.Position, move.To), _tick, StatusPolicy.Duration(move.Actor.Profile.MoveTicks, move.Actor.Statuses.ChillAt(_tick)));
             if (_occupancy.TryAction(move.Actor.Reservation, action)) Unit(move.Actor.Id) = move.Actor with { Action = action };
         }
         foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
@@ -406,7 +416,7 @@ internal sealed class CombatSimulation : IDisposable
     {
         int targetId = target?.Id ?? unit.Destination;
         CombatAction.Windup action = CombatActions.Attack(unit.Action, new(city ? CombatTargetKind.City : CombatTargetKind.Unit, targetId), _tick,
-            unit.Profile.WindupTicks, checked(unit.Profile.CadenceTicks - unit.Profile.WindupTicks));
+            StatusPolicy.Duration(unit.Profile.WindupTicks, unit.Statuses.ChillAt(_tick)), StatusPolicy.Duration(checked(unit.Profile.CadenceTicks - unit.Profile.WindupTicks), unit.Statuses.ChillAt(_tick)));
         if (!_occupancy.TryAction(unit.Reservation, action)) throw new InvalidOperationException("Attack lost its standing reservation.");
         Unit(unit.Id) = unit with { Action = action };
         Emit(CombatEventType.AttackStarted, Unit(unit.Id), targetId, city, primary: target);
@@ -444,6 +454,7 @@ internal sealed class CombatSimulation : IDisposable
             }
         };
         Emit(CombatEventType.Death, Unit(unit.Id));
+        Unit(unit.Id) = Unit(unit.Id) with { Statuses = StatusState.Empty };
     }
     public void EliminateArmy(int city)
     { foreach (CombatUnit soldier in Living().Where(u => u.Owner == city && u.Faction == Faction.Adventurers)) Kill(soldier); TrimHistory(); }
@@ -461,9 +472,9 @@ internal sealed class CombatSimulation : IDisposable
     { City[] values = cities.ToArray(); Advance(tick, values); AdmitEntries(); StartActions(values); }
     public void StopActions(IEnumerable<City> cities)
     {
-        foreach (CombatUnit unit in Living().Where(u => u.IsTargetable))
+        foreach (CombatUnit unit in Living())
         {
-            Unit(unit.Id) = unit with { Location = unit.Location with { FrozenTick = _tick, FrozenAim = FrozenAim(unit) } };
+            Unit(unit.Id) = unit with { Statuses = StatusState.Empty, Location = unit.IsTargetable ? unit.Location with { FrozenTick = _tick, FrozenAim = FrozenAim(unit) } : unit.Location };
         }
         foreach (City city in cities)
         {
@@ -478,6 +489,7 @@ internal sealed class CombatSimulation : IDisposable
         {
             ImpactPose = city ? null : primary is not null ? primary.Pose(_tick)
             : type is CombatEventType.Hit or CombatEventType.Death or CombatEventType.DefenderShot ? unit.Pose(_tick) : null,
+            Periodic = type is CombatEventType.Hit or CombatEventType.Death ? _periodic.GetValueOrDefault(unit.Id)?.ToArray() ?? [] : [],
             Victims = victims ?? []
         });
     }

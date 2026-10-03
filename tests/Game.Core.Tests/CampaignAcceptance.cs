@@ -98,7 +98,7 @@ internal static class CampaignAcceptance
         Assert.True(expansions > 0); Assert.True(trades > 0); Assert.True(sales > 0); Assert.True(upgradedProducer); Assert.True(expandedFullLand); Assert.True(laterMetalRecruits > 0);
         Assert.InRange(firstLevelFiveBattle, 1, 19); Assert.All(match.Players.Values, c => Assert.False(c.Eliminated));
         if (strategy == "mixed") { Assert.Equal(4, recruitedRoles.Count); Assert.True(laterClothRecruits > 0); }
-        if (strategy == "research") Assert.Equal(2, match.Players[1].Research.Melee);
+        if (strategy == "research") Assert.True(match.Players[1].Research.Has(TechnologyId.GuardianMastery));
         if (strategy == "towers") Assert.Contains(match.Players[1].Towers.Values, t => t.AttackSequence > 0);
         measurement?.Enter("evidence");
         return trace?.Finish(match, ticks, preparations);

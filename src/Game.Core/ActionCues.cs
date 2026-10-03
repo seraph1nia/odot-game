@@ -12,10 +12,9 @@ public sealed class ActionCues
         if (request.MatchId != _match) return;
         if (result.Sequence <= _sequence) return;
         _sequence = result.Sequence;
-        if (!result.Accepted || request.Action is not ("build" or "upgrade" or "recruit" or "research")) return;
+        if (!result.Accepted || request.Action is not ("build" or "upgrade" or "recruit" or "research-tech")) return;
         if (_pending.Count == 64) _pending.Dequeue();
         _pending.Enqueue(request);
     }
     public Command[] Drain() { Command[] result = _pending.ToArray(); _pending.Clear(); return result; }
 }
-

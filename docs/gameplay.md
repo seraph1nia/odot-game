@@ -17,12 +17,12 @@ These are the current defaults, exercised by the finite twenty-wave strategy sam
 | Barracks | 20 G + 10 W | 5 | Swordsman and Berserker |
 | Archery Range | 20 G + 10 W | 5 | Crossbowman |
 | Arcanum | 25 G + 10 W + 15 S | 5 | Mage |
-| Blacksmith | 20 G + 10 W + 10 S | 2 | Paid class research |
+| Research Tower | 20 G + 10 W + 10 S | 2 | +1 / +2 research per three-production cycle |
 | Arrow Tower | 20 G + 15 W | 2 | 5 / 7 damage per shot |
 | Catapult Tower | 30 G + 20 W + 15 S + 10 M | 2 | 6 / 8 damage per shot, at most three victims |
 | Market | 20 G + 10 W + 10 S | 1 | Explicit fixed-bundle sales |
 
-Producer, Blacksmith and Arrow Tower upgrades cost 20 G + 10 W + 10 S. Catapult upgrades add 5 M. Recruitment upgrades from levels 1–4 cost respectively 20 G + 10 W, 30 G + 10 W + 10 S, 45 G + 10 W + 15 S and 70 G + 10 W + 20 S. Market has no upgrade because it has no second-level benefit. The core publishes these quotes and production values; consumers do not calculate their own discounts or prices.
+Producer, Research Tower and Arrow Tower upgrades cost 20 G + 10 W + 10 S. Catapult upgrades add 5 M. Recruitment upgrades from levels 1–4 cost respectively 20 G + 10 W, 30 G + 10 W + 10 S, 45 G + 10 W + 15 S and 70 G + 10 W + 20 S. Market has no upgrade because it has no second-level benefit. The core publishes these quotes and production values; consumers do not calculate their own discounts or prices.
 
 ```mermaid
 flowchart LR
@@ -35,18 +35,18 @@ flowchart LR
     P --> C[Cloth]
     M --> A[Melee / Crossbow recruitment]
     C --> B[Mage recruitment]
-    S --> H[Arcanum / Blacksmith / Market / Catapult / higher upgrades]
+    S --> H[Arcanum / Research Tower / Market / Catapult / higher upgrades]
 ```
 
 All construction also costs gold. Stock is the prerequisite: having cloth or stone is sufficient even if its producer has been sold. Arcanum needs stone to construct, while Mages require cloth to recruit. Lumbermill needs only gold, allowing recovery from empty wood stock. Stone remains useful for upgrades after opening the advanced branches; metal and cloth provide ongoing army equipment. Recruitment costs equipment; food pays battle upkeep. New building visuals use bundled assets and retain existing provenance; this change downloads no new assets.
 
 The nine plot IDs stay stable. IDs 0–4 start purchased and IDs 5–8 remain selectable while locked. Purchase any locked plot for 25, 40, 60 then 90 gold, according to the number of expansions already purchased. These prices are balance candidates. Purchase requires no Market and remains permanent after selling its building. A stale expansion price is rejected; a full five-building city can buy more land without removing a building first.
 
-Building sales also require no Market. The refund is half the actual paid construction and upgrade investment, rounded down independently after summing each resource. For example, 55 gold + 25 wood + 15 stone invested returns 27 gold + 12 wood + 7 stone. Plot purchases, recruitment and research spending are excluded. Sale removes production, recruitment/research access or tower behavior, but retains existing soldiers, wounds and class research. Rebuilding creates a new level-one instance with fresh investment, gives no free soldier, and does not revive an old tower action. Requests aimed at the sold instance are rejected even if the same building type replaces it.
+Building sales also require no Market. The refund is half the actual paid construction and upgrade investment, rounded down independently after summing each resource. For example, 55 gold + 25 wood + 15 stone invested returns 27 gold + 12 wood + 7 stone. Plot purchases, recruitment and research spending are excluded. Sale removes production, recruitment access, research production or tower behavior, but retains existing soldiers, wounds, points, progress and technologies. Rebuilding creates a new level-one instance with fresh investment, gives no free soldier, and does not revive an old tower action. Requests aimed at the sold instance are rejected even if the same building type replaces it.
 
 A currently owned Market enables explicit one-way sales: each bundle of five wood, food or stone returns one gold; each bundle of five metal or cloth returns two gold. Sell a positive whole bundle count. No imports, automatic sales or rate stacking from additional Markets exist. Selling the last Market removes stock-trade access immediately. Selling food reduces the food available for the forthcoming upkeep calculation at the battle boundary. Stock deduction and proceeds are atomic, including overflow rejection.
 
-Click an outlined plot or a building roof to select its stable slot, then choose an action in the bottom panel. Clicking only selects. Recruitment appears only at the matching building; Blacksmith shows Melee, Ranged and Magic research. City tabs clear selection and permit inspection of other players' cities. Ready prevents editing; Unready restores it until all connected living players are ready. A ready check grants production once and clears readiness. After production three, **Preparation** allows construction, upgrades, research and recruitment using that income. **Ready for battle** then starts combat without granting more resources. Twenty waves have exactly sixty productions and twenty preparation checks. The phase and stage serial guard reject delayed commands, including old ready commands.
+Click an outlined plot or a building roof to select its stable slot, then choose an action in the bottom panel. Clicking only selects. Recruitment appears only at the matching building. Open Research without selecting a plot to inspect or buy technologies; viewing another city shows a read-only tree. City tabs clear selection and permit inspection of other players' cities. Ready prevents editing; Unready restores it until all connected living players are ready. A ready check grants production once and clears readiness. After production three, **Preparation** allows construction, upgrades, research and recruitment using that income. **Ready for battle** then starts combat without granting more resources. Twenty waves have exactly sixty productions and twenty preparation checks. The phase and stage serial guard reject delayed commands, including old ready commands.
 
 Enemy pressure uses an authored twenty-wave catalog per original player. Entries expand in their listed order with the stated level and rank zero. `S/B/C/M` mean Swordsman/Berserker/Crossbowman/Mage; `3 S2` means three level-two Swordsmen. These ordinary compositions remain candidates for the balance gate.
 
@@ -87,7 +87,7 @@ Walls, healing, save recovery, host migration, server restart recovery and match
 
 The bottom panel keeps city resources/health/army and inspection tabs on the left, selected building details/costs in the middle, and match controls on the right. Start is available to the original playing host in a hosted lobby (or connected players on a dedicated server); Ready/Unready and Pause/Resume follow the authoritative phase. Connection and rejection messages appear along the bottom. A disconnected window offers Reconnect to my city; a synchronized resume retains the city and starts with no selected plot. Expired credentials expose the fresh-session lobby action. Fallen players can inspect all cities and pause/resume; victory/defeat remains visible to the entire roster.
 
-![Blacksmith research, terrace plots and current resource stocks](images/source-building.png)
+![Research Tower research, terrace plots and current resource stocks](images/source-building.png)
 
 ![Observed level-two Catapult with structural base](images/source-upgraded-tower.png)
 
@@ -221,10 +221,7 @@ engagement does not establish progression.
 | Crossbowman | 30 | 10 | 5 metal + 10 wood | 1 | 2 | 30 | 3 | 30 | 18 / 42 | 48 |
 | Mage | 25 | 12 | 15 cloth + 5 gold | 2 | 2 | 40 | 3 | 30 | 24 / 66 | 48 |
 
-These are the current level-one base values. Both factions use equal profiles at equal level and research rank. Research
-adds 5% of each unit's own leveled (and, if applicable, boss-modified) maximum HP/damage per rank up to rank two, in checked integer
-hundredths; it changes no spatial/timing attributes and never heals survivors.
-
+These are the current level-one base values. Equal faction profiles use equal levels, authored enemy rank modifiers and explicit capabilities. Player foundations add 5% to maximum HP and direct damage without healing. Specialization mastery replaces its earlier effect. Health/damage use checked integer hundredths, retaining fractional effects.
 New recruits capture their building's level, one through five. Existing veterans retain their level and wounds when a building upgrades, is sold or rebuilt. Stats use `round(base * 1.35^(level - 1))` to whole points with midpoint ties upward, then apply boss multipliers, then research. Swordsman HP by level is 40/54/73/98/133 and damage 10/14/18/25/33. Bosses have size six, eight times leveled HP and twice leveled damage: level three 584 HP/36 damage and level five 1064 HP/66 damage, before research. Ordinary size stays two at every level. Levels do not change timing, movement, range or initiative.
 
 Equipment prices also scale from the original base by 1.35, rounding each positive component to the nearest five, midpoint upward. Zero components stay zero, and every default total price increases. Swordsman metal costs are 10/15/20/25/35; Mage cloth 15/20/25/35/50 and gold 5/5/10/10/15. Recruitment never deducts food and buildings never give free recruits. City snapshots publish all leveled equipment/profile quotes, including purchased research.
@@ -335,8 +332,39 @@ The 32-vs-32 fixtures verify body separation every step, finite progress and ide
 
 Economy balance evidence uses the shared ordinary-command policy in `tools/DevRunner/CampaignStrategy.cs`: four solo families and frontline co-op with two, three and four players, each at seeds 0, 1 and 123 (21 complete campaigns). All reached wave-twenty Victory with all original cities alive, 60 real productions and paid battle upkeep. Initial stone/metal/cloth were zero. Final equipment outputs are Metal Mine/Weaver 20/40 per production; other producer outputs, enemy waves, ordinary health/damage, boss multipliers, plot prices and Market rates remain as authored. Earlier trials exposed insufficient replacements and late Market construction; the final policies retain more troops and establish Markets earlier.
 
-The policy builds Farm/Metal Mine/Barracks/Lumbermill/Stonecutter on the first five plots, recruits six paid Swordsmen for the first battle, then upgrades producers and the Barracks and purchases actual locked plots for its branch. Mixed adds Weaver/Arcanum/Archery Range; towers adds Arrow/Catapult defenses; research adds Blacksmith and both melee ranks. All retain recurring equipment supply and use quoted Market bundles. After wave thirteen, with at least 120 stone stock and level-five Barracks, they sell the upgraded Stonecutter for its actual half refund and build a Gold Mine on the retained plot. Land, troops and research remain. Recruitment logs verify no food deduction, material charges, later metal/cloth recruits, full-land expansion, producer upgrades, trades and reconfiguration.
+The policy builds Farm/Metal Mine/Barracks/Lumbermill/Stonecutter on the first five plots, recruits six paid Swordsmen for the first battle, then upgrades producers and the Barracks and purchases actual locked plots for its branch. Mixed adds Weaver/Arcanum/Archery Range; towers adds Arrow/Catapult defenses; research adds Research Tower and the melee foundation/Guardian/Guardian mastery path. All retain recurring equipment supply and use quoted Market bundles. After wave thirteen, with at least 120 stone stock and level-five Barracks, they sell the upgraded Stonecutter for its actual half refund and build a Gold Mine on the retained plot. Land, troops and research remain. Recruitment logs verify no food deduction, material charges, later metal/cloth recruits, full-land expansion, producer upgrades, trades and reconfiguration.
 
 A producer upgrade adds one level-one output while saving a plot and gold compared with purchasing another plot and producer, but requires stone. At current rates, a level-one Metal Mine can sell its whole 20-metal output for eight gold versus a Gold Mine's five gold; this consumes equipment stock and requires an additional paid Market. Markets and Gold Mines therefore have different land and supply costs. The receipt/action logs record stocks before/after commands, investment, individual army levels/health, forecast/actual rations, casualties, rewards, city health and per-wave ticks.
 
 This finite sample establishes viable ordinary strategies; it is not universal balance proof. The separate cleared-frontage reinforcement witness uses seed 8 with its funded L2 opening and one weak-city replacement. Earlier size-only seeds 1/2/8 are historical input-specific evidence, not promises for the new authored wave composition. The Mage/Crossbowman role witness uses six ordinary screen units against six ordinary enemies at seed 123, identical identities and the shared live interval. Mage equipment is 15 cloth/5 gold and upkeep two; Crossbow equipment is five metal/ten wood and upkeep one. Both clear normally; effective support damage is 6400 versus 4000 hundredths, clearance 253 versus 283 ticks, and surviving army HP 17500 versus 16000 hundredths. No inflated enemy HP, seeded clustering or altered default profiles are used.
+
+## Personal research and temporary statuses
+
+Research resets each match and remains personal across its twenty waves and reconnects. Everyone starts at zero and surviving cities, including disconnected owners, receive **one point per shared clear**, including bosses and final victory. No local-clear payment or boss research multiplier exists. Receipts identify the actual awarded point and wave; retries do not pay again. Defeat pays no clear reward.
+
+Research Towers replace the Blacksmith at building identity 7. Their two levels retain 20 gold, 10 wood and 10 stone construction/upgrade quotes. Each actual production adds **one/two progress units** per tower; every three units become one point and the city retains remainder 0–2. Thus a full cycle earns **+1/+2 points**, with multiple towers additive. Building or upgrading between productions grants no catch-up. Selling retains points, partial progress, technologies and purchase access. Towers occupy plots and have no combat actor or attack. Research is separate from the six Market resources.
+
+| Foundation (3 points) | Exclusive choice (6) | Mastery (9) | Effect, replaced at mastery |
+| --- | --- | --- | --- |
+| `melee-foundation` | `guardian` | `guardian-mastery` | Incoming direct/periodic damage reduction 10% / 20% |
+| `melee-foundation` | `assault` | `assault-mastery` | Direct damage +10% / +20% |
+| `ranged-foundation` | `venom` | `venom-mastery` | Poison potency 10% / 15% of captured direct damage |
+| `ranged-foundation` | `precision` | `precision-mastery` | Direct damage +10% / +20% |
+| `magic-foundation` | `fire` | `fire-mastery` | Burn potency 20% / 30% of captured direct damage |
+| `magic-foundation` | `frost` | `frost-mastery` | Future action duration +20% / +40% |
+
+Every foundation adds 5% maximum health and direct damage to its class. A complete chosen path costs 18 points. Specializations permanently lock their sibling and its mastery; classes remain independently combinable. Existing wounded veterans retain identity, health and level; future recruits receive the same technologies. Defenses and transferred enemies never inherit city technologies. Foundations scale level/boss stats first, followed by direct-damage bonuses. Guardian applies to each incoming contribution once, rounding the positive remainder upward.
+
+Open **Research**, then select Melee, Ranged or Magic. The scrolling tree shows balance, progress, effects, prices, prerequisites and permanent locks. Purchase descriptions identify the sibling lock; there is no confirmation dialog. Global purchases are available to an authenticated living owner in unpaused Building/Preparation while unready, independently of plot selection and tower ownership. Foreign inspection is read-only. The panel blocks world input without pausing the shared match. Commands use `research-tech <technology-id>`; the legacy rank command is rejected. Protocol version 9 is required by ENet and Steam admission.
+
+Only actual landed victims receive statuses, after simultaneous damage and only if they survive. Mage splash retains its authored radius/cap. Zero-damage attacks grant no periodic effect. Potency captures the source's resolved direct damage at application, rounded upward; removing the source does not change it.
+
+- **Burn:** one stream, 60-tick period, 180-tick lifetime. Refresh keeps the greater potency, later expiry and existing next tick.
+- **Poison:** at most three independently timed stacks, 60-tick period, 360-tick lifetime. A fourth hit refreshes the earliest expiry, with stable application identity breaking ties; potency increases if stronger and the next tick stays fixed.
+- **Chill:** strongest-only duration penalty, 180-tick lifetime, validated maximum 50%. New move, windup and recovery intervals each use `ceil(baseTicks * (100 + penalty) / 100)`. Already committed intervals and reservations remain fixed when chill arrives or expires. Chill expires before action selection at its expiry tick.
+
+The first periodic tick is one full period after application; a tick exactly at expiry damages once before removal. Pending applications sort by victim, kind, source and attack identity. Due periodic and ordinary/defense damage use a common pre-damage state: an attacker killed by poison still delivers its valid due strike, then cannot start another action. Periodic damage never recursively applies statuses. Only actual health reduction resets the engagement deadline.
+
+Transfers preserve potency, stack identities and absolute deadlines. Afflicted queued enemies continue ticking while untargetable and nonspatial, and can die before admission. Death removes active scheduling; retained hit/death events carry periodic contribution evidence. Wave resolution clears surviving effects without healing; cleanup does not deliver later damage. Fresh recruits/reserves start clean. Pause freezes simulation deadlines without wall-clock catch-up.
+
+Inspection shows actual capabilities, poison stacks and strengths, remaining simulated time, and committed impact/ready deadlines. Restrained ▲ Burn, ● Poison and ◆ Chill badges combine shape/text with color, using the shared playback clock. Queued effects appear in enemy allocation details without world bodies. Reconnect/history gaps reconstruct current state without historical flashes or sounds. Freeze, stun, interruption, healing, reactions, economy/defense technologies and account progression remain deferred.

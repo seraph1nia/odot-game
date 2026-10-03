@@ -50,7 +50,7 @@ public sealed class SnapshotEfficiencyTests
         RecruitmentQuote[] quotes = first.Economy.RecruitmentQuotes(first.Configuration);
         RecruitmentQuote before = quotes[0]; quotes[0] = before with { Upkeep = 999 };
         Assert.Equal(before, first.Economy.RecruitmentQuotes(first.Configuration)[0]);
-        RecruitmentQuote ranked = first.Economy.RecruitmentQuotes(first.Configuration, new(Melee: 1))[0];
+        RecruitmentQuote ranked = first.Economy.RecruitmentQuotes(first.Configuration, new(Owned: 1UL << (int)TechnologyId.MeleeFoundation))[0];
         Assert.True(ranked.Profile.Health > before.Profile.Health);
         first.Dispose(); Assert.Equal(0, first.Configuration.CachedProfiles);
     }

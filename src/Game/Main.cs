@@ -457,15 +457,15 @@ public partial class Main : Node, IGameSession
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, UnitClass researchClass = UnitClass.Melee, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
         int owner = city == 0 ? PlayerId : city;
         CityState? target = State.Players.FirstOrDefault(p => p.Id == owner);
         long generation = target is not null && slot is >= 0 and < 9 ? target.Slots[slot].Generation : 0;
-        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, owner, slot, building, soldierType, researchClass,
-            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles);
+        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, owner, slot, building, soldierType,
+            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles, technology);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -589,7 +589,9 @@ public partial class Main : Node, IGameSession
                 case "sell":
                 case "upgrade": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
                 case "trade": SendAction("trade", int.Parse(parts[1], CultureInfo.InvariantCulture), resource: Enum.Parse<Game.Core.Resource>(parts[2], true), bundles: int.Parse(parts[3], CultureInfo.InvariantCulture)); break;
-                case "research": SendAction("research", int.Parse(parts[1], CultureInfo.InvariantCulture), researchClass: Enum.Parse<UnitClass>(parts[2], true)); break;
+                case "research-tech":
+                    if (!TechnologyIds.TryParse(parts[1], out TechnologyId technology)) throw new ArgumentException("Unknown technology.");
+                    SendAction("research-tech", technology: technology); break;
                 case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman); break;
                 default: SendAction(parts[0]); break;
             }

@@ -29,7 +29,7 @@ internal static class UiAssets
         "Berserker" => Texture("icons/icon_axe.svg"),
         "Crossbowman" or "Ranged" or "ArcheryRange" or "ArrowTower" => Texture("icons/icon_bow.svg"),
         "Mage" or "Magic" or "Arcanum" => Texture("icons/icon_staff_magic.svg"),
-        "Upgrade" or "Blacksmith" => Texture("icons/icon_buff.svg"),
+        "Upgrade" or "ResearchTower" => Texture("icons/icon_buff.svg"),
         "Mine" => Texture("icons/icon_gold_pile.svg"),
         "CatapultTower" => Texture("icons/icon_shield.svg"),
         _ => null

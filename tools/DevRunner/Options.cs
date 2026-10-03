@@ -56,6 +56,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--frames" when command is "profile-presentation" or "_ui-worker": profileFrames = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--configuration" when command is "profile-presentation" or "_ui-worker": profileConfiguration = Value(); break;
                 case "--work-counters" when command is "profile-presentation" or "_ui-worker": profileWorkCounters = true; break;
+                case "--ui-checkpoint" when command is "test-ui" or "_ui-worker":
                 case "--checkpoint" when command is "test-ui" or "_ui-worker": checkpoint = Value(); break;
                 case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
                 case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;
@@ -77,7 +78,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (!explicitTimeout && command is "ci" or "ci-source") timeout = 900000;
         else if (!explicitTimeout && command == "profile-presentation") timeout = 600000;
         else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario is null) timeout = 600000;
-        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario is "economy" or "exported-package")) timeout = 300000;
+        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario is "economy" or "exported-package" || command is "test-ui" or "_ui-worker" && scenario == "combat" && checkpoint is null)) timeout = 300000;
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");
@@ -87,8 +88,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
-        if (checkpoint is not null && (scenario != "combat" || checkpoint != "melee"))
-            throw new ArgumentException("--checkpoint melee belongs to --scenario combat.");
+        if (checkpoint is not null && (scenario != "combat" || checkpoint is not ("melee" or "research")))
+            throw new ArgumentException("--checkpoint melee|research belongs to --scenario combat.");
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
         if (args.Contains("--jobs") && command is not ("test-network" or "test-ui" or "ci" or "ci-source")) throw new ArgumentException("--jobs belongs to network/UI/source verification.");

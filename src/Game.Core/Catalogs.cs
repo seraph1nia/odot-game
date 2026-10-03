@@ -22,11 +22,6 @@ public sealed record BuildingDefinition(Building Type, ResourceCost Construction
 }
 public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, int SplashHexRadius);
 public sealed record UnitDefinition(UnitType Type, UnitClass Class, ResourceCost Recruitment, WeaponProfile Profile, int Upkeep = 1);
-public readonly record struct ResearchRanks(int Melee = 0, int Ranged = 0, int Magic = 0)
-{
-    public int For(UnitClass @class) => @class switch { UnitClass.Melee => Melee, UnitClass.Ranged => Ranged, UnitClass.Magic => Magic, _ => throw new ArgumentOutOfRangeException(nameof(@class)) };
-    public ResearchRanks Increase(UnitClass @class) => @class switch { UnitClass.Melee => this with { Melee = Melee + 1 }, UnitClass.Ranged => this with { Ranged = Ranged + 1 }, UnitClass.Magic => this with { Magic = Magic + 1 }, _ => throw new ArgumentOutOfRangeException(nameof(@class)) };
-}
 public static class Catalogs
 {
     public static BuildingDefinition[] Buildings(Rules rules) =>
@@ -37,7 +32,7 @@ public static class Catalogs
         new(Building.Barracks, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Swordsman, UnitType.Berserker], MaximumLevel: 5),
         new(Building.ArcheryRange, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Crossbowman], MaximumLevel: 5),
         new(Building.Arcanum, new(25, 10, Stone: 15), new(rules.UpgradeCost, 10), Recruits: [UnitType.Mage], MaximumLevel: 5),
-        new(Building.Blacksmith, new(rules.BuildCost, 10, Stone: 10), new(rules.UpgradeCost, 10, Stone: 10)),
+        new(Building.ResearchTower, new(rules.BuildCost, 10, Stone: 10), new(rules.UpgradeCost, 10, Stone: 10)),
         new(Building.ArrowTower, new(rules.BuildCost, 15), new(rules.UpgradeCost, 10, Stone: 10)),
         new(Building.CatapultTower, new(30, 20, Stone: 15, Metal: 10), new(rules.UpgradeCost, 10, Stone: 10, Metal: 5)),
         new(Building.Stonecutter, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.StoneOutput, rules.StoneOutputLevelTwo, Produces: Resource.Stone),

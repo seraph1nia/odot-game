@@ -3,13 +3,13 @@ using Game.Core;
 namespace DevRunner;
 
 internal sealed record EconomyAction(string Action, int Slot = -1, Building Building = Building.Empty, UnitType Unit = UnitType.Swordsman,
-    UnitClass Research = UnitClass.Melee, Resource Resource = Resource.Wood, int Bundles = 0)
+    TechnologyId Technology = TechnologyId.None, Resource Resource = Resource.Wood, int Bundles = 0)
 {
     public Command Command(MatchSnapshot state, int player, long sequence = 1)
     {
         CityState city = state.Players.Single(p => p.Id == player);
-        return new(sequence, state.MatchId, state.Phase, state.TurnSerial, Action, player, Slot, Building, Unit, Research,
-            Slot is >= 0 and < 9 ? city.Slots[Slot].Generation : 0, city.Slots.Count(s => s.Purchased) - 5, Resource, Bundles);
+        return new(sequence, state.MatchId, state.Phase, state.TurnSerial, Action, player, Slot, Building, Unit,
+            Slot is >= 0 and < 9 ? city.Slots[Slot].Generation : 0, city.Slots.Count(s => s.Purchased) - 5, Resource, Bundles, Technology);
     }
 }
 
@@ -23,7 +23,7 @@ internal static class CampaignStrategy
     private static readonly (int Slot, Building Type)[] Frontline = [(5, Building.Market), (6, Building.Mine)];
     private static readonly (int Slot, Building Type)[] Mixed = [(8, Building.Market), (5, Building.Weaver), (6, Building.Arcanum), (7, Building.ArcheryRange)];
     private static readonly (int Slot, Building Type)[] Towers = [(8, Building.Market), (5, Building.ArrowTower), (6, Building.CatapultTower), (7, Building.ArrowTower)];
-    private static readonly (int Slot, Building Type)[] Research = [(5, Building.Blacksmith), (6, Building.Market), (7, Building.Mine)];
+    private static readonly (int Slot, Building Type)[] Research = [(5, Building.ResearchTower), (6, Building.Market), (7, Building.Mine)];
 
     public static EconomyAction? Next(MatchSnapshot state, int player, string family = "frontline")
     {
@@ -63,11 +63,9 @@ internal static class CampaignStrategy
             int target = definition.Recruits is null ? definition.MaximumLevel : Math.Min(5, 1 + (state.Wave + 1) / 4);
             if (Upgrade(slot, target) is EconomyAction branchUpgrade) return branchUpgrade;
         }
-        if (family == "research" && city.Slots[5].Type == Building.Blacksmith && city.Research.Melee < city.Slots[5].Level)
-        {
-            ResourceCost cost = state.ResearchQuotes.Single(q => q.Rank == city.Research.Melee + 1).Cost;
-            if (Affordable(cost)) return new("research", 5);
-        }
+        if (family == "research")
+            foreach (TechnologyId id in new[] { TechnologyId.MeleeFoundation, TechnologyId.Guardian, TechnologyId.GuardianMastery })
+                if (city.Technologies.Single(t => t.Id == id).Available) return new("research-tech", Technology: id);
         foreach ((UnitType type, int target) in Targets(family, state.Wave))
         {
             if (city.Soldiers.Count(u => u.Type == type) >= target) continue;
@@ -86,6 +84,39 @@ internal static class CampaignStrategy
                 int bundles = (city.Resources.Amount(resource) - retain) / rate.Units;
                 if (bundles > 0) return new("trade", market, Resource: resource, Bundles: bundles);
             }
+        }
+        return null;
+    }
+    public static EconomyAction? ResearchWitness(MatchSnapshot state, int player)
+    {
+        CityState city = state.Players.Single(c => c.Id == player);
+        if (city.Ready || city.Eliminated || state.Paused || state.Phase is not (Phase.Building or Phase.Preparation)) return null;
+        bool Affordable(ResourceCost cost) => city.Resources.TryPay(cost, out _);
+        foreach (Building type in new[] { Building.Farm, Building.MetalMine, Building.Barracks, Building.Lumbermill, Building.Stonecutter, Building.ResearchTower, Building.Weaver, Building.Arcanum })
+        {
+            if (city.Slots.Any(s => s.Type == type) || type == Building.Stonecutter && city.Slots.Any(s => s.Type == Building.ResearchTower)
+                && (city.Slots.Any(s => s.Type == Building.Arcanum) || city.Stone >= 45)) continue;
+            if (type == Building.Arcanum && city.Stone >= 45) { int stone = Array.FindIndex(city.Slots, s => s.Type == Building.Stonecutter); if (stone >= 0) return new("sell", stone); }
+            int plot = Array.FindIndex(city.Slots, s => s.Type == Building.Empty);
+            if (plot < 0) continue;
+            SlotState slot = city.Slots[plot];
+            if (!slot.Purchased) { int count = city.Slots.Count(s => s.Purchased) - 5; if (count < state.PlotPrices.Length && Affordable(new(state.PlotPrices[count]))) return new("buy-plot", plot); }
+            else if (Affordable(state.BuildingCatalog.Single(b => b.Type == type).Construction)) return new("build", plot, type);
+        }
+        foreach (Building type in new[] { Building.Barracks, Building.Farm, Building.MetalMine, Building.Lumbermill, Building.ResearchTower, Building.Stonecutter })
+        {
+            int slot = Array.FindIndex(city.Slots, s => s.Type == type); if (slot < 0) continue;
+            int target = type == Building.Barracks ? Math.Min(3, 1 + (state.Wave + 1) / 3) : 2;
+            if (city.Slots[slot].Level < target && city.Slots[slot].UpgradeQuote is { } quote && Affordable(quote)) return new("upgrade", slot);
+        }
+        foreach (UnitType role in new[] { UnitType.Swordsman, UnitType.Mage })
+        {
+            int target = role == UnitType.Mage ? 2 : state.Wave == 1 ? 6 : 12;
+            if (city.Soldiers.Count(u => u.Type == role) >= target) continue;
+            int slot = Array.FindIndex(city.Slots, s => state.BuildingCatalog.FirstOrDefault(b => b.Type == s.Type)?.Recruits?.Contains(role) == true);
+            if (slot < 0) continue;
+            RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == role && q.Level == city.Slots[slot].Level);
+            if (Affordable(quote.Cost) && city.Food >= (city.FoodForecast?.Demand ?? 0) + quote.Upkeep) return new("recruit", slot, Unit: role);
         }
         return null;
     }

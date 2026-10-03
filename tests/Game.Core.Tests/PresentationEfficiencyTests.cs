@@ -21,8 +21,15 @@ public sealed class PresentationEfficiencyTests
         MatchSnapshot City(CityState changed) => state with { Players = [changed, state.Players[1]] };
         void Changed(HudSection section, MatchSnapshot changed) => Assert.False(initial[section].SequenceEqual(Capture(changed)[section]));
         Changed(HudSection.Economy, City(city with { Gold = city.Gold + 1 }));
-        Changed(HudSection.Context, City(city with { Research = new(Melee: 1) }));
+        Changed(HudSection.Context, City(city with { Research = new(Owned: 1UL << (int)TechnologyId.MeleeFoundation) }));
         Changed(HudSection.Economy, City(city with { Soldiers = city.Soldiers.Select((u, i) => i == 0 ? u with { Health = u.Health - 1 } : u).ToArray() }));
+        StatusState poison = StatusPolicy.Apply(new(), new(1, StatusKind.Poison, 2, 1, 0, 100), new());
+        MatchSnapshot afflicted = City(city with { Soldiers = city.Soldiers.Select((u, i) => i == 0 ? u with { Statuses = poison } : u).ToArray() });
+        Changed(HudSection.Economy, afflicted);
+        Assert.False(Capture(afflicted)[HudSection.Economy].SequenceEqual(Capture(afflicted with { Tick = afflicted.Tick + 1 })[HudSection.Economy]));
+        object?[] remembered = Capture(afflicted)[HudSection.Economy];
+        poison.Poison[0] = poison.Poison[0] with { Strength = 999 };
+        Assert.False(remembered.SequenceEqual(Capture(afflicted)[HudSection.Economy]));
         Changed(HudSection.Economy, City(city with { Soldiers = city.Soldiers.Select(u => u with { Hex = u.Hex! with { Lifecycle = UnitLifecycle.Reserve } }).ToArray() }));
         Changed(HudSection.Economy, City(city with { LastUpkeep = new(1, 2, [99], [100]) }));
         Changed(HudSection.Roster, City(city with { Connected = !city.Connected }));

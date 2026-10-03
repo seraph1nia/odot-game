@@ -127,7 +127,7 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
             {
                 foreach (City city in match.Players.Values.Where(c => !c.Eliminated))
                 {
-                    if (city.Id == 1 || seed == 0) while (city.Soldiers.Count < 6 && city.Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(match, 1, "recruit", 1);
+                    if (city.Id == 1 || seed == 0) while (city.Soldiers.Count < 6 && city.Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(match, city.Id, "recruit", 1);
                     if (!city.Ready) Act(match, city.Id, "ready");
                 }
                 match.Step(); continue;

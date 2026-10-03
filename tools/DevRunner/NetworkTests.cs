@@ -35,7 +35,7 @@ internal sealed partial class Runner
             {
                 "build" => $"build {slot} {decision.Building}",
                 "recruit" => $"recruit {slot} {decision.Unit}",
-                "research" => $"research {slot} {decision.Research}",
+                "research-tech" => $"research-tech {TechnologyIds.Name(decision.Technology)}",
                 "trade" => $"trade {slot} {decision.Resource} {decision.Bundles}",
                 _ => $"{decision.Action} {slot}"
             };
@@ -87,7 +87,7 @@ internal sealed partial class Runner
             {
                 "solo-session" => "Socketless local authority and fresh application session state; pure core tests miss delivery/lifetime.",
                 "playing-host-lifecycle" => "Bound host, real guest delivery, reconnect and host termination; dedicated tests lack local authority presentation.",
-                "authority-resume-victory" => "Dedicated ENet authority, ownership/refusals, retry and real peer recovery through two ordinary early clears; terminal/boss campaign owned by SessionCampaignTests.",
+                "authority-resume-victory" => "Dedicated ENet authority, ownership/refusals, retry and real peer recovery; ordinary investment through wave eight adds earned personal research, active captured burn deadlines and a paused owned process restart. Research setup bounded at wave ten/120s, reuses peers and cleanup; terminal/boss campaign owned by SessionCampaignTests.",
                 _ => "Preserved real ENet gameplay/lifecycle integration"
             }, token => _evidence.Measure(name, "network", async () =>
             {
@@ -185,12 +185,13 @@ internal sealed partial class Runner
         MatchSnapshot secondClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 3, "ordinary early clear after peer recovery", token);
         Require(secondClear.Phase == Phase.Building, "ordinary cooperative equipment survives recovery and wave two");
         await Observe(resumed, s => s.Revision >= secondClear.Revision && s.Phase == Phase.Building, "shared early result", token);
+        await using var researched = await TransportedResearch(a, resumed, server, port, bPath, token);
         await Action(a, "stale-ready", token, false);
         // Drain one bounded burst in one client frame. Separate stdin lines are
         // throttled by the client's command pump and can straddle rate windows.
         await a.Send("raw-burst 192 null");
         await a.WaitFor(e => e.Type == "ack" && e.Message == "Command rate exceeded.", "excessive request rejection", options.StartupTimeout, token);
-        await Action(resumed, "unknown", token, false);
+        await Action(researched, "unknown", token, false);
         await server.Send("quit"); await a.WaitFor(e => e.Type == "server-disconnected", "server stopped feedback", options.StartupTimeout, token);
         // A credential from a stopped match must not silently create a new city.
         await using var replacement = StartGame("replacement-server", true, true, port);
@@ -208,7 +209,7 @@ internal sealed partial class Runner
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "8");
+        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "90");
         await a.WaitFor(e => e.Type == "ready", "playing host transfer readiness", options.StartupTimeout, token);
         await using var b = StartGame("transfer-b", false, true, port, null, "--automated");
         await b.WaitFor(e => e.Type == "connected", "ordered second city admission", options.StartupTimeout, token);

@@ -55,7 +55,7 @@ public sealed class UnitSizeTests
             foreach (Faction faction in Enum.GetValues<Faction>())
                 Assert.Equal(2, combat.Read(combat.Create(type, faction == Faction.Adventurers ? 1 : 0, 1, 1, faction)).Size);
         int boss = combat.Create(UnitType.Swordsman, 1, 1, 1, isBoss: true);
-        combat.Research(1, UnitClass.Melee, 2);
+        combat.Research(1, new(Owned: 1UL << (int)TechnologyId.MeleeFoundation), new());
         combat.BeginWave();
         UnitState before = combat.Read(boss);
         Assert.True(before.IsBoss); Assert.Equal(6, before.Size);

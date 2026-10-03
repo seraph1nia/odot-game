@@ -38,12 +38,12 @@ internal sealed partial class UnitInspector : PanelContainer
         _preview.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
         Sample(unit); Visible = true;
     }
-    internal void Sample(UnitState unit)
+    internal void Sample(UnitState unit, double tick = 0)
     {
         _sample = unit;
         _name.Text = ProgressionPresentation.UnitName(unit); _description.Text = ProgressionPresentation.UnitDescription(unit);
         _health.Value = PresentationLimits.HealthFraction(unit.Health, unit.Profile.Health) * 100;
-        _stats.Text = ProgressionPresentation.UnitStats(unit);
+        _stats.Text = ProgressionPresentation.UnitStats(unit, tick);
     }
     internal void Place(Vector2 viewport, float resourceBottom, float hudTop)
     {

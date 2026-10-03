@@ -9,9 +9,9 @@ namespace Game.Core.Tests;
 public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(8UL)]
+    [InlineData(90UL)]
     // A reproducible live-frontage witness, not a balance sample. The new wave-two
-    // all-melee composition and funded L2 opening produce this contact at seed 8.
+    // all-melee composition and funded L2 opening produce this contact at seed 90 under combat rules 5.
     public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
     {
         using Match match = Start(3, seed);
@@ -67,7 +67,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
     }
 
     internal static CommandResult Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, UnitType unit = UnitType.Swordsman, UnitClass @class = UnitClass.Melee)
-        => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, @class, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[city].Slots[slot].Generation : 0));
+        => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[city].Slots[slot].Generation : 0));
     internal static Match Start(int count = 1, ulong seed = 123)
     {
         var match = new Match(combatSeed: seed); for (int n = 0; n < count; n++) match.Join();
@@ -112,24 +112,25 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
     [InlineData(UnitType.Berserker, Building.Barracks)]
     [InlineData(UnitType.Crossbowman, Building.ArcheryRange)]
     [InlineData(UnitType.Mage, Building.Arcanum)]
-    public void RecruitmentUsesTheCorrectBuildingAndRanksWithoutHealing(UnitType type, Building building)
+    public void RecruitmentUsesTheCorrectBuildingAndTechnologyWithoutHealing(UnitType type, Building building)
     {
         using Match match = Start(); City city = match.Players[1]; city.Gold = 200; city.Food = 100; city.Wood = 100; city.Stone = 100; city.Metal = 100; city.Cloth = 100;
-        Assert.True(Act(match, 1, "build", 0, building).Accepted); Assert.True(Act(match, 1, "build", 1, Building.Blacksmith).Accepted);
+        Assert.True(Act(match, 1, "build", 0, building).Accepted); Assert.True(Act(match, 1, "build", 1, Building.ResearchTower).Accepted);
         Assert.True(Act(match, 1, "build", 2, Building.Farm).Accepted);
         Assert.False(Act(match, 1, "recruit", 2, unit: type).Accepted);
         Assert.True(Act(match, 1, "recruit", 0, unit: type).Accepted); UnitState old = city.Soldiers.Single();
         match.Combat.Seed(old with { Health = old.Health - 100 });
-        UnitClass @class = Catalogs.Class(type);
-        Assert.True(Act(match, 1, "research", 1, @class: @class).Accepted);
-        UnitState ranked = city.Soldiers.Single(); Assert.Equal(old.Health - 100, ranked.Health); Assert.Equal(old.Id, ranked.Id);
-        Assert.Equal(old.Hex, ranked.Hex); Assert.Equal(HealthPoints.Ranked(old.Profile.Damage, 1), ranked.Profile.Damage);
-        Assert.False(Act(match, 1, "research", 1, @class: @class).Accepted);
-        Assert.True(Act(match, 1, "upgrade", 1).Accepted); Assert.True(Act(match, 1, "research", 1, @class: @class).Accepted);
-        Assert.False(Act(match, 1, "research", 1, @class: @class).Accepted);
+        TechnologyId foundation = Catalogs.Class(type) switch { UnitClass.Melee => TechnologyId.MeleeFoundation, UnitClass.Ranged => TechnologyId.RangedFoundation, _ => TechnologyId.MagicFoundation };
+        city.Research = new(Points: 3);
+        var purchase = new Command(1, match.Id, match.Phase, match.TurnSerial, "research-tech", 1, Technology: foundation);
+        Assert.True(match.Apply(1, purchase).Accepted);
+        UnitState researched = city.Soldiers.Single(); Assert.Equal(old.Health - 100, researched.Health); Assert.Equal(old.Id, researched.Id);
+        Assert.Equal(old.Hex, researched.Hex); Assert.Equal(HealthPoints.Ranked(old.Profile.Damage, 1), researched.Profile.Damage);
+        Assert.False(match.Apply(1, purchase).Accepted);
+        Assert.True(Act(match, 1, "upgrade", 1).Accepted); Assert.False(match.Apply(1, purchase).Accepted);
         Assert.True(Act(match, 1, "recruit", 0, unit: type).Accepted);
-        Assert.Equal(HealthPoints.Ranked(old.Profile.Health, 2), city.Soldiers[^1].Health);
-        using var combat = new CombatSimulation(new()); int skeleton = combat.Create(type, 0, 1, 1, Faction.Skeletons, 2);
+        Assert.Equal(HealthPoints.Ranked(old.Profile.Health, 1), city.Soldiers[^1].Health);
+        using var combat = new CombatSimulation(new()); int skeleton = combat.Create(type, 0, 1, 1, Faction.Skeletons, capabilities: researched.Capabilities);
         Assert.Equal(city.Soldiers[^1].Profile, combat.Read(skeleton).Profile);
     }
     [Theory]

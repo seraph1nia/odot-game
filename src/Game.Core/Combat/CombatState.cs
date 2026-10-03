@@ -21,6 +21,7 @@ public sealed record CombatEvent(long Sequence, long Tick, CombatEventType Type,
     public TowerState? Tower { get; init; }
     public HexPosePoint? ImpactPose { get; init; }
     public int[] Victims { get; init; } = [];
+    public PeriodicContribution[] Periodic { get; init; } = [];
 }
 
 internal readonly record struct UnitIdentity(int Id, UnitType Type, int Owner, int Origin, int Destination, Faction Faction, int Rank, bool IsBoss = false, int Level = 1);

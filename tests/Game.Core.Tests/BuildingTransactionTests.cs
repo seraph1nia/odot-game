@@ -164,9 +164,9 @@ public sealed class BuildingTransactionTests
         using Match match = Start(); City city = match.Players[1]; Stock(city);
         Act(match, "build", 0, Building.Barracks); Act(match, "recruit", 0);
         UnitState old = Assert.Single(city.Soldiers); match.Combat.Seed(old with { Health = old.Health - 100 });
-        Act(match, "build", 1, Building.Blacksmith); Act(match, "research", 1);
+        Act(match, "build", 1, Building.ResearchTower); city.Research = city.Research.Income(points: 3); Assert.True(match.Apply(1, Request(match, "research-tech") with { Technology = TechnologyId.MeleeFoundation }).Accepted);
         UnitState ranked = Assert.Single(city.Soldiers); Act(match, "sell", 0); Act(match, "sell", 1);
-        Assert.Equal(ranked, Assert.Single(city.Soldiers)); Assert.Equal(1, city.Research.Melee);
+        Assert.Equal(ranked, Assert.Single(city.Soldiers)); Assert.True(city.Research.Has(TechnologyId.MeleeFoundation));
         RejectUnchanged(match, Request(match, "research", 1));
         Act(match, "build", 0, Building.Barracks); Assert.Single(city.Soldiers); Assert.Equal(1, city.Slots[0].Level);
         Act(match, "build", 2, Building.CatapultTower); Act(match, "sell", 2); Assert.Empty(city.Towers);

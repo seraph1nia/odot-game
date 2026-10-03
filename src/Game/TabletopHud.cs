@@ -83,13 +83,7 @@ public partial class Tabletop
             _recruitment[type].Name = type switch { UnitType.Swordsman => "Recruit", UnitType.Crossbowman => "RecruitRanged", _ => "Recruit" + type };
         }
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
-        _researchActions = new HBoxContainer(); context.AddChild(_researchActions);
-        foreach (UnitClass type in Enum.GetValues<UnitClass>())
-        {
-            UnitClass @class = type;
-            _research[type] = Button(_researchActions, type.ToString(), () => ContextAction("research", researchClass: @class));
-            _research[type].Name = "Research" + type;
-        }
+        CreateResearch(city);
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = .22f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 12);
         _counters = Text(match, "", 11);
