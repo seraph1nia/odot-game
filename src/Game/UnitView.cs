@@ -11,7 +11,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     private AnimationTree _tree = null!;
     private readonly AnimationNodeAnimation _attackClip = new();
     private bool _attacking, _hitting;
-    private long _attackSequence;
+    private double? _facingTick;
+    private double _walkingBlend, _attackBlend, _hitBlend;
     private double _hitAt = -1, _shotAt = -1;
     private Node3D _model = null!;
     private Node3D _shot = null!;
@@ -21,11 +22,10 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     private int _rootBone, _handBone;
     private readonly Dictionary<string, double> _lengths = new(StringComparer.Ordinal);
     private string _attackName = "";
-    private bool _poseSkipped;
     private static readonly StringName LocomotionBlend = "parameters/locomotion/blend_position", LocomotionSeek = "parameters/locoseek/seek_request",
         AttackSeek = "parameters/attackseek/seek_request", HitSeek = "parameters/hitseek/seek_request", DeathBlend = "parameters/death/blend_amount",
-        DeathSeek = "parameters/deathseek/seek_request", AttackRequest = "parameters/attack/request", HitRequest = "parameters/hit/request",
-        AttackActive = "parameters/attack/active", HitActive = "parameters/hit/active";
+        DeathSeek = "parameters/deathseek/seek_request",
+        AttackBlend = "parameters/attack/blend_amount", HitBlend = "parameters/hit/blend_amount";
     private Label3D _statusBadge = null!;
     public string StatusBadge => _statusBadge?.Text ?? "";
     public UnitState State { get; private set; } = initial;
@@ -42,13 +42,13 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         (_player, _skeleton) = UnitAssets.Bind(model, State.Type);
         _rootBone = _skeleton.FindBone("root"); _handBone = _skeleton.FindBone("handslot.r");
         _attackName = UnitAssets.AttackClip(State.Type);
-        foreach (string clip in new[] { "Idle", "Running_A", "Death_A", "Hit_A", _attackName }) _lengths[clip] = _player.GetAnimation(clip).Length;
+        foreach (string clip in new[] { "Idle", "Walking_A", "Death_A", "Hit_A", _attackName }) _lengths[clip] = _player.GetAnimation(clip).Length;
         UnitAssets.Equip(model, _skeleton, State.Type, State.Faction);
         var locomotion = new AnimationNodeBlendSpace1D { MinSpace = 0, MaxSpace = 1 };
         locomotion.AddBlendPoint(Locomotion("Idle"), 0, -1, "idle");
         locomotion.AddBlendPoint(Locomotion("Walking_A"), 0.8f, -1, "walk");
         locomotion.AddBlendPoint(Locomotion("Running_A"), 1, -1, "run");
-        var hit = new AnimationNodeOneShot { FadeInTime = 0, FadeOutTime = 0, FilterEnabled = true };
+        var hit = new AnimationNodeBlend2 { FilterEnabled = true };
         Animation hitAnimation = _player.GetAnimation("Hit_A");
         for (int track = 0; track < hitAnimation.GetTrackCount(); track++)
         {
@@ -62,7 +62,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         var blend = new AnimationNodeBlendTree();
         blend.AddNode("locomotion", locomotion); blend.AddNode("locoseek", new AnimationNodeTimeSeek());
         blend.AddNode("attackclip", _attackClip); blend.AddNode("attackseek", new AnimationNodeTimeSeek());
-        blend.AddNode("attack", new AnimationNodeOneShot { FadeInTime = 0, FadeOutTime = 0 });
+        blend.AddNode("attack", new AnimationNodeBlend2());
         blend.AddNode("hitclip", new AnimationNodeAnimation { Animation = "Hit_A" }); blend.AddNode("hitseek", new AnimationNodeTimeSeek());
         blend.AddNode("hit", hit);
         blend.AddNode("deathclip", new AnimationNodeAnimation { Animation = "Death_A" }); blend.AddNode("deathseek", new AnimationNodeTimeSeek());
@@ -118,7 +118,12 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         _statusBadge.Modulate = state.Statuses.Burn is { } burn && tick < burn.ExpiresTick ? new Color("ffb078")
             : state.Statuses.Poison.Any(p => tick < p.ExpiresTick) ? new Color("b6ef78") : new Color("b8f5ef");
         Position = layout.Position(state, tick);
-        Rotation = new(0, layout.Facing(state, tick, units), 0);
+        float desired = layout.Facing(state, tick, units);
+        Rotation = new(0, _facingTick is { } previousTick ? CombatVisualTiming.Facing(Rotation.Y, desired, Dead ? 0 : tick - previousTick) : desired, 0);
+        _facingTick = tick;
+        _walkingBlend = CombatVisualTiming.Walking(state.Hex, tick);
+        _attackBlend = CombatVisualTiming.Attack(state, tick);
+        _hitBlend = CombatVisualTiming.Hit(seconds, _hitAt, Dead, _attackBlend > 0);
         bool moving = !Dead && state.Hex?.HoldsTransit == true;
         double locomotionTime = moving ? tick / Match.StepsPerSecond : seconds;
         string clip; double pose;
@@ -134,27 +139,20 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         }
         else
         {
-            clip = moving ? "Running_A" : "Idle";
+            clip = moving ? "Walking_A" : "Idle";
             pose = locomotionTime % 0.8 / 0.8 * _lengths[clip];
         }
         Clip = clip; PoseSeconds = Math.Clamp(pose, 0, _lengths[clip] - 0.0001);
         _marker.Visible = !Dead;
         _shot.Visible = !Dead && _shotAt >= 0 && seconds - _shotAt < 0.12;
         _shot.Position = new(0, 0.5f, 0.25f + (float)Math.Max(0, seconds - _shotAt) * 12);
-        if (!Visible) { _poseSkipped = true; return; }
-        if (_poseSkipped)
-        {
-            _tree.Set(AttackRequest, (int)AnimationNodeOneShot.OneShotRequest.Abort);
-            _tree.Set(HitRequest, (int)AnimationNodeOneShot.OneShotRequest.Abort);
-            _attacking = _hitting = false; _poseSkipped = false;
-        }
-        _tree.Set(LocomotionBlend, moving ? 1 : 0);
+        _attacking = !Dead && state.AttackSequence > 0 && state.TargetId != 0 && tick >= state.ActionStartTick && tick < state.ReadyTick;
+        _hitting = !Dead && _hitAt >= 0 && seconds - _hitAt < .15;
+        if (!Visible) return;
+        _tree.Set(LocomotionBlend, _walkingBlend);
+        _tree.Set(AttackBlend, _attackBlend);
+        _tree.Set(HitBlend, _hitBlend);
         _tree.Set(LocomotionSeek, locomotionTime % 0.8);
-        bool attacking = !Dead && state.AttackSequence > 0 && state.TargetId != 0 && tick >= state.ActionStartTick && tick < state.ReadyTick;
-        bool hitting = !Dead && _hitAt >= 0 && seconds - _hitAt < 0.15;
-        if (attacking && state.AttackSequence != _attackSequence) { _attacking = false; _attackSequence = state.AttackSequence; }
-        OneShot(AttackRequest, attacking, ref _attacking);
-        OneShot(HitRequest, hitting, ref _hitting);
         _tree.Set(AttackSeek, Math.Min(_lengths[_attackName] - 0.0001, CombatPlayback.AttackPose(state, tick, _lengths[_attackName])));
         _tree.Set(HitSeek, Math.Clamp((seconds - _hitAt) * 2, 0, 0.6665));
         _tree.Set(DeathBlend, Dead ? 1 : 0);
@@ -167,12 +165,6 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     }
     private static AnimationNodeAnimation Locomotion(string clip) => new()
     { Animation = clip, UseCustomTimeline = true, TimelineLength = 0.8, StretchTimeScale = true, LoopMode = Animation.LoopModeEnum.Linear };
-    private void OneShot(StringName request, bool active, ref bool previous)
-    {
-        if (active != previous)
-            _tree.Set(request, (int)(active ? AnimationNodeOneShot.OneShotRequest.Fire : AnimationNodeOneShot.OneShotRequest.Abort));
-        previous = active;
-    }
     public object Observe()
     {
         Transform3D pose = _skeleton.GetBoneGlobalPose(_handBone);
@@ -205,6 +197,10 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             State.AttackLanded,
             X = Position.X,
             Z = Position.Z,
+            Heading = Rotation.Y,
+            WalkingBlend = Visible ? _tree.Get(LocomotionBlend).AsDouble() : _walkingBlend,
+            AttackBlend = Visible ? _tree.Get(AttackBlend).AsDouble() : _attackBlend,
+            HitBlend = Visible ? _tree.Get(HitBlend).AsDouble() : _hitBlend,
             BoneX = pose.Origin.X,
             BoneY = pose.Origin.Y,
             BoneZ = pose.Origin.Z,
@@ -212,8 +208,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             WeaponAttached = _skeleton.GetChildren().OfType<BoneAttachment3D>().Any(),
             EffectSequence = _effectSequence,
             ShotVisible = _shot.Visible,
-            AttackActive = _tree.Get(AttackActive).AsBool(),
-            HitActive = _tree.Get(HitActive).AsBool(),
+            AttackActive = _attacking,
+            HitActive = _hitting,
             InteractionEnabled = false
         };
     }

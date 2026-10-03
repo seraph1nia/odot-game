@@ -54,6 +54,12 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
                     ImpactTick = u.ImpactTick,
                     AttackLanded = u.AttackLanded,
                     Visible = true,
+                    CueStyle = "dashed-intent-local-strike",
+                    Phase = Game.CombatVisualTiming.MeleePhase(u, state.Tick),
+                    IntentVisible = state.Tick < u.ImpactTick,
+                    IntentDashes = 12,
+                    StrikeVisible = state.Tick >= u.ImpactTick,
+                    StrikeRadius = .34f,
                     ImpactVisible = u.AttackLanded == true && state.Tick >= u.ImpactTick,
                     TargetX = target.X,
                     TargetZ = target.Z
@@ -71,6 +77,18 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
         Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [living, dying] }));
         Runner.RenderedContact(new() { Units = [living, dying with { Visible = false }] });
         Runner.RenderedContact(new() { Units = [living, dying with { X = .5f }] });
+    }
+    [Fact]
+    public void CommittedTransitCanCrossButSettledLivingAndDyingAnchorsCannotCollapse()
+    {
+        HexUnitState transit = new(1, 1, Faction.Adventurers, UnitLifecycle.Alive, new(14, 1), UnitActionKind.Moving,
+            new(11, 1), StartTick: 100, EndTick: 130);
+        var moving = new UnitObservation { Id = 1, Destination = 1, Visible = true, Deployed = true, Hex = transit };
+        var standing = new UnitObservation { Id = 2, Destination = 1, Visible = true, Deployed = true, X = .1f };
+        Runner.RenderedContact(new() { Units = [moving, standing] });
+        Runner.RenderedContact(new() { Units = [moving with { Dead = true, Hex = transit with { Lifecycle = UnitLifecycle.Dying, FrozenMoveTicks = 15 } }, standing] });
+        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [moving with { Hex = transit with { Action = UnitActionKind.Waiting } }, standing] }));
+        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [moving with { Hex = transit with { Action = UnitActionKind.Waiting } }, standing with { Dead = true }] }));
     }
     [Fact]
     public void AnUnlinkedCueCannotProveAnAttackOrASimultaneousExchange()
@@ -91,13 +109,19 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
         {
             Units = [actor, ally, enemy, opponent],
             CombatTick = 6,
-            Strikes = [new() { Id = 1, TargetId = 3, AttackSequence = 1, ImpactTick = 12, Visible = true, TargetX = enemy.X, TargetZ = enemy.Z },
-                new() { Id = 3, TargetId = 1, AttackSequence = 1, ImpactTick = 12, Visible = true, TargetX = actor.X + .1f, TargetZ = actor.Z }]
+            Strikes = [new() { Id = 1, TargetId = 3, AttackSequence = 1, ImpactTick = 12, Visible = true, TargetX = enemy.X, TargetZ = enemy.Z,
+                CueStyle = "dashed-intent-local-strike", Phase = "intent", IntentVisible = true, IntentDashes = 12, StrikeRadius = .34f },
+                new() { Id = 3, TargetId = 1, AttackSequence = 1, ImpactTick = 12, Visible = true, TargetX = actor.X + .1f, TargetZ = actor.Z,
+                CueStyle = "dashed-intent-local-strike", Phase = "intent", IntentVisible = true, IntentDashes = 12, StrikeRadius = .34f }]
         };
         MeleeWitness[] found = MeleeVisualProof.Inspect(frame, Board);
         Assert.NotEqual(MeleeCoverage.None, found.Single(w => w.Actor == 1).Coverage & MeleeCoverage.Windup);
         Assert.Equal(MeleeCoverage.None, found.Single(w => w.Actor == 3).Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact));
         Assert.All(found, w => Assert.Equal(MeleeCoverage.None, w.Coverage & MeleeCoverage.Simultaneous));
+        MeleeWitness[] opaque = MeleeVisualProof.Inspect(frame with { Strikes = frame.Strikes.Select(s => s with { CueStyle = "opaque-beam" }).ToArray() }, Board);
+        Assert.All(opaque, w => Assert.Equal(MeleeCoverage.None, w.Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact)));
+        Runner.RenderedContact(frame with { Strikes = [frame.Strikes[0]] });
+        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(frame with { Strikes = [frame.Strikes[0] with { StrikeRadius = 3 }] }));
     }
     [Theory]
     [InlineData(0UL)]

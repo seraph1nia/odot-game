@@ -48,6 +48,10 @@ internal sealed record UnitObservation
     public double PoseSeconds { get; init; }
     public float X { get; init; }
     public float Z { get; init; }
+    public float Heading { get; init; }
+    public double WalkingBlend { get; init; }
+    public double AttackBlend { get; init; }
+    public double HitBlend { get; init; }
     public float BoneX { get; init; }
     public float BoneY { get; init; }
     public float BoneZ { get; init; }
@@ -61,6 +65,12 @@ internal sealed record StrikeObservation
     public bool? AttackLanded { get; init; }
     public bool Visible { get; init; }
     public bool ImpactVisible { get; init; }
+    public string CueStyle { get; init; } = "";
+    public string Phase { get; init; } = "";
+    public bool IntentVisible { get; init; }
+    public int IntentDashes { get; init; }
+    public bool StrikeVisible { get; init; }
+    public float StrikeRadius { get; init; }
     public float SourceX { get; init; }
     public float SourceZ { get; init; }
     public float TargetX { get; init; }
@@ -255,7 +265,7 @@ internal sealed partial class Runner
     private static string UiRisk(string name) => name switch
     {
         "combat-playback" => "Selected fixed-input runtime measurement of normal playback/views; owned 600-frame replay, no default-suite or large graphical fight",
-        "combat" => "Paused focus away/return, current bones and inspection, camera/health-bar projection, rig/action/tower/effect/audio/casualty cleanup using the existing owned peers/display. Adds ordinary earned research through at most wave ten: actual global Fire purchase, permanent Frost lock and current paused burn badge/inspection. Research is separately selectable with 120s setup/30s feature bounds; default reuses the existing match, 300s total. Cheap tests cannot sample rendered controls, bones, pools or voices; no branch matrix or full graphical campaign.",
+        "combat" => "Direct committed walking with intentional transit overlap, bounded pose/facing blends and non-beam linked melee intent/strike/impact. The selectable melee gate adds at most twelve fresh progression observations/four PNGs in the same paid setup, peers and display (measured 4-6s); cheap timing tests and paused endpoints cannot prove actual advancing imported bones or rendered geometry. No additional scenario or graphical campaign. Paused focus away/return, current bones and inspection, camera/health-bar projection, rig/action/tower/effect/audio/casualty cleanup using the existing owned peers/display. Adds ordinary earned research through at most wave ten: actual global Fire purchase, permanent Frost lock and current paused burn badge/inspection. Research is separately selectable with 120s setup/30s feature bounds; default reuses the existing match, 300s total. Cheap tests cannot sample rendered controls, bones, pools or voices; no branch matrix or full graphical campaign.",
         "economy" => "Income/upkeep, explicit zero-wood recovery, build/upgrade/sale capacity, both-size inspector bounds and paused transport refresh. One bounded additional ordinary clear and two productions fund a real shortage sale; no extra peers or display. Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or badges.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
