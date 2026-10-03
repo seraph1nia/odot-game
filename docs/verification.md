@@ -2158,3 +2158,49 @@ not establish native GPU/compositor performance, physical input or listening
 quality, native Windows packaging/installer qualification, real two-account
 Steam acceptance, or release publishing. Those external/prerequisite-dependent
 checks and their archived records remain unchanged.
+
+### Hosted source cancellation diagnosis, 2026-10-03
+
+GitHub run `37129710193`, source job `111222216058`, reviewed head
+`cc710107ba1cdf9c4c0cbfffac9f77f3e661cc9e`, was cancelled by the **15-minute job
+limit**, not by an operator or a superseding push. The check annotation explicitly
+reports the maximum execution time. Retrieved annotations, job metadata and the
+complete source log are retained in ignored `logs/ci-cancellation-diagnosis/`.
+Locked restore, formatting, build/import, all 439 gameplay and 149 runner checks,
+five source UI scenarios (575.47s including admission), and five network scenarios
+passed. Redistribution reached its transfer identity/damage/recovery/food assertions
+but never completed the subsequent exact-revision peer wait. This is incomplete
+network coverage, not a passing source verdict. Linux and Windows package jobs
+on that head independently passed.
+
+The exact transfer comparison now uses an ordinary acknowledged pause instead of
+requiring a guest to retain one transient unpaused combat revision. It still
+compares complete serialized snapshots exactly, then resumes before the existing
+wave-clear, observer recovery, future allocation and protected-admission assertions.
+No assertion or scenario was removed. The source workflow limit is now 20 minutes,
+leaving setup, preparation and awaited owned cleanup outside the runner's existing
+900-second source budget; runner limits, concurrency and rerun policy are unchanged.
+
+Locked restore and `dotnet format Odot.slnx --no-restore` passed. Standalone cheap
+checks passed 439 gameplay and 149 runner checks in 26.05s
+(`logs/20261003-145417-d679f4d6/`). Selected redistribution passed in 22.58s
+(31.65s including preparation), `logs/20261003-145452-24ce0e34/`.
+The complete affected workflow command,
+`mise run ci-source --startup-timeout-ms 60000`, then passed in **258.57s**
+(**259.93s** including mise bootstrap):
+`logs/20261003-145537-e816d7cd/ci-source-summary.json`. It includes locked
+restore/format/build/import, all 439+149 C# checks, all six network cases and all
+five source UI cases, with two total expensive slots and graphical cap two.
+Network took 114.99s including admission (redistribution 22.57s); source UI took
+235.54s. Owned economy/reconnect/settings/launcher/combat workers took
+113.81/44.65/31.51/84.65/99.15s. No source stage failed or was skipped.
+
+The successful command awaited child/display cleanup. Independent evidence
+inspection found all **19 owned runtime directories** absent, **60 child cleanup
+checkpoints**, and no live processes referencing those owned runtime/evidence paths.
+Report: `logs/ci-cancellation-diagnosis/cleanup.json`. Verification data stayed
+inside this worktree; no developer preferences or unrelated processes changed.
+This source-only run does not claim fresh export/package coverage or a replacement
+GitHub check. Unchanged package coverage remains the passing hosted jobs and the
+full local gate recorded above. The outer pipeline must publish the corrected
+head and obtain its replacement passing GitHub source verdict; no check was waived.
