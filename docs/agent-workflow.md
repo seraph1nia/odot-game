@@ -1,6 +1,6 @@
 # Single-project agent workflow POC
 
-The local bootstrap adds deterministic Git-backed planning and scoped skills. The proposed runtime is one Pi/FirstMate primary, Herdr visible sessions, Treehouse native worktree isolation and fresh Codex Scouts/Shippers/Reviewers. FirstMate handles execution and guarded local landing; OpenSpec/planning/ADRs/source/tests own product truth. The five real-session scenarios are still unexecuted. Bootstrap tests are not live acceptance.
+The local bootstrap adds deterministic Git-backed planning and scoped skills. The running runtime is one Pi/FirstMate primary, Herdr visible sessions, Treehouse native worktree isolation and fresh Codex Scouts/Shippers/Reviewers. FirstMate handles execution and guarded local landing; OpenSpec/planning/ADRs/source/tests own product truth. Native Scout smoke and real fuzzy intake have completed; [fresh-session recovery](../planning/evidence/setup-agent-workflow-poc/restart-intake.md) recovered the active intake worker without duplication. Proposal, implementation/review, repair, ambiguity and full restart/final acceptance remain open. Bootstrap tests are not live acceptance.
 
 ## Runtime and supplied paths
 

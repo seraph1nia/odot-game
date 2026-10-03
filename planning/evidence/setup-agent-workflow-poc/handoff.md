@@ -16,5 +16,28 @@ Owned branch/worktree: work/agent-workflow-bootstrap, .cache/agent-workflow-boot
 Base: 4a70e16a152beee112a775b1f11f08da4ebc2277.
 Exact checkpoint head: report from Git when this artifact is committed; the parent receives the immutable commit identity separately and retains it in checkpoint review/setup evidence.
 Repair count:1. Fresh local checkpoint review1 returned FAIL_IMPLEMENTATION (B1); complete standalone report retained as checkpoint-review-1.md. One repair prevents unreviewed pre-landing production changes from clearing dependencies while preserving valid post-landing history; native exact socket/pane/tab/workspace proof now reused. Fresh static-only review2 PASS at 501021722a7e03fcde0cf9675db723f08a780707 is retained as checkpoint-review-2.md. Neither local checkpoint review is live POC acceptance.
-Progress:17/26 OpenSpec tasks complete. Task4.4 checkpoint bookkeeping and4.2/4.3 native setup/Scout smoke are complete; five product scenarios/restart/final/Atomic acceptance remain unchecked. See native-launch.md and native-completion.md for actual execution evidence and the tasks-axi prerequisite correction.
-The original checkout, unrelated Windows CI worktree, preferences, credentials and sessions remain preserved. No tools/packages were installed; the only deliberate dependency addition is locked YamlDotNet16.3.0 in DevRunner and its transitive runner-test lock.
+Progress:18/26 OpenSpec tasks complete. Task4.4 checkpoint bookkeeping,4.2/4.3 native setup/Scout smoke and5.2 real fuzzy intake are complete. Scenario2 proposal is running; implementation/review, repair, ambiguity, full restart/final/Atomic acceptance remain open. See native-launch.md, native-completion.md, scenario-1-fuzzy-intake.md and restart-intake.md for actual execution evidence.
+The original checkout, unrelated Windows CI worktree, preferences, credentials and sessions remain preserved. During the bootstrap coding checkpoint no tools/packages were installed; the only deliberate dependency addition was locked YamlDotNet16.3.0 in DevRunner and its transitive runner-test lock. Later the user explicitly authorized tasks-axi0.2.6 installation for native completion, documented in native-completion.md.
+
+# Live continuation after the original worker handoff
+
+The original fields above describe the stopped local bootstrap Shipper's results,
+not the subsequent Pi execution. The selected Pi/Herdr/Codex/Treehouse stack is
+now live. A native Scout smoke completed and cleaned up; real intake task
+poc-scenario1-fuzzy-intake delivered Git head fe42f72766ec839ecead121f87d63c0123532e1d
+after1208s, remaining unlanded/retained. The user selected Documentation guide.
+A fresh Pi conversation recovered its live worker without duplication and repeated
+deterministic next-work selection. No trial implementation approval, production
+review/repair or main landing exists yet. The two captured intake files were
+replayed onto this owned bootstrap feature branch; neither project main changed.
+
+Follow-up launcher correction requires tasks-axi at startup and removes the
+incorrect optional-route warning for it; the existing fake-bin fixture and setup
+instructions were kept coherent. Shell syntax, whitespace and prebuilt planning
+validation passed. Tests/builds were not rerun under the user's no-tests request;
+the earlier checkpoint PASS is historical, not an independent review of these
+follow-up edits. Native Codex state classification still has a codex-unverified
+gap, and one presentation restart-binding warning occurred; actual Herdr/status/
+report evidence remains available. Full live acceptance and fresh final review
+remain required. Continue scenario2; implementation and main landing each await
+their explicit user authorization once the concrete work is reviewable.
