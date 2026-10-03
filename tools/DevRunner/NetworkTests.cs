@@ -239,8 +239,12 @@ internal sealed partial class Runner
         Require(fallen.Players.All(city => city.Food == initial.Players.Single(old => old.Id == city.Id).Food
             && JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options) == JsonSerializer.Serialize(initial.Players.Single(old => old.Id == city.Id).LastUpkeep, WireJson.Options)), "transfers retain already-resolved food balances and battle receipts");
         CombatContact(fallen);
-        MatchSnapshot seen = await Observe(b, s => s.Revision == fallen.Revision, "matching transfer revision", token);
-        Require(JsonSerializer.Serialize(fallen, WireJson.Options) == JsonSerializer.Serialize(seen, WireJson.Options), "surviving clients agree on transfers");
+        // Combat publication can skip a transient revision on a slower peer.
+        // Freeze through the ordinary protocol before requiring exact agreement.
+        MatchSnapshot paused = State(await Action(a, "pause", token));
+        MatchSnapshot seen = await Observe(b, s => s.Revision == paused.Revision, "matching paused transfer revision", token);
+        Require(JsonSerializer.Serialize(paused, WireJson.Options) == JsonSerializer.Serialize(seen, WireJson.Options), "surviving clients agree on transfers");
+        await Action(a, "resume", token);
         await Observe(a, s => s.Wave == 2 && s.Phase == Phase.Building, "redistributed wave clear", token); await Observe(b, s => s.Wave == 2 && s.Phase == Phase.Building, "B next wave", token);
         await c.Send("quit"); await c.WaitExit(token);
         await using var observer = StartGame("observer-resumed", false, true, port, null, "--automated", "--session-file", cPath);

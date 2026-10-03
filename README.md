@@ -18,9 +18,8 @@ Third-party materials retain their own terms and are excluded from Odot's GPL gr
 Combat math runs entirely in C# under `src/Game.Core`: one canonical action per
 unit, shared integer graph search and complete defense profiles. `mise run test`
 verifies transitions, targeting, simultaneous impacts and lifecycle behavior
-without starting Godot. Combat rules version 2 changes seeded battle outcomes;
-the decision mixer remains version 1 and the snapshot protocol remains v6.
-See [gameplay rules](docs/gameplay.md#deterministic-hex-combat) and
+without starting Godot. See
+[gameplay rules and compatibility](docs/gameplay.md#deterministic-hex-combat) and
 [verification evidence](docs/verification.md).
 
 Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Linux graphical clients need OpenGL 3.3 and a display. Rules/network tests and servers are headless; graphical verification uses an owned virtual display and software OpenGL without a physical screen, GPU or audio device.
@@ -164,7 +163,7 @@ During development, run applicable cheap `test` checks frequently and choose the
 
 Add expensive tests only for a meaningful regression/risk that cheaper or existing checks miss. Document that gap and expected runtime/setup/maintenance cost alongside the scenario. Prefer a small independent vertical slice or an extension to an existing case. A simple option does not automatically warrant E2E coverage; avoid feature/option matrices and graphical duplication of full headless match flows. The initial slices protect actual picking/control routing, visible reconnect recovery, modal/persistence boundaries and packed-resource loading.
 
-The current cheap suites include 333 gameplay/presentation/transport and 120 runner xUnit cases, alongside six network scenarios, five source UI slices and platform package checks. Native Windows source/export validation has passed on GitHub-hosted `windows-2025`; actual release-installer verification is available as an explicitly selected package-qualification task. Timing observations are single runs rather than portable benchmarks; see [POC verification](docs/verification.md) for evidence and limitations. Real Steam peer/invitation/relay acceptance remains separate. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
+The cheap suites cover gameplay/presentation/transport and runner xUnit cases; see the [final economy integration gate](docs/verification.md#final-full-gate-passed) for recorded counts and coverage. Native Windows source/export validation has passed on GitHub-hosted `windows-2025`; actual release-installer verification is available as an explicitly selected package-qualification task. Timing observations are single runs rather than portable benchmarks; see [POC verification](docs/verification.md) for evidence and limitations. Real Steam peer/invitation/relay acceptance remains separate. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
 
 ## Reconnect and local sessions
 

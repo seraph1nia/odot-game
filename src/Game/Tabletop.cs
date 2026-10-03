@@ -9,6 +9,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private readonly LandscapeAssets _landscapeAssets = new();
     private readonly Dictionary<int, VillageLandscape> _landscapes = [];
     private readonly Dictionary<int, UnitView> _units = [];
+    private readonly Queue<(int Id, long DeathEndTick, double CombatTick, double VisualSeconds)> _deathCleanups = new();
     private readonly Dictionary<int, UnitHealthBar> _healthBars = [];
     private Control _healthRoot = null!;
     private readonly Dictionary<string, Label> _values = [], _incomes = [];
@@ -189,6 +190,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["Units"] = _units.Values.OrderBy(u => u.State.Id).Select(u => u.Observe()).ToArray();
         fields["Strikes"] = _strikes.OrderBy(p => p.Key).Select(p => p.Value.Observe(_camera, GetViewport().GetFinalTransform())).ToArray();
         fields["CombatTick"] = _playback.Tick; fields["VisualSeconds"] = _playback.VisualSeconds;
+        fields["DeathCleanups"] = _deathCleanups.Select(sample => new { sample.Id, sample.DeathEndTick, sample.CombatTick, sample.VisualSeconds }).ToArray();
         fields["EventCursor"] = _playback.EventCursor; fields["PlaybackGeneration"] = _playback.Generation;
         fields["Stockpiles"] = _boards.TryGetValue(_focus, out Node3D? observedBoard) ? new
         { Gold = observedBoard.GetNodeOrNull("Stockpiles/Gold")?.GetChildCount() ?? 0, Food = observedBoard.GetNodeOrNull("Stockpiles/Food")?.GetChildCount() ?? 0, Wood = observedBoard.GetNodeOrNull("Stockpiles/Wood")?.GetChildCount() ?? 0 } : null;
@@ -208,7 +210,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         {
             foreach (Node3D n in _boards.Values.Concat<Node3D>(_units.Values)) n.QueueFree();
             ClearBars();
-            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
+            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _deathCleanups.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
             CancelGesture(); _inspector.Close();
             _navigation.Reset(); _frameFocus = -1;
             _matchId = state.MatchId; _constructionGroup = "Production"; _revision = -1; _focus = game.PlayerId; _slot = -1; _hover = -1;
@@ -503,7 +505,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             foreach (UnitView view in _units.Values) view.QueueFree();
             foreach (MeleeStrike strike in _strikes.Values) strike.QueueFree(); _strikes.Clear();
             _combatLayout = game.State is null ? null : new CombatLayout(new HexBoard(game.State.Rules.Combat.Board));
-            _units.Clear(); ClearBars(); _effects.Clear(); _playbackGeneration = _playback.Generation;
+            _units.Clear(); _deathCleanups.Clear(); ClearBars(); _effects.Clear(); _playbackGeneration = _playback.Generation;
         }
         _playback.Advance(delta, game.Connected);
         _windmills.RemoveAll(w => !GodotObject.IsInstanceValid(w.Node));
@@ -531,7 +533,16 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             // Missing live IDs with a buffered death stay until its common-clock event.
             bool awaitingDeath = _playback.AwaitingDeath(id);
             if (view.Expired(_playback.Tick) || !current.ContainsKey(id) && !awaitingDeath)
-            { view.QueueFree(); _units.Remove(id); continue; }
+            {
+                if (view.Dead)
+                {
+                    // Timestamp actual removal, not a later verification probe.
+                    // Bound diagnostic retention and reset it with playback/session identity.
+                    if (_deathCleanups.Count == 64) _deathCleanups.Dequeue();
+                    _deathCleanups.Enqueue((id, view.State.Hex!.DeathEndTick, _playback.Tick, _playback.VisualSeconds));
+                }
+                view.QueueFree(); _units.Remove(id); continue;
+            }
             view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);
         }
         foreach (int id in _strikes.Keys.Where(id => !_units.ContainsKey(id)).ToArray()) { _strikes[id].QueueFree(); _strikes.Remove(id); }

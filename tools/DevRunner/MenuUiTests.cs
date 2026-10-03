@@ -180,6 +180,9 @@ internal sealed partial class Runner
         turn = Latest(client).TurnSerial;
         await ClickAck(client, "Ready", token);
         await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Preparation, "solo third ordinary production", token);
+        // This menu route enters no battle and needs no further production. The
+        // actual Farm investment refunds the last wood needed for ranged equipment.
+        await Action(client, "sell 0", token);
         await Pick(client, 2, token);
         await ClickAck(client, "Sell", token);
         await ClickAck(client, "ArcheryRange", token);

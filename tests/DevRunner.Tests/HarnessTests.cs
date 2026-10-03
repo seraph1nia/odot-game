@@ -27,6 +27,45 @@ public sealed class HarnessTests
         Assert.Equal("Need 1 more gold", parsed.Targets["LumbermillRecovery"].Tooltip);
     }
     [Fact]
+    public void DeathCleanupUsesActualRemovalTimeEvenWhenTheProbeArrivesLate()
+    {
+        var frame = new UiObservation
+        {
+            CombatTick = 1104,
+            VisualSeconds = 23.4,
+            DeathCleanups = [new(44, 976, 977, 21.4)]
+        };
+        UiObservation parsed = JsonSerializer.Deserialize<UiObservation>(JsonSerializer.Serialize(frame, WireJson.Options), WireJson.Options)!;
+        Assert.Equal(frame.DeathCleanups, parsed.DeathCleanups);
+        DeathCleanupObservation cleanup = UiProtocol.DeathCleanup(parsed, 44, 976, 20.6);
+        Assert.Equal(21.4, cleanup.VisualSeconds);
+        Assert.True(parsed.VisualSeconds - 20.6 > 2);
+        Assert.Equal(cleanup, UiProtocol.DeathCleanup(parsed with { VisualSeconds = 100, CombatTick = 10000 }, 44, 976, 20.6));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(2.001)]
+    public void DeathCleanupRetainsTheExactTwoUnpausedSecondBound(double elapsed)
+    {
+        var frame = new UiObservation { CombatTick = 100, VisualSeconds = 20, DeathCleanups = [new(7, 48, 48, elapsed)] };
+        if (elapsed == 2) Assert.Equal(elapsed, UiProtocol.DeathCleanup(frame, 7, 48, 0).VisualSeconds);
+        else Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame, 7, 48, 0));
+    }
+
+    [Fact]
+    public void DeathCleanupRejectsAbsentWrongPrematureAndStillRenderedWitnesses()
+    {
+        var frame = new UiObservation { CombatTick = 100, VisualSeconds = 20, DeathCleanups = [new(7, 48, 48, 1)] };
+        Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame with { DeathCleanups = [] }, 7, 48, 0));
+        Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame, 8, 48, 0));
+        Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame, 7, 49, 0));
+        Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame with { DeathCleanups = [new(7, 48, 47, 1)] }, 7, 48, 0));
+        Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame with { Units = [new() { Id = 7, Dead = true }] }, 7, 48, 0));
+        Assert.Throws<InvalidOperationException>(() => UiProtocol.DeathCleanup(frame, 7, 48, 2));
+    }
+
+    [Fact]
     public void FullSourceUiHasABoundedAggregateBudgetAndPreservesOverrides()
     {
         Assert.Equal(900000, Options.Parse(["ci"]).Timeout);

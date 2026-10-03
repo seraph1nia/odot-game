@@ -216,7 +216,17 @@ internal sealed partial class Runner
         UiObservation deathStill = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(deathStill.VisualSeconds == deathPaused.VisualSeconds && JsonSerializer.Serialize(deathPaused.Units) == JsonSerializer.Serialize(deathStill.Units) && JsonSerializer.Serialize(deathPaused.HealthBars) == JsonSerializer.Serialize(deathStill.HealthBars), "death pose and cleanup freeze on shared pause");
         await Checkpoint(client, "combat-casualty", token);
-        await ClickAck(client, "Pause", token);
+        // Select from the frozen current battle, not a low-health target that can
+        // die between the live probe and native click. Resume through the ordinary
+        // observer command so the already-tested outside Pause click does not dismiss it.
+        UiObservation liveTarget = await WaitUi(client, p => p.Units.Any(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth), "currently damaged opponent for live inspection", token);
+        UnitObservation damagedUnit = liveTarget.Units.Where(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth).OrderBy(u => u.Health).ThenBy(u => u.Id).First();
+        await ClickPoint(client, liveTarget.Targets["Unit" + damagedUnit.Id]);
+        UiObservation liveInspection = await WaitUi(client, p => p.InspectedUnit?.Id == damagedUnit.Id, "live damaged-unit inspector opens", token);
+        InspectorObservation liveUnit = liveInspection.InspectedUnit!;
+        await Action(observer, "resume", token);
+        await Action(client, "unknown", token, false);
+        Require(!Latest(client).Paused, "live inspection resumes without dismissal");
         long deathEnd = deathPaused.Units.Single(u => u.Id == dead).Hex!.DeathEndTick;
         UiObservation cleaned = await WaitUi(client, p =>
         {
@@ -226,12 +236,17 @@ internal sealed partial class Runner
         }, "declared death cleanup", token);
         MatchSnapshot deathReleased = await Observe(observer, s => s.Tick >= deathEnd && s.DyingBodies.All(u => u.Id != dead), "authoritative death reservation release", token);
         CombatContact(deathReleased);
-        Require(cleaned.VisualSeconds - casualty.VisualSeconds <= 2, "death view frees within two unpaused seconds");
-        UiObservation liveTarget = await WaitUi(client, p => p.Units.Any(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth), "currently damaged opponent for live inspection", token);
-        UnitObservation damagedUnit = liveTarget.Units.Where(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth).OrderBy(u => u.Health).ThenBy(u => u.Id).First();
-        await ClickPoint(client, liveTarget.Targets["Unit" + damagedUnit.Id]);
-        UiObservation liveInspection = await WaitUi(client, p => p.InspectedUnit?.Id == damagedUnit.Id, "live damaged-unit inspector opens", token);
-        InspectorObservation liveUnit = liveInspection.InspectedUnit!;
+        DeathCleanupObservation cleanup = UiProtocol.DeathCleanup(cleaned, dead, deathEnd, casualty.VisualSeconds);
+        Require(cleanup.VisualSeconds - casualty.VisualSeconds <= 2, "death view frees within two unpaused seconds");
+        await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-death-cleanup.json"),
+            JsonSerializer.Serialize(new
+            {
+                Unit = dead,
+                PausedVisualSeconds = casualty.VisualSeconds,
+                Removal = cleanup,
+                ProbeTick = cleaned.CombatTick,
+                ProbeVisualSeconds = cleaned.VisualSeconds
+            }, Evidence.JsonOptions), token);
         bool inspectionChanged = false;
         // Retain actual frames already witnessed during movement, pause and
         // casualty capture while observing live inspection and recovery.
@@ -290,8 +305,8 @@ internal sealed partial class Runner
         UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal)
             && p.HudHeight >= 179 && p.HudHeight <= 190 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
         RequireOverview(fresh);
-        Require(fresh.Units.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
-            "fresh match clears living/dead views, events and old authority identity");
+        Require(fresh.Units.Length == 0 && fresh.DeathCleanups.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
+            "fresh match clears living/dead views, cleanup witnesses, events and old authority identity");
         await Checkpoint(client, "combat-fresh-session", token);
     }
 }
