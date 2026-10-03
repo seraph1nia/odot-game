@@ -95,11 +95,11 @@ internal sealed partial class Runner
         await _evidence.Measure(selection == "exported-package" ? "exported-ui" : "source-ui", "suite",
             () => ScenarioScheduler.Run(scenarios, jobs, cancellation, _admission, graphical: true));
     }
-    private async Task UiDisplay(string name, CancellationToken tokenCancellation)
+    private async Task UiDisplay(string name, CancellationToken tokenCancellation, string? evidenceName = null)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(tokenCancellation);
         deadline.CancelAfter(options.Timeout);
-        await using var display = new ScenarioScope("display-" + name, _evidence);
+        await using var display = new ScenarioScope("display-" + (evidenceName ?? name), _evidence);
         string workerToken = Guid.NewGuid().ToString("N");
         await File.WriteAllTextAsync(Path.Combine(display.Directory, "worker-token"), workerToken, tokenCancellation);
         var env = display.EnvironmentFor("display");
@@ -109,10 +109,15 @@ internal sealed partial class Runner
         env["ODOT_UI_WORKER"] = workerToken; env["ODOT_UI_RUNTIME"] = display.Directory;
         var args = new List<string> { "xvfb-run", "--auto-servernum", "--auth-file", Path.Combine(display.Directory, "xauthority"),
             "--error-file", Path.Combine(display.EvidenceDirectory, "xvfb.log"), "--server-args=-screen 0 1920x1080x24 -nolisten tcp",
-            "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", Path.Combine(_evidence.Directory, name + "-worker"), "--worker-token", workerToken,
+            "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", Path.Combine(_evidence.Directory, (evidenceName ?? name) + "-worker"), "--worker-token", workerToken,
             "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
         args.AddRange(["--scenario", name, "--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
         if (options.Trace) args.Add("--trace");
+        if (name == "combat-playback")
+        {
+            args.AddRange(["--frames", "600", "--configuration", "Debug"]);
+            if (options.ProfileWorkCounters) args.Add("--work-counters");
+        }
         if (options.UiCheckpoint is not null) args.AddRange(["--checkpoint", options.UiCheckpoint]);
         if (options.InstalledClient is not null) args.AddRange(["--installed-client", options.InstalledClient]);
         if (options.Port is not null) args.AddRange(["--port", options.Port.Value.ToString(CultureInfo.InvariantCulture)]);
@@ -144,7 +149,8 @@ internal sealed partial class Runner
         {
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
-            if (name == "launcher") await worker.MenuUiScenario(null, token);
+            if (name == "combat-playback") await worker.PresentationProfileScenario(token);
+            else if (name == "launcher") await worker.MenuUiScenario(null, token);
             else if (name is "installed-linux" or "exported-package")
                 await worker.PackedUiScenario(name == "installed-linux" ? options.InstalledClient! : Path.Combine(_root, "dist", "client", "odot.x86_64"), token);
             else await worker.UiScenario(name, token);

@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+set -eu
+command_name=$1
+shift
+profile_configuration=Release
+profile_configuration_explicit=false
+profile_next_configuration=false
+for argument in "$@"; do
+  if [ "$profile_next_configuration" = true ]; then
+    profile_configuration=$argument
+    profile_next_configuration=false
+  elif [ "$argument" = --configuration ]; then
+    profile_next_configuration=true
+    profile_configuration_explicit=true
+  fi
+done
+if [ "$profile_next_configuration" = true ]; then
+  echo 'Missing --configuration value.' >&2
+  exit 1
+fi
+case "$profile_configuration" in Debug|Release) ;; *) echo 'Use --configuration Debug or Release.' >&2; exit 1 ;; esac
+if [ "$profile_configuration_explicit" = false ]; then
+  set -- "$@" --configuration "$profile_configuration"
+fi
+dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode
+dotnet build tests/Game.Core.Tests/Game.Core.Tests.csproj --configuration "$profile_configuration" --no-restore --nologo
+exec dotnet "tests/Game.Core.Tests/bin/$profile_configuration/net10.0/Game.Core.Tests.dll" "$command_name" "$@"

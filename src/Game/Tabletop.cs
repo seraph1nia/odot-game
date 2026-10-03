@@ -49,6 +49,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private MeshInstance3D _selection = null!, _hoverMarker = null!;
     private int _hover = -1;
     private string _uiKey = "";
+    private readonly HudInvalidation _hud = new();
     private Vector2 _frameSize;
     private float _framePanelHeight;
     private int _frameFocus;
@@ -70,6 +71,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private VillageFeedback _effects = null!;
     private int _effectFocus;
 
+    internal void SetWorkCounters(WorkCounters? work)
+    {
+        _playback.Work = work; work?.Support(WorkMetric.FullPoseSamples, WorkMetric.HudSectionRefreshes);
+        foreach (UnitView view in _units.Values) view.Work = work;
+    }
     public override void _Ready()
     {
         _unitBindings = UnitAssets.Validate(this);
@@ -183,6 +189,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["AmbientAngles"] = _windmills.Where(w => GodotObject.IsInstanceValid(w.Node)).Select(w => w.Node.Rotation.Z).ToArray();
     }
     private static Vector3 Center(int id) => new((id - 1) * 40, 0, 0);
+    internal void ReplayFocus(int city) => _focus = city;
     private static Vector3 SlotPosition(int slot) => VillageLayout.Slot(slot);
     public override void _Process(double delta)
     {
@@ -206,7 +213,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (!_wasConnected && game.Connected && state is not null) _playback.Accept(state, baseline: true);
         if (_wasConnected != game.Connected) { _wasConnected = game.Connected; _slot = -1; _hover = -1; }
         if (Focus() is not { Slots.Length: 9 }) _slot = -1;
-        string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{game.CanStart}:{game.CanInvite}:{_focus}:{_slot}";
+        string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{game.CanStart}:{game.CanInvite}:{_focus}:{_slot}:{game.PlayerId}:{game.HostPlayerId}:{_constructionGroup}";
         if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
         UpdateUnits(delta);
         FrameCamera();
@@ -223,109 +230,131 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     {
         if (_phase is null) return;
         MatchSnapshot? s = game.State; CityState? focus = Focus(); CityState? me = Me();
-        _status.Text = game.Connected ? "" : game.Status;
-        _status.Visible = _status.Text.Length != 0;
-        ProgressionView progression = ProgressionPresentation.Describe(s, focus);
-        _phase.Text = progression.Phase;
-        _feedback.Text = game.Feedback.Contains("Match started", StringComparison.OrdinalIgnoreCase) ? "" : game.Feedback;
-        _feedback.Visible = _feedback.Text.Length != 0;
-        _rosterDetails.Text = s is null ? "" : string.Join("\n", s.Players.OrderBy(p => p.Id).Select(p => $"P{p.Id}{(p.Id == game.HostPlayerId ? " · Host" : "")}{(p.Id == game.PlayerId ? " · You" : "")} · {(p.Eliminated ? "Fallen" : !p.Connected ? "Away" : p.Ready ? "Ready" : "Here")}"));
-        _inspectionRoster.Text = _rosterDetails.Text;
-        _roster.Visible = s?.Phase == Phase.Lobby;
-        _cityName.Text = _focus == game.PlayerId ? "[YOU]" : $"[P{_focus}]";
-        _previousCity.Disabled = _nextCity.Disabled = s is null || s.Players.Length < 2;
-        _stats.Text = "";
-        _resources.Visible = focus is not null;
-        foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>()) _values[resource.ToString()].Text = (focus?.Resources.Amount(resource) ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture);
-        _upkeep.Text = progression.Food; _reward.Text = progression.Reward;
-        _armyDetails.Text = progression.Army;
-        _detailsDialog.DialogText = "";
-        _counters.Text = s is null ? "" : $"Wave {s.Wave}/{s.TotalWaves} · Turn {s.Turn}/3{(s.WaveCatalog.FirstOrDefault(w => w.Number == s.Wave)?.IsBoss == true ? " · BOSS" : "")}";
-        string[] phases = ProgressionPresentation.PhaseRows(s);
-        for (int i = 0; i < _phaseRows.Count; i++) _phaseRows[i].Text = phases[i];
-        _phase.Text = s?.Phase switch { Phase.Lobby => "Lobby", Phase.Victory => progression.Phase, Phase.Defeat => progression.Phase, _ => s?.Paused == true ? "PAUSED" : "" };
-        _phase.Visible = _phase.Text.Length != 0;
-        foreach (Label row in _phaseRows) row.Visible = s?.Phase is Phase.Building or Phase.Preparation or Phase.Combat;
-        bool live = game.Connected && s is not null;
-        bool edit = CanEdit() && _slot >= 0;
-        SlotState slot = _slot >= 0 && focus is not null ? focus.Slots[_slot] : new(Building.Empty, 0);
-        TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
-        BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
-        _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n" + (definition?.Produces is Game.Core.Resource output ? $"+{definition.Output(slot.Level)} {output} per production" : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.Blacksmith ? "Class research: +5% base HP and damage per rank" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
-        string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
-        if (explanation.Length != 0) _detail.Text += "\n" + explanation;
-        _buildActions.Visible = _slot >= 0 && slot.Purchased && slot.Type == Building.Empty;
-        _buyPlot.Visible = _slot >= 0 && !slot.Purchased;
-        int expansions = focus?.Slots.Count(p => p.Purchased) - 5 ?? 0;
-        ResourceCost plotCost = s is not null && expansions < s.PlotPrices.Length ? new(s.PlotPrices[expansions]) : default;
-        _buyPlot.Text = $"Buy plot · {plotCost.Gold} gold"; _buyPlot.Disabled = !edit || slot.Purchased || !me!.Resources.TryPay(plotCost, out _);
-        _buyPlot.TooltipText = focus is null ? "" : CostExplanation(plotCost, focus.Resources);
-        _buildGroups.Visible = _buildActions.Visible;
-        _detail.Visible = _detail.Text.Trim().Length != 0;
-        int choices = _construction.Keys.Count(type => BuildingGroup(type) == _constructionGroup);
-        for (int i = 0; i < _emptyBuildCells.Count; i++) _emptyBuildCells[i].Visible = i < 9 - choices;
-        foreach (Button tab in _groupButtons) tab.Modulate = tab.Text == _constructionGroup ? Colors.White : new Color(.7f, .7f, .7f);
-        _buildingActions.Visible = _slot >= 0 && slot.Type != Building.Empty;
+        var inputs = HudInvalidation.Capture(s, _focus, _slot, _constructionGroup, game.Connected, game.Status, game.Feedback, game.PlayerId, game.HostPlayerId, game.CanStart, game.CanInvite);
+        bool statusChanged = _hud.Refresh(HudSection.Status, inputs[HudSection.Status]);
+        bool economyChanged = _hud.Refresh(HudSection.Economy, inputs[HudSection.Economy]);
+        ProgressionView? progression = statusChanged || economyChanged ? ProgressionPresentation.Describe(s, focus) : null;
+        if (statusChanged)
+        {
+            _playback.Work?.Add(WorkMetric.HudSectionRefreshes);
+            _status.Text = game.Connected ? "" : game.Status;
+            _status.Visible = _status.Text.Length != 0;
+            _phase.Text = s?.Phase switch { Phase.Lobby => "Lobby", Phase.Victory or Phase.Defeat => progression!.Phase, _ => s?.Paused == true ? "PAUSED" : "" };
+            _phase.Visible = _phase.Text.Length != 0;
+            _feedback.Text = game.Feedback.Contains("Match started", StringComparison.OrdinalIgnoreCase) ? "" : game.Feedback;
+            _feedback.Visible = _feedback.Text.Length != 0;
+        }
+        if (_hud.Refresh(HudSection.Roster, inputs[HudSection.Roster]))
+        {
+            _playback.Work?.Add(WorkMetric.HudSectionRefreshes);
+            _rosterDetails.Text = s is null ? "" : string.Join("\n", s.Players.OrderBy(p => p.Id).Select(p => $"P{p.Id}{(p.Id == game.HostPlayerId ? " · Host" : "")}{(p.Id == game.PlayerId ? " · You" : "")} · {(p.Eliminated ? "Fallen" : !p.Connected ? "Away" : p.Ready ? "Ready" : "Here")}"));
+            _inspectionRoster.Text = _rosterDetails.Text;
+            _roster.Visible = s?.Phase == Phase.Lobby;
+            _cityName.Text = _focus == game.PlayerId ? "[YOU]" : $"[P{_focus}]";
+            _previousCity.Disabled = _nextCity.Disabled = s is null || s.Players.Length < 2;
+        }
+        if (economyChanged)
+        {
+            _playback.Work?.Add(WorkMetric.HudSectionRefreshes);
+            _stats.Text = "";
+            _resources.Visible = focus is not null;
+            foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>()) _values[resource.ToString()].Text = (focus?.Resources.Amount(resource) ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            _upkeep.Text = progression!.Food; _reward.Text = progression.Reward;
+            _armyDetails.Text = progression.Army;
+            _detailsDialog.DialogText = "";
+            _counters.Text = s is null ? "" : $"Wave {s.Wave}/{s.TotalWaves} · Turn {s.Turn}/3{(s.WaveCatalog.FirstOrDefault(w => w.Number == s.Wave)?.IsBoss == true ? " · BOSS" : "")}";
+            string[] phases = ProgressionPresentation.PhaseRows(s);
+            for (int i = 0; i < _phaseRows.Count; i++) _phaseRows[i].Text = phases[i];
+            foreach (Label row in _phaseRows) row.Visible = s?.Phase is Phase.Building or Phase.Preparation or Phase.Combat;
+        }
+        if (_hud.Refresh(HudSection.Context, inputs[HudSection.Context]))
+        {
+            _playback.Work?.Add(WorkMetric.HudSectionRefreshes);
+            bool edit = CanEdit() && _slot >= 0;
+            SlotState slot = _slot >= 0 && focus is not null ? focus.Slots[_slot] : new(Building.Empty, 0);
+            TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
+            BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
+            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n" + (definition?.Produces is Game.Core.Resource output ? $"+{definition.Output(slot.Level)} {output} per production" : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.Blacksmith ? "Class research: +5% base HP and damage per rank" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
+            string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
+            if (explanation.Length != 0) _detail.Text += "\n" + explanation;
+            _buildActions.Visible = _slot >= 0 && slot.Purchased && slot.Type == Building.Empty;
+            _buyPlot.Visible = _slot >= 0 && !slot.Purchased;
+            int expansions = focus?.Slots.Count(p => p.Purchased) - 5 ?? 0;
+            ResourceCost plotCost = s is not null && expansions < s.PlotPrices.Length ? new(s.PlotPrices[expansions]) : default;
+            _buyPlot.Text = $"Buy plot · {plotCost.Gold} gold"; _buyPlot.Disabled = !edit || slot.Purchased || !me!.Resources.TryPay(plotCost, out _);
+            _buyPlot.TooltipText = focus is null ? "" : CostExplanation(plotCost, focus.Resources);
+            _buildGroups.Visible = _buildActions.Visible;
+            _detail.Visible = _detail.Text.Trim().Length != 0;
+            int choices = _construction.Keys.Count(type => BuildingGroup(type) == _constructionGroup);
+            for (int i = 0; i < _emptyBuildCells.Count; i++) _emptyBuildCells[i].Visible = i < 9 - choices;
+            foreach (Button tab in _groupButtons) tab.Modulate = tab.Text == _constructionGroup ? Colors.White : new Color(.7f, .7f, .7f);
+            _buildingActions.Visible = _slot >= 0 && slot.Type != Building.Empty;
 
-        foreach ((Building type, Button button) in _construction)
-        {
-            button.Visible = BuildingGroup(type) == _constructionGroup;
-            BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
-            button.Text = BuildingName(type) + "\n ";
-            button.AddThemeFontSizeOverride("font_size", 13);
-            button.Disabled = !edit || slot.Type != Building.Empty || build is null || !slot.Purchased || !me!.Resources.TryPay(build.Construction, out _);
-            UiAssets.Cost(button, build?.Construction ?? default);
-            button.TooltipText = build is null || focus is null ? "" : CostExplanation(build.Construction, focus.Resources);
+            foreach ((Building type, Button button) in _construction)
+            {
+                button.Visible = BuildingGroup(type) == _constructionGroup;
+                BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
+                button.Text = BuildingName(type) + "\n ";
+                button.AddThemeFontSizeOverride("font_size", 13);
+                button.Disabled = !edit || slot.Type != Building.Empty || build is null || !slot.Purchased || !me!.Resources.TryPay(build.Construction, out _);
+                UiAssets.Cost(button, build?.Construction ?? default);
+                button.TooltipText = build is null || focus is null ? "" : CostExplanation(build.Construction, focus.Resources);
+            }
+            _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}\n ";
+            _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
+            UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
+            _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {q.Type} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
+            if (slot.UpgradeQuote is ResourceCost nextUpgrade && focus is not null) _upgrade.TooltipText += "\n" + CostExplanation(nextUpgrade, focus.Resources);
+            _sell.Text = "Sell · " + ResourceText(slot.Refund); _sell.Disabled = !edit || slot.Type == Building.Empty;
+            _sell.TooltipText = "Refund half the building's total paid construction and upgrades. Land, army, health and research remain.";
+            _marketActions.Visible = slot.Type == Building.Market;
+            foreach ((Game.Core.Resource resource, Button button) in _trades)
+            {
+                MarketRate? rate = s?.MarketRates.FirstOrDefault(r => r.Resource == resource);
+                button.Text = rate is null ? resource.ToString() : $"{rate.Units} {resource}\n+{rate.Gold} gold";
+                button.Disabled = !edit || slot.Type != Building.Market || rate is null || me!.Resources.Amount(resource) < rate.Units;
+                button.TooltipText = $"Stock: {focus?.Resources.Amount(resource) ?? 0} {resource}. Sell whole bundles for gold. Food sales change the next battle forecast.";
+            }
+            foreach ((UnitType type, Button button) in _recruitment)
+            {
+                RecruitmentQuote? quote = focus?.RecruitmentQuotes.FirstOrDefault(q => q.Type == type && q.Level == slot.Level);
+                button.Text = $"{type} L{slot.Level}\n ";
+                button.Visible = definition?.Recruits?.Contains(type) == true;
+                button.Disabled = !edit || !button.Visible || quote is null || !me!.Resources.TryPay(quote.Cost, out _);
+                UiAssets.Cost(button, quote?.Cost ?? default);
+                if (quote is not null) button.TooltipText = $"L{quote.Level} · size {quote.Profile.Size} · HP {HealthPoints.Format(quote.Profile.Health)} · damage {HealthPoints.Format(quote.Profile.Damage)} · food upkeep {quote.Upkeep}/battle\n" + CostExplanation(quote.Cost, focus!.Resources);
+            }
+            _researchActions.Visible = slot.Type == Building.Blacksmith;
+            foreach ((UnitClass type, Button button) in _research)
+            {
+                int rank = focus?.Research.For(type) ?? 0;
+                ResearchQuote? quote = s?.ResearchQuotes.FirstOrDefault(q => q.Rank == rank + 1);
+                button.TooltipText = quote is null ? "Maximum research rank" : $"Requires Blacksmith L{quote.RequiredBlacksmithLevel}\n" + (focus is null ? "" : CostExplanation(quote.Cost, focus.Resources));
+                button.Text = $"{type} {rank}/2\n "; UiAssets.Cost(button, quote?.Cost ?? default);
+                button.Disabled = !edit || slot.Type != Building.Blacksmith || quote is null || quote.RequiredBlacksmithLevel > slot.Level || !me!.Resources.TryPay(quote.Cost, out _);
+            }
+            _quoteDetails.Text = _detail.Text + "\n" + string.Join("\n\n", _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Concat(_trades.Values).Append(_upgrade).Append(_buyPlot).Where(button => button.IsVisibleInTree() && button.TooltipText.Length > 0).Select(button => button.Text.Trim() + "\n" + button.TooltipText));
+            foreach (Button button in _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Append(_upgrade))
+                if (button.GetNodeOrNull<RichTextLabel>("Cost") is { } cost) cost.Modulate = button.Disabled ? new Color(1, 1, 1, 0.6f) : Colors.White;
         }
-        _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}\n ";
-        _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
-        UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
-        _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {q.Type} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
-        if (slot.UpgradeQuote is ResourceCost nextUpgrade && focus is not null) _upgrade.TooltipText += "\n" + CostExplanation(nextUpgrade, focus.Resources);
-        _sell.Text = "Sell · " + ResourceText(slot.Refund); _sell.Disabled = !edit || slot.Type == Building.Empty;
-        _sell.TooltipText = "Refund half the building's total paid construction and upgrades. Land, army, health and research remain.";
-        _marketActions.Visible = slot.Type == Building.Market;
-        foreach ((Game.Core.Resource resource, Button button) in _trades)
+        if (_hud.Refresh(HudSection.Controls, inputs[HudSection.Controls]))
         {
-            MarketRate? rate = s?.MarketRates.FirstOrDefault(r => r.Resource == resource);
-            button.Text = rate is null ? resource.ToString() : $"{rate.Units} {resource}\n+{rate.Gold} gold";
-            button.Disabled = !edit || slot.Type != Building.Market || rate is null || me!.Resources.Amount(resource) < rate.Units;
-            button.TooltipText = $"Stock: {focus?.Resources.Amount(resource) ?? 0} {resource}. Sell whole bundles for gold. Food sales change the next battle forecast.";
+            _playback.Work?.Add(WorkMetric.HudSectionRefreshes);
+            bool live = game.Connected && s is not null;
+            _ready.Text = me?.Ready == true ? "Unready" : "Ready";
+            _ready.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation) || s.Paused || me is null || me.Eliminated;
+            _ready.Visible = s?.Phase != Phase.Lobby && game.Connected;
+            _pause.Visible = game.Connected && s?.Phase != Phase.Lobby;
+            _start.Visible = game.Connected && s?.Phase == Phase.Lobby && game.CanStart; _start.Disabled = !live || !game.CanStart;
+            _invite.Visible = game.HostPlayerId == game.PlayerId && game.HostPlayerId != 0; _invite.Disabled = !live || !game.CanInvite;
+            _invite.TooltipText = game.CanInvite ? "Invite friends through Steam" : "Invitations are unavailable for this session.";
+            _pause.Text = s?.Paused == true ? "Resume" : "Pause";
+            UiAssets.Decorate(_pause, s?.Paused == true ? "Resume" : "Pause");
+            UiAssets.Decorate(_ready, me?.Ready == true ? "Unready" : "Ready");
+            _pause.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation or Phase.Combat);
+            _reconnect.Visible = !game.Connected; _reconnect.Disabled = game.Status == "Connecting";
+            _fresh.Visible = !game.Connected && game.Status != "Connecting" && (s is null || s.Phase == Phase.Lobby || game.Feedback.Contains("expired", StringComparison.Ordinal));
         }
-        foreach ((UnitType type, Button button) in _recruitment)
-        {
-            RecruitmentQuote? quote = focus?.RecruitmentQuotes.FirstOrDefault(q => q.Type == type && q.Level == slot.Level);
-            button.Text = $"{type} L{slot.Level}\n ";
-            button.Visible = definition?.Recruits?.Contains(type) == true;
-            button.Disabled = !edit || !button.Visible || quote is null || !me!.Resources.TryPay(quote.Cost, out _);
-            UiAssets.Cost(button, quote?.Cost ?? default);
-            if (quote is not null) button.TooltipText = $"L{quote.Level} · size {quote.Profile.Size} · HP {HealthPoints.Format(quote.Profile.Health)} · damage {HealthPoints.Format(quote.Profile.Damage)} · food upkeep {quote.Upkeep}/battle\n" + CostExplanation(quote.Cost, focus!.Resources);
-        }
-        _researchActions.Visible = slot.Type == Building.Blacksmith;
-        foreach ((UnitClass type, Button button) in _research)
-        {
-            int rank = focus?.Research.For(type) ?? 0;
-            ResearchQuote? quote = s?.ResearchQuotes.FirstOrDefault(q => q.Rank == rank + 1);
-            button.TooltipText = quote is null ? "Maximum research rank" : $"Requires Blacksmith L{quote.RequiredBlacksmithLevel}\n" + (focus is null ? "" : CostExplanation(quote.Cost, focus.Resources));
-            button.Text = $"{type} {rank}/2\n "; UiAssets.Cost(button, quote?.Cost ?? default);
-            button.Disabled = !edit || slot.Type != Building.Blacksmith || quote is null || quote.RequiredBlacksmithLevel > slot.Level || !me!.Resources.TryPay(quote.Cost, out _);
-        }
-        _ready.Text = me?.Ready == true ? "Unready" : "Ready";
-        _ready.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation) || s.Paused || me is null || me.Eliminated;
-        _ready.Visible = s?.Phase != Phase.Lobby && game.Connected;
-        _pause.Visible = game.Connected && s?.Phase != Phase.Lobby;
-        _start.Visible = game.Connected && s?.Phase == Phase.Lobby && game.CanStart; _start.Disabled = !live || !game.CanStart;
-        _invite.Visible = game.HostPlayerId == game.PlayerId && game.HostPlayerId != 0; _invite.Disabled = !live || !game.CanInvite;
-        _invite.TooltipText = game.CanInvite ? "Invite friends through Steam" : "Invitations are unavailable for this session.";
-        _pause.Text = s?.Paused == true ? "Resume" : "Pause";
-        UiAssets.Decorate(_pause, s?.Paused == true ? "Resume" : "Pause");
-        UiAssets.Decorate(_ready, me?.Ready == true ? "Unready" : "Ready");
-        _pause.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation or Phase.Combat);
-        _reconnect.Visible = !game.Connected; _reconnect.Disabled = game.Status == "Connecting";
-        _fresh.Visible = !game.Connected && game.Status != "Connecting" && (s is null || s.Phase == Phase.Lobby || game.Feedback.Contains("expired", StringComparison.Ordinal));
-        _quoteDetails.Text = _detail.Text + "\n" + string.Join("\n\n", _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Concat(_trades.Values).Append(_upgrade).Append(_buyPlot).Where(button => button.IsVisibleInTree() && button.TooltipText.Length > 0).Select(button => button.Text.Trim() + "\n" + button.TooltipText));
-        foreach (Button button in _construction.Values.Concat(_recruitment.Values).Concat(_research.Values).Append(_upgrade))
-            if (button.GetNodeOrNull<RichTextLabel>("Cost") is { } cost) cost.Modulate = button.Disabled ? new Color(1, 1, 1, 0.6f) : Colors.White;
     }
     private static string BuildingGroup(Building type) => type switch
     { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.Blacksmith => "Army", Building.ArrowTower or Building.CatapultTower => "Defense", Building.Market => "Trade", _ => "Production" };
@@ -449,9 +478,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private UnitView View(UnitState unit)
     {
         if (!_units.TryGetValue(unit.Id, out UnitView? view))
-        { view = new UnitView(unit); AddChild(view); _units.Add(unit.Id, view); }
+        { view = new UnitView(unit) { Work = _playback.Work }; AddChild(view); _units.Add(unit.Id, view); }
         return view;
     }
+    internal int ReplayVisibleViews => _units.Values.Count(view => view.Visible);
     private void UpdateUnits(double delta)
     {
         if (_playbackGeneration != _playback.Generation)
@@ -472,7 +502,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _effects.Sample(_playback.VisualSeconds, audible);
         var current = _playback.Units().ToDictionary(u => u.Id);
         if (_combatLayout is null) return;
-        foreach (UnitState unit in current.Values.Where(u => u.Deployed)) View(unit).Sample(unit, _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);
+        foreach (UnitState unit in current.Values.Where(u => u.Deployed)) View(unit).Synchronize(unit);
         foreach (CombatEvent entry in _playback.Drain())
         {
             Vector3? source = entry.Unit is { Deployed: true } actor ? _combatLayout.Position(actor, entry.Tick) + new Vector3(0, .6f, 0)
@@ -485,7 +515,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         foreach ((int id, UnitView view) in _units.ToArray())
         {
             // Missing live IDs with a buffered death stay until its common-clock event.
-            bool awaitingDeath = game.State?.CombatEvents.Any(e => e.Type == CombatEventType.Death && e.Unit?.Id == id && e.Sequence > _playback.EventCursor) == true;
+            bool awaitingDeath = _playback.AwaitingDeath(id);
             if (view.Expired(_playback.Tick) || !current.ContainsKey(id) && !awaitingDeath)
             { view.QueueFree(); _units.Remove(id); continue; }
             view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);

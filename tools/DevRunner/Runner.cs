@@ -23,6 +23,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             switch (options.Command)
             {
                 case "help":
+                    Console.WriteLine("Presentation profile: profile-presentation --scenario combat-playback --frames 600 --iterations 1..10 --configuration Debug [--work-counters]; one owned graphical worker and separate warm-up, not a default UI case.");
                     Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (--jobs 1..2 (default 2, selected slice 1); exported-package uses existing exports); --scenario combat --checkpoint melee selects the early rendered gate\nVerification: --simulation-speed 1..8 (default 4 setup, graphical witnesses 1), --trace. CI: --jobs N total expensive budget, --ui-jobs 1..2 graphical cap.\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
                     Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] [--scenario direct-invite] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
@@ -40,6 +41,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     PrivateDisplay.CheckPrerequisites();
                     if (options.Scenario != "exported-package") await Prepare(); else CheckPackages();
                     await UiTests(options.Scenario); break;
+                case "profile-presentation": PrivateDisplay.CheckPrerequisites(); await Prepare(); await PresentationProfiles(); break;
                 case "_ui-worker": await UiWorker(); break;
                 case "prepare-templates": await PrepareTemplates(); break;
                 case "export-client":

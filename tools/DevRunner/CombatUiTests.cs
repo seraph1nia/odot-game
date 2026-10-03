@@ -110,10 +110,10 @@ internal sealed partial class Runner
     private async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
     {
         await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
-        UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Type == UnitType.Swordsman && u.Clip == "Running_A"), "actual locomotion pose", token);
+        UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Running_A"), "actual locomotion pose", token);
         HealthBars(moving);
         Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
-        UnitObservation first = moving.Units.First(u => u.Type == UnitType.Swordsman && u.Clip == "Running_A");
+        UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Running_A");
         Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "running model follows a declared timed route with endpoint reservations");
         UiObservation moved = await WaitUi(client, p => p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation), "moving skeleton changes position and pose", token);
         Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
@@ -155,6 +155,21 @@ internal sealed partial class Runner
         Require(frozen.VisualSeconds == still.VisualSeconds && frozen.CombatTick == still.CombatTick &&
             JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(still.Units) && JsonSerializer.Serialize(frozen.Strikes) == JsonSerializer.Serialize(still.Strikes) && JsonSerializer.Serialize(frozen.HealthBars) == JsonSerializer.Serialize(still.HealthBars) && frozen.Effects.Voices == 0 && still.Effects.Voices == 0 && frozen.Effects.Positions.SequenceEqual(still.Effects.Positions) && frozen.AmbientAngles.SequenceEqual(still.AmbientAngles), "pause freezes positions, skeleton poses, shots, strike connections and death clocks");
         await Checkpoint(client, "combat-paused", token);
+        // Two input actions in the existing paused battle catch stale hidden rig
+        // poses and historical cue replay without another expensive battle.
+        await Click(client, "NextCity", token);
+        await WaitUi(client, p => p.ObservedCity != frozen.ObservedCity, "hide paused combat city", token);
+        await Click(client, "PreviousCity", token);
+        UiObservation returned = await WaitUi(client, p => p.ObservedCity == frozen.ObservedCity, "return to paused combat city", token);
+        Require(returned.VisualSeconds == frozen.VisualSeconds && returned.CombatTick == frozen.CombatTick
+            && returned.Effects.CueCount == frozen.Effects.CueCount && returned.Effects.Voices == 0
+            && returned.Units.Where(u => u.Visible).Select(u => u.Id).Order().SequenceEqual(frozen.Units.Where(u => u.Visible).Select(u => u.Id).Order())
+            && returned.Units.Where(u => u.Visible).All(u => frozen.Units.Any(old => old.Id == u.Id && old.Clip == u.Clip
+                && old.PoseSeconds == u.PoseSeconds && old.X == u.X && old.Z == u.Z && old.BoneRotation == u.BoneRotation)),
+            "focus return seeks current paused visible pose without historical audio or attacks");
+        // The briefly visible other city's rigs have now been sought too. Use
+        // this settled observation for the later all-rig resize comparison.
+        frozen = returned;
         await CameraFrozenBars(client, token);
         await Click(client, "Settings", token);
         await WaitUi(client, p => p.SettingsOpen, "settings open over paused battle", token);
@@ -199,7 +214,7 @@ internal sealed partial class Runner
             }
             foreach (UnitObservation ranged in p.Units.Where(u => u.Type == UnitType.Crossbowman))
                 if (ranged.ShotCount > ranged.AttackSequence) throw new InvalidOperationException("Repeated snapshots duplicated a shot.");
-            foreach (UnitObservation unit in p.Units)
+            foreach (UnitObservation unit in p.Units.Where(u => u.Visible))
             {
                 if (unit.Clip == "Hit_A" && !unit.HitActive) throw new InvalidOperationException("Declared hit has no active animation layer.");
                 if (unit.Clip is "1H_Melee_Attack_Slice_Horizontal" or "2H_Ranged_Shoot" && !unit.AttackActive)

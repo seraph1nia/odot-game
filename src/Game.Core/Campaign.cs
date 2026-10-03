@@ -34,6 +34,7 @@ public sealed record CampaignDefinition(WaveDefinition[] Waves)
 public sealed class CampaignConfiguration
 {
     private readonly FrozenDictionary<int, WaveDefinition> _waves;
+    private readonly WaveDefinition[] _catalog;
     public int TotalWaves => _waves.Count;
     public CombatFingerprint Fingerprint { get; }
     public CampaignConfiguration(CampaignDefinition definition, CombatConfiguration combat)
@@ -57,6 +58,7 @@ public sealed class CampaignConfiguration
         }
         if (spawns > int.MaxValue / 4) throw new ArgumentException("Campaign spawn identities exceed roster bounds.", nameof(definition));
         _waves = definition.Waves.Select(Copy).ToFrozenDictionary(w => w.Number);
+        _catalog = _waves.Values.OrderBy(w => w.Number).ToArray();
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
@@ -73,7 +75,8 @@ public sealed class CampaignConfiguration
     }
     private static WaveDefinition Copy(WaveDefinition wave) => wave with { Entries = wave.Entries.ToArray() };
     public WaveDefinition Wave(int number) => Copy(_waves[number]);
-    public CampaignDefinition Definition() => new(_waves.Values.OrderBy(w => w.Number).Select(Copy).ToArray());
+    internal WaveDefinition WaveRule(int number) => _waves[number];
+    public CampaignDefinition Definition() => new(_catalog.Select(Copy).ToArray());
 }
 
 public sealed record WaveClearReceipt(int Wave, bool IsBoss, ResourceCost Amount);

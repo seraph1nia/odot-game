@@ -9,16 +9,21 @@ namespace Game;
 public static class SnapshotPayload
 {
     private const int MaximumBytes = 16 * 1024 * 1024;
-    public static string Encode(MatchSnapshot snapshot)
+    public static string Encode(MatchSnapshot snapshot, WorkCounters? work = null)
     {
+        work?.Support(WorkMetric.CodecEncodes, WorkMetric.CodecDecodes, WorkMetric.JsonBytes, WorkMetric.CompressedBytes);
+        work?.Add(WorkMetric.CodecEncodes);
         byte[] json = JsonSerializer.SerializeToUtf8Bytes(snapshot, WireJson.Options);
         if (json.Length > MaximumBytes) throw new InvalidDataException("Snapshot exceeds the transport bound.");
         using var output = new MemoryStream();
         using (var compressor = new BrotliStream(output, CompressionLevel.Fastest, leaveOpen: true)) compressor.Write(json);
+        work?.Add(WorkMetric.JsonBytes, json.Length); work?.Add(WorkMetric.CompressedBytes, output.Length);
         return Convert.ToBase64String(output.ToArray());
     }
-    public static MatchSnapshot? Decode(string payload)
+    public static MatchSnapshot? Decode(string payload, WorkCounters? work = null)
     {
+        work?.Support(WorkMetric.CodecEncodes, WorkMetric.CodecDecodes, WorkMetric.JsonBytes, WorkMetric.CompressedBytes);
+        work?.Add(WorkMetric.CodecDecodes);
         if (payload.Length > (MaximumBytes + 2) / 3 * 4) throw new InvalidDataException("Snapshot exceeds the transport bound.");
         using var input = new MemoryStream(Convert.FromBase64String(payload));
         using var decompressor = new BrotliStream(input, CompressionMode.Decompress);

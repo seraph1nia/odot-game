@@ -20,6 +20,11 @@ public sealed class EconomyConfiguration
     private readonly FrozenDictionary<UnitType, int> _upkeep;
     private readonly ResearchQuote[] _research = [new(1, new(10), 1), new(2, new(15), 2)];
     private readonly int[] _expansionPrices = [25, 40, 60, 90];
+    private readonly Dictionary<ResearchRanks, RecruitmentQuote[]> _quotes = [];
+    private CombatConfiguration? _quoteConfiguration;
+    private readonly BuildingDefinition[] _buildingCatalog;
+    private readonly MarketRate[] _marketCatalog;
+    private readonly KeyValuePair<(UnitType Type, int Level), ResourceCost>[] _recruitmentOrder;
     public ResourceCost StartingResources { get; }
     public ResourceCost BaseProduction { get; }
     public CombatFingerprint Fingerprint { get; }
@@ -60,6 +65,9 @@ public sealed class EconomyConfiguration
         _buildings = buildings.Select(Copy).ToFrozenDictionary(b => b.Type);
         _rates = Enum.GetValues<Resource>().Where(r => r != Resource.Gold)
             .Select(r => new MarketRate(r, 5, r is Resource.Metal or Resource.Cloth ? 2 : 1)).ToFrozenDictionary(r => r.Resource);
+        _buildingCatalog = _buildings.Values.OrderBy(b => b.Type).ToArray();
+        _marketCatalog = _rates.Values.OrderBy(r => r.Resource).ToArray();
+        _recruitmentOrder = _recruitment.OrderBy(p => p.Key.Type).ThenBy(p => p.Key.Level).ToArray();
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
@@ -89,10 +97,21 @@ public sealed class EconomyConfiguration
     public ResearchQuote[] ResearchQuotes() => _research.ToArray();
     public int Upkeep(UnitType type) => _upkeep[type];
     public RecruitmentQuote[] RecruitmentQuotes(CombatConfiguration configuration, ResearchRanks ranks = default)
-        => _recruitment.OrderBy(p => p.Key.Type).ThenBy(p => p.Key.Level).Select(p => new RecruitmentQuote(p.Key.Type, p.Key.Level, p.Value,
-            Upkeep(p.Key.Type), configuration.Unit(p.Key.Type, ranks.For(Catalogs.Class(p.Key.Type)), level: p.Key.Level).Runtime())).ToArray();
+    {
+        if (!ReferenceEquals(_quoteConfiguration, configuration)) { _quotes.Clear(); _quoteConfiguration = configuration; }
+        if (!_quotes.TryGetValue(ranks, out RecruitmentQuote[]? quotes))
+        {
+            quotes = _recruitmentOrder.Select(p => new RecruitmentQuote(p.Key.Type, p.Key.Level, p.Value,
+                Upkeep(p.Key.Type), configuration.Unit(p.Key.Type, ranks.For(Catalogs.Class(p.Key.Type)), level: p.Key.Level).Runtime())).ToArray();
+            _quotes.Add(ranks, quotes);
+        }
+        return quotes.ToArray();
+    }
+    internal void ClearCache() { _quotes.Clear(); _quoteConfiguration = null; }
+    internal BuildingDefinition? BuildingRule(Building type) => _buildings.GetValueOrDefault(type);
+    internal ResearchQuote ResearchRule(int rank) => _research[rank - 1];
     public BuildingDefinition Building(Building type) => Copy(_buildings[type]);
-    public BuildingDefinition[] Buildings() => _buildings.Values.OrderBy(b => b.Type).Select(Copy).ToArray();
+    public BuildingDefinition[] Buildings() => _buildingCatalog.Select(Copy).ToArray();
     public int[] PlotPrices() => _expansionPrices.ToArray();
     public bool TryPlotPrice(int expansionCount, out ResourceCost quote)
     {
@@ -120,7 +139,7 @@ public sealed class EconomyConfiguration
         }
         return total;
     }
-    public MarketRate[] MarketRates() => _rates.Values.OrderBy(r => r.Resource).ToArray();
+    public MarketRate[] MarketRates() => _marketCatalog.ToArray();
     public bool TryMarketQuote(Resource resource, int bundles, out ResourceCost stock, out ResourceCost proceeds)
     {
         stock = default; proceeds = default;

@@ -105,6 +105,8 @@ public partial class Main : Node, IGameSession
         SessionRole role = OS.HasFeature("dedicated_server") ? SessionRole.Dedicated : SessionRole.None;
         bool roleSet = false;
         int simulationSpeed = 1;
+        string? replayInput = null, replayOutput = null;
+        bool replayCounters = false;
         _pacing = new(System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA"),
             System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_MARKER"), System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_TOKEN"));
         for (int i = 0; i < args.Length; i++)
@@ -129,6 +131,9 @@ public partial class Main : Node, IGameSession
                 case "--automated": _automated = true; break;
                 case "--simulation-speed": simulationSpeed = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--supervised": _supervised = true; break;
+                case "--profile-replay-input": replayInput = Value(); break;
+                case "--profile-replay-output": replayOutput = Value(); break;
+                case "--profile-work-counters": replayCounters = true; break;
                 // Steam's own launch arguments are consumed by the application platform owner.
                 case "+connect_lobby": _ = Value(); break;
                 default: throw new ArgumentException($"Unknown game argument: {args[i]}");
@@ -157,6 +162,13 @@ public partial class Main : Node, IGameSession
             case SessionRole.Dedicated: StartEnetAuthority(AuthorityPolicy.Dedicated, _bind, _port); break;
             case SessionRole.Guest: StartEnetGuest(); break;
             default: Application?.ShowMenu(); Emit(new("menu", Message: "Start screen")); break;
+        }
+        if (replayInput is not null || replayOutput is not null || replayCounters)
+        {
+            RequireOwnedUiWorker();
+            if (replayInput is null || replayOutput is null) throw new ArgumentException("Replay needs owned input and output paths.");
+            var replay = new PresentationReplay(Application!, replayInput, replayOutput, replayCounters, RequestExit);
+            AddChild(replay); SetProcess(false);
         }
         if (_automated || _supervised)
             _ = Task.Run(() =>

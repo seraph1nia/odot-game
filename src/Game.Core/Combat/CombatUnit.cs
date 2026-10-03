@@ -59,8 +59,15 @@ internal sealed record ReservationOwner(int Id, int City, Faction Faction, UnitL
 
 internal static class CombatProjection
 {
-    public static UnitState Snapshot(CombatUnit unit, long tick)
+    internal static UnitState Detach(UnitState unit, WorkCounters? work = null)
     {
+        if (unit.Decision is not { } decision) return unit;
+        work?.Add(WorkMetric.RouteElementsCopied, decision.Route.Length); work?.Add(WorkMetric.VisitedElementsCopied, decision.Visited.Length);
+        return unit with { Decision = decision with { Route = decision.Route.ToArray(), Visited = decision.Visited.ToArray() } };
+    }
+    public static UnitState Snapshot(CombatUnit unit, long tick, WorkCounters? work = null)
+    {
+        work?.Add(WorkMetric.UnitProjections); work?.Add(WorkMetric.RouteElementsCopied, unit.Decision.Route.Length); work?.Add(WorkMetric.VisitedElementsCopied, unit.Decision.Visited.Length);
         CombatLocation location = unit.Location; CombatAction action = unit.Action;
         CombatAction.Moving? move = action as CombatAction.Moving;
         AttackRecord? attack = action.Attack; CombatTarget? target = unit.Target;

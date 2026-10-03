@@ -60,6 +60,15 @@ public readonly record struct CombatFingerprint(ulong A, ulong B, ulong C, ulong
 // definitions can mutate the board/profiles used by an ongoing fight.
 public sealed class CombatConfiguration
 {
+    private WorkCounters? _work;
+    internal WorkCounters? Work
+    {
+        get => _work;
+        set { _work = value; value?.Support(WorkMetric.ProfileResolutions, WorkMetric.ProfileCacheMisses, WorkMetric.ProfileCacheHits); }
+    }
+    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level), HexCombatProfile> _resolved = [];
+    internal int CachedProfiles => _resolved.Count;
+    internal void ClearCache() { _resolved.Clear(); Work = null; }
     private readonly FrozenDictionary<UnitType, HexCombatProfile> _profiles;
     private readonly FrozenDictionary<(Building Type, int Level), DefenseProfile> _towerProfiles;
     internal DefenseProfile BuiltInDefense { get; }
@@ -124,6 +133,10 @@ public sealed class CombatConfiguration
 
     public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1)
     {
+        Work?.Add(WorkMetric.ProfileResolutions);
+        var key = (type, rank, isBoss, level);
+        if (_resolved.TryGetValue(key, out HexCombatProfile? cached)) { Work?.Add(WorkMetric.ProfileCacheHits); return cached; }
+        Work?.Add(WorkMetric.ProfileCacheMisses);
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
         HexCombatProfile original = _profiles[type];
         int health = Progression.ScaleWhole(original.Health / HealthPoints.Scale, level);
@@ -133,7 +146,7 @@ public sealed class CombatConfiguration
         { Health = HealthPoints.FromWhole(health), Damage = HealthPoints.FromWhole(damage), Size = isBoss ? 6 : original.Size }).Researched(rank);
         int maximumActors = checked(Board.Cells.Count * Board.Capacity + 10);
         if (resolved.Damage > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
-        return resolved;
+        _resolved.Add(key, resolved); return resolved;
     }
     internal static HexCombatProfile Profile(Rules rules, UnitType type)
     {

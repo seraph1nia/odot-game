@@ -27,6 +27,12 @@ public sealed record CombatReservations(PositionReservation[] Positions, Transit
 // Its complete projection is independently derivable from those current states.
 internal sealed class HexOccupancy(HexBoard board)
 {
+    private WorkCounters? _work;
+    internal WorkCounters? Work
+    {
+        get => _work;
+        set { _work = value; value?.Support(WorkMetric.OccupancyChecks, WorkMetric.Sorts, WorkMetric.SortElements); }
+    }
     private readonly Dictionary<(int City, int Cell), Dictionary<int, PositionReservation>> _positions = [];
     private readonly Dictionary<(int City, int Cell), TransitReservation> _endpointTransit = [];
     private readonly Dictionary<(int City, int Edge), TransitReservation> _edgeTransit = [];
@@ -36,6 +42,7 @@ internal sealed class HexOccupancy(HexBoard board)
         ? occupants.Values.Aggregate(0, (total, r) => checked(total + r.Size)) : 0;
     public bool CanPlace(int city, Faction faction, HexPosition position, int size)
     {
+        Work?.Add(WorkMetric.OccupancyChecks);
         if (size is < 1 or > 6 || city <= 0 || !Enum.IsDefined(faction) || !board.Allows(faction, position.Cell)) return false;
         _ = board.Anchor(position.Anchor);
         return checked(UsedCapacity(city, position.Cell) + size) <= board.Capacity
@@ -109,14 +116,18 @@ internal sealed class HexOccupancy(HexBoard board)
         if (state.Lifecycle != UnitLifecycle.Dying || tick < state.DeathEndTick) return false;
         Release(state.City, state.Id); return true;
     }
-    public CombatReservations Snapshot() => new(_positions.Values.SelectMany(p => p.Values).OrderBy(p => p.City).ThenBy(p => p.Cell).ThenBy(p => p.UnitId).ToArray(),
+    public CombatReservations Snapshot()
+    {
+        Work?.Add(WorkMetric.Sorts, 2); Work?.Add(WorkMetric.SortElements, _positions.Values.Sum(p => p.Count) + _edgeTransit.Count);
+        return new(_positions.Values.SelectMany(p => p.Values).OrderBy(p => p.City).ThenBy(p => p.Cell).ThenBy(p => p.UnitId).ToArray(),
         _edgeTransit.Values.OrderBy(t => t.City).ThenBy(t => t.EdgeToken).ThenBy(t => t.UnitId).ToArray());
+    }
     public void Rebuild(IEnumerable<ReservationOwner> units)
     {
         // Build separately so a malformed restoration cannot partially replace
         // the current valid index. Queued/dying data needs no event history.
         var rebuilt = new HexOccupancy(board); var identities = new HashSet<int>();
-        foreach (ReservationOwner state in units.OrderBy(s => s.Id))
+        foreach (ReservationOwner state in WorkOrdering.Input(units, Work).OrderBy(s => s.Id))
         {
             if (state.Id <= 0 || state.City <= 0 || !Enum.IsDefined(state.Faction) || !Enum.IsDefined(state.Lifecycle)
                 || state.Size is < 1 or > 6 || state.ActionSequence < 0 || !identities.Add(state.Id))

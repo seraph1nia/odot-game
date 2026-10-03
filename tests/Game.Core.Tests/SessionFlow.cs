@@ -27,11 +27,11 @@ internal sealed class SessionFlow : IDisposable
     }
 
     public ulong AdvanceClock() => Time = checked(Time + 100);
-    public Command Command(int player, EconomyAction action)
+    public Command Command(int player, EconomyAction action, MatchSnapshot? before = null)
     {
         long sequence = _sequences.GetValueOrDefault(player) + 1;
         _sequences[player] = sequence;
-        return action.Command(State, player, sequence);
+        return action.Command(before ?? State, player, sequence);
     }
     public CommandResult Send(int player, Command command)
     {
@@ -39,9 +39,9 @@ internal sealed class SessionFlow : IDisposable
         return player == Session.LocalPlayerId ? Session.RequestLocal(payload)
             : Session.Request(_players[player].Peer, payload, AdvanceClock())!;
     }
-    public Command Act(int player, EconomyAction action)
+    public Command Act(int player, EconomyAction action, MatchSnapshot? before = null)
     {
-        Command command = Command(player, action);
+        Command command = Command(player, action, before);
         Assert.True(Send(player, command).Accepted, $"P{player}: {action}");
         return command;
     }
@@ -58,9 +58,10 @@ internal sealed class SessionFlow : IDisposable
         Command? recruitment = null;
         for (int actions = 0; actions < 100; actions++)
         {
-            EconomyAction? decision = CampaignStrategy.Next(State, player, family);
+            MatchSnapshot before = State;
+            EconomyAction? decision = CampaignStrategy.Next(before, player, family);
             if (decision is null) return recruitment;
-            Command command = Act(player, decision);
+            Command command = Act(player, decision, before);
             if (decision.Action == "recruit") recruitment = command;
         }
         throw new InvalidOperationException("Economy policy exceeded its action bound.");

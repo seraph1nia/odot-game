@@ -152,6 +152,10 @@ public partial class GameApplication(Main session) : Node
     }
     public void SetSteamIdentity(string? name) => _steamStatus.Text = string.IsNullOrWhiteSpace(name) ? "Open Steam to log in" : name.Trim();
     public void ShowSession()
+        => ShowTabletop(session);
+    internal Tabletop ShowReplay(IGameSession replay)
+    { ShowTabletop(replay); return _tabletop!; }
+    private void ShowTabletop(IGameSession presentation)
     {
         Friends.Close();
         _leave.Hide(); _leaveGeneration = -1;
@@ -162,7 +166,7 @@ public partial class GameApplication(Main session) : Node
         _menuRoot.Visible = false; _scenery.Visible = false; _menuCamera.Current = false; _environment.Environment = null;
         Settings.SettingsButton.Visible = true;
         _steamStatus.Visible = false;
-        _tabletop = new Tabletop(session, this) { Name = "Tabletop" }; AddChild(_tabletop);
+        _tabletop = new Tabletop(presentation, this) { Name = "Tabletop" }; AddChild(_tabletop);
         FocusCurrent();
     }
     private void RemoveTabletop()

@@ -64,6 +64,8 @@ public sealed class HexBoard
     private readonly FrozenDictionary<(Faction Faction, int Source, int Destination), int> _movementDistances;
     private readonly FrozenDictionary<(HexPosition Source, HexPosition Destination), HexTransition> _transitions;
     private readonly FrozenDictionary<Faction, (ReadOnlyCollection<int> Rear, ReadOnlyCollection<int> Front)> _entries;
+    private readonly FrozenDictionary<int, int> _cityDistances;
+    private readonly HexBoardDefinition _definition;
     public string Id { get; }
     public int Version { get; }
     public int Capacity { get; }
@@ -138,6 +140,7 @@ public sealed class HexBoard
             || definition.SiegeCells.Any(id => !_cells.ContainsKey(id) || Cell(id).Affinity != DeploymentAffinity.Neutral))
             throw new ArgumentException("City anchor requires neutral siege links.", nameof(definition));
         SiegeCells = Array.AsReadOnly(definition.SiegeCells.Order().ToArray());
+        _cityDistances = Cells.ToFrozenDictionary(c => c.Id, c => SiegeCells.Min(cell => Distance(c.Id, cell)) + 1);
         foreach (Faction faction in Enum.GetValues<Faction>())
             foreach (int rear in Rear(faction))
             {
@@ -162,18 +165,26 @@ public sealed class HexBoard
             }
         Transitions = Array.AsReadOnly(transitions.ToArray());
         _transitions = transitions.ToFrozenDictionary(t => (t.Source, t.Destination));
+        _definition = BuildDefinition();
     }
 
     public HexCell Cell(int id) => _cells[id];
     public HexAnchor Anchor(int id) => _anchors[id];
     public int Distance(int source, int destination) => _distances[(source, destination)];
     public int MovementDistance(Faction faction, int source, int destination) => _movementDistances.GetValueOrDefault((faction, source, destination), int.MaxValue);
-    public int CityDistance(int source) => SiegeCells.Min(cell => Distance(source, cell)) + 1;
+    public int CityDistance(int source) => _cityDistances[source];
     public bool Allows(Faction faction, int cell) => Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
     public ReadOnlyCollection<int> Rear(Faction faction) => _entries[faction].Rear;
     public ReadOnlyCollection<int> Front(Faction faction) => _entries[faction].Front;
     public HexTransition Transition(HexPosition source, HexPosition destination) => _transitions[(source, destination)];
-    public HexBoardDefinition Definition() => new(Id, Version, Capacity,
+    public HexBoardDefinition Definition() => _definition with
+    {
+        Cells = _definition.Cells.Select(c => c with { Neighbors = c.Neighbors.ToArray() }).ToArray(),
+        Anchors = _definition.Anchors.ToArray(),
+        Entries = _definition.Entries.Select(e => e with { RearCells = e.RearCells.ToArray(), FrontCells = e.FrontCells.ToArray() }).ToArray(),
+        SiegeCells = _definition.SiegeCells.ToArray()
+    };
+    private HexBoardDefinition BuildDefinition() => new(Id, Version, Capacity,
         Cells.Select(c => new HexCellDefinition(c.Id, c.Coordinate, c.Affinity, c.Neighbors.ToArray())).ToArray(), Anchors.ToArray(),
         Enum.GetValues<Faction>().Select(f => new HexEntryDefinition(f, Rear(f).ToArray(), Front(f).ToArray())).ToArray(), SiegeCells.ToArray());
     private static DeploymentAffinity Affinity(Faction faction) => faction switch

@@ -253,3 +253,30 @@ sockets. Seed/configuration and first failing wave/tick identify flow failures.
 Verification accepts `--simulation-speed 1..8` (default 4 for owned headless/setup authority). Each callback executes consecutive ordinary fixed ticks; gameplay rules and interactive launches keep their normal speed. Graphical animation witnesses explicitly acknowledge speed 1. Use `mise run test-network --scenario redistribution --simulation-speed 1` for pacing diagnosis, `mise run test-ui --jobs 1` for serial graphical coverage, or `mise run ci --jobs 1 --ui-jobs 1` for serial expensive admission. Selected graphical slices always own one worker.
 
 Routine transcripts contain compact revision/tick/phase results, buffered writes, a recent full-state ring capped at 16 snapshots/16 MiB, and engine diagnostics capped at 8 MiB per child. Failure, timeout, cancellation and cleanup retain redacted state checkpoints; truncation is explicit. `--trace` retains full protocol output for diagnosis with greater disk cost. Summaries report evidence bytes; child checkpoint reports include ticks, pacing and transcript bytes. The focused packed/installed graphical route checks menu, solo, one purchase, archive rig/clip bindings, a live animation, both supported sizes and Exit. Source slices own detailed combat and application transitions; headless package role checks remain required.
+
+Runtime profiles are separate from verification speed. Select a workload explicitly:
+
+```sh
+mise run profile-campaign --strategy frontline --players 4 --seed 1 --iterations 3 --configuration Release
+mise run test-scale --scenario large-battle --seed 1
+mise run profile-scale --scenario large-battle --sizes 128,512,2048 --seed 1 --iterations 3 --configuration Release
+mise run profile-snapshots --scenario ordinary-and-large --iterations 3 --configuration Release
+mise run profile-presentation --scenario combat-playback --frames 600 --iterations 3 --configuration Debug
+```
+
+See the [interaction scaling review](docs/simulation-performance.md) and
+[recorded performance evidence](docs/verification.md) for measurement scopes,
+baselines, efficiency counts and the separate verification-speed comparison.
+
+Add `--work-counters` for a separate counting run. Profiles use serial owned
+executions with a separate warm-up and retain raw evidence in ignored `logs/`.
+Engine-free profiles default to Release; presentation uses the existing locked
+Debug Godot build and an owned software-rendered display. `test-scale` runs the
+synthetic 2,048-actor, 600-tick correctness window once, without warm-up. It is
+mandatory for this optimization's before/after acceptance and is separate from
+routine `test`/CI and graphical coverage. See [verification guidance](docs/verification.md)
+for phase boundaries, counter meanings, scope and comparison limitations.
+
+Campaign checks retain compact complete summaries and expand their latest 64
+domain records on failure. Set `ODOT_CAMPAIGN_TRACE=1` for detailed successful
+transactions; leave it unset for matched performance measurements.

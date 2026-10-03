@@ -8,7 +8,8 @@ namespace Game;
 internal sealed class CombatLayout(HexBoard board)
 {
     private const float TransitRing = 1.5f;
-    private readonly Dictionary<int, Vector3[]> _routes = [];
+    private sealed record CachedRoute(Vector3[] Points, float[] Segments, float[] Cumulative);
+    private readonly Dictionary<int, CachedRoute> _routes = [];
     public static Vector3 Center(int city) => new((city - 1) * 40, 0, 0);
     private static Vector3 Cell(HexBoard board, int cell)
     {
@@ -34,13 +35,18 @@ internal sealed class CombatLayout(HexBoard board)
             int transition = board.Transition(hex.Position, hex.Destination).Id;
             double elapsed = hex.Lifecycle == UnitLifecycle.Dying ? hex.FrozenMoveTicks : (hex.FrozenTick ?? tick) - hex.StartTick;
             float fraction = (float)Math.Clamp(elapsed / Math.Max(1, hex.EndTick - hex.StartTick), 0, 1);
-            if (!_routes.TryGetValue(transition, out Vector3[]? route)) { route = Route(board, hex.Position, hex.Destination); _routes.Add(transition, route); }
-            float distance = 0;
-            for (int i = 1; i < route.Length; i++) distance += route[i - 1].DistanceTo(route[i]);
-            float remaining = distance * fraction;
+            if (!_routes.TryGetValue(transition, out CachedRoute? cached))
+            {
+                Vector3[] points = Route(board, hex.Position, hex.Destination);
+                var segments = new float[points.Length]; var cumulative = new float[points.Length];
+                for (int i = 1; i < points.Length; i++) { segments[i] = points[i - 1].DistanceTo(points[i]); cumulative[i] = cumulative[i - 1] + segments[i]; }
+                cached = new(points, segments, cumulative); _routes.Add(transition, cached);
+            }
+            Vector3[] route = cached.Points;
+            float remaining = cached.Cumulative[^1] * fraction;
             for (int i = 1; i < route.Length; i++)
             {
-                float length = route[i - 1].DistanceTo(route[i]);
+                float length = cached.Segments[i];
                 if (length > .00001f && remaining <= length) { position = route[i - 1].Lerp(route[i], remaining / length); break; }
                 remaining -= length; position = route[i];
             }

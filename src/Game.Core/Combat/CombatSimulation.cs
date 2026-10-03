@@ -18,6 +18,7 @@ internal sealed class CombatSimulation : IDisposable
     private readonly SortedDictionary<int, AdmissionBound> _admissions = [];
     private readonly SortedSet<int> _healthProgress = [];
     private readonly Dictionary<int, BattlefieldObservation> _observations = [];
+    private readonly Dictionary<int, BattlefieldObservation> _cityObservations = [];
     private readonly QueryDescription _units = new QueryDescription().WithAll<CombatUnit>();
     private int _nextId = 1, _wave = 1;
     private long _tick;
@@ -27,9 +28,22 @@ internal sealed class CombatSimulation : IDisposable
         _occupancy = new(_board); _routing = new(_board, _occupancy); _seed = seed;
         _world = EcsWorld.Create();
     }
+    private WorkCounters? _work;
+    internal WorkCounters? Work
+    {
+        get => _work;
+        set
+        {
+            _work = value; _occupancy.Work = value; _routing.Work = value; _configuration.Work = value;
+            value?.Support(WorkMetric.WorldViews, WorkMetric.UnitVisits, WorkMetric.Sorts, WorkMetric.SortElements,
+                WorkMetric.UnitProjections, WorkMetric.RouteElementsCopied, WorkMetric.VisitedElementsCopied,
+                WorkMetric.ObservationBuilds, WorkMetric.ObservationActorVisits, WorkMetric.ObservationReservationVisits,
+                WorkMetric.OpponentVisits, WorkMetric.RangeCandidates, WorkMetric.SplashCandidates, WorkMetric.QueuedCandidates);
+        }
+    }
     public long EventSequence { get; private set; }
     public bool IsDisposed { get; private set; }
-    public bool HasDeaths => All().Any(u => u.Location.Lifecycle == UnitLifecycle.Dying);
+    public bool HasDeaths => AnyUnit(u => u.Location.Lifecycle == UnitLifecycle.Dying);
     internal bool RegistryReleased => !ReferenceEquals(EcsWorld.Worlds[_world.Id], _world);
     internal HexBoard Board => _board;
     internal CombatReservations Reservations => _occupancy.Snapshot();
@@ -65,18 +79,41 @@ internal sealed class CombatSimulation : IDisposable
     private CombatUnit[] All()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
+        _work?.Add(WorkMetric.WorldViews); _work?.Add(WorkMetric.UnitVisits, _entities.Count);
+        _work?.Add(WorkMetric.Sorts); _work?.Add(WorkMetric.SortElements, _entities.Count);
         var values = new List<CombatUnit>(_entities.Count); _world.Query(in _units, (ref CombatUnit unit) => values.Add(unit));
         return values.OrderBy(u => u.Id).ToArray();
     }
     private CombatUnit[] Living() => All().Where(u => u.Location.Lifecycle != UnitLifecycle.Dying).ToArray();
-    public UnitState[] Snapshot() => Living().Select(u => CombatProjection.Snapshot(u, _tick)).ToArray();
-    public UnitState[] Dying() => All().Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(u => CombatProjection.Snapshot(u, _tick)).ToArray();
-    public UnitState[] Soldiers(int city) => Snapshot().Where(u => u.Owner == city && u.Faction == Faction.Adventurers).ToArray();
-    public UnitState[] Enemies() => Snapshot().Where(u => u.Faction == Faction.Skeletons).ToArray();
-    public CombatEvent[] Events() => _events.ToArray();
+    private bool AnyUnit(Func<CombatUnit, bool> predicate)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        foreach (Entity entity in _entities.Values)
+        {
+            _work?.Add(WorkMetric.UnitVisits);
+            if (predicate(_world.Get<CombatUnit>(entity))) return true;
+        }
+        return false;
+    }
+    internal CombatUnit[] EnemyMembership() => Living().Where(u => u.Faction == Faction.Skeletons).ToArray();
+    internal CombatUnit[] SoldierMembership(int city) => Living().Where(u => u.Faction == Faction.Adventurers && u.Owner == city).ToArray();
+    internal bool HasParticipatingSoldierLevel(int level) => AnyUnit(u => u.Faction == Faction.Adventurers && u.IsTargetable && u.Identity.Level == level);
+    public UnitState[] Snapshot() => Living().Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray();
+    public UnitState[] Dying() => All().Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray();
+    public UnitState[] Soldiers(int city) => SoldierMembership(city).Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray();
+    public UnitState[] Enemies() => EnemyMembership().Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray();
+    internal (UnitState[] Living, UnitState[] Dying) ProjectAll()
+    {
+        CombatUnit[] ordered = All();
+        return (ordered.Where(u => u.Location.Lifecycle != UnitLifecycle.Dying).Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray(),
+            ordered.Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(u => CombatProjection.Snapshot(u, _tick, _work)).ToArray());
+    }
+    public CombatEvent[] Events() => _events.Select(e => e with { Unit = e.Unit is null ? null : CombatProjection.Detach(e.Unit, _work), Victims = e.Victims.ToArray() }).ToArray();
+    internal BattleFoodForecast FoodForecast(int city, int food, EconomyConfiguration economy)
+        => BattleFood.Forecast(SoldierMembership(city), food, economy);
     public long OldestEventSequence => _events.Count == 0 ? EventSequence + 1 : _events[0].Sequence;
     internal UnitState Read(int id)
-        => CombatProjection.Snapshot(Unit(id), _tick);
+        => CombatProjection.Snapshot(Unit(id), _tick, _work);
     internal void Seed(UnitState state)
     {
         WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank, state.IsBoss, state.Level);
@@ -107,7 +144,7 @@ internal sealed class CombatSimulation : IDisposable
     {
         if (HasDeaths) throw new InvalidOperationException("Cannot reform while prior deaths hold space.");
         var reserves = (unfed ?? []).ToHashSet();
-        _wave = wave; _events.Clear(); _occupancy.Clear(); _routing.Clear(); _admissions.Clear(); _observations.Clear();
+        _wave = wave; _events.Clear(); _occupancy.Clear(); _routing.Clear(); _admissions.Clear(); _observations.Clear(); _cityObservations.Clear();
         foreach (CombatUnit unit in Living())
         {
             Unit(unit.Id) = unit with
@@ -121,20 +158,33 @@ internal sealed class CombatSimulation : IDisposable
     }
     public void AdmitEntries(bool initial = false)
     {
-        CombatUnit[] queued = Living().Where(u => u.Location.Lifecycle == UnitLifecycle.Queued)
+        CombatUnit[] membership = Living();
+        // A stage-local derived entry view. Every placement changes occupancy;
+        // failed identical band queries can share their exact result meanwhile.
+        long entryRevision = _occupancy.Revision;
+        var entries = new Dictionary<(int City, Faction Faction, int Size, bool Front), HexPosition?>();
+        CombatUnit[] queued = WorkOrdering.Input(membership.Where(u => u.Location.Lifecycle == UnitLifecycle.Queued), _work)
             .OrderBy(u => initial ? u.Class == UnitClass.Melee : u.Class != UnitClass.Melee).ThenBy(u => u.Profile.Initiative)
             .ThenBy(u => initial ? SeededDecision.Rank(Key(u.Id, u.Destination, u.Decision!.Sequence, 0, CombatPurpose.Formation)) : u.Decision!.SchedulingRank).ThenBy(u => u.Id).ToArray();
         foreach (CombatUnit unit in queued)
         {
-            IEnumerable<int[]> bands = unit.Class != UnitClass.Melee ? [_board.Rear(unit.Faction).ToArray()]
-                : initial ? [_board.Front(unit.Faction).ToArray()] : [_board.Front(unit.Faction).ToArray(), _board.Rear(unit.Faction).ToArray()];
-            foreach (int[] band in bands)
+            _work?.Add(WorkMetric.QueuedCandidates);
+            int bands = unit.Class == UnitClass.Melee && !initial ? 2 : 1;
+            for (int index = 0; index < bands; index++)
             {
-                HexPosition? position = band.Select((cell, preference) => new { cell, preference })
-                    .OrderBy(c => _occupancy.UsedCapacity(unit.Destination, c.cell)).ThenBy(c => c.preference)
-                    .SelectMany(c => _occupancy.Free(unit.Destination, unit.Faction, c.cell, unit.Profile.Size)
-                        .OrderBy(f => unit.Faction == Faction.Adventurers ? f.AnchorForward : -f.AnchorForward).ThenBy(f => f.Id)
-                        .Select(f => (HexPosition?)new HexPosition(c.cell, f.Id))).FirstOrDefault();
+                if (entryRevision != _occupancy.Revision) { entries.Clear(); entryRevision = _occupancy.Revision; }
+                bool front = unit.Class == UnitClass.Melee && index == 0;
+                var key = (unit.Destination, unit.Faction, unit.Profile.Size, front);
+                if (!entries.TryGetValue(key, out HexPosition? position))
+                {
+                    IReadOnlyList<int> band = front ? _board.Front(unit.Faction) : _board.Rear(unit.Faction);
+                    position = WorkOrdering.Input(band.Select((cell, preference) => new { cell, preference }), _work)
+                        .OrderBy(c => _occupancy.UsedCapacity(unit.Destination, c.cell)).ThenBy(c => c.preference)
+                        .SelectMany(c => WorkOrdering.Input(_occupancy.Free(unit.Destination, unit.Faction, c.cell, unit.Profile.Size), _work)
+                            .OrderBy(f => unit.Faction == Faction.Adventurers ? f.AnchorForward : -f.AnchorForward).ThenBy(f => f.Id)
+                            .Select(f => (HexPosition?)new HexPosition(c.cell, f.Id))).FirstOrDefault();
+                    entries.Add(key, position);
+                }
                 if (position is null) continue;
                 CombatUnit admitted = unit with
                 {
@@ -147,7 +197,7 @@ internal sealed class CombatSimulation : IDisposable
         }
         foreach (AdmissionBound bound in _admissions.Values.Where(b => b.AdmissionTick is null).ToArray())
         {
-            CombatUnit? first = Living().FirstOrDefault(u => u.Destination == bound.City && u.Faction == Faction.Skeletons && u.Deployed);
+            CombatUnit? first = membership.Select(u => Unit(u.Id)).FirstOrDefault(u => u.Destination == bound.City && u.Faction == Faction.Skeletons && u.Deployed);
             if (first is not null) _admissions[bound.City] = bound with { AdmissionTick = _tick, FirstUnitId = first.Id };
         }
     }
@@ -176,16 +226,18 @@ internal sealed class CombatSimulation : IDisposable
         }
         _admissions[city] = new(city, _tick, bound);
     }
-    public void Cleanup(long tick)
+    public void Cleanup(long tick) => Cleanup(tick, All());
+    private void Cleanup(long tick, CombatUnit[] before)
     {
         _tick = tick; _events.RemoveAll(e => e.Tick < tick - HistoryTicks);
-        foreach (CombatUnit unit in All().Where(u => u.Location.Lifecycle == UnitLifecycle.Dying)) if (_occupancy.ExpireDeath(unit.Reservation, tick)) Remove(unit.Id);
+        foreach (CombatUnit unit in before.Where(u => u.Location.Lifecycle == UnitLifecycle.Dying)) if (_occupancy.ExpireDeath(unit.Reservation, tick)) Remove(unit.Id);
         TrimHistory();
     }
     public void Advance(long tick, IEnumerable<City> cities)
     {
-        Cleanup(tick); _healthProgress.Clear();
-        foreach (CombatUnit unit in Living().Where(u => u.CanAct))
+        CombatUnit[] before = All();
+        Cleanup(tick, before); _healthProgress.Clear();
+        foreach (CombatUnit unit in before.Where(u => u.CanAct))
         {
             if (_occupancy.Arrive(unit.Reservation, tick))
             {
@@ -208,19 +260,22 @@ internal sealed class CombatSimulation : IDisposable
             else if (unit.Action is CombatAction.Recovery && tick >= unit.ReadyTick)
                 Unit(unit.Id) = unit with { Action = CombatActions.Complete(unit.Action, tick), Decision = NewDecision(unit.Id, unit.Destination, checked(unit.Decision.Sequence + 1)) };
         }
-        CombatUnit[] alive = Living().Where(u => u.IsTargetable).ToArray(); var current = alive.ToDictionary(u => u.Id);
+        // Arrivals/recoveries replace immutable ECS values without changing this
+        // stage's surviving targetable membership. Read their committed values.
+        CombatUnit[] alive = before.Where(u => u.IsTargetable).Select(u => Unit(u.Id)).ToArray();
+        _work?.Add(WorkMetric.UnitVisits, alive.Length);
+        var stage = new CombatStage(alive); var current = stage.ById;
         var damage = new SortedDictionary<int, int>(); var cityDamage = new SortedDictionary<int, int>();
         foreach (CombatUnit unit in alive.Where(u => u.PendingImpact && tick >= u.Action.Attack!.ImpactTick))
         {
             var action = (CombatAction.Windup)unit.Action; AttackRecord attack = action.Attack!;
-            bool exposed = !alive.Any(u => u.Destination == unit.Destination && u.Faction == Faction.Adventurers);
             bool targetCity = attack.Target.Kind == CombatTargetKind.City; int targetId = attack.Target.Id;
             CombatUnit? primary = targetCity ? null : current.GetValueOrDefault(targetId);
-            bool valid = targetCity ? unit.Faction == Faction.Skeletons && targetId == unit.Destination && exposed
+            bool valid = targetCity ? unit.Faction == Faction.Skeletons && targetId == unit.Destination && stage.Faction(unit.Destination, Faction.Adventurers).Length == 0
                     && _board.CityDistance(unit.Location.Position.Cell) <= unit.Profile.HexRange
-                : primary is not null && primary.Faction != unit.Faction && primary.Destination == unit.Destination && CombatDecisions.InRange(_board, unit, primary);
-            int[] victims = valid && !targetCity ? CombatDecisions.Victims(_board, primary!, alive, unit.Profile.VictimCap, unit.Profile.SplashHexRadius,
-                Key(unit.Id, unit.Destination, unit.Decision.Sequence, 0, CombatPurpose.Splash)) : [];
+                : primary is not null && primary.Faction != unit.Faction && primary.Destination == unit.Destination && CombatDecisions.InRange(_board, unit, primary, _work);
+            int[] victims = valid && !targetCity ? CombatDecisions.Victims(_board, primary!, stage.Faction(primary!.Destination, primary.Faction), unit.Profile.VictimCap, unit.Profile.SplashHexRadius,
+                Key(unit.Id, unit.Destination, unit.Decision.Sequence, 0, CombatPurpose.Splash), _work) : [];
             if (valid && targetCity) Accumulate(cityDamage, targetId, unit.Profile.Damage);
             foreach (int id in victims) Accumulate(damage, id, unit.Profile.Damage);
             Emit(CombatEventType.Impact, unit, targetId, targetCity, unit.Profile.Damage, valid, primary, victims);
@@ -228,7 +283,7 @@ internal sealed class CombatSimulation : IDisposable
         }
         foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
         {
-            foreach (DefenseActor defense in Defenses(city)) ResolveDefense(city, defense, alive, damage);
+            foreach (DefenseActor defense in Defenses(city)) ResolveDefense(city, defense, stage, damage);
         }
         foreach ((int id, int amount) in damage)
         {
@@ -241,24 +296,29 @@ internal sealed class CombatSimulation : IDisposable
             if (next < city.Health) _healthProgress.Add(city.Id);
             city.Health = next;
         }
-        foreach (CombatUnit unit in Living().Where(u => u.Health <= 0)) Kill(unit);
+        foreach (CombatUnit member in alive)
+        {
+            CombatUnit unit = Unit(member.Id);
+            if (unit.Health <= 0) Kill(unit);
+        }
         TrimHistory();
     }
     private IEnumerable<DefenseActor> Defenses(City city)
     {
         yield return new(DefenseIdentity.Defender(city.Id), city.Defender, _configuration.BuiltInDefense);
-        foreach ((int slot, TowerState tower) in city.Towers.OrderBy(p => p.Key).ToArray())
+        foreach ((int slot, TowerState tower) in WorkOrdering.Input(city.Towers, _work).OrderBy(p => p.Key).ToArray())
             yield return new(DefenseIdentity.Tower(city.Id, slot), tower, _configuration.Tower(tower.Type, tower.Level));
     }
     private static void Accumulate(SortedDictionary<int, int> damage, int id, int amount)
         => damage[id] = checked(damage.GetValueOrDefault(id) + amount);
-    private void ResolveDefense(City city, DefenseActor defense, CombatUnit[] alive, SortedDictionary<int, int> damage)
+    private void ResolveDefense(City city, DefenseActor defense, CombatStage stage, SortedDictionary<int, int> damage)
     {
         TowerState tower = defense.State; DefenseProfile profile = defense.Profile; DefenseIdentity identity = defense.Identity;
         if (!tower.PendingImpact || _tick < tower.ImpactTick) return;
-        CombatUnit? primary = alive.FirstOrDefault(u => u.Id == tower.TargetId && u.Faction == Faction.Skeletons && u.Destination == city.Id);
-        int[] victims = primary is null ? [] : CombatDecisions.Victims(_board, primary, alive, profile.VictimCap, profile.SplashHexRadius,
-            Key(identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Splash, identity.Kind));
+        CombatUnit? primary = stage.ById.GetValueOrDefault(tower.TargetId);
+        if (primary is not null && (primary.Faction != Faction.Skeletons || primary.Destination != city.Id)) primary = null;
+        int[] victims = primary is null ? [] : CombatDecisions.Victims(_board, primary, stage.Faction(city.Id, Faction.Skeletons), profile.VictimCap, profile.SplashHexRadius,
+            Key(identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Splash, identity.Kind), _work);
         foreach (int id in victims) Accumulate(damage, id, profile.Damage);
         EmitTower(CombatEventType.Impact, tower, primary, profile.Damage, primary is not null, victims);
         defense.Commit(city, tower with { PendingImpact = false });
@@ -267,18 +327,28 @@ internal sealed class CombatSimulation : IDisposable
     public void StartActions(IEnumerable<City> cities)
     {
         CombatUnit[] alive = Living().Where(u => u.IsTargetable).ToArray(); var moves = new List<(CombatUnit Actor, HexPosition To)>();
+        var stage = new CombatStage(alive);
         CombatReservations reservations = _occupancy.Snapshot();
+        var positions = reservations.Positions.GroupBy(p => p.City).ToDictionary(g => g.Key, g => g.ToArray());
+        var observations = new Dictionary<int, BattlefieldObservation>();
         foreach (CombatUnit actor in alive.Where(u => u.CanAct && u.Action is CombatAction.Waiting && _tick >= u.ReadyTick))
         {
-            CombatUnit[] opponents = alive.Where(u => u.Destination == actor.Destination && u.Faction != actor.Faction).ToArray();
-            CombatUnit? target = CombatDecisions.Select(opponents.Where(u => CombatDecisions.InRange(_board, actor, u)), u => _board.Distance(actor.Location.Position.Cell, u.Location.Position.Cell),
-                Key(actor.Id, actor.Destination, actor.Decision.Sequence, actor.Decision.Generation, CombatPurpose.Target));
+            CombatUnit[] opponents = stage.Opponents(actor);
+            _work?.Add(WorkMetric.OpponentVisits, opponents.Length);
+            CombatUnit? target = CombatDecisions.Select(opponents.Where(u => CombatDecisions.InRange(_board, actor, u, _work)), u => _board.Distance(actor.Location.Position.Cell, u.Location.Position.Cell),
+                Key(actor.Id, actor.Destination, actor.Decision.Sequence, actor.Decision.Generation, CombatPurpose.Target), _work);
             bool city = opponents.Length == 0 && actor.Faction == Faction.Skeletons;
             if (target is not null || city && _board.CityDistance(actor.Location.Position.Cell) <= actor.Profile.HexRange)
             { StartAttack(actor, target, city); continue; }
             if (opponents.Length == 0 && !city) continue;
             CombatDecisionState d = actor.Decision;
-            BattlefieldObservation observation = BattlefieldObservation.Capture(actor.Destination, d.Sequence, reservations, alive);
+            if (!observations.TryGetValue(actor.Destination, out BattlefieldObservation? payload))
+            {
+                payload = BattlefieldObservation.Capture(actor.Destination, 0, new(positions.GetValueOrDefault(actor.Destination) ?? [], []), stage.City(actor.Destination), _work);
+                if (_cityObservations.TryGetValue(actor.Destination, out BattlefieldObservation? previous) && previous.Matches(payload)) payload = previous;
+                _cityObservations[actor.Destination] = observations[actor.Destination] = payload;
+            }
+            BattlefieldObservation observation = payload with { DecisionSequence = d.Sequence };
             if (_observations.TryGetValue(actor.Id, out BattlefieldObservation? prior) && prior.Matches(observation))
             {
                 if (d.Route.Length > 0) moves.Add((actor, d.Route[0]));
@@ -290,7 +360,7 @@ internal sealed class CombatSimulation : IDisposable
             HexReachability search = _routing.Search(actor, []);
             ApproachScore[] scores = city ? [_routing.Score(actor, new(CombatTargetKind.City, actor.Destination), 0, 0, search)]
                 : opponents.Select(t => _routing.Score(actor, new(CombatTargetKind.Unit, t.Id), t.Location.Position.Cell, t.Profile.Initiative, search)).ToArray();
-            ApproachScore winner = HexRouting.Select(scores, key);
+            ApproachScore winner = HexRouting.Select(scores, key, _work);
             bool unchanged = d.ObjectiveId == winner.Target.Id && d.ObjectiveCity == (winner.Target.Kind == CombatTargetKind.City) && d.ObjectiveCell == winner.Cell;
             if (!unchanged)
             {
@@ -304,7 +374,7 @@ internal sealed class CombatSimulation : IDisposable
             else
             {
                 if (unchanged && d.Visited.Length > 0) search = _routing.Search(actor, d.Visited);
-                route = _routing.Route(actor, winner, alive, key, search);
+                route = _routing.Route(actor, winner, stage.City(actor.Destination), key, search);
             }
             Unit(actor.Id) = actor with
             {
@@ -321,14 +391,14 @@ internal sealed class CombatSimulation : IDisposable
             _observations[actor.Id] = observation;
             if (route.Length > 0) moves.Add((Unit(actor.Id), route[0]));
         }
-        foreach (var move in moves.OrderBy(m => m.Actor.Profile.Initiative).ThenBy(m => m.Actor.Decision!.SchedulingRank).ThenBy(m => m.Actor.Id))
+        foreach (var move in WorkOrdering.Input(moves, _work).OrderBy(m => m.Actor.Profile.Initiative).ThenBy(m => m.Actor.Decision!.SchedulingRank).ThenBy(m => m.Actor.Id))
         {
             CombatAction.Moving action = CombatActions.Move(move.Actor.Action, _board.Transition(move.Actor.Location.Position, move.To), _tick, move.Actor.Profile.MoveTicks);
             if (_occupancy.TryAction(move.Actor.Reservation, action)) Unit(move.Actor.Id) = move.Actor with { Action = action };
         }
         foreach (City city in cities.Where(c => !c.Eliminated).OrderBy(c => c.Id))
         {
-            foreach (DefenseActor defense in Defenses(city)) StartDefense(city, defense, alive);
+            foreach (DefenseActor defense in Defenses(city)) StartDefense(city, defense, stage.Faction(city.Id, Faction.Skeletons));
         }
         TrimHistory();
     }
@@ -346,7 +416,7 @@ internal sealed class CombatSimulation : IDisposable
         TowerState tower = defense.State; DefenseIdentity identity = defense.Identity;
         if (tower.PendingImpact || _tick < tower.ReadyTick) return;
         CombatUnit? target = CombatDecisions.Select(alive.Where(u => u.Faction == Faction.Skeletons && u.Destination == city.Id), u => _board.CityDistance(u.Location.Position.Cell),
-            Key(identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Target, identity.Kind));
+            Key(identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Target, identity.Kind), _work);
         if (target is null) return;
         tower = defense.Start(target.Id, _tick); defense.Commit(city, tower);
         EmitTower(CombatEventType.AttackStarted, tower, target, defense.Profile.Damage, false, []);
@@ -404,7 +474,7 @@ internal sealed class CombatSimulation : IDisposable
     private void Emit(CombatEventType type, CombatUnit unit, int target = 0, bool city = false, int damage = 0, bool landed = false, CombatUnit? primary = null, int[]? victims = null)
     {
         EventSequence = checked(EventSequence + 1);
-        _events.Add(new(EventSequence, _tick, type, CombatProjection.Snapshot(unit, _tick), target, city, damage, landed)
+        _events.Add(new(EventSequence, _tick, type, CombatProjection.Snapshot(unit, _tick, _work), target, city, damage, landed)
         {
             ImpactPose = city ? null : primary is not null ? primary.Pose(_tick)
             : type is CombatEventType.Hit or CombatEventType.Death or CombatEventType.DefenderShot ? unit.Pose(_tick) : null,
@@ -421,6 +491,6 @@ internal sealed class CombatSimulation : IDisposable
     public void Dispose()
     {
         if (IsDisposed) return;
-        IsDisposed = true; _entities.Clear(); _events.Clear(); _admissions.Clear(); _healthProgress.Clear(); _observations.Clear(); _occupancy.Clear(); _routing.Clear(); EcsWorld.Destroy(_world); GC.SuppressFinalize(this);
+        IsDisposed = true; _entities.Clear(); _events.Clear(); _admissions.Clear(); _healthProgress.Clear(); _observations.Clear(); _cityObservations.Clear(); _occupancy.Clear(); _routing.Clear(); EcsWorld.Destroy(_world); GC.SuppressFinalize(this);
     }
 }

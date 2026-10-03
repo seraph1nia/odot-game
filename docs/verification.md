@@ -1681,3 +1681,230 @@ The final `mise run test-in-process` fallback also passed the same 359 gameplay
 checks (79.95s) and 139 runner checks (0.57s), with no skipped cases or Godot
 processes. This is complete cheap coverage and partial coverage of the full gate;
 it verifies the final serial core collection policy and socketless entry point.
+
+### Core simulation measurement setup (2026-10-03)
+
+Before implementation, all 563 hashes in
+`logs/20261002-205614-c7ee8d08/source-inputs.json` matched. The Linux kernel/glibc,
+12 logical processors, locked SDK 10.0.401 and Godot .NET 4.7.2 also matched.
+All seven owned-display executables are available. Optional `dotnet-trace` and
+`dotnet-counters` are absent; no tools or dependencies were installed. Inspection
+evidence is `logs/20261003-core-simulation-environment-audit/audit.json`.
+The completed `speed-up-verification` coverage remains required: 21 ordinary
+strategy rows, serialized campaign, six network selectors, five source UI
+selectors, sequential exports and both package gates. Default budgets remain two
+cheap processes, two expensive scenarios, at most two owned graphical workers,
+setup speed four and timing-witness speed one. UseSharedCompilation remains false
+for comparable runs. The historical 252.82s CI / 55.37s C# figures are verification
+evidence only. Fresh runtime and verification-speed baselines are collected after
+measurement fixtures are validated, before any optimization.
+
+The selected commands are `profile-campaign`, `test-scale`, `profile-scale`,
+`profile-snapshots` and `profile-presentation` in the README. Engine-free commands
+restore locked dependencies and prepare only the selected core-test executable
+outside measurement. The no-argument executable still runs the existing xUnit
+framework in process; ordinary test-host discovery and all campaign identities
+remain unchanged. A profile runs one separate warm-up and 1..10 measured
+executions (default three), serially, in distinct owned processes. Each has a
+600-second wall deadline; timeout/cancellation kills only its worker, awaits exit
+and reports nonzero. Warm-up warms filesystem/runtime caches; fresh workers still
+include their own JIT costs. `test-scale` has one execution and no warm-up.
+
+`odot-profile-v1` identity files record full source/asset/lock hashes, SDK/runtime,
+OS/CPU/machine, configuration, seed, workload selection, iteration/bound/concurrency
+and counter mode. Samples contain monotonic elapsed milliseconds, process CPU
+milliseconds, managed allocated bytes and generation 0/1/2 collection deltas.
+[Process CPU](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.totalprocessortime?view=net-10.0)
+includes user and system time across the process. [Managed allocation](https://learn.microsoft.com/en-us/dotnet/api/system.gc.gettotalallocatedbytes?view=net-10.0)
+excludes native allocations; precise sampling has cost and is used at coarse
+boundaries rather than at individual calculations. Collection counts are not
+pause durations. Summaries exclude warm-up and give count/median/min/max, without
+tail-percentile claims for three whole-workload samples.
+
+Campaign wall phases distinguish setup, actual fixed-step calls, preparation,
+assertions, diagnostics and evidence/disposal. Existing investment assertions
+inside diagnostic interpolation are initially labelled `diagnostic-assertion`;
+they are retained at every verbosity. Phase changes use timestamps and bound
+checks, with no per-operation timestamps. Each worker reports excluded calibration
+for 100,000 alternating phase boundaries and 250 coarse metric reads, plus its
+boundary count. Calibration is a cost estimate, never subtracted from samples. Total CPU/allocation includes the
+harness; stepping wall time excludes preparation, snapshots used for evidence,
+hashing and diagnostic formatting. Retained command/per-wave/final digests
+normalize only the random session id. Golden short traces preserve ids, seed,
+route/target order, events, transfer, simultaneous impact/death, pause/resume and
+terminal cleanup; the fixed replay has separate authority-input/playback-output
+references.
+
+Work-counter schema 1 reports independent semantic categories, not instructions,
+FLOPs or a total number of calculations. Unsupported owner categories remain
+null; supported but unused sites are zero. Counters are off in normal gameplay,
+owned by one match/playback and reset independently. They count authoritative
+view builds/visits, ordered materializations, projections and copied decisions,
+local observation inputs, opponent/range/splash candidates, dynamic actor BFS
+search/dequeue/edge visits, occupancy/admission, profile resolutions, snapshots,
+codec calls/bytes, playback indexes/event visits, rig pose samples and HUD refresh
+work. HUD section counts refer to status/feedback, roster/focus, resources/progression,
+economy context and session controls; each full baseline HUD refresh updates all
+five. Static board precomputation is reported under setup timing. Counting runs
+include fixture/evidence observations, so deterministic isolated regressions own
+claims about eliminated bookkeeping work. Counter-enabled timings are separated
+from counter-disabled timing samples; matched overhead is reported explicitly.
+
+The large fixture is synthetic: one validated 32-column-by-8-row offset-hex board,
+256 cells, six anchors/capacity, protected opposite rear rows, neighboring neutral
+front bands and ordinary siege links. Both factions have equal counts of all four
+roles, level-one size-two profiles and normal timings; only army setup/funding is
+test-owned. Sizes 128/512/2,048 use the same board, proportions and 600-tick horizon.
+Smaller natural completions report actual ticks without padding. The largest
+case must run all 600 normal ticks, with at least 256 simultaneous deployed actors
+including 128 per faction, nonempty queues, landed attacks, casualties and actual
+admission of initially queued actors. Checkpoints verify faction/capacity/anchor/
+transit ownership, identity conservation and history bounds. Ordered events are
+hashed before history truncation; setup/assertions/hashing are separate from timed
+stepping. Population peaks/means and deployed-actor-tick totals disclose active
+work. This is fixed-window stress acceptance, not twenty-wave balance, battle
+completion, default-board capacity or graphical performance. Full CI alone does
+not establish this large-scale acceptance.
+
+The initial unoptimized feasibility trial
+`logs/20261002-223108-test-scale-d43a5609` passed all 600 ticks: initial deployment
+was 192 per faction, final deployment 624, landed attacks 1,226 and deaths 238,
+with a retained queue. It is fixture feasibility, not a frozen comparable timing
+baseline. Setup/measurement regressions passed; the fixture will be frozen with the complete
+measurement scaffolding. Size, deployment thresholds and window are not reduced
+afterward.
+
+Snapshot profiles perform 25 operations per phase for both ordinary/large inputs.
+Projection is measured from authority; JSON serialize/deserialize and Brotli plus
+Base64 compress/decompress use fixed DTO/byte inputs. Stage implementations are
+checked against the unchanged engine-independent production codec, and complete
+encode/decode is measured too. No wire schema, enum, compression setting or 16 MiB
+bound changes. Projection improvements are not credited as codec improvements.
+
+Presentation profiling is an explicit diagnostic replay on one owned private
+display, not an added default UI scenario. Checked-in ordinary commands generate
+600 fixed-delta frames with movement, landed impacts, deaths/expiry, pause/resume,
+hidden-city focus and return. The normal playback/Tabletop/imported rigs consume
+the identical serialized input digest. Initialization and final PNG capture are
+outside samples. Frame distributions contain 600 managed update observations;
+process CPU/allocation over the replay also includes rendering/native callbacks
+and waiting. Native max-fps is 30, scripted delta is 1/60; actual software-rendered
+frame throughput can be lower. Neither CPU totals nor these managed samples claim
+native GPU/compositor/physical-input/listening performance. Missing prerequisites
+are unexecuted/nonzero; errors fail without suppression or desktop fallback.
+
+The first graphical trial `logs/20261002-225802-ce8fc041` processed the script but
+failed on an audio-resource shutdown leak: the diagnostic called immediate tree
+quit instead of the normal bounded audio/exit lifecycle. It is failed evidence,
+not a baseline pass; the diagnostic now uses the existing exit path.
+
+The library choice remains built-in collections. Microsoft's
+[FrozenDictionary guidance](https://learn.microsoft.com/en-us/dotnet/api/system.collections.frozen.frozendictionary-2?view=net-10.0)
+describes a higher construction cost in exchange for repeated lookup performance.
+Immutable board/catalog indexes keep that lifetime; short-lived BFS results will
+use privately owned ordinary maps after matched baseline collection. No library
+upgrade, new dependency, approximate authoritative calculation or persistent
+cross-stage route cache is introduced by the measurement scaffolding.
+
+The corrected graphical trial `logs/20261002-230408-3ee925a1` passed one warm-up
+and one measured replay with the same input digest, software renderer and owned
+shutdown. The selected Debug solo campaign smoke
+`logs/20261002-230409-profile-campaign-53d528b0` also passed warm-up plus one
+measured execution with all ordinary campaign assertions, command/per-wave/final
+evidence and separate wall phases. These are harness trials under overlapping
+host activity, not the frozen Release/three-repetition runtime baseline.
+
+### Frozen unoptimized runtime baselines, 2026-10-03
+
+All eleven runtime/counting families share 588 source/asset/lock input hashes. Engine-free source digest: `0416B71F30A1E1AC936CF827616806AE9D8C25B6477ACDB33D7F4F839440CDF7`. The full source archive, Git base and SHA-256 are retained under `logs/core-simulation-comparison/`. No runtime or harness optimization precedes these samples. The initial 527-test/full-CI harness validation passed. Final frozen verification baselines also passed: `mise run test` 55.895s command / 52.805s runner (383 gameplay plus 144 tooling tests), and `mise run ci` 236.807s command / 235.43s runner, all six network scenarios, five source UI slices, sequential exports and package gates. Evidence: `logs/20261003-001028-ec11bcd2/` for cheap checks and `logs/20261003-001122-2c31b307/` for CI. Historical 252.82s/55.37s remain separate. The runtime baselines and final frozen verification gate passed before any optimization group began.
+
+Each timing family has one separate warm-up and three serial measured repetitions. Values below are medians; raw samples and min/max are retained in each evidence directory. Managed allocations are cumulative allocated bytes over the run, not peak heap size.
+
+| Workload | Whole elapsed ms | Process CPU ms | Managed allocated MB (decimal) | Stepping ms | Evidence |
+| --- | ---: | ---: | ---: | ---: | --- |
+| campaign-solo | 2429.82 | 2940.07 | 954.60 | 1966.79 | `logs/20261002-234042-profile-campaign-c9da69b7` |
+| campaign-cooperative | 3933.85 | 5067.42 | 5338.02 | 3022.91 | `logs/20261002-234054-profile-campaign-302d1d8d` |
+| scale 128 | 2105.23 | 2389.82 | 434.10 | 1462.56 | `logs/20261002-234353-profile-scale-c0ee58bf` |
+| scale 512 | 54172.27 | 55216.00 | 10156.14 | 53428.08 | `logs/20261002-234353-profile-scale-c0ee58bf` |
+| scale 2048 | 120916.63 | 121825.17 | 68135.09 | 119559.20 | `logs/20261002-234353-profile-scale-c0ee58bf` |
+
+The 2,048-actor correctness selection passed 600 normal ticks: peak deployment 665, 357,626 active-unit-ticks, 1,226 landed impacts, 238 deaths and 478 admissions from the original queue. Every scale repetition and counting run matched the initial/checkpoint/event digests. Initial deployment was 192 actors per faction with 1,664 queued; final deployed population was 624 with 1,186 queued. This is a fixed-window stress result.
+
+| Fixed snapshot input, 25 operations | Projection elapsed ms | Projection CPU ms | Projection allocated MB | Evidence |
+| --- | ---: | ---: | ---: | --- |
+| ordinary | 2.33 | 2.32 | 1.09 | `logs/20261002-234112-profile-snapshots-ff93a5c7` |
+| large | 33.47 | 33.37 | 76.05 | `logs/20261002-234112-profile-snapshots-ff93a5c7` |
+
+Presentation (`logs/20261002-235551-a55cf94c`): managed update p50/p95/p99 medians 1.5401/2.7649/3.9074 ms across three 600-frame executions; summed managed updates 1020.10 ms, whole-process elapsed 55375.65 ms, CPU 105568.77 ms and allocated 37.56 MB. Build is locked Debug, renderer llvmpipe LLVM 23.1.1, native max-fps 30 with scripted delta 1/60. The input's final authority tick is 361; pause and post-clear frames remain part of the identical script. Process metrics include software rendering between updates. Setup, the 100,000-timer calibration and final PNG capture are excluded.
+
+Counting runs retain separate evidence:
+- `campaign-cooperative-counters`: `logs/20261003-000022-profile-campaign-8819a196`.
+- `campaign-solo-counters`: `logs/20261003-000011-profile-campaign-84d63f94`.
+- `presentation-counters`: `logs/20261003-000649-16a5407b`.
+- `scale-counters`: `logs/20261003-000049-profile-scale-652cefcc`.
+- `snapshots-counters`: `logs/20261003-000031-profile-snapshots-6960f453`.
+
+For the four-player campaign, baseline counts include 152,815 full world views, 11,769,832 unit visits, 6,678,595 DTO projections, 333,483 observations and 31,573,643 opponent visits. Presentation counted 1,196 playback index builds, 500,255 event entries examined, 17,562 full poses and 465 HUD section refreshes. Counts include workload setup/evidence sites where stated; they cannot be summed into CPU instructions.
+
+Counter-on solo elapsed median was 2,173.97 ms (2,130.67..2,520.92), versus counter-off 2,429.82 ms (2,299.23..2,522.87), with about 6.23 MB additional managed allocation. The observed negative elapsed difference is inconclusive about overhead: counting changes iterator/JIT paths and these ranges overlap. Do not subtract a negative or guessed overhead from runtime measurements. Timing comparisons use counter-off only. The retained core boundary/metric-read calibrations and presentation clock calibration quantify their explicit measurement calls independently.
+
+[Interaction-by-interaction source review and precision/library decisions](simulation-performance.md).
+
+### Authoritative view ownership and intermediate evidence
+
+Cleanup collects one canonical id-ordered ECS view; advance reads committed immutable values after arrivals/recovery and kills after the simultaneous damage stage. Admission reuses its membership and reads post-placement values for first-admission bounds. Narrow enemy membership observes cleared cities before transfer, refreshes after redistribution, and supplies count/engagement destinations without DTO projection. Direct entry points always collect fresh input, including mutations at the same tick. Stage arrays are independently owned and never back public DTOs/events.
+
+`AuthoritativeQueryTests`, lifecycle/action/limit/transfer tests and all five ordered reference digests passed; the complete cheap gate passed 385 gameplay plus 144 tooling checks (`logs/20261003-001753-f076e769`). Selected four-player campaign and 128-actor counts matched baseline workload digests. Intermediate counter-off campaign stepping was 2475.84 ms and allocation 2286.13 MB (`logs/20261003-001840-profile-campaign-6f691d5b`); baseline medians were 3022.91 ms and 5338.02 MB. Counting evidence `logs/20261003-001848-profile-campaign-c224cd58` and `logs/20261003-001856-profile-scale-61ba7018` is separate. These single measured repetitions establish directional attribution for the query area; final three-repetition comparisons remain required.
+
+### Exact decision/search ownership and intermediate evidence
+
+City/faction arrays belong to one action/impact stage and retain canonical ids. Observation payloads are built lazily once per relevant city/stage; exact value equality can reuse a prior immutable payload, while actor decision sequences remain separate. Relevant movement/casualty/admission/transfer changes compare unequal; health-only and unrelated-city inputs retain previous semantics. Shared id lookup/exposure and local splash preserve simultaneous damage. Cap one validates cap/radius then performs no splash enumeration. Exact best distance/initiative groups retain stable identity ties and the original seeded choose, including singleton groups.
+
+BFS stores privately owned ordinary dictionaries through read-only wrappers, with every shortest predecessor intact. Approach values are memoized only inside a single search, keyed by faction/source/range/target kind/cell; identity and initiative remain distinct. Screening is local and cached by goal cell only inside one route call. A bounded board-owned cache reuses immutable goal-cell sets keyed by faction/range/target kind/cell; all-goal and legal-goal sets stay distinct for direct callers. It clears with the routing lifetime. No approximate route, observation hash, new seed call or persistent occupancy route cache is used. Long-lived frozen configuration maps remain.
+
+All five ordered references, independent shortest-parent/ownership checks, reverse-order ties, configured defense splash and the complete 533-test cheap gate passed (`logs/20261003-002300-9e429d40`). Intermediate counter-off stepping: co-op 2150.76 ms, 512 actors 30559.36 ms, versus baseline medians 3022.91 and 53428.08 ms. Allocation was 5460.63 MB for 512 actors versus 10156.14 MB. Evidence `logs/20261003-002425-profile-campaign-377593f5`, `logs/20261003-002441-profile-scale-4d6ef99c`; separate counts `logs/20261003-002433-profile-campaign-ca20d8fd`, `logs/20261003-002546-profile-scale-9d0a95f1`. Co-op observation builds fell 333483→30587, examined actors 28448300→608433 and opponent visits 31573643→1482909. Search counts/ordered workload digests remain identical. These one-repetition area samples are directional; final repeated results govern performance claims.
+
+### Snapshot/profile ownership and intermediate evidence
+
+One canonical ECS view supplies every matching unit projection once to a complete snapshot. Each city reuses its soldiers for payload/forecast; standalone city snapshots remain detached and terminal match forecasts stay null. Food setup uses narrow authoritative soldier values. Private board/campaign/catalog templates avoid repeated lookup/sorting; returned neighbors, entries, recruits, quote arrays, routes/visited arrays and receipt ids remain independent. Returned event victims/decision arrays are detached from retained event history as well.
+
+Profiles cache only successful type/rank/boss/level validation, including existing decimal/overflow/boss/research ordering. Quote caches are bounded to 27 supported rank combinations for one configuration owner; switching that owner clears them. Match disposal clears profile/quote caches. Wounded current HP stays unchanged by research. Commands read private building/research/wave data directly. City-distance lookup is immutable exact precomputation; its setup cost is measured.
+
+The admission entry view belongs to one call, keyed by city/faction/size/front-or-rear. It shares exact availability (including no available position) only while occupancy revision is unchanged and clears after every placement. Every queued candidate is still considered in its original order; there is no event-driven scheduling or cross-stage admission cache. Cheap capacity/same-tick removal tests and all ordered references passed.
+
+Complete cheap coverage passed 393 gameplay plus 144 tooling tests (`logs/20261003-003306-e81fb233`). Selected snapshot evidence `logs/20261003-003414-profile-snapshots-6142bc14`, separate counts `logs/20261003-003425-profile-snapshots-27a82fa1` matched ordinary/large input digests and exact JSON/compressed bytes. Each fixed-input codec phase is reported independently from projection; wire schema, enum values, Brotli settings and 16-MiB bounds are unchanged. Final repeated measurements remain required.
+
+### Playback, presentation and HUD ownership
+
+Playback owns detached, ordered current/previous units and their id union at accepted-snapshot boundaries. Frame sampling retains the same buffered admission/action/death policy, with pending deaths maintained as accept/drain counts. Baseline, gaps and fresh matches clear both queue and lookup. `PresentationEfficiencyTests`, existing `CombatPlaybackTests` and the five frozen ordered references own this behavior, including mutations of incoming routes/events and sampled outputs.
+
+Views synchronize logical state, apply ordered events, then evaluate each visible rig once. Hidden views retain position/clip/death/effect state and cleanup, and seek their current pose when returning. Animation lengths/bones/names belong to the imported rig binding; segment/cumulative geometry belongs to the layout/transition lifetime. The counter-enabled 600-frame replay asserts one full pose sample per visible retained view on every frame; counter-disabled measurements avoid those diagnostic assertions. All imported weapons, contact markers and animation assets remain unchanged.
+
+HUD sections compare exact owned displayed values rather than revision alone or probabilistic hashes. Status, roster, economy, selected-slot context and controls refresh independently. Tokens include resources, research/quotes, slots, participation/food receipts, displayed army health/profile, focus, phase, connection and feedback. Movement and unchanged snapshots do not refresh those sections. Pure invalidation/mutation checks own same-tick updates; ordinary economy/reconnect and combat UI slices own actual controls and displayed balances.
+
+The existing combat slice adds two city-selector clicks and fresh probes during its existing pause. It checks current visible bones/positions after return, unchanged visible ids/time, and no historical cues. Rendered animation checks select visible units because hidden skeletal evaluation is deliberately skipped; binding/authority/cleanup checks retain both cities. The subsequent resize baseline is taken after this focus visit, since the other city's formerly hidden rigs have now been sought. This adds no battle, matrix, scenario or display, remains under the existing 180-second bound, and catches stale rig/cue behavior that pure checks cannot observe. Existing reconnect coverage still checks current dying bodies, health and no historical effects after transport/process recovery.
+
+### Campaign diagnostics and preparation attribution
+
+Each strategy decision captures one before snapshot for policy, command and assertions, then captures fresh inputs after an accepted action. Serialized `SessionFlow.Invest` uses the same captured before state while retaining normal JSON requests and round-trip assertions. Earliest deployed participating level-five detection uses an authoritative scalar query; queued/reserve/dying cases are tested against the old projected predicate with no DTO projection.
+
+Investment aggregation validates every addition regardless of verbosity. `CampaignDiagnosticsTests` checks all six resources, invalid/overflowing investments, lazy successful transaction formatting and a 64-record recent failure bound. Success output retains each preparation's exact stocks, army health/progression/participation, food demand/payment and reward/upkeep receipts, checked six-resource economic-command spending/income totals, production count and terminal stocks/receipts, plus final wave ticks, casualties, recruitment/trades/sales/expansions and earliest level-five wave. Failures expand recent domain records; credentials/wire payloads never enter this buffer. Set `ODOT_CAMPAIGN_TRACE=1` for detailed per-command output; profile identity records this switch. Keep it unset for matched performance comparisons.
+
+The 21 strategy rows (four solo families at seeds 0/1/123 and frontline cooperative sizes 2/3/4 at those seeds), serialized twenty-wave campaign, ordinary xUnit discovery and no-argument in-process fallback remain required. Preparation/assertion/diagnostic/evidence phases explain harness changes separately from combat stepping; whole process CPU/allocation include all these phases. No extra parallelism or pacing is used to obtain gains.
+
+
+### Matched network witness and refreshed verification baselines
+
+The first optimized CI attempt exposed an existing transport race: a pending attack observed at tick 432 resolved before the pause acknowledgement at tick 436 at accelerated setup speed. Evidence `logs/20261003-010838-a472b864/` remains a failed gate, with cancellation and awaited cleanup. The resume slice now acknowledges ordinary speed around its pending/death witness, selects an impact at least six ticks ahead, then restores the configured setup speed while paused. Pending attack, typed recruitment, current deaths, exact frozen state and retry/recovery assertions remain unchanged. The selected corrected case passed (`logs/20261003-011354-3dad686b/`). No privileged command or arbitrary sleep was added.
+
+For comparable test/CI timing, the archived unoptimized source was extracted into an isolated ignored checkout. Only the identical `NetworkTests.cs` witness change was applied; core, fixtures, codec, presentation, strategy and diagnostics remain unoptimized. Generated developer sessions are excluded from the archive and never copied; checks use owned fresh state. An untimed `prepare` warms restored/build/import inputs before measured commands. All compared locked tools, rule/expensive/UI budgets and default setup/witness pacing match. Audit: `logs/core-simulation-comparison/baseline-recheck-inputs.json`.
+
+The refreshed before gates passed: `mise run test` 52.391s command / 49.267s runner, 383 gameplay plus 144 tooling checks; `mise run ci` 243.333s command / 241.953s runner, all six network/five source UI slices and sequential exports/headless/graphical package gates. Evidence lives under `logs/core-simulation-comparison/unoptimized-recheck/logs/20261003-011553-368961d6/` and `20261003-011643-1c2c3561/`. These are the final verification-speed denominators. Original frozen gate timings (55.895s/236.807s command) and the initial optimized pass/failing CI are retained separately under `original-before-gate/` and `initial-after-gate/`; they are not substituted into the final comparison.
+
+### Final integration and performance results
+
+All required runtime/counting families completed with stable source inputs per side and identical ordered outcomes: solo/four-player campaign commands and twenty wave checkpoints, all scale populations/checkpoints/events, fixed snapshot values/bytes and the 600-frame presentation script. Frozen references were not regenerated. Optimized runtime identity contains 597 hashes, digest `C8E0B868853DFA30B98C7BB986F5D575854CFD097D86B7EC08BB86289CFF1059`; both source archives and SHA-256 manifests remain under `logs/core-simulation-comparison/`. Exact comparisons and the independent audit are `analysis.json` and `equivalence.json` there.
+
+Final timed cheap coverage passed 402 gameplay (380 general, 13 solo/serialized, 9 cooperative) plus 144 runner tests: 27.655s command / 24.528s runner (`logs/20261003-012511-b9237525/`). Full CI passed all six network scenarios, five source UI slices, sequential client/server exports and headless/graphical package smoke: 240.414s command / 239.033s runner (`logs/20261003-012537-756aaa9c/`). Locked restore/build/format gates passed. The final in-process fallback also passed 402+144 without test-host sockets (`logs/core-simulation-comparison/in-process-final.log`). Added coverage is 19 cheap regressions plus the bounded focus observations in the existing combat slice. All 39 runtime roots recorded in final command logs were removed after awaited cleanup.
+
+The complete [runtime and verification comparison](simulation-performance.md#measured-results-2026-10-03) reports absolute deltas, percentages, three-sample medians/ranges, actual populations/per-tick costs, frame percentiles, every codec phase, work counts, overhead and one-trial gate limitations. Large stepping fell 119.56→7.70s over the identical 600 ticks; allocation fell 68.14→6.82GB. Cheap task wall fell 47.21%; whole CI changed only −1.20%, treated as practically unchanged. Managed presentation work improved while whole software-rendered process CPU barely changed. Large snapshot projection regressed 15.99% elapsed in the final samples despite lower allocation; it is explicitly retained in the report. No runtime benefit is inferred from CI success alone, and no native GPU/audio or complete stress-battle result is claimed.

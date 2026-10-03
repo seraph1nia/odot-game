@@ -161,13 +161,18 @@ internal sealed partial class Runner
         await Action(a, "build 4 mine", token, false);
         await b.Send("quit"); Require(await b.WaitExit(token) == 0, "departing client exits");
         MatchSnapshot absent = await Observe(a, s => s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == cb.PlayerId).Connected, "retained disconnected city", token);
-        await Observe(a, s => s.Tick > absent.Tick + 9 && s.DyingBodies.Length > 0 && CombatPlayback.All(s).Any(u => u.PendingImpact), "current casualty and pending combat continue while absent", token);
+        // A pending attack is a transport timing witness. Keep ordinary speed
+        // until the pause acknowledgement, then restore the setup budget while
+        // frozen; faster simulation must not consume the observed windup in flight.
+        await SimulationSpeed(server, 1, token);
+        await Observe(a, s => s.Tick > absent.Tick + 9 && s.DyingBodies.Length > 0 && CombatPlayback.All(s).Any(u => u.PendingImpact && u.ImpactTick >= s.Tick + 6), "current casualty and pending combat continue while absent", token);
         MatchSnapshot frozen = State(await Action(a, "pause", token));
         await Observe(a, s => s.Paused && s.Tick == frozen.Tick, "paused snapshot", token);
         Require(CombatPlayback.All(frozen).Any(u => u.PendingImpact) && frozen.Players.Single(p => p.Id == cb.PlayerId).Soldiers.Any(u => u.Type == UnitType.Crossbowman),
             "paused authority retains pending action and typed soldier before resume");
         CombatContact(frozen);
         Require(frozen.DyingBodies.Length > 0, "paused authority retains current deaths");
+        await SimulationSpeed(server, options.SimulationSpeed, token);
         await using var resumed = StartGame("test-resumed", false, true, port, null, "--automated", "--session-file", bPath);
         GameEvent cr = await resumed.WaitFor(e => e.Type == "connected", "restart resume", options.StartupTimeout, token);
         Require(cr.PlayerId == cb.PlayerId && cr.PeerId != cb.PeerId && Gameplay(State(cr)) == Gameplay(frozen), "new peer restores original city and frozen gameplay without regrant");
