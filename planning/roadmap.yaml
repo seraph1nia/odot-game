@@ -50,7 +50,7 @@ queue:
     conflicts_with: []
     notes: "Existing complete planning, 0/40 implementation tasks; no implementation approval inferred. Relative future priority requires a product decision."
   - change: poc-verification-command-guide
-    state: in_progress
+    state: verified
     priority: normal
     source_ideas: [IDEA-001]
     depends_on: []
@@ -58,3 +58,4 @@ queue:
     conflicts_with: []
     notes: "User approved the exact current README-only documentation proposal after the scenario 2 planning landing; exactly one implementation is admitted. Game code/tests remain untouched; implementation stays unmerged pending separate approval. No additional production trial changes. No hard dependencies or semantic conflicts; speed-up-verification canonical sync is separate. Installed workflow checkpoint supports the trial, not completed whole-POC acceptance. Future research README edits need ordinary text integration."
     approval: planning/evidence/poc-verification-command-guide/approval.md
+    verification: planning/evidence/poc-verification-command-guide/review-1.md
