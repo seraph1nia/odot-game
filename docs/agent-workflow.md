@@ -58,6 +58,39 @@ The launcher requires actual inherited `HERDR_ENV=1`, session/pane/tab/workspace
 
 Attach another terminal with `herdr session attach odot-poc` to observe workers. Inside a managed pane use `herdr agent list` and `herdr workspace list`; inspect returned immutable IDs rather than assuming label shapes. Native FirstMate `FM_HOME=... <root>/bin/fm-peek.sh <task-id>` collects task output. The user never needs to steer worker panes manually; the primary records returned task/session/worktree identities.
 
+### Re-enter after installing the workflow on the developer branch
+
+The primary runs against the **registered, owned clone** at
+`$ODOT_FIRSTMATE_HOME/projects/odot-game`; running `mise` from the developer
+checkout does not make that checkout the primary's project. Keep the clone's
+local `main` in sync with the developer branch at a clean, supervised boundary,
+after current workers and local landings finish. The developer branch must
+contain the registered clone's current HEAD so this is a fast-forward; do not
+reset either checkout to force it. From the developer checkout:
+
+```sh
+export ODOT_FIRSTMATE_ROOT=/home/bart/projects/personal/firstmate
+export ODOT_FIRSTMATE_HOME=/home/bart/.local/share/firstmate/odot
+export ODOT_HERDR_SESSION=odot-poc
+export ODOT_BOOTSTRAP_REVISION=eb8298a9f94c36ec2f2e7c01cbd3a5a063c7e0a7
+clone="$ODOT_FIRSTMATE_HOME/projects/odot-game"
+git -C "$clone" remote set-url odot-source "$PWD"
+git -C "$clone" fetch odot-source "$(git branch --show-current)"
+git -C "$clone" merge-base --is-ancestor HEAD FETCH_HEAD
+git -C "$clone" merge --ff-only FETCH_HEAD
+bash tools/AgentWorkflow/agent-primary --check
+```
+
+The `merge-base` command is an ancestry gate; if it fails, reconcile the native
+worker/landing history on an integration branch before retrying. Do this only
+with a clean registered clone and no worker using that base. Once the existing
+primary is stopped, attach `odot-poc`, enter its owned Herdr shell pane, change
+to the clone and run `mise run agent-primary`. If `odot-primary` is still
+running, just attach the session and speak to it; do not launch a second primary.
+The four values above can instead live in ignored `mise.local.toml` for local
+re-entry. Herdr shows the supervised worker panes; normal conversations go to
+`odot-primary` only.
+
 ## Native worker shapes
 
 These are the primary's existing FirstMate operations, not commands the user must manage. Read actual upstream brief instructions and fill BOTH Captain's intent and Firstmate spec, leaving no placeholders. Intake/preflight/review use `--scout`; a planning-only logical Scout writing Git artifacts uses native local-only Ship delivery with an explicit planning-path allowlist. This keeps four logical roles.

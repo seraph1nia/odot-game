@@ -1,11 +1,11 @@
 # Read-only workflow smoke report
 
-Task: **setup-agent-workflow-poc-scout**  
-Role: FirstMate crewmate / Scout; no supervisory or implementation role  
-Inspection date: **2026-10-03**, local inspection through 08:43 UTC  
-Isolated worktree: **`/home/bart/.treehouse/odot-game-ab1b67/1/odot-game`**  
-Report: **`/home/bart/.local/share/firstmate/odot/data/setup-agent-workflow-poc-scout/report.md`**  
-Checkout HEAD: **`eb8298a9f94c36ec2f2e7c01cbd3a5a063c7e0a7`**, detached, clean  
+Task: **setup-agent-workflow-poc-scout**
+Role: FirstMate crewmate / Scout; no supervisory or implementation role
+Inspection date: **2026-10-03**, local inspection through 08:43 UTC
+Isolated worktree: **`/home/bart/.treehouse/odot-game-ab1b67/1/odot-game`**
+Report: **`/home/bart/.local/share/firstmate/odot/data/setup-agent-workflow-poc-scout/report.md`**
+Checkout HEAD: **`eb8298a9f94c36ec2f2e7c01cbd3a5a063c7e0a7`**, detached, clean
 Deliverable: text report written; native completion gate **BLOCKED**, not passed.
 
 All repository `file:line` references below resolve against the isolated worktree above. Findings use local files and Git metadata only. No online sources were consulted.
