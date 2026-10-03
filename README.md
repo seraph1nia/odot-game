@@ -247,20 +247,16 @@ for prerequisites, own-AppID cold launch, packaging, coverage and limitations.
 
 Animated combat has a selectable owned-display check: `mise run test-ui --scenario
 combat`. It recruits a small mixed army through actual controls, checks moving
-bones, paused poses, melee/shoot/hit/death and fresh-session cleanup during the
-first wave. Full source CI includes this fifth slice; packed smoke also exercises
-short combat and rig/weapon bindings. Reconnect tests baseline a paused living
-army without historical effects. See [combat rules](docs/gameplay.md) and
+bones, paused poses, melee/shoot/hit/death and fresh-session cleanup through
+ordinary paid battles. Full source CI includes this fifth slice; packed smoke also exercises
+short combat and rig/weapon bindings. Reconnect tests restore paused current
+state without historical effects. See [combat rules](docs/gameplay.md) and
 [verification](docs/verification.md) for scope and measured evidence.
 
 The early hex-melee proof is selected with `mise run test-ui --scenario combat
---checkpoint melee`. It launches the ordinary authority with explicit combat seed 1, uses a normal
-Farm/Metal Mine/Barracks opening, recruits six
-Swordsmen and continues ordinary recruitment into wave two when needed. It stops
-before wave three after collecting linked near/far, shared and simultaneous
-windup/impact observations and four paused overview/close PNGs. This checkpoint
-uses the existing combat peers, private display and cleanup. Cheap opportunity checks establish only the setup; actual imported rigs, linked
-cue readability and reserved-route clearance require the retained rendered frames.
+--checkpoint melee`. See [combat presentation verification](docs/verification.md#clarified-combat-presentation-verification)
+for its paid setup, bounded normal-speed progression and paused captures, linked
+near/far cues, settled-anchor clearance and intentional transit overlap.
 Authority application arguments accept `--combat-seed <unsigned-64-bit>` for
 repeatable diagnostics; guests cannot select the seed. Without it, a match
 generates its seed once. No seed editor is added to the interface.
