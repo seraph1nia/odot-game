@@ -33,7 +33,8 @@ internal static class CombatProgressionProof
             .Any(g => g.Select(p => p.Frame.CombatTick).Distinct().Count() >= 2
                 && g.Any(p => g.Any(q => Math.Abs(p.Unit.X - q.Unit.X) + Math.Abs(p.Unit.Z - q.Unit.Z) > .03)));
     public static bool AttackAdvanced(IEnumerable<UiObservation> frames)
-        => frames.SelectMany(f => f.Units.Where(u => u.Visible && !u.Dead && u.AttackActive && u.AttackBlend > 0)
+        => frames.SelectMany(f => f.Units.Where(u => u.Visible && !u.Dead && u.WeaponAttached && u.AttackActive && u.AttackBlend > 0
+            && u.Clip is "1H_Melee_Attack_Slice_Horizontal" or "2H_Melee_Attack_Chop" or "2H_Ranged_Shoot" or "Spellcast_Shoot")
             .Select(u => (Frame: f, Unit: u))).GroupBy(p => (p.Unit.Id, p.Unit.AttackSequence, p.Unit.ImpactTick))
             .Any(g => g.Select(p => p.Frame.CombatTick).Distinct().Count() >= 2
                 && g.Select(p => p.Unit.PoseSeconds).Max() - g.Select(p => p.Unit.PoseSeconds).Min() > .02

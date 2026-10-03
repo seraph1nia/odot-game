@@ -44,6 +44,8 @@ public sealed class CombatProgressionProofTests
         {
             Id = 1,
             Visible = true,
+            WeaponAttached = true,
+            Clip = "1H_Melee_Attack_Slice_Horizontal",
             AttackActive = true,
             AttackBlend = 1,
             AttackSequence = 1,
@@ -55,6 +57,8 @@ public sealed class CombatProgressionProofTests
         UiObservation next = new() { CombatTick = 110, Units = [actor with { PoseSeconds = .3, BoneRotation = "second" }] };
         Assert.True(CombatProgressionProof.AttackAdvanced([first, next]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, first]));
+        Assert.False(CombatProgressionProof.AttackAdvanced([first with { Units = [actor with { Clip = "Hit_A" }] }, next with { Units = [next.Units[0] with { Clip = "Hit_A" }] }]));
+        Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { WeaponAttached = false }] }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { CombatTick = first.CombatTick }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { AttackSequence = 2 }] }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { BoneRotation = "first" }] }]));
