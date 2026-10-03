@@ -1,9 +1,17 @@
-# Odot: Nine Tiles
+# The Common Watch
 
 Basic buildings use small wood costs; gold remains for land and advanced buildings. The top-right resource table shows exact Stock and Income/turn, with a compact Upkeep table underneath. Food stays at its original scale. See [gameplay defaults](docs/gameplay.md).
 
 
-A small cooperative city-defense POC in C# and Godot. Each player starts with five of nine indexed hex plots, equips persistent leveled soldiers, and survives twenty automatic waves. Solo uses a local authority; multiplayer uses the original playing host or an explicit dedicated server. Guests render authoritative snapshots and can resume retained cities against the same running authority.
+**Build and provision your village. Hold together against automatic waves.**
+
+The Common Watch is a one-to-four-player cooperative settlement-planning and city-defense POC in C# and Godot. Each player starts with five of nine indexed hex plots, manages six resources, equips and feeds persistent leveled soldiers, and readies up with teammates for automatic battles. Survive twenty waves together: fallen cities pass enemy pressure to survivors, and one surviving city secures victory for everyone. Solo uses the same rules with a local authority; multiplayer uses the original playing host or an explicit dedicated server. Guests render authoritative snapshots and can resume retained cities against the same running authority.
+
+The name describes a watch kept for everyone's homes: separate villages, shared defense. The existing medieval countryside and tabletop presentation remain; this is not competitive conquest or direct shooter combat.
+
+### Stable technical identity
+
+The Common Watch was previously named Odot. Technical names remain unchanged for compatibility: `Odot.slnx`, namespaces, `ODOT_*` variables, repository/release URLs, `odot` executables and package names. Godot's internal project name remains `Odot - Nine Tiles` so existing preferences and private credentials keep their original user-data path; the graphical window and menus use The Common Watch. Windows shortcut/group aliases still say **Odot**, while the installer product name and Linux application-menu display name use **The Common Watch**. No data migration, protocol change or separate release is implied.
 
 ## License and contributions
 
@@ -188,14 +196,14 @@ See [asset provenance and mapping](src/Game/Assets/KayKit/README.md). Assets are
 
 `mise run play` opens Single player, Multiplayer, Settings and Exit Game.
 Multiplayer creates a private Steam lobby for four players including its original
-host. **Invite friends** opens Odot's Steam friends picker. Choose a friend's
+host. **Invite friends** opens The Common Watch's Steam friends picker. Choose a friend's
 Invite button to send a lobby invitation directly, then have them accept it in
 Steam. Names and presence come from Steam; Refresh reloads the list. "Invitation
 sent" means Steam accepted the send request; a friend appears in the roster only
 after joining. Watch and Remote Play are separate Steam features.
 
-Both players need compatible Odot builds, separate signed-in Steam accounts, and
-**Odot already running** when testing AppID 480. Single player needs no socket or
+Both players need compatible The Common Watch builds, separate signed-in Steam accounts, and
+**The Common Watch already running** when testing AppID 480. Single player needs no socket or
 Steam login. Explicit ENet/headless roles skip SDK initialization. The picker
 works without Steam's overlay. Linux desktop launch commands still preload the
 native overlay renderer when available for other Steam UI; imports/builds,
@@ -221,13 +229,13 @@ mise run test-steam --role guest --lobby PUBLIC_LOBBY_ID --exported --timeout-ms
 ```
 
 The host command prints the public lobby ID; alternatively join using Invite
-friends in Odot. Pairing tests ordinary shared actions, readiness,
+friends in The Common Watch. Pairing tests ordinary shared actions, readiness,
 combat, channel acknowledgments and a paused checkpoint. Compare both records'
 match/revision/tick and native connection diagnostics; a direct route cannot
 count as relay proof. Missing prerequisites are unexecuted, never passed.
 To verify the direct picker invitation rather than joining by an ID, run this
 on two Linux machines/accounts (guest starts first, then host selects the agreed
-friend in Odot). Omit `--exported` to use source clients:
+friend in The Common Watch). Omit `--exported` to use source clients:
 
 ```sh
 mise run test-steam --role guest --scenario direct-invite --exported --timeout-ms 600000

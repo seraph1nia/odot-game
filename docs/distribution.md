@@ -1,9 +1,17 @@
 # Versioned desktop distribution
 
-Odot releases provide ready-to-run Windows x86_64 and Linux x86_64 clients.
+The Common Watch releases provide ready-to-run Windows x86_64 and Linux x86_64 clients.
 Friends do not need Godot, the .NET SDK, mise, or a dedicated server. Packaged
 multiplayer uses Steam; when Steam is unavailable, the start screen and solo
 game remain usable and explain that multiplayer is unavailable.
+
+The public name is The Common Watch (formerly Odot). Package filenames, URLs,
+`odot` commands, install locations and the `Odot - Nine Tiles` Godot user-data
+identity remain unchanged so upgrades retain existing preferences and private
+credentials. Windows Start Menu shortcut/group aliases remain **Odot**; the
+installer product name and Linux application-menu display name are **The Common
+Watch**. Earlier released packages may still show the old public title; this
+rebrand does not itself publish or bump a release.
 
 ## Installing on Windows
 
@@ -15,11 +23,11 @@ only if the checksum matches. It installs for the current user under
 not request administrator access. Godot and a system-wide .NET runtime are not
 required.
 
-Run a newer installer to upgrade. It asks Odot to close before replacing the
+Run a newer installer to upgrade. It asks The Common Watch to close before replacing the
 complete managed payload and removes files left by an older payload. Player
 settings and private session data live outside the installation and remain
 available. Remove the application through Windows **Installed apps** or its
-registered Odot uninstaller; player data is preserved by default.
+registered The Common Watch uninstaller (Odot on older packages); player data is preserved by default.
 
 Windows needs a supported 64-bit Windows desktop and graphics hardware/drivers
 meeting [Godot's compatibility renderer requirements](https://docs.godotengine.org/en/stable/about/system_requirements.html).
@@ -79,8 +87,8 @@ foreign download URLs, equal versions, and downgrades are never offered.
 
 When an update is available, **Download update** opens the exact Windows
 installer or the version-specific Linux release page in the default browser.
-Odot does not download executable code itself, exit the game, or install during
-a match. Close Odot after downloading, then run the new installer or script.
+The Common Watch does not download executable code itself, exit the game, or install during
+a match. Close The Common Watch after downloading, then run the new installer or script.
 Offline, timed-out, rate-limited, malformed, and browser-open failures appear as
 recoverable status in the same dialog.
 
@@ -95,10 +103,10 @@ mode are stamped into the package; the multiplayer protocol remains independent.
 Ordinary source and untagged exports identify themselves as development builds.
 
 Prerelease tags default to preview/test packages using Steam AppID 480. Both
-friends must start Odot themselves before accepting invitations. AppID 480 does
+friends must start The Common Watch themselves before accepting invitations. AppID 480 does
 not establish genuine cold launch, remote relay, invitations, or production
 qualification. Stable tags require repository variable `ODOT_STEAM_APP_ID` to
-contain Odot's own positive non-480 AppID. Real two-account Steam acceptance
+contain the game's own positive non-480 AppID. Real two-account Steam acceptance
 remains a separate check.
 
 ## Preparing and publishing a release

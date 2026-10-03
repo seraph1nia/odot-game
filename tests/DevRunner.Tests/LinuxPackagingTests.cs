@@ -29,7 +29,9 @@ public sealed class LinuxPackagingTests
             await Run(firstScript, environment, succeeds: true);
             Assert.Equal("0.1.0-beta.1", CurrentVersion(install));
             Assert.True(File.Exists(Path.Combine(apps, "odot.desktop")));
-            Assert.Contains("Exec=\"" + install + "/launcher\"", await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop")));
+            string desktop = await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop"));
+            Assert.Contains("Name=The Common Watch", desktop);
+            Assert.Contains("Exec=\"" + install + "/launcher\"", desktop);
             string systemLibrary = SystemLibraries.First(File.Exists);
             string overlay = Path.Combine(root, "Steam fixture", "gameoverlayrenderer.so");
             Directory.CreateDirectory(Path.GetDirectoryName(overlay)!); File.Copy(systemLibrary, overlay);
@@ -50,6 +52,7 @@ public sealed class LinuxPackagingTests
             await Run(secondScript, environment, succeeds: true);
             Assert.Equal("0.2.0-beta.1", CurrentVersion(install));
             Assert.Equal("second", await File.ReadAllTextAsync(Path.Combine(install, "current", "marker")));
+            Assert.Contains("Name=The Common Watch", await File.ReadAllTextAsync(Path.Combine(apps, "odot.desktop")));
 
             string invalid = await Script(root, "0.3.0-beta.1", Path.GetFileName(secondArchive), new string('0', 64));
             await Run(invalid, environment, succeeds: false);
@@ -77,6 +80,23 @@ public sealed class LinuxPackagingTests
         Assert.Contains("ODOT_STEAM_DISABLED", script);
         Assert.Contains("LD_PRELOAD", script);
         Assert.Contains("exec \"$GAME\" \"$@\"", script);
+    }
+
+    [Fact]
+    public void PublicBrandRetainsGodotDataAndWindowsInstallationIdentity()
+    {
+        string project = File.ReadAllText(Path.Combine(Root(), "src", "Game", "project.godot"));
+        Assert.Contains("config/name=\"Odot - Nine Tiles\"", project);
+        Assert.DoesNotContain("config/use_custom_user_dir=true", project);
+        Assert.Contains("project/assembly_name=\"Game\"", project);
+        string installer = File.ReadAllText(Path.Combine(Root(), "tools", "Distribution", "Odot.iss"));
+        Assert.Contains("AppName=The Common Watch", installer);
+        Assert.Contains("AppVerName=The Common Watch {#AppVersion}", installer);
+        Assert.Contains("Description: \"Launch The Common Watch\"", installer);
+        Assert.Contains("AppId={{D875B866-CA9C-4C70-914F-DBBD6507EE41}", installer);
+        Assert.Contains("DefaultDirName={localappdata}\\Programs\\Odot", installer);
+        Assert.Contains("DefaultGroupName=Odot", installer);
+        Assert.Contains("Name: \"{group}\\Odot\"; Filename: \"{app}\\game\\odot.exe\"", installer);
     }
 
     [Fact]

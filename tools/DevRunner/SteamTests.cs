@@ -66,17 +66,17 @@ internal sealed partial class Runner
             if (lobby.Type == "steam-unavailable") throw new SteamPrerequisiteException("Steam pair unexecuted (prerequisite): " + lobby.Message);
             if (directInvite)
             {
-                Console.WriteLine("Wait until your friend runs the guest command and has Odot open. Click Invite friends in Odot, then Invite next to the agreed friend's name. Only your explicit selection sends an invitation.");
+                Console.WriteLine("Wait until your friend runs the guest command and has The Common Watch open. Click Invite friends in The Common Watch, then Invite next to the agreed friend's name. Only your explicit selection sends an invitation.");
                 await client.WaitFor(e => e.Type == "steam-invite" && e.Message == "Sent", "native direct invitation send accepted", options.Timeout, token);
             }
-            else Console.WriteLine("Ask your friend to run mise run test-steam --role guest --lobby " + lobby.Message + (options.Exported ? " --exported" : "") + "; or use the Odot friends picker and accept through Steam.");
+            else Console.WriteLine("Ask your friend to run mise run test-steam --role guest --lobby " + lobby.Message + (options.Exported ? " --exported" : "") + "; or use The Common Watch's friends picker and accept through Steam.");
         }
         else
         {
             Console.WriteLine("Join through a Steam invitation, or the explicitly supplied development lobby argument. No invitation is sent by the runner.");
             if (directInvite)
             {
-                Console.WriteLine("Tell the host Odot is running, then accept their Steam lobby invitation. This case does not use a supplied lobby ID.");
+                Console.WriteLine("Tell the host The Common Watch is running, then accept their Steam lobby invitation. This case does not use a supplied lobby ID.");
                 await client.WaitFor(e => e.Type == "steam-invitation", "real warm accepted-invitation callback", options.Timeout, token);
             }
             if (options.Lobby is { } lobby) await client.Send("steam-join " + lobby.ToString(CultureInfo.InvariantCulture));

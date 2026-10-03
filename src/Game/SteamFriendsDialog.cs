@@ -27,7 +27,7 @@ internal sealed partial class SteamFriendsDialog : AcceptDialog
         Title = "Invite Steam friends"; OkButtonText = "Close";
         Transient = true; Exclusive = false; DialogCloseOnEscape = true;
         var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 10); AddChild(content);
-        content.AddChild(new Label { Text = "Your friend needs their own copy of Odot running.", CustomMinimumSize = new(400, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        content.AddChild(new Label { Text = $"Your friend needs their own copy of {GameBrand.Title} running.", CustomMinimumSize = new(400, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart });
         _refresh = new Button { Name = "RefreshFriends", Text = "Refresh", CustomMinimumSize = new(0, 38) }; content.AddChild(_refresh);
         _refresh.Pressed += Refresh;
         _scroll = new ScrollContainer { CustomMinimumSize = new(0, 230), SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto, FollowFocus = true };

@@ -115,6 +115,8 @@ internal sealed partial class Runner
         await WaitUi(client, p => p.FocusedControl == "Multiplayer", "native menu keyboard navigation", token);
         await client.Send("key Enter");
         await WaitUi(client, p => p.Screen == "multiplayer", "keyboard activates Multiplayer", token);
+        await MenuCheckpoint(client, "multiplayer-" + size, token);
+        await GeometryAtBothSizes(client, "multiplayer", token);
         await Click(client, "Host", token);
         UiObservation unavailable = await WaitUi(client, p => p.Screen == "multiplayer" && p.FeedbackText.Length != 0 && p.Targets["Host"].Enabled, "recoverable platform feedback", token);
         Require(!unavailable.Connected && !client.History().Any(HasState), "unavailable platform creates no substitute lobby");
@@ -202,6 +204,7 @@ internal sealed partial class Runner
         await ReturnViaControl(client, token);
         UiObservation returned = await WaitUi(client, p => p.Screen == "menu" && !p.Connected, "Return to menu disposes solo", token);
         Countryside(returned);
+        Branding(returned);
         Require(LandscapeChecks.SameStartingArea(menu.Landscape, returned.Landscape) && returned.Placements.Length == 0, "return restores passive starting countryside without match buildings");
         Require(returned.MasterVolume == changed.MasterVolume && returned.MusicInstance == menu.MusicInstance && returned.MusicPlaying && returned.MusicPosition >= game.MusicPosition, "preferences and uninterrupted music survive return");
         await Click(client, "Singleplayer", token);
@@ -285,6 +288,22 @@ internal sealed partial class Runner
         await Click(client, "ConfirmReturn", token);
         await client.WaitFor(e => e.Type == "menu" && client.History().Count(value => value.Type == "menu") > previous,
             "fresh session disposal/menu event", options.StartupTimeout, token);
+    }
+
+    private static void Branding(UiObservation frame)
+    {
+        Require(frame.WindowTitle == "The Common Watch", "graphical window retains public title");
+        // The scope owns the data parent; the legacy leaf must not change on rebrand.
+        Require(Path.GetFileName(frame.UserDataPath.TrimEnd(Path.DirectorySeparatorChar)) == "Odot - Nine Tiles", "rebrand retains legacy user-data identity");
+        if (frame.Screen == "session") return;
+        Require(frame.BrandTitle == "The Common Watch" && frame.BrandPositioning == Game.GameBrand.Positioning, "menu presents public title and cooperative automatic-defense positioning");
+        Require(frame.BrandTextFits, "brand labels fit their allocated control bounds");
+        foreach (string name in new[] { "BrandTitle", "BrandPositioning" })
+        {
+            UiTarget target = UiProtocol.Target(frame, name);
+            Require(target.X - target.Width / 2 >= 0 && target.X + target.Width / 2 <= frame.Width
+                && target.Y - target.Height / 2 >= 0 && target.Y + target.Height / 2 <= frame.Height, "brand label remains fully inside viewport: " + name);
+        }
     }
 
     private async Task MenuCheckpoint(Child client, string name, CancellationToken token)

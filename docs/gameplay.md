@@ -1,4 +1,6 @@
-# Nine Tiles POC
+# The Common Watch: gameplay
+
+Build and provision your village, then hold together against automatic waves. The Common Watch is cooperative economy planning and shared defense, not a competition between players: each owns a city, but all share victory if at least one survives. Soldiers fight automatically; your decisions are construction, resources, equipment, upkeep and research. Solo follows the same rules. The public title does not change the legacy `Odot - Nine Tiles` user-data directory or private same-authority resume credentials.
 
 One to four players share a match, each owning five initially open plots among nine indexed building slots displayed as three staggered rows of hex plots and a separate grassy battle approach. Single player starts one city immediately; hosted multiplayer waits for the original host to click Start. Join the roster before start. The roster is fixed after start; returning players can resume, fresh players cannot join. Return to menu and start again for a fresh local/hosted match; restart a dedicated server for another match.
 

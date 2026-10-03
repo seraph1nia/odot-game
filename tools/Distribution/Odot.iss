@@ -13,9 +13,9 @@
 
 [Setup]
 AppId={{D875B866-CA9C-4C70-914F-DBBD6507EE41}
-AppName=Odot
+AppName=The Common Watch
 AppVersion={#AppVersion}
-AppVerName=Odot {#AppVersion}
+AppVerName=The Common Watch {#AppVersion}
 DefaultDirName={localappdata}\Programs\Odot
 DefaultGroupName=Odot
 PrivilegesRequired=lowest
@@ -40,4 +40,4 @@ Source: "{#SourceDir}\*"; DestDir: "{app}\game"; Flags: ignoreversion recursesub
 Name: "{group}\Odot"; Filename: "{app}\game\odot.exe"; WorkingDir: "{app}\game"
 
 [Run]
-Filename: "{app}\game\odot.exe"; Description: "Launch Odot"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\game\odot.exe"; Description: "Launch The Common Watch"; Flags: nowait postinstall skipifsilent
