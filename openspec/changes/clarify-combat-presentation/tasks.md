@@ -35,3 +35,8 @@
 - [ ] 6.1 After locked restore, format changed C# with `dotnet format Odot.slnx --no-restore`, run applicable cheap tests and complete after `mise run ci`; verify unchanged frozen reference hashes, all six network/five source UI cases, sequential exports and headless/graphical package smoke with retained results.
 - [x] 6.2 Sync the two completed deltas to main specs without archiving unrelated changes; verify `openspec validate clarify-combat-presentation --strict`, affected main-spec validation and consistency across gameplay/verification/proposal/design/tasks.
 - [ ] 6.3 Commit only intended source/tests/docs/spec artifacts on `fm/odot-explore-autobattle`, excluding scratch/logs/generated output; verify clean tracked diff, unchanged locks/assets/economy/compatibility identities and send the required committed-completion handoff to Firstmate. Do not push or merge; await its delivery-pipeline instruction.
+
+## 7. Authorized readiness-phase integration follow-up
+
+- [x] 7.1 Diagnose the distinct research-ready rejection using the original driver/authority and retained input seed, phase/event timing, history, proven cleanup paths, a smallest counterfactual and disconfirming evidence. Record trigger/mask/symptom and the actual owned reproduction; do not duplicate main's economy correction.
+- [x] 7.2 Apply only the demonstrated stage-resolution measurement correction, with a shared cheap ordinary-command regression and affected existing network check; verify pending/repeated readiness, actual corpse expiry, immediate resolution and both peer revision guards. Preserve research/wave/deadline, death-cleanup, combat and cooperative assertions, remove diagnostic pinning, and record the remaining main synchronization dependency.

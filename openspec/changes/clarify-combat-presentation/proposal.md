@@ -10,6 +10,7 @@ Automatic battles have correct numerical action boundaries but look chaotic: com
 - Use walking with bounded, presentation-clock-driven locomotion/attack/hit blends and restrained facing transitions. Preserve authored strike markers, terminal death precedence and paused/reconnected reconstruction.
 - Replace opaque melee beams with restrained directional windup intent, the actual sword/axe swing, a short local strike accent and landed target-side impact. Keep near/far shared-hex target attribution and visually distinct misses.
 - Extend the existing independently selectable melee checkpoint with a bounded owned frame sequence and live-node motion/cue assertions. Add cheap motion/blend/clearance regressions and retain exact authoritative trace references.
+- Under the authorized integration follow-up, correct the reproduced research fixture's acknowledgement-versus-stage-resolution race with a cheap ordinary-command regression and the existing owned network case. Preserve readiness/death-cleanup policy, assertions and deadlines; do not duplicate main's pending economy fixture work.
 - Keep numerical tick rate, attacks, target selection, path decisions, occupancy/capacity, statuses, action identities, concurrency and outcomes unchanged. Shared slow motion, delayed replay, lower rendering FPS and coarse numerical turns are not part of this slice.
 
 ## Capabilities
