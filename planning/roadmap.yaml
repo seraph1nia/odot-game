@@ -1,0 +1,59 @@
+version: 1
+queue:
+  - change: scaffold-csharp-multiplayer
+    state: legacy_completed
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Imported 21/21 tasks complete. No retrospective independent workflow PASS or archive permission."
+  - change: enforce-strict-csharp
+    state: legacy_completed
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Imported 6/6 tasks complete. No retrospective independent workflow PASS or archive permission."
+  - change: speed-up-verification
+    state: legacy_completed
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Imported 27/27 tasks complete; pending canonical sync is separate work."
+  - change: optimize-core-simulation
+    state: legacy_completed
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Actual apply base has 43/43 tasks complete, superseding the proposal's earlier 13/43 snapshot."
+  - change: setup-agent-workflow-poc
+    state: blocked
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Local bootstrap checkpoint passed independent review2 after one repair; Shipper stopped. Pi integration v9 confirmed. Awaiting live Pi/FirstMate acceptance; further tests paused by user. No whole-change PASS or completion."
+    approval: planning/evidence/setup-agent-workflow-poc/approval.md
+  - change: add-city-research-and-status-effects
+    state: proposed
+    priority: normal
+    source_ideas: []
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Existing complete planning, 0/40 implementation tasks; no implementation approval inferred. Relative future priority requires a product decision."
+  - change: poc-verification-command-guide
+    state: proposed
+    priority: normal
+    source_ideas: [IDEA-001]
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Scenario 2 planning-only promotion: small task-based documentation guide. No implementation approval. No hard dependencies or semantic conflicts; speed-up-verification canonical sync is separate. Installed workflow checkpoint supports the trial, not completed whole-POC acceptance. Future research README edits need ordinary text integration. Appended without changing existing order; unapproved relative priority is provisional."

@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Thin startup only. FirstMate owns every worker/supervision/worktree operation.
+set -euo pipefail
+fail() { printf 'UNEXECUTED: %s\n' "$*" >&2; exit 1; }
+mode=${1:-start}
+[[ $# -le 1 && "$mode" =~ ^(start|--init|--check)$ ]] || fail 'Usage: agent-primary [--init|--check]'
+: "${ODOT_FIRSTMATE_ROOT:?Set ODOT_FIRSTMATE_ROOT to the user-provided FirstMate checkout}"
+: "${ODOT_FIRSTMATE_HOME:?Set ODOT_FIRSTMATE_HOME to an explicitly selected owned POC home}"
+[[ "$ODOT_FIRSTMATE_ROOT" = /* && "$ODOT_FIRSTMATE_HOME" = /* ]] || fail 'FirstMate checkout/home must be absolute paths.'
+[[ ! -L "$ODOT_FIRSTMATE_HOME" ]] || fail 'Selected POC home must not be a symlink.'
+fm_root=$(cd "$ODOT_FIRSTMATE_ROOT" && pwd -P) || fail 'FirstMate checkout does not exist.'
+[[ -f "$fm_root/bin/fm-spawn.sh" && -f "$fm_root/bin/fm-session-start.sh" && -d "$fm_root/.pi/extensions" ]] || fail 'Unsupported FirstMate checkout: native spawn/session-start/Pi extensions are required.'
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+export FM_HOME="$ODOT_FIRSTMATE_HOME"
+inherited_session=${HERDR_SESSION:-}
+export HERDR_SESSION="${ODOT_HERDR_SESSION:-odot-poc}"
+[[ "$HERDR_SESSION" =~ ^odot-poc(-[a-z0-9-]+)?$ ]] || fail 'Use an owned odot-poc session name, never the default session.'
+
+if [[ "$mode" == --init ]]; then
+    if [[ -e "$FM_HOME" ]] && [[ -n "$(find "$FM_HOME" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+        fail 'Selected home is not empty; refusing to overwrite existing configuration. Check/reconcile it explicitly.'
+    fi
+    mkdir -p "$FM_HOME/config" "$FM_HOME/data" "$FM_HOME/state" "$FM_HOME/projects"
+    cp "$script_dir"/templates/config/* "$FM_HOME/config/"
+    printf '%s\n' 'odot-workflow-poc-v1' > "$FM_HOME/.odot-workflow-home"
+    printf '%s\n' '# Projects' '' '- odot-game [local-only] - Odot single-project agent workflow POC (added 2026-10-03)' > "$FM_HOME/data/projects.md"
+    printf '%s\n' '# Runtime execution notes' '' 'Product order and decisions live in Odot planning/roadmap.yaml. Record execution task pointers here only.' > "$FM_HOME/data/backlog.md"
+    printf 'Initialized owned POC home: %s\nRegister the clean committed checkpoint clone as documented before starting.\n' "$FM_HOME"
+    exit 0
+fi
+
+[[ -f "$FM_HOME/.odot-workflow-home" && "$(cat "$FM_HOME/.odot-workflow-home")" == odot-workflow-poc-v1 ]] || fail 'Home is not owned by this POC; initialize an empty explicitly selected home with --init.'
+for file in backend crew-harness backlog-backend crew-dispatch.json; do
+    [[ ! -L "$FM_HOME/config/$file" ]] && cmp -s "$script_dir/templates/config/$file" "$FM_HOME/config/$file" || fail "Conflicting POC configuration: config/$file (no changes made)."
+done
+missing=()
+for tool in pi codex herdr treehouse git node jq gh mise tasks-axi; do command -v "$tool" >/dev/null 2>&1 || missing+=("$tool"); done
+[[ ${#missing[@]} == 0 ]] || fail "Missing selected-runtime prerequisites: ${missing[*]}. Install tools yourself; none were installed."
+for tool in no-mistakes gh-axi chrome-devtools-axi quota-axi; do
+    command -v "$tool" >/dev/null 2>&1 || printf 'UPSTREAM_MISSING: %s (not exercised by manual/static-Codex/local-only route; do not use dependent routes)\n' "$tool" >&2
+done
+pi_help=$(pi --help)
+[[ "$pi_help" == *--append-system-prompt* && "$pi_help" == *--skill* && "$pi_help" == *--session-dir* ]] || fail 'Installed Pi lacks required instruction/skill/session-dir options.'
+lease_help=$(treehouse get --help 2>&1)
+[[ "$lease_help" == *--lease* ]] || fail 'Treehouse get --lease capability is missing.'
+gh auth status >/dev/null 2>&1 || fail 'GitHub authentication required by upstream primary; run gh auth login yourself.'
+project="$FM_HOME/projects/odot-game"
+[[ -f "$project/Odot.slnx" && -f "$project/planning/roadmap.yaml" ]] || fail 'Owned registered Odot checkpoint clone is missing.'
+[[ -z "$(git -C "$project" status --porcelain)" ]] || fail 'Registered Odot clone is dirty; preserve edits and reconcile before startup.'
+[[ "$(git -C "$project" symbolic-ref --short HEAD)" == main ]] || fail 'Registered project must be on its local main default branch.'
+if git -C "$project" config --get-regexp '^remote\.origin\.' >/dev/null 2>&1; then fail 'POC checkpoint clone must use odot-source provenance without origin, to avoid native spawn resetting to stale upstream main.'; fi
+[[ "$("$fm_root/bin/fm-project-mode.sh" odot-game)" == 'local-only off' ]] || fail 'Registered project must be local-only with yolo off.'
+[[ -n "${ODOT_BOOTSTRAP_REVISION:-}" ]] || fail 'Set ODOT_BOOTSTRAP_REVISION to the committed bootstrap checkpoint installed in the owned clone.'
+git -C "$project" merge-base --is-ancestor "$ODOT_BOOTSTRAP_REVISION" HEAD || fail 'Registered clone does not descend from the recorded bootstrap checkpoint.'
+(cd "$project" && mise run planning-validate) || fail 'Registered project planning validation failed.'
+export ODOT_PROJECT_ROOT="$project"
+printf 'FirstMate %s; checkpoint %s; session %s\n' "$(git -C "$fm_root" rev-parse HEAD)" "$ODOT_BOOTSTRAP_REVISION" "$HERDR_SESSION"
+if [[ "$mode" == --check ]]; then
+    printf 'Static setup checks passed. Live pane/integration/watch/worker checks remain unexecuted.\n'
+    exit 0
+fi
+[[ "${HERDR_ENV:-}" == 1 && -n "${HERDR_PANE_ID:-}" && -n "${HERDR_WORKSPACE_ID:-}" && -n "${HERDR_TAB_ID:-}" && -n "${HERDR_SOCKET_PATH:-}" ]] || fail "Start inside the owned Herdr shell: herdr session attach $HERDR_SESSION, then mise run agent-primary. An environment variable alone does not create a pane."
+[[ "$inherited_session" == "$HERDR_SESSION" ]] || fail 'Inherited managed Herdr session differs from the selected owned session; attach the selected session first.'
+[[ -S "$HERDR_SOCKET_PATH" ]] || fail 'Inherited Herdr socket is unavailable.'
+# Reuse the supplied adapter's read-only exact socket/pane/tab/workspace proof.
+# It defines native helpers; no spawn/server ensure/close/recovery call is made here.
+[[ -f "$fm_root/bin/backends/herdr.sh" ]] || fail 'FirstMate Herdr identity adapter is missing.'
+source "$fm_root/bin/backends/herdr.sh"
+declare -F fm_backend_herdr_launcher_identity >/dev/null || fail 'Supplied FirstMate lacks native launcher identity verification.'
+fm_backend_herdr_launcher_identity "$HERDR_SESSION" || fail 'Native FirstMate could not prove this launcher belongs to the selected Herdr session/socket/pane.'
+integrations=$(herdr integration status)
+[[ "$integrations" =~ (^|$'\n')pi:\ current\ \(v[0-9]+\) ]] || fail 'Pi Herdr integration missing/unrecognized. Check herdr integration status; install it yourself with herdr integration install pi.'
+cd "$fm_root"
+# Pi loads this checkout's tracked .pi/extensions. User approves trust/login in Pi.
+exec pi --append-system-prompt "$script_dir/orchestrator.md" --skill "$project/.agents/skills" --session-dir "$FM_HOME/state/pi-primary"

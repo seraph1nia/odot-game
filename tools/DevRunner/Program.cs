@@ -8,6 +8,8 @@ using var sigterm = !OperatingSystem.IsWindows()
     : null;
 try
 {
+    if (args.FirstOrDefault() is "planning-validate" or "planning-next" or "planning-inputs")
+        return PlanningCommand.Run(Environment.CurrentDirectory, args[0], args[1..], Console.Out);
     var options = Options.Parse(args);
     var runner = new Runner(options, cancellation.Token);
     await runner.Run();
