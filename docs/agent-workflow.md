@@ -47,14 +47,14 @@ herdr integration install pi
 herdr session attach odot-poc
 ```
 
-In the owned Herdr shell pane, set the four environment values above, change to the registered clone and run:
+In an owned Herdr shell pane, run this from the Odot developer checkout. The four
+values above may be exported there or kept in its ignored `mise.local.toml`:
 
 ```sh
-cd "$ODOT_FIRSTMATE_HOME/projects/odot-game"
 mise run agent-primary
 ```
 
-The launcher requires actual inherited `HERDR_ENV=1`, session/pane/tab/workspace/socket identities and matching session ownership. It reuses FirstMate's native fm_backend_herdr_launcher_identity to prove the canonical socket and live pane/tab/workspace relationships in the explicit named session. Setting only HERDR_SESSION does not start a pane. It invokes Pi from the supplied FirstMate checkout, so native `.pi/extensions` load, appends the tracked Odot orchestrator prompt, loads registered Odot `.agents/skills`, and stores primary conversations in selected-home `state/pi-primary`. It does not auto-approve extension trust or log in. Accept only the intended checkout's extensions through Pi's UI. On startup, the primary uses native `fm-session-start.sh`, then the Pi `fm_watch_arm_pi` extension tool; it must not substitute direct shell watch arming. The observed primary is named `odot-primary` in pane `odot-poc:w2:p1`; IDs describe this run and must be rediscovered after recreation.
+The launcher requires actual inherited `HERDR_ENV=1`, session/pane/tab/workspace/socket identities and matching session ownership. It reuses FirstMate's native fm_backend_herdr_launcher_identity to prove the canonical socket and live pane/tab/workspace relationships in the explicit named session. Setting only HERDR_SESSION does not start a pane. You do not need to change to the FirstMate checkout or registered clone yourself: the launcher changes to FirstMate internally so Pi discovers its native `.pi/extensions`, while `ODOT_PROJECT_ROOT` points to the registered Odot clone for project work. It appends the tracked Odot orchestrator prompt, loads registered Odot `.agents/skills`, and stores primary conversations in selected-home `state/pi-primary`. It does not auto-approve extension trust or log in. Accept only the intended checkout's extensions through Pi's UI. On startup, the primary uses native `fm-session-start.sh`, then the Pi `fm_watch_arm_pi` extension tool; it must not substitute direct shell watch arming. The observed primary is named `odot-primary` in pane `odot-poc:w2:p1`; IDs describe this run and must be rediscovered after recreation.
 
 Attach another terminal with `herdr session attach odot-poc` to observe workers. Inside a managed pane use `herdr agent list` and `herdr workspace list`; inspect returned immutable IDs rather than assuming label shapes. Native FirstMate `FM_HOME=... <root>/bin/fm-peek.sh <task-id>` collects task output. The user never needs to steer worker panes manually; the primary records returned task/session/worktree identities.
 
@@ -85,7 +85,7 @@ The `merge-base` command is an ancestry gate; if it fails, reconcile the native
 worker/landing history on an integration branch before retrying. Do this only
 with a clean registered clone and no worker using that base. Once the existing
 primary is stopped, attach `odot-poc`, enter its owned Herdr shell pane, change
-to the clone and run `mise run agent-primary`. If `odot-primary` is still
+to this developer checkout and run `mise run agent-primary`. If the primary is still
 running, just attach the session and speak to it; do not launch a second primary.
 The four values above can instead live in ignored `mise.local.toml` for local
 re-entry. Herdr shows the supervised worker panes; normal conversations go to

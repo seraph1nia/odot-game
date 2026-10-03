@@ -312,6 +312,7 @@ next-work selection. These commands start no Godot or agents.
 
 The single Pi/FirstMate primary uses native Herdr/Treehouse/Codex execution;
 [setup and startup](docs/agent-workflow.md) require user-provided runtime tools and
-an owned managed pane. [Five real-project acceptance scenarios](docs/agent-workflow-scenarios.md)
+an owned managed pane. Run `mise run agent-primary` from this checkout inside
+that Herdr pane; the launcher locates FirstMate itself. [Five real-project acceptance scenarios](docs/agent-workflow-scenarios.md)
 remain distinct from the bootstrap tooling tests. Incomplete live acceptance is
 not POC viability; every merge requires explicit approval.
