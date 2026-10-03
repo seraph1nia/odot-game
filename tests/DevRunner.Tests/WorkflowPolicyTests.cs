@@ -38,6 +38,7 @@ public sealed partial class WorkflowPolicyTests
         Assert.Contains("- name: Attach verified bytes to the existing published release\n        if: github.event_name == 'release'", release, StringComparison.Ordinal);
         Assert.DoesNotContain("--clobber", release, StringComparison.Ordinal);
         Assert.Contains("Release already has assets", release, StringComparison.Ordinal);
+        Assert.Equal(4, Regex.Count(release, "persist-credentials: false", RegexOptions.CultureInvariant));
         Assert.DoesNotContain("workflow_dispatch:", release, StringComparison.Ordinal);
     }
 

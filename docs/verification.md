@@ -2323,7 +2323,15 @@ successfully compiled the intended setup executable in 58.578 seconds, then
 exposed Windows file-sharing rules when reopening the still-owned transcript.
 The final fix awaits compiler disposal before reading its exact engine banner;
 this keeps the ordinary process owner and cleanup rather than weakening the
-version check.
+version check. Hosted release qualification then passed at
+https://github.com/seraph1nia/odot-game/actions/runs/37143811632:
+both native packages, two-platform transfer/assembly, exact public allowlist and
+all four final file checksums. GitHub confirmed the public attachment step was
+skipped. Ordinary source/Linux/native-Windows CI passed at
+https://github.com/seraph1nia/odot-game/actions/runs/37143811622.
+The final checkout-only follow-up disables persisted Git credentials in all
+four release/qualification jobs; token permission scopes and the explicit
+release-only upload credential remain unchanged.
 
 The release workflow again requires both native packages, transfers their exact
 allowlisted artifacts, assembles matching two-target public metadata and checks

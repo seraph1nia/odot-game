@@ -36,6 +36,7 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Create local qualification tag (never pushed)
         if: github.event_name == 'pull_request'
         run: git tag "$TAG"
@@ -76,6 +77,7 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Create local qualification tag (never pushed)
         if: github.event_name == 'pull_request'
         run: git tag "$TAG"
@@ -115,6 +117,7 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Create local qualification tag (never pushed)
         if: github.event_name == 'pull_request'
         shell: pwsh
@@ -169,6 +172,7 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Create local qualification tag (never pushed)
         if: github.event_name == 'pull_request'
         run: git tag "$TAG"
