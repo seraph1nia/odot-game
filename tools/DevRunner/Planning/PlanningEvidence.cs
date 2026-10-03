@@ -134,6 +134,8 @@ internal static partial class PlanningEvidence
                 string landed = PlanningYaml.Text(map, "landed_revision");
                 if (!Revision().IsMatch(landed) || Git(state.Root, "rev-parse", "--verify", landed + "^{commit}").Trim() != landed)
                     throw new InvalidDataException("completion requires a recorded landed Git revision.");
+                if (CodeDigest(state.Root, landed) != code) throw new InvalidDataException("landed production inputs differ from reviewed head; independent review required.");
+                Git(state.Root, "diff", "--exit-code", head, landed, "--", ".", ":(exclude)planning", ":(exclude)openspec");
                 Git(state.Root, "merge-base", "--is-ancestor", head, landed);
                 Git(state.Root, "merge-base", "--is-ancestor", landed, "HEAD");
                 Git(state.Root, "merge-base", "--is-ancestor", landed, "refs/heads/main");

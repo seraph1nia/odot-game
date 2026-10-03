@@ -62,8 +62,12 @@ fi
 [[ "${HERDR_ENV:-}" == 1 && -n "${HERDR_PANE_ID:-}" && -n "${HERDR_WORKSPACE_ID:-}" && -n "${HERDR_TAB_ID:-}" && -n "${HERDR_SOCKET_PATH:-}" ]] || fail "Start inside the owned Herdr shell: herdr session attach $HERDR_SESSION, then mise run agent-primary. An environment variable alone does not create a pane."
 [[ "$inherited_session" == "$HERDR_SESSION" ]] || fail 'Inherited managed Herdr session differs from the selected owned session; attach the selected session first.'
 [[ -S "$HERDR_SOCKET_PATH" ]] || fail 'Inherited Herdr socket is unavailable.'
-current=$(herdr pane current --current --session "$HERDR_SESSION")
-[[ "$(jq -r '.result.pane.pane_id // .result.pane_id // empty' <<<"$current")" == "$HERDR_PANE_ID" ]] || fail 'Named session current pane does not match inherited owned pane identity.'
+# Reuse the supplied adapter's read-only exact socket/pane/tab/workspace proof.
+# It defines native helpers; no spawn/server ensure/close/recovery call is made here.
+[[ -f "$fm_root/bin/backends/herdr.sh" ]] || fail 'FirstMate Herdr identity adapter is missing.'
+source "$fm_root/bin/backends/herdr.sh"
+declare -F fm_backend_herdr_launcher_identity >/dev/null || fail 'Supplied FirstMate lacks native launcher identity verification.'
+fm_backend_herdr_launcher_identity "$HERDR_SESSION" || fail 'Native FirstMate could not prove this launcher belongs to the selected Herdr session/socket/pane.'
 integrations=$(herdr integration status)
 [[ "$integrations" =~ (^|$'\n')pi:\ current\ \(v[0-9]+\) ]] || fail 'Pi Herdr integration missing/unrecognized. Check herdr integration status; install it yourself with herdr integration install pi.'
 cd "$fm_root"

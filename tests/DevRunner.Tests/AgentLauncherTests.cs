@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using Xunit;
 namespace DevRunner.Tests;
 
@@ -78,9 +79,18 @@ public sealed class AgentLauncherTests
         var wrongSession = await Run(runtime, home, "start", executablePath, checkpoint, "foreign-session");
         Assert.Equal(1, wrongSession.Code); Assert.Contains("Inherited managed Herdr session differs", wrongSession.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Unexpected live control", wrongSession.Error, StringComparison.Ordinal);
+        fixture.Write("runtime/bin/backends/herdr.sh", "fm_backend_herdr_launcher_identity() { printf 'native fixture identity rejection\\n' >&2; return 1; }\n");
+        string socketPath = Path.Combine(fixture.Root, "identity.sock");
+        using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        socket.Bind(new UnixDomainSocketEndPoint(socketPath));
+        var rejectedIdentity = await Run(runtime, home, "start", executablePath, checkpoint, "odot-poc", socketPath);
+        Assert.Equal(1, rejectedIdentity.Code);
+        Assert.Contains("native fixture identity rejection", rejectedIdentity.Error, StringComparison.Ordinal);
+        Assert.Contains("Native FirstMate could not prove", rejectedIdentity.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unexpected live control", rejectedIdentity.Error, StringComparison.Ordinal);
     }
 
-    private static async Task<(int Code, string Error)> Run(string runtime, string home, string argument, string? executablePath = null, string? checkpoint = null, string? inheritedSession = null)
+    private static async Task<(int Code, string Error)> Run(string runtime, string home, string argument, string? executablePath = null, string? checkpoint = null, string? inheritedSession = null, string? socketPath = null)
     {
         string root = Root();
         var start = new ProcessStartInfo("/bin/bash") { WorkingDirectory = root, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
@@ -91,7 +101,7 @@ public sealed class AgentLauncherTests
         {
             start.Environment["HERDR_ENV"] = "1"; start.Environment["HERDR_SESSION"] = inheritedSession;
             start.Environment["HERDR_PANE_ID"] = "w1:p1"; start.Environment["HERDR_TAB_ID"] = "w1:t1";
-            start.Environment["HERDR_WORKSPACE_ID"] = "w1"; start.Environment["HERDR_SOCKET_PATH"] = "/unused-fixture.sock";
+            start.Environment["HERDR_WORKSPACE_ID"] = "w1"; start.Environment["HERDR_SOCKET_PATH"] = socketPath ?? "/unused-fixture.sock";
         }
         if (executablePath is not null) start.Environment["PATH"] = executablePath;
         using var process = Process.Start(start)!;

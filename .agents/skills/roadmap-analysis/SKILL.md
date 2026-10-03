@@ -3,7 +3,7 @@ name: roadmap-analysis
 description: Explain or choose the next approved Odot OpenSpec change deterministically and reconcile FirstMate work before implementation dispatch.
 ---
 
-Read AGENTS.md, planning/README.md, roadmap, applicable approvals/reviews, selected change and relevant ADRs. Run planning-validate and planning-next --json through the checked-in mise tasks. Invalid planning means no selection. Report selected ID plus its approval/spec identity and earlier exclusions. change:null is a valid “no eligible work” result. Never reorder queue, let priority override dependency order, or replace deterministic results with intuition.
+Run project commands in the Odot checkout (the primary uses ODOT_PROJECT_ROOT because Pi starts in FirstMate). Read AGENTS.md, planning/README.md, roadmap, applicable approvals/reviews, selected change and relevant ADRs. Run planning-validate and planning-next --json through the checked-in mise tasks. Invalid planning means no selection. Report selected ID plus its approval/spec identity and earlier exclusions. change:null is a valid “no eligible work” result. Never reorder queue, let priority override dependency order, or replace deterministic results with intuition.
 
 “What’s next?” is read-only. “Do the next thing” authorizes exactly the resolved eligible change for this request; persist actual approval/scope with planning-inputs. If selection or specification materially changes, return the changed decision to the user before dispatch. “Implement X” requires a complete change and explicit current authorization; do not infer approval from tasks/CLI in-progress status.
 

@@ -179,6 +179,31 @@ public sealed class PlanningTests
         Assert.True(fixture.Check().Valid, string.Join('\n', fixture.Check().Diagnostics));
     }
 
+    [Theory]
+    [InlineData("completed")]
+    [InlineData("archived")]
+    public void UnreviewedProductionChangeBeforeClaimedLandingCannotClearDependency(string destination)
+    {
+        using var fixture = new PlanningFixture(); fixture.Change("first", true); fixture.Change("second");
+        fixture.Roadmap(PlanningFixture.Entry("first", "verified"), PlanningFixture.Entry("second", "ready", "[first]")); fixture.Approval("first"); fixture.Approval("second"); fixture.Review("first", false);
+        Assert.Null(fixture.Check().Change);
+        fixture.Write("source.cs", "unreviewed same-feature change before landing\n");
+        string unreviewedLanding = fixture.Commit();
+        string review = File.ReadAllText(Path.Combine(fixture.Root, "planning/evidence/first/review.md"));
+        fixture.Write("planning/evidence/first/review.md", review.Replace("\n---\nFixture", "\nlanded_revision: " + unreviewedLanding + "\n---\nFixture", StringComparison.Ordinal));
+        if (destination == "archived")
+        {
+            Directory.CreateDirectory(Path.Combine(fixture.Root, "openspec/changes/archive"));
+            Directory.Move(Path.Combine(fixture.Root, "openspec/changes/first"), Path.Combine(fixture.Root, "openspec/changes/archive/2026-10-03-first"));
+        }
+        fixture.Roadmap(PlanningFixture.Entry("first", destination), PlanningFixture.Entry("second", "ready", "[first]"));
+        var result = fixture.Check();
+        Assert.False(result.Valid); Assert.Null(result.Change);
+        Assert.Contains(result.Diagnostics, message => message.Contains("landed production inputs differ", StringComparison.Ordinal));
+        using var output = new StringWriter(); Assert.Equal(1, PlanningCommand.Run(fixture.Root, "planning-next", ["--json"], output));
+        Assert.Contains("\"change\":null", output.ToString(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void CompletedHistoryAllowsLaterUnrelatedProductionAndCanonicalChanges()
     {
