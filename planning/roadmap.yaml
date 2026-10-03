@@ -50,15 +50,14 @@ queue:
     conflicts_with: []
     notes: "Archived on developer main at 6a7a179 with 40/40 tasks complete. This happened outside the new workflow; no retrospective independent PASS is claimed."
   - change: poc-verification-command-guide
-    state: verified
+    state: in_progress
     priority: normal
     source_ideas: [IDEA-001]
     depends_on: []
     blocked_by: []
     conflicts_with: []
-    notes: "User approved the exact current README-only documentation proposal after the scenario 2 planning landing; exactly one implementation is admitted. Game code/tests remain untouched; implementation stays unmerged pending separate approval. No additional production trial changes. No hard dependencies or semantic conflicts; speed-up-verification canonical sync is separate. Installed workflow checkpoint supports the trial, not completed whole-POC acceptance. Future research README edits need ordinary text integration."
+    notes: "User approved this README-only guide and explicitly authorized local landing. Initial independent PASS at fe51da1 became stale after integration with developer main 6a7a179, whose canonical specs and code digest changed. Fresh integration review of b70c0c7 found the stale verified receipt; keep it as history and obtain a new independent PASS after this planning repair. No other implementation is admitted. Whole-POC acceptance remains incomplete."
     approval: planning/evidence/poc-verification-command-guide/approval.md
-    verification: planning/evidence/poc-verification-command-guide/review-1.md
   - change: simplify-building-economy
     state: proposed
     priority: normal
