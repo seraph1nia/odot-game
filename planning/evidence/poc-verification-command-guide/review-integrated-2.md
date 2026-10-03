@@ -29,6 +29,7 @@ canonical_inputs:
 attempt: 2
 validation_passed: true
 decisions_resolved: true
+landed_revision: 4c09a21c0e134b0cb5d744664820ac983644fb52
 ---
 
 # Fresh integrated review receipt

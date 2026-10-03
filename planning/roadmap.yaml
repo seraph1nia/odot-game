@@ -50,13 +50,13 @@ queue:
     conflicts_with: []
     notes: "Archived on developer main at 6a7a179 with 40/40 tasks complete. This happened outside the new workflow; no retrospective independent PASS is claimed."
   - change: poc-verification-command-guide
-    state: verified
+    state: archived
     priority: normal
     source_ideas: [IDEA-001]
     depends_on: []
     blocked_by: []
     conflicts_with: []
-    notes: "User approved this README-only guide and explicitly authorized local landing. Initial native PASS at fe51da1 became stale after developer main changed canonical specs. Integrated review1 found and preserved that stale-receipt failure; planning-only repair at 196c3e9 passed fresh independent review2. No other implementation was admitted. Whole-POC acceptance remains incomplete."
+    notes: "README-only guide landed on local main at 4c09a21 after fresh independent integration review2, then archived without spec sync (skip_specs). Earlier stale receipt and integration review1 failure remain retained. Whole-POC acceptance remains incomplete."
     approval: planning/evidence/poc-verification-command-guide/approval.md
     verification: planning/evidence/poc-verification-command-guide/review-integrated-2.md
   - change: simplify-building-economy

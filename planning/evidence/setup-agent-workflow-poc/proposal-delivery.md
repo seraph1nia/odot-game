@@ -16,7 +16,7 @@ intake worker was not promoted into implementation or reused for preflight.
 
 The worker's [committed preflight and receipt](scenario-2-proposal.md) answers all
 ten questions and covers existing overlap, dependencies, conflicts, merge/split,
-ADR need, order and obsolete proposals. The [proposal](../../../openspec/changes/poc-verification-command-guide/proposal.md)
+ADR need, order and obsolete proposals. The [proposal](../../../openspec/changes/archive/2026-10-03-poc-verification-command-guide/proposal.md)
 recommends a compact six-row README guide; its design/tasks/metadata are complete,
 with `skip_specs: true` because command/game behavior does not change. IDEA-001
 is promoted with reciprocal roadmap links. The item remains `proposed`; existing

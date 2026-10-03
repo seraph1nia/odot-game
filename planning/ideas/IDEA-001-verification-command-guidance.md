@@ -88,7 +88,7 @@ shaping; none requires an answer to finish this planning-only intake, which
 FirstMate explicitly instructed the worker to finish without starting scenario 2.
 
 On 2026-10-03, the separate scenario 2 brief authorized promotion into a small
-task-based documentation proposal, [poc-verification-command-guide](../../openspec/changes/poc-verification-command-guide/proposal.md).
+task-based documentation proposal, [poc-verification-command-guide](../../openspec/changes/archive/2026-10-03-poc-verification-command-guide/proposal.md).
 A fresh [ten-question preflight](../evidence/setup-agent-workflow-poc/scenario-2-proposal.md#standalone-proposal-preflight)
 found no hard dependency, duplicate proposal or material product/architecture
 decision blocking planning. Mark this idea `promoted`; the new roadmap item's
