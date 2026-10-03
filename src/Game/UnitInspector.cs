@@ -11,19 +11,28 @@ internal sealed partial class UnitInspector : PanelContainer
     private readonly SubViewport _preview = new() { Size = new(192, 80), OwnWorld3D = true, TransparentBg = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Once };
     private Node3D? _model;
     private UnitState? _sample;
+    private readonly Button _retire = new() { Name = "RetireUnit", Text = "Retire · no refund" }, _store = new() { Name = "StoreUnit", Text = "Send to Town hall" };
+    private readonly OptionButton _hall = new() { Name = "StoreDestination" };
+    private string _hallKey = "";
     internal int? UnitId { get; private set; }
-    internal UnitInspector()
+    internal UnitInspector(IGameSession game, Func<bool> canEdit)
     {
         Name = "UnitInspector"; MouseFilter = MouseFilterEnum.Stop; Visible = false;
+        var root = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; root.AddThemeConstantOverride("separation", 2); AddChild(root);
+        root.AddChild(_name);
+        // Actions stay outside the scrolling profile so short supported windows
+        // never advertise an enabled button clipped behind the bottom HUD.
+        root.AddChild(_hall); root.AddChild(_store); root.AddChild(_retire);
         var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        AddChild(scroll);
+        root.AddChild(scroll);
         var box = new VBoxContainer { CustomMinimumSize = new(196, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill }; box.AddThemeConstantOverride("separation", 2); scroll.AddChild(box);
-        box.AddChild(_name);
         var container = new SubViewportContainer { CustomMinimumSize = new(192, 80), Stretch = true, MouseFilter = MouseFilterEnum.Ignore }; box.AddChild(container); container.AddChild(_preview);
         var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 2.3f, Position = new(2.5f, 1.5f, 4), Current = true }; _preview.AddChild(camera); camera.Transform = camera.Transform.LookingAt(new(0, .65f, 0));
         _preview.AddChild(new DirectionalLight3D { RotationDegrees = new(-45, -30, 0), LightEnergy = 1.2f });
         _preview.AddChild(new WorldEnvironment { Environment = new Godot.Environment { AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = Colors.White, AmbientLightEnergy = .7f } });
         box.AddChild(_description); box.AddChild(_health); box.AddChild(_stats);
+        _retire.Pressed += () => { if (canEdit() && _sample is { } unit && unit.Owner == game.PlayerId) game.SendAction("retire", unitId: unit.Id); };
+        _store.Pressed += () => { if (canEdit() && _sample is { } unit && unit.Owner == game.PlayerId && _hall.ItemCount > 0) game.SendAction("store", _hall.GetSelectedId(), unitId: unit.Id); };
         foreach (Label label in new[] { _name, _description, _stats })
         {
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart; label.MouseFilter = MouseFilterEnum.Ignore; label.AddThemeFontSizeOverride("font_size", 12);
@@ -46,11 +55,33 @@ internal sealed partial class UnitInspector : PanelContainer
         _name.Text = ProgressionPresentation.UnitName(unit); _description.Text = ProgressionPresentation.UnitDescription(unit);
         _health.Value = PresentationLimits.HealthFraction(unit.Health, unit.Profile.Health) * 100;
         _stats.Text = ProgressionPresentation.UnitStats(unit, tick);
+        if (unit.Assignment is { } assignment) _stats.Text += $"\nHome tile {assignment.Tile} · anchor {assignment.Anchor}\n{(unit.RecoveryEligible ? "Last completed battle food paid" : "No completed paid recovery receipt")}";
+    }
+    internal void ConfigureActions(CityState? city, bool editable, ArmyConfiguration? army)
+    {
+        bool owned = _sample is { Assignment: { Stored: false } } unit && unit.Owner == city?.Id;
+        _retire.Visible = _store.Visible = _hall.Visible = owned;
+        _retire.Disabled = !editable || !owned;
+        _retire.TooltipText = editable ? "Permanently remove this unit. No resources refunded." : "Edit your unready, unpaused city during Building or Preparation.";
+        string key = string.Join(';', city?.Army?.Halls.Select(h => $"{h.Slot}:{h.Generation}:{h.CapacityLevel}") ?? []);
+        if (key != _hallKey)
+        {
+            int selected = _hall.ItemCount > 0 ? _hall.GetSelectedId() : -1;
+            _hallKey = key; _hall.Clear();
+            foreach (TownHallState hall in city?.Army?.Halls ?? []) _hall.AddItem($"Town hall · plot {hall.Slot + 1} · {hall.Capacity} size", hall.Slot);
+            int index = _hall.GetItemIndex(selected); if (index >= 0) _hall.Select(index);
+        }
+        int slot = _hall.ItemCount > 0 ? _hall.GetSelectedId() : -1;
+        TownHallState? destination = city?.Army?.Halls.FirstOrDefault(h => h.Slot == slot);
+        bool fits = owned && city is not null && destination is not null
+            && army?.Find(city.Soldiers, city.Army!.PurchasedHomes, _sample!.Size, destination.Slot, destination.Generation, destination.Capacity) is not null;
+        _store.Disabled = !editable || !fits; _hall.Disabled = !editable || destination is null;
+        _store.TooltipText = destination is null ? "Build a Town hall on a purchased plot first." : !fits ? "This Town hall has no fitting size capacity." : "Keep identity, level and wounds in reserve. Still consumes battle food.";
     }
     internal void Place(Vector2 viewport, float resourceBottom, float hudTop)
     {
         float available = Math.Max(1, hudTop - resourceBottom - 8);
-        Size = new(260, Math.Min(300, available));
+        Size = new(260, Math.Min(450, available));
         Position = new(viewport.X - 272, resourceBottom + 4);
     }
     internal void Close()
@@ -61,6 +92,8 @@ internal sealed partial class UnitInspector : PanelContainer
     internal void Observe(GameApplication application, Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
         application.ObserveControl(targets, "UnitInspector", this);
-        fields["InspectedUnit"] = _sample is { } unit ? new { unit.Id, Name = _name.Text, Description = _description.Text, StatsText = _stats.Text, Fraction = _health.Value / 100, unit.Level, unit.Health, MaximumHealth = unit.Profile.Health, Damage = unit.Profile.Damage, unit.Size, unit.IsBoss, unit.Faction, Preview = UnitAssets.Character(unit.Type, unit.Faction) } : null;
+        foreach (Button button in new[] { _retire, _store }) application.ObserveControl(targets, button.Name, button);
+        application.ObserveControl(targets, "StoreDestination", _hall);
+        fields["InspectedUnit"] = _sample is { } unit ? new { unit.Id, Name = _name.Text, Description = _description.Text, StatsText = _stats.Text, Fraction = _health.Value / 100, unit.Level, unit.Health, MaximumHealth = unit.Profile.Health, Damage = unit.Profile.Damage, unit.Size, unit.IsBoss, unit.Faction, unit.Assignment, unit.RecoveryEligible, Preview = UnitAssets.Character(unit.Type, unit.Faction) } : null;
     }
 }

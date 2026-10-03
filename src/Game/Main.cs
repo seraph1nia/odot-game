@@ -457,7 +457,7 @@ public partial class Main : Node, IGameSession
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
@@ -465,7 +465,8 @@ public partial class Main : Node, IGameSession
         CityState? target = State.Players.FirstOrDefault(p => p.Id == owner);
         long generation = target is not null && slot is >= 0 and < 9 ? target.Slots[slot].Generation : 0;
         var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, owner, slot, building, soldierType,
-            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles, technology, payment);
+            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles, technology, payment, unitId, target?.Army?.PurchasedHomes ?? -1,
+            target is not null && slot is >= 0 and < 9 ? action == "upgrade-capacity" ? target.Slots[slot].CapacityLevel : action == "upgrade-healing" ? target.Slots[slot].HealingLevel : -1 : -1);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -588,7 +589,12 @@ public partial class Main : Node, IGameSession
                 case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 case "buy-plot":
                 case "sell":
-                case "upgrade": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "upgrade":
+                case "upgrade-capacity":
+                case "upgrade-healing": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "retire": SendAction(parts[0], unitId: int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "store":
+                case "send": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), unitId: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
                 case "trade": SendAction("trade", int.Parse(parts[1], CultureInfo.InvariantCulture), resource: Enum.Parse<Game.Core.Resource>(parts[2], true), bundles: int.Parse(parts[3], CultureInfo.InvariantCulture)); break;
                 case "research-tech":
                     if (!TechnologyIds.TryParse(parts[1], out TechnologyId technology)) throw new ArgumentException("Unknown technology.");

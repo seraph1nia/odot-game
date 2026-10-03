@@ -13,11 +13,11 @@ public sealed class EconomyCatalogTests
     public void CatalogGraphContainsDirectProducersAndPerTypeMaximums()
     {
         var economy = new EconomyConfiguration(new());
-        Assert.Equal(13, economy.Buildings().Length);
+        Assert.Equal(14, economy.Buildings().Length);
         foreach (BuildingDefinition building in economy.Buildings())
         {
-            Assert.Equal(building.Type is Building.Arcanum or Building.ArrowTower or Building.CatapultTower, building.Construction.Gold > 0);
-            Assert.Equal(building.Type == Building.Market ? 1 : building.Recruits is not null ? 5 : 2, building.MaximumLevel);
+            Assert.Equal(building.Type is Building.Arcanum or Building.ArrowTower or Building.CatapultTower or Building.TownHall, building.Construction.Gold > 0);
+            Assert.Equal(building.Type is Building.Market or Building.TownHall ? 1 : building.Recruits is not null ? 5 : 2, building.MaximumLevel);
             Assert.False(economy.TryUpgrade(building.Type, building.MaximumLevel, out _));
             if (building.Produces is Resource resource)
             {

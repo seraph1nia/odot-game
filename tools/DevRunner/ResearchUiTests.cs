@@ -19,7 +19,7 @@ internal sealed partial class Runner
                     MatchSnapshot state = Latest(child);
                     EconomyAction? action = CampaignStrategy.ResearchWitness(state, child.PlayerId);
                     if (action is null) return;
-                    string command = action.Action switch { "build" => $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}", "recruit" => $"recruit {action.Slot} {action.Unit}", "trade" => $"trade {action.Slot} {action.Resource} {action.Bundles}", _ => $"{action.Action} {action.Slot}" };
+                    string command = action.Action switch { "build" => $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}", "recruit" => $"recruit {action.Slot} {action.Unit}", "trade" => $"trade {action.Slot} {action.Resource} {action.Bundles}", "retire" => $"retire {action.UnitId}", _ => $"{action.Action} {action.Slot}" };
                     await Action(child, command, setup.Token);
                 }
                 throw new InvalidOperationException("Research setup action bound exceeded.");

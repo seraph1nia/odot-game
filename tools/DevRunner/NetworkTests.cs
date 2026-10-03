@@ -35,12 +35,13 @@ internal sealed partial class Runner
             {
                 "build" => $"{(decision.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {slot} {decision.Building}",
                 "recruit" => $"recruit {slot} {decision.Unit}",
+                "retire" => $"retire {decision.UnitId}",
                 "research-tech" => $"research-tech {TechnologyIds.Name(decision.Technology)}",
                 "trade" => $"trade {slot} {decision.Resource} {decision.Bundles}",
                 _ => $"{decision.Action} {slot}"
             };
             GameEvent accepted = await Action(child, command, token);
-            if (decision.Action is "buy-plot" or "sell" or "trade" && _retriedEconomicActions.Add(decision.Action))
+            if (decision.Action is "buy-plot" or "buy-home" or "retire" or "sell" or "trade" && _retriedEconomicActions.Add(decision.Action))
             {
                 MatchSnapshot frozenRetry = State(await Action(child, "pause", token));
                 Require(EconomicCity(frozenRetry.Players.Single(p => p.Id == child.PlayerId))
@@ -210,7 +211,7 @@ internal sealed partial class Runner
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "90");
+        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "109");
         await a.WaitFor(e => e.Type == "ready", "playing host transfer readiness", options.StartupTimeout, token);
         await using var b = StartGame("transfer-b", false, true, port, null, "--automated");
         await b.WaitFor(e => e.Type == "connected", "ordered second city admission", options.StartupTimeout, token);

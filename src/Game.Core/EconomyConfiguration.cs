@@ -87,6 +87,12 @@ public sealed class EconomyConfiguration
             }
             Research.Write(writer, prices: true); writer.Write(_researchSettings.TowerLevelOneProgress); writer.Write(_researchSettings.TowerLevelTwoProgress);
             foreach (int price in _expansionPrices) writer.Write(price);
+            foreach (int price in rules.Army.HomePrices) writer.Write(price);
+            for (int level = 1; level <= 3; level++)
+            {
+                writer.Write(ArmyConfiguration.Capacity(level)); writer.Write(ArmyConfiguration.HealingPercent(level));
+                if (level < 3) { Write(writer, ArmyConfiguration.Upgrade(level, false)!.Value); Write(writer, ArmyConfiguration.Upgrade(level, true)!.Value); }
+            }
             foreach (var entry in _recruitment.OrderBy(p => p.Key.Type).ThenBy(p => p.Key.Level))
             { writer.Write((int)entry.Key.Type); writer.Write(entry.Key.Level); Write(writer, entry.Value); }
             foreach (var entry in _upkeep.OrderBy(p => p.Key)) { writer.Write((int)entry.Key); writer.Write(entry.Value); }
