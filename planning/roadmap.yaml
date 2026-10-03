@@ -33,13 +33,13 @@ queue:
     conflicts_with: []
     notes: "Actual apply base has 43/43 tasks complete, superseding the proposal's earlier 13/43 snapshot."
   - change: setup-agent-workflow-poc
-    state: in_progress
+    state: blocked
     priority: normal
     source_ideas: []
     depends_on: []
     blocked_by: []
     conflicts_with: []
-    notes: "Explicit apply authorized local bootstrap. Live Pi/FirstMate scenarios remain unexecuted; awaiting checkpoint review and user-managed integration."
+    notes: "Local bootstrap checkpoint passed independent review2 after one repair; Shipper stopped. Pi integration v9 confirmed. Awaiting live Pi/FirstMate acceptance; further tests paused by user. No whole-change PASS or completion."
     approval: planning/evidence/setup-agent-workflow-poc/approval.md
   - change: add-city-research-and-status-effects
     state: proposed
