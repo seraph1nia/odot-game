@@ -52,7 +52,7 @@ public sealed class AgentLauncherTests
         fixture.Write("runtime/bin/fm-project-mode.sh", "#!/bin/sh\nprintf 'local-only off\\n'\n");
         File.SetUnixFileMode(Path.Combine(runtime, "bin/fm-project-mode.sh"), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         Directory.CreateDirectory(Path.Combine(runtime, ".pi/extensions"));
-        foreach (string tool in new[] { "pi", "treehouse", "codex", "herdr", "gh", "node", "mise" })
+        foreach (string tool in new[] { "pi", "treehouse", "codex", "herdr", "gh", "node", "mise", "tasks-axi" })
         {
             string body = tool switch
             {

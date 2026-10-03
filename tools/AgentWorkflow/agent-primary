@@ -34,9 +34,9 @@ for file in backend crew-harness backlog-backend crew-dispatch.json; do
     [[ ! -L "$FM_HOME/config/$file" ]] && cmp -s "$script_dir/templates/config/$file" "$FM_HOME/config/$file" || fail "Conflicting POC configuration: config/$file (no changes made)."
 done
 missing=()
-for tool in pi codex herdr treehouse git node jq gh mise; do command -v "$tool" >/dev/null 2>&1 || missing+=("$tool"); done
+for tool in pi codex herdr treehouse git node jq gh mise tasks-axi; do command -v "$tool" >/dev/null 2>&1 || missing+=("$tool"); done
 [[ ${#missing[@]} == 0 ]] || fail "Missing selected-runtime prerequisites: ${missing[*]}. Install tools yourself; none were installed."
-for tool in no-mistakes gh-axi chrome-devtools-axi tasks-axi quota-axi; do
+for tool in no-mistakes gh-axi chrome-devtools-axi quota-axi; do
     command -v "$tool" >/dev/null 2>&1 || printf 'UPSTREAM_MISSING: %s (not exercised by manual/static-Codex/local-only route; do not use dependent routes)\n' "$tool" >&2
 done
 pi_help=$(pi --help)
