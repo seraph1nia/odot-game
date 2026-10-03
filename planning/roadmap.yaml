@@ -49,3 +49,11 @@ queue:
     blocked_by: []
     conflicts_with: []
     notes: "Existing complete planning, 0/40 implementation tasks; no implementation approval inferred. Relative future priority requires a product decision."
+  - change: poc-verification-command-guide
+    state: proposed
+    priority: normal
+    source_ideas: [IDEA-001]
+    depends_on: []
+    blocked_by: []
+    conflicts_with: []
+    notes: "Scenario 2 planning-only promotion: small task-based documentation guide. No implementation approval. No hard dependencies or semantic conflicts; speed-up-verification canonical sync is separate. Installed workflow checkpoint supports the trial, not completed whole-POC acceptance. Future research README edits need ordinary text integration. Appended without changing existing order; unapproved relative priority is provisional."
