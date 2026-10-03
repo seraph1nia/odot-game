@@ -69,7 +69,7 @@ internal sealed partial class Runner
         await solo.Send("build 0 farm");
         GameEvent next = await solo.WaitFor(e => e.Type == "ack" && e.State?.MatchId == fresh.MatchId
             && e.Result!.Sequence == 2 && e.Result.Accepted, "new solo sequence remains usable after stale packet", options.StartupTimeout, token);
-        Require(State(next).Players[0].Gold == city.Gold - fresh.Rules.BuildCost, "stale-session rejection does not poison the new request ledger");
+        Require(State(next).Players[0].Gold == city.Gold - fresh.BuildingCatalog.Single(b => b.Type == Building.Farm).Construction.Gold, "stale-session rejection does not poison the new request ledger");
         await solo.Send("quit");
         Require(await solo.WaitExit(token) == 0 && occupied.Client.IsBound, "solo exit releases its session without touching endpoint owner");
     }

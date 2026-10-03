@@ -379,6 +379,7 @@ public partial class GameApplication(Main session) : Node
             Enabled = control is not BaseButton button || !button.Disabled,
             Icon = (control as Button)?.Icon?.ResourcePath ?? "",
             Text = (control as Button)?.Text ?? "",
+            Tooltip = control.TooltipText,
             CostText = control.GetNodeOrNull<RichTextLabel>("Cost")?.GetParsedText() ?? ""
         };
     }

@@ -15,8 +15,8 @@ public sealed record CampaignDefinition(WaveDefinition[] Waves)
         SpawnEntry B(int count, int level) => new(UnitType.Berserker, level, count);
         SpawnEntry C(int count, int level) => new(UnitType.Crossbowman, level, count);
         SpawnEntry M(int count, int level) => new(UnitType.Mage, level, count);
-        WaveDefinition Wave(int number, params SpawnEntry[] entries) => new(number, false, entries, new(10, 5, 5));
-        WaveDefinition Boss(int number, int level) => new(number, true, [new(UnitType.Swordsman, level, IsBoss: true)], new(20, 10, 10));
+        WaveDefinition Wave(int number, params SpawnEntry[] entries) => new(number, false, entries, new(2, 1, 5));
+        WaveDefinition Boss(int number, int level) => new(number, true, [new(UnitType.Swordsman, level, IsBoss: true)], new(4, 2, 10));
         return new([
             Wave(1, S(4, 1)), Wave(2, S(3, 1), B(1, 1)), Wave(3, S(3, 1), C(2, 1)),
             Wave(4, S(3, 1), B(1, 1), C(1, 1), M(1, 1)), Wave(5, S(3, 2), C(1, 1)),

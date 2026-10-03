@@ -144,12 +144,15 @@ internal sealed partial class Runner
         await Click(client, "CloseSettings", token);
         await client.Send("mouse-move 400 350");
         RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
-        UiTarget table = reset.Targets["ResourceTable"];
-        await Wheel(client, table.X, table.Y, true);
-        await client.Send(FormattableString.Invariant($"mouse-down {table.X} {table.Y}"));
-        await client.Send(FormattableString.Invariant($"mouse-move {table.X - 70} {table.Y + 40}"));
-        await client.Send(FormattableString.Invariant($"mouse-up {table.X - 70} {table.Y + 40}"));
-        RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
+        foreach (string target in new[] { "ResourceTable", "UpkeepTable" })
+        {
+            UiTarget table = reset.Targets[target];
+            await Wheel(client, table.X, table.Y, true);
+            await client.Send(FormattableString.Invariant($"mouse-down {table.X} {table.Y}"));
+            await client.Send(FormattableString.Invariant($"mouse-move {table.X - 70} {table.Y + 40}"));
+            await client.Send(FormattableString.Invariant($"mouse-up {table.X - 70} {table.Y + 40}"));
+            RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
+        }
         await Pick(client, 4, token);
     }
     private async Task CameraInputPriority(Child client, CancellationToken token)

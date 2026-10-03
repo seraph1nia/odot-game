@@ -38,12 +38,12 @@ internal sealed partial class Runner
         if (towers) await TowerOpening(observer, token);
         else { await Action(observer, "build 0 farm", token); await Action(observer, "build 1 metalmine", token); await Action(observer, "build 2 barracks", token); }
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
-        await Action(client, "build 3 lumbermill", token);
+        await Action(client, "build-recovery 3 lumbermill", token);
         await UiReadyPair(client, observer, token);
         await Pick(client, 2, token);
         UiObservation equipment = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(equipment.Targets["Recruit"].Text.Contains("L1", StringComparison.Ordinal)
-            && equipment.Targets["Recruit"].CostText.Contains("10 metal", StringComparison.Ordinal)
+            && equipment.Targets["Recruit"].CostText.Contains("2 metal", StringComparison.Ordinal)
             && equipment.UpkeepText.Contains("Next:", StringComparison.Ordinal), "source and packed recruitment exposes level, material quote and separate next-battle upkeep");
         await UiSwords(client, 2, 6, token);
         if (towers) await TowerInvestment(observer, token);
@@ -75,7 +75,7 @@ internal sealed partial class Runner
         await Action(client, "build 1 metalmine", token);
         await Action(client, "build 2 barracks", token); await TowerOpening(observer, token);
         await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
-        await Action(client, "build 3 lumbermill", token);
+        await Action(client, "build-recovery 3 lumbermill", token);
         await UiReadyPair(client, observer, token, actualInput: false); await UiSwords(client, 2, 6, token, actualInput: false); await TowerInvestment(observer, token);
         await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 1, token);
         await Action(client, "build 4 stonecutter", token);

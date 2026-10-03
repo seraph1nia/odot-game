@@ -239,9 +239,9 @@ public sealed class AuthoritySessionTests
         CityState city = resumed.State.Players.Single(player => player.Id == guest.PlayerId);
         Assert.Equal(Building.Farm, city.Slots[0].Type); Assert.Equal(1, city.Slots[0].Level);
         Assert.True(city.Slots[0].Purchased); Assert.Equal(1, city.Slots[0].Generation);
-        Assert.Equal(new ResourceCost(20, 10), city.Slots[0].Investment);
-        Assert.Equal(new ResourceCost(10, 5), city.Slots[0].Refund);
-        Assert.Equal(70, city.Gold); Assert.Equal(15, city.Food);
+        Assert.Equal(new ResourceCost(Wood: 2), city.Slots[0].Investment);
+        Assert.Equal(new ResourceCost(Wood: 1), city.Slots[0].Refund);
+        Assert.Equal(18, city.Gold); Assert.Equal(15, city.Food);
         string paused = State(session);
         Assert.Equal(purchased, Remote(session, 4, purchase));
         session.Step();

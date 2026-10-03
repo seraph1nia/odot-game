@@ -2,12 +2,45 @@ using Game.Core;
 
 namespace Game;
 
+public sealed record EconomyView(string IncomeLabel, string Context, string UpkeepLabel, string UpkeepValue, string BalanceLabel, string BalanceValue);
+
 public sealed record ProgressionView(string Phase, string Land, string Food, string Reward, string Army);
 
 // Pure current-state projection: receipts remain actual results, even when a
 // snapshot also carries a forecast for a future battle.
 public static class ProgressionPresentation
 {
+    public static string Income(ResourceCost? income, Resource resource)
+        => income is ResourceCost value ? value.Amount(resource) > 0 ? $"+{value.Amount(resource)}" : "0" : "Unavailable";
+    public static EconomyView Economy(MatchSnapshot? state, CityState? city, bool connected)
+    {
+        string label = state?.Phase == Phase.Building ? "Income/turn" : "Next building turn";
+        bool inactive = city?.Eliminated == true || state?.Phase is Phase.Victory or Phase.Defeat;
+        string context = !connected ? "Stale · waiting for connection" : state?.Paused == true ? "Paused · synchronized values" : inactive ? "Inactive · no future income"
+            : state?.Phase is Phase.Preparation or Phase.Combat ? "Ready for battle grants no income" : "";
+        if (state?.Phase is Phase.Building or Phase.Preparation && city?.FoodForecast is { } forecast)
+            return new(label, context, "Next battle", $"{forecast.Demand} food",
+                forecast.Unfed.Length > 0 ? $"{forecast.Unfed.Length} soldiers will sit out" : "Food after payment",
+                forecast.Unfed.Length > 0 ? "" : (forecast.Available - forecast.Paid).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (city?.LastUpkeep is { } receipt)
+            return new(label, context, state?.Phase == Phase.Combat ? $"Paid this battle · W{receipt.Wave}" : $"Last battle · W{receipt.Wave}",
+                $"{receipt.Paid} food", "Sat out", receipt.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return new(label, context, "Next battle", "0 food", "Food after payment", (city?.Food ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+    public static string CostExplanation(ResourceCost cost, ResourceCost stocks)
+        => string.Join('\n', Enum.GetValues<Resource>().Where(r => cost.Amount(r) > 0).Select(r => stocks.Amount(r) >= cost.Amount(r)
+            ? $"{r}: {stocks.Amount(r)}/{cost.Amount(r)} · affordable"
+            : $"Need {cost.Amount(r) - stocks.Amount(r)} more {r.ToString().ToLowerInvariant()} · " + (r switch
+            { Resource.Gold => "production, Gold Mine or Market", Resource.Wood => "Lumbermill", Resource.Food => "Farm", Resource.Stone => "Stonecutter", Resource.Metal => "Metal Mine", _ => "Weaver" })));
+    public static string ProducerBenefit(BuildingDefinition definition, int level = 1, bool upgrade = false)
+        => definition.Produces is Resource resource ? upgrade ? $"{definition.Output(level)} → {definition.Output(level + 1)} {resource.ToString().ToLowerInvariant()}/turn"
+            : $"+{definition.Output(level)} {resource.ToString().ToLowerInvariant()}/turn" : "";
+    public static string FoodSalePreview(CityState city, MarketRate rate)
+    {
+        if (city.Food < rate.Units) return $"Need {rate.Units - city.Food} more food · Farm";
+        BattleFoodForecast forecast = BattleFood.Forecast(city.Soldiers, city.Food - rate.Units, city.RecruitmentQuotes);
+        return $"After sale: pay {forecast.Paid} food · {forecast.Unfed.Length} soldiers will sit out · food after payment {forecast.Available - forecast.Paid}";
+    }
     public static TechnologyEligibility ResearchAccess(MatchSnapshot? state, CityState? city, int player, bool connected, TechnologyId technology)
     {
         string? blocked = !connected ? "Waiting for connection" : city is null ? "Waiting for city" : city.Id != player ? "Observing another city"

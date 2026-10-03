@@ -24,8 +24,9 @@ internal sealed class HudInvalidation
         var roster = new List<object?> { state?.MatchId, state?.Phase, focus, player, host };
         Add(roster, state?.Players.Select(p => (object)(p.Id, p.Connected, p.Ready, p.Eliminated)));
         result[HudSection.Roster] = roster.ToArray();
-        List<object?> economy = [.. Common(), focus, state?.Wave, state?.Turn, state?.TotalWaves, state?.DefeatReason,
+        List<object?> economy = [.. Common(), focus, state?.Wave, state?.Turn, state?.TotalWaves, state?.DefeatReason, connected, city?.Eliminated, city?.ProductionIncome,
             state?.WaveCatalog.FirstOrDefault(w => w.Number == state.Wave)?.IsBoss, city?.Resources, city?.LastReward];
+        Add(economy, city?.Slots.Select(s => (object)(s.Type, s.Level, s.Purchased)));
         if (city?.FoodForecast is { } forecast)
         {
             economy.Add((forecast.Demand, forecast.Available, forecast.Paid)); Add(economy, forecast.Participating.Cast<object>()); Add(economy, forecast.Unfed.Cast<object>());
@@ -54,7 +55,7 @@ internal sealed class HudInvalidation
         if (state is null) context.Add(null);
         else foreach (BuildingDefinition building in state.BuildingCatalog)
         {
-            context.Add((building.Type, building.Construction, building.Upgrade, building.LevelOneOutput, building.LevelTwoOutput, building.MaximumLevel, building.Produces));
+            context.Add((building.Type, building.Construction, building.Upgrade, building.LevelOneOutput, building.LevelTwoOutput, building.MaximumLevel, building.Produces, building.RecoveryConstruction));
             Add(context, building.Recruits?.Cast<object>());
         }
         result[HudSection.Context] = context.ToArray();

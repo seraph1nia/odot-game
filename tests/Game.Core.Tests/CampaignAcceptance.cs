@@ -95,7 +95,7 @@ internal static class CampaignAcceptance
         diagnostics.Summary($"{strategy}/{players}, seed={seed}, config={match.ConfigurationFingerprint}: waveTicks={string.Join(',', waveTicks.OrderBy(p => p.Key).Select(p => $"{p.Key}:{p.Value}"))}; casualties={recruits - match.Players.Values.Sum(c => c.Soldiers.Count)}; recruits={recruits}; expansions={expansions}; trades={trades}; sales={sales}; firstLevelFiveBattle={firstLevelFiveBattle}; cityHP={string.Join(',', match.Players.Values.Select(c => c.Health))}; final={match.Phase}/{match.DefeatReason}.");
         measurement?.Enter("assertion");
         Assert.Equal(Phase.Victory, match.Phase); Assert.Equal(60, match.ProductionCount); Assert.True(preparations >= 20);
-        Assert.True(expansions > 0); Assert.True(trades > 0); Assert.True(sales > 0); Assert.True(upgradedProducer); Assert.True(expandedFullLand); Assert.True(laterMetalRecruits > 0);
+        Assert.True(expansions > 0, "No expansion witness"); Assert.True(trades > 0, "No Market trade witness"); Assert.True(sales > 0, "No sale witness"); Assert.True(upgradedProducer, "No producer upgrade witness"); Assert.True(expandedFullLand, "No full-land expansion witness"); Assert.True(laterMetalRecruits > 0, "No recurring metal recruitment witness");
         Assert.InRange(firstLevelFiveBattle, 1, 19); Assert.All(match.Players.Values, c => Assert.False(c.Eliminated));
         if (strategy == "mixed") { Assert.Equal(4, recruitedRoles.Count); Assert.True(laterClothRecruits > 0); }
         if (strategy == "research") Assert.True(match.Players[1].Research.Has(TechnologyId.GuardianMastery));

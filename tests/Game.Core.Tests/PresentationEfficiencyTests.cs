@@ -21,6 +21,11 @@ public sealed class PresentationEfficiencyTests
         MatchSnapshot City(CityState changed) => state with { Players = [changed, state.Players[1]] };
         void Changed(HudSection section, MatchSnapshot changed) => Assert.False(initial[section].SequenceEqual(Capture(changed)[section]));
         Changed(HudSection.Economy, City(city with { Gold = city.Gold + 1 }));
+        Changed(HudSection.Economy, City(city with { ProductionIncome = new ResourceCost(2, 2, Metal: 8) }));
+        Changed(HudSection.Economy, City(city with { Slots = city.Slots.Select((s, i) => i == 0 ? s with { Level = s.Level + 1 } : s).ToArray() }));
+        Assert.False(initial[HudSection.Economy].SequenceEqual(Capture(state, connected: false)[HudSection.Economy]));
+        MatchSnapshot recovery = state with { BuildingCatalog = state.BuildingCatalog.Select(b => b.Type == Building.Lumbermill ? b with { RecoveryConstruction = new ResourceCost(5) } : b).ToArray() };
+        Changed(HudSection.Context, recovery);
         Changed(HudSection.Context, City(city with { Research = new(Owned: 1UL << (int)TechnologyId.MeleeFoundation) }));
         Changed(HudSection.Economy, City(city with { Soldiers = city.Soldiers.Select((u, i) => i == 0 ? u with { Health = u.Health - 1 } : u).ToArray() }));
         StatusState poison = StatusPolicy.Apply(new(), new(1, StatusKind.Poison, 2, 1, 0, 100), new());

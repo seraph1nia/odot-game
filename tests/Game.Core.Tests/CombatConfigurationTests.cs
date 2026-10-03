@@ -27,7 +27,7 @@ public sealed class CombatConfigurationTests
         Assert.True((long)mage.Damage * crossbow.CadenceTicks < (long)crossbow.Damage * mage.CadenceTicks);
         Assert.True((long)mage.Damage * 2 * crossbow.CadenceTicks > (long)crossbow.Damage * mage.CadenceTicks);
         Assert.Equal(1, mage.SplashHexRadius); Assert.Equal(2, mage.VictimCap);
-        Assert.Equal(new ResourceCost(5, Cloth: 15), Catalogs.Units(new()).Single(u => u.Type == UnitType.Mage).Recruitment);
+        Assert.Equal(new ResourceCost(1, Cloth: 3), Catalogs.Units(new()).Single(u => u.Type == UnitType.Mage).Recruitment);
         // This is a profile check, not the still-required ordinary role fixture.
     }
     [Theory]

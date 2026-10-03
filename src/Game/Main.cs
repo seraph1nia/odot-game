@@ -457,7 +457,7 @@ public partial class Main : Node, IGameSession
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
@@ -465,7 +465,7 @@ public partial class Main : Node, IGameSession
         CityState? target = State.Players.FirstOrDefault(p => p.Id == owner);
         long generation = target is not null && slot is >= 0 and < 9 ? target.Slots[slot].Generation : 0;
         var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, owner, slot, building, soldierType,
-            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles, technology);
+            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles, technology, payment);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -584,6 +584,7 @@ public partial class Main : Node, IGameSession
                     Command? saved = _sent.GetValueOrDefault(long.Parse(parts[1], CultureInfo.InvariantCulture));
                     if (saved is not null) SendRequest(saved); else Feedback = "Original request unavailable in this process; use raw to resend its identity.";
                     break;
+                case "build-recovery": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), payment: ConstructionPayment.GoldRecovery); break;
                 case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 case "buy-plot":
                 case "sell":

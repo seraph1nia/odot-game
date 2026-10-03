@@ -10,6 +10,23 @@ namespace DevRunner.Tests;
 public sealed class HarnessTests
 {
     [Fact]
+    public void EconomyObservationRoundTripPreservesIncomeUpkeepAndFullBounds()
+    {
+        var original = new UiObservation
+        {
+            ResourceIncome = new() { ["Gold"] = "+2", ["Food"] = "0", ["Wood"] = "Unavailable" },
+            IncomeLabel = "Next building turn",
+            IncomeContext = "Stale · waiting for connection",
+            CompactUpkeep = ["Paid this battle · W3", "4 food", "Sat out", "2"],
+            Targets = new() { ["UpkeepTable"] = new(1000, 220, true, true) { Width = 240, Height = 44 }, ["LumbermillRecovery"] = new(500, 670, true, false) { Tooltip = "Need 1 more gold" } }
+        };
+        UiObservation parsed = JsonSerializer.Deserialize<UiObservation>(JsonSerializer.Serialize(original, WireJson.Options), WireJson.Options)!;
+        Assert.Equal(original.ResourceIncome, parsed.ResourceIncome); Assert.Equal(original.CompactUpkeep, parsed.CompactUpkeep);
+        Assert.Equal(original.IncomeLabel, parsed.IncomeLabel); Assert.Equal(original.IncomeContext, parsed.IncomeContext);
+        Assert.Equal(original.Targets["UpkeepTable"], parsed.Targets["UpkeepTable"]);
+        Assert.Equal("Need 1 more gold", parsed.Targets["LumbermillRecovery"].Tooltip);
+    }
+    [Fact]
     public void FullSourceUiHasABoundedAggregateBudgetAndPreservesOverrides()
     {
         Assert.Equal(900000, Options.Parse(["ci"]).Timeout);

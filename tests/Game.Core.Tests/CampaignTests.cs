@@ -42,9 +42,9 @@ public sealed class CampaignTests
             WaveDefinition wave = match.Campaign.Wave(number); Assert.Equal(number, wave.Number);
             Assert.Equal(compositions[number - 1], Composition(wave));
             Assert.Equal(number is 10 or 20, wave.IsBoss);
-            Assert.Equal(wave.IsBoss ? new ResourceCost(20, 10, 10) : new(10, 5, 5), wave.Reward);
+            Assert.Equal(wave.IsBoss ? new ResourceCost(4, 2, 10) : new(2, 1, 5), wave.Reward);
         }
-        Assert.Equal(new ResourceCost(220, 110, 110), match.Campaign.Definition().Waves.Aggregate(default(ResourceCost), (sum, w) => { Assert.True(sum.TryAdd(w.Reward, out ResourceCost next)); return next; }));
+        Assert.Equal(new ResourceCost(44, 22, 110), match.Campaign.Definition().Waves.Aggregate(default(ResourceCost), (sum, w) => { Assert.True(sum.TryAdd(w.Reward, out ResourceCost next)); return next; }));
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class CampaignTests
         Assert.All(claims, p => { Assert.Equal(6, p.Size); Assert.Equal(2, p.City); });
         Assert.Equal(food, match.Players[2].Food); Assert.Equal(foodBefore, JsonSerializer.Serialize(match.Players[2].LastUpkeep));
         Clear(match); Assert.Equal(11, match.Wave); Assert.Equal(10, match.LastRewardedWave);
-        Assert.Equal(10, match.Players[2].LastReward!.Wave); Assert.Equal(1, match.Players[2].LastReward!.Research); Assert.Equal(10, match.Players[2].Research.Points); Assert.Equal(new ResourceCost(20, 10, 10), match.Players[2].LastReward!.Amount);
+        Assert.Equal(10, match.Players[2].LastReward!.Wave); Assert.Equal(1, match.Players[2].LastReward!.Research); Assert.Equal(10, match.Players[2].Research.Points); Assert.Equal(new ResourceCost(4, 2, 10), match.Players[2].LastReward!.Amount);
         Assert.Equal(9, match.Players[1].LastReward!.Wave); Assert.Equal(9, match.Players[3].LastReward!.Wave);
         match.SetConnected(2, true); Begin(match); Assert.Equal(15, match.Enemies.Count);
         Assert.All(match.Enemies, e => Assert.Equal(2, e.Destination));
@@ -131,7 +131,7 @@ public sealed class CampaignTests
         foreach (UnitState enemy in match.Enemies.Where(e => e.Destination == 1).ToArray()) match.Combat.Remove(enemy.Id);
         match.Step(); Assert.Equal(0, match.LastRewardedWave); Assert.Null(match.Players[1].LastReward); Assert.Equal(before, match.Players[1].Resources);
         match.SetConnected(2, false); Clear(match);
-        Assert.True(before.TryAdd(new(10, 5, 5), out ResourceCost expected)); Assert.Equal(expected, match.Players[1].Resources);
+        Assert.True(before.TryAdd(new(2, 1, 5), out ResourceCost expected)); Assert.Equal(expected, match.Players[1].Resources);
         Assert.Equal(1, match.Players[2].LastReward!.Wave); Assert.Equal(1, match.LastRewardedWave);
         string after = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options); match.Step(); match.Step();
         Assert.Equal(after, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
@@ -150,8 +150,9 @@ public sealed class CampaignTests
             Assert.Equal(wave == 20 ? Phase.Victory : Phase.Building, match.Phase);
         }
         Assert.Equal(20, match.Wave); Assert.Equal(60, match.ProductionCount);
-        Assert.Equal(new ResourceCost(880, 140, 110), match.Players[1].Resources);
+        Assert.Equal(new ResourceCost(176, 28, 110), match.Players[1].Resources);
         Assert.Null(match.Snapshot().Players[0].FoodForecast); Assert.Empty(match.Enemies);
+        Assert.Equal(default(ResourceCost), match.Snapshot().Players[0].ProductionIncome);
         string final = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options); for (int step = 0; step < 10; step++) match.Step();
         Assert.Equal(final, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
     }

@@ -15,7 +15,9 @@ internal sealed partial class UnitInspector : PanelContainer
     internal UnitInspector()
     {
         Name = "UnitInspector"; MouseFilter = MouseFilterEnum.Stop; Visible = false;
-        var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 2); AddChild(box);
+        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
+        AddChild(scroll);
+        var box = new VBoxContainer { CustomMinimumSize = new(196, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill }; box.AddThemeConstantOverride("separation", 2); scroll.AddChild(box);
         box.AddChild(_name);
         var container = new SubViewportContainer { CustomMinimumSize = new(192, 80), Stretch = true, MouseFilter = MouseFilterEnum.Ignore }; box.AddChild(container); container.AddChild(_preview);
         var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 2.3f, Position = new(2.5f, 1.5f, 4), Current = true }; _preview.AddChild(camera); camera.Transform = camera.Transform.LookingAt(new(0, .65f, 0));
@@ -47,8 +49,9 @@ internal sealed partial class UnitInspector : PanelContainer
     }
     internal void Place(Vector2 viewport, float resourceBottom, float hudTop)
     {
-        Size = new(220, 0);
-        Position = new(viewport.X - 232, resourceBottom + Math.Max(4, (hudTop - resourceBottom - GetCombinedMinimumSize().Y) / 2));
+        float available = Math.Max(1, hudTop - resourceBottom - 8);
+        Size = new(260, Math.Min(300, available));
+        Position = new(viewport.X - 272, resourceBottom + 4);
     }
     internal void Close()
     {

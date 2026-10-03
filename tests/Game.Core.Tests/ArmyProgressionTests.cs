@@ -68,10 +68,10 @@ public sealed class ArmyProgressionTests
     }
 
     [Fact]
-    public void EquipmentPricesAreBaseDerivedNearestFiveAndUpkeepIsSeparate()
+    public void EquipmentPricesAreBaseDerivedNearestWholeAndUpkeepIsSeparate()
     {
         var economy = new EconomyConfiguration(new());
-        int[] swords = [10, 15, 20, 25, 35], cloth = [15, 20, 25, 35, 50], gold = [5, 5, 10, 10, 15];
+        int[] swords = [2, 3, 4, 5, 7], cloth = [3, 4, 5, 7, 10], gold = [1, 1, 2, 2, 3];
         for (int level = 1; level <= 5; level++)
         {
             Assert.Equal(new ResourceCost(Metal: swords[level - 1]), economy.Recruitment(UnitType.Swordsman, level));
@@ -85,7 +85,9 @@ public sealed class ArmyProgressionTests
             }
         }
         Assert.Throws<ArgumentException>(() => new EconomyConfiguration(new Rules { MageClothCost = 0 }));
-        Assert.Throws<ArgumentException>(() => new EconomyConfiguration(new Rules { MageGoldCost = 1 }));
+        var small = new EconomyConfiguration(new Rules { SwordMetalCost = 1 });
+        Assert.Equal(small.Recruitment(UnitType.Swordsman), small.Recruitment(UnitType.Swordsman, 2));
+        Assert.Throws<ArgumentException>(() => new EconomyConfiguration(new Rules { MageGoldCost = 0 }));
         Assert.Throws<ArgumentException>(() => new EconomyConfiguration(new Rules { SwordUpkeep = 0 }));
         Assert.NotEqual(economy.Fingerprint, new EconomyConfiguration(new Rules { SwordUpkeep = 2 }).Fingerprint);
     }

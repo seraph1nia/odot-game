@@ -21,8 +21,14 @@ internal sealed partial class Runner
     {
         MatchSnapshot state = Latest(observer); CityState city = state.Players.Single(p => p.Id == observer.PlayerId);
         if (city.Eliminated || city.Ready || state.Phase is not (Phase.Building or Phase.Preparation)) return;
-        if (city.Slots[3].Type == Building.Empty && city.Resources.TryPay(state.BuildingCatalog.Single(b => b.Type == Building.Lumbermill).Construction, out _))
-            city = State(await Action(observer, "build 3 lumbermill", token)).Players.Single(p => p.Id == observer.PlayerId);
+        BuildingDefinition lumbermill = state.BuildingCatalog.Single(b => b.Type == Building.Lumbermill);
+        if (city.Slots[3].Type == Building.Empty)
+        {
+            if (city.Resources.TryPay(lumbermill.Construction, out _))
+                city = State(await Action(observer, "build 3 lumbermill", token)).Players.Single(p => p.Id == observer.PlayerId);
+            else if (city.Wood == 0 && lumbermill.RecoveryConstruction is ResourceCost recovery && city.Resources.TryPay(recovery, out _))
+                city = State(await Action(observer, "build-recovery 3 lumbermill", token)).Players.Single(p => p.Id == observer.PlayerId);
+        }
         if (city.Slots[4].Type == Building.Empty && city.Resources.TryPay(state.BuildingCatalog.Single(b => b.Type == Building.Stonecutter).Construction, out _))
             city = State(await Action(observer, "build 4 stonecutter", token)).Players.Single(p => p.Id == observer.PlayerId);
         while (city.Slots[2].Type == Building.Barracks && city.Soldiers.Length < 6)
@@ -59,13 +65,18 @@ internal sealed partial class Runner
     {
         await Click(client, "Details", token);
         UiObservation details = await WaitUi(client, p => p.DetailsOpen, "Details inspection opens explicitly", token);
-        Require(details.UpkeepText.Length > 0 && details.RewardText.Length > 0 && details.RosterText.Contains('P') && details.DetailsText.Contains("Gold:", StringComparison.Ordinal), "Details retains upkeep, reward and cooperative roster");
+        Require(details.UpkeepText.Length > 0 && details.RewardText.Length > 0 && details.RosterText.Contains('P') && details.DetailsText.Contains("Wood:", StringComparison.Ordinal), "Details retains upkeep, reward and cooperative roster");
         await Click(client, "CloseDetails", token);
         await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
         await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
         await TowerOpening(observer, token);
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
-        await Action(client, "build 3 lumbermill", token);
+        await Pick(client, 3, token); await Click(client, "ProductionChoices", token);
+        UiObservation recovery = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(recovery.Targets["LumbermillRecovery"].Visible && recovery.Targets["LumbermillRecovery"].Enabled && !recovery.Targets["Lumbermill"].Enabled, "zero-wood recovery is explicit and the normal build stays disabled");
+        Require(recovery.Targets["LumbermillRecovery"].Text.Contains("4 Gold", StringComparison.Ordinal), "recovery displays its full authoritative gold quote");
+        await ClickAck(client, "LumbermillRecovery", token);
+        await Checkpoint(client, "economy-recovery-income", token);
         await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
         await UiSwords(client, 2, 6, token);
         CityState equipped = Latest(client).Players.Single(p => p.Id == client.PlayerId);
@@ -132,14 +143,19 @@ internal sealed partial class Runner
         ResourceCost lumberQuote = Latest(client).BuildingCatalog.Single(b => b.Type == Building.Lumbermill).Construction;
         await FundGold(Math.Max(0, lumberQuote.Gold - soldFood.Slots[3].Refund.Gold), 0, (int)soldFood.FoodForecast!.Demand);
         await Pick(client, 3, token); long generation = Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3].Generation;
-        await ClickAck(client, "Sell", token); await ClickAck(client, "Lumbermill", token);
+        await ClickAck(client, "Sell", token);
+        if (Latest(client).Players.Single(p => p.Id == client.PlayerId).Wood == 0)
+        { await Click(client, "ProductionChoices", token); await ClickAck(client, "LumbermillRecovery", token); }
+        else await ClickAck(client, "Lumbermill", token);
         Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3] is { Level: 1 } replacement && replacement.Generation > generation, "sale and rebuild establish a fresh producer on retained land");
         await Pick(client, 5, token); await Checkpoint(client, "economy-materials-market-land", token);
+        await EconomyInspector(client, "economy-inspector-1280", token);
         await Click(client, "Settings", token); await Click(client, "GraphicsTab", token); await Click(client, "Resolution", token);
         await WaitUi(client, p => p.DropdownOpen, "economy second supported viewport choices", token);
         await client.Send("key Down"); await WaitUi(client, p => p.DropdownOpen && p.ResolutionFocused == 0, "1100x820 focused through native key input", token);
         await client.Send("key Enter"); await WaitUi(client, p => p.Width == 1100 && p.Height == 820 && !p.DropdownOpen, "expanded economy at 1100x820", token);
         await Click(client, "CloseSettings", token); await Checkpoint(client, "economy-market-1100", token);
+        await EconomyInspector(client, "economy-inspector-1100", token);
         await Click(client, "City" + observer.PlayerId, token); await Pick(client, 2, token);
         UiObservation upgraded = await WaitUi(client, p => p.BuildingVariants.Length == 9 && p.BuildingVariants[2] == 2, "actual Catapult structural upgrade", token);
         Require(upgraded.PlotHeights.Length == 9 && upgraded.PlotHeights[0] < upgraded.PlotHeights[3] && upgraded.PlotHeights[3] < upgraded.PlotHeights[6], "three actual terrace heights");
@@ -155,5 +171,64 @@ internal sealed partial class Runner
         Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["Upgrade"].Enabled, "zoomed foreign roof remains read only");
         await Checkpoint(client, "economy-camera-roof", token); await Click(client, "ResetView", token); await Checkpoint(client, "economy-upgraded-roof", token);
         await Click(client, "City" + client.PlayerId, token); await Pick(client, 2, token);
+        await EconomyShortageAndReconnect(client, observer, token);
+    }
+    private async Task EconomyInspector(Child client, string name, CancellationToken token)
+    {
+        UiObservation frame = await OpenUnitInspector(client, token);
+        UiTarget inspector = frame.Targets["UnitInspector"], stack = frame.Targets["ResourceTable"];
+        Require(inspector.Y - inspector.Height / 2 >= stack.Y + stack.Height / 2 && inspector.Y + inspector.Height / 2 <= frame.HudTop
+            && inspector.X + inspector.Width / 2 <= frame.Width && inspector.X - inspector.Width / 2 >= 0,
+            "inspector fits below complete income/upkeep stack and above HUD");
+        await Checkpoint(client, name, token); await Pick(client, 5, token);
+    }
+    private async Task EconomyShortageAndReconnect(Child client, Child observer, CancellationToken token)
+    {
+        // One additional ordinary clear reuses these peers. Its next two productions fund
+        // a food bundle whose remainder is smaller than the army's demand.
+        Child server = _scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal));
+        await SimulationSpeed(server, options.SimulationSpeed, token);
+        await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token);
+        UiObservation paid = await WaitUi(client, p => p.CompactUpkeep.Length == 4 && p.CompactUpkeep[0] == "Paid this battle · W3", "compact current-wave actual upkeep receipt", token);
+        CityState battle = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        Require(paid.CompactUpkeep[1] == $"{battle.LastUpkeep!.Paid} food", "compact receipt shows actual authority payment");
+        await UiClear(client, observer, 3, token);
+        for (int production = 0; production < 2; production++) await UiReadyPair(client, observer, token);
+        await UiSwords(client, 2, 6, token);
+        await Pick(client, 3, token); await ClickAck(client, "Upgrade", token);
+        await Checkpoint(client, "economy-upgraded-income", token);
+        await Pick(client, 5, token);
+        CityState city = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        MarketRate rate = Latest(client).MarketRates.Single(r => r.Resource == Resource.Food);
+        int bundles = city.Food / rate.Units;
+        Require(bundles > 0, "ordinary setup funds whole food sale");
+        for (int sale = 0; sale < bundles; sale++)
+        {
+            UiObservation preview = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            if (sale == bundles - 1)
+            {
+                CityState beforeSale = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+                BattleFoodForecast forecast = BattleFood.Forecast(beforeSale.Soldiers, beforeSale.Food - rate.Units, beforeSale.RecruitmentQuotes);
+                Require(forecast.Unfed.Length > 0 && preview.Targets["TradeFood"].Tooltip.Contains($"{forecast.Unfed.Length} soldiers will sit out", StringComparison.Ordinal), "exact food-sale shortage is readable before acceptance");
+            }
+            await ClickAck(client, "TradeFood", token);
+        }
+        city = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        Require(city.FoodForecast!.Unfed.Length > 0, "ordinary food sale produces an authoritative shortage");
+        UiObservation shortage = await WaitUi(client, p => p.CompactUpkeep[2] == $"{city.FoodForecast.Unfed.Length} soldiers will sit out", "compact accepted sit-out count", token);
+        Require(shortage.Targets["Ready"].Enabled, "food shortage alone does not disable readiness");
+        await Checkpoint(client, "economy-food-shortage", token);
+        await ClickAck(client, "Pause", token);
+        await WaitUi(client, p => p.IncomeContext.Contains("Paused", StringComparison.Ordinal), "paused economy context", token);
+        int identity = client.PlayerId, connection = client.PeerId;
+        ResourceCost stocks = Latest(client).Players.Single(p => p.Id == identity).Resources;
+        await client.Send("disconnect"); await client.WaitFor(e => e.Type == "server-disconnected", "economy transport loss", options.StartupTimeout, token);
+        await WaitUi(client, p => p.IncomeContext.Contains("Stale", StringComparison.Ordinal), "stale synchronized income cue", token);
+        await Click(client, "Reconnect", token);
+        GameEvent resumed = await client.WaitFor(e => e.Type == "connected" && e.PeerId != connection, "economy reconnect with new transport", options.StartupTimeout, token);
+        Require(resumed.PlayerId == identity && State(resumed).Players.Single(p => p.Id == identity).Resources == stocks, "economy reconnect retains exact stocks without income or payment replay");
+        await WaitUi(client, p => p.IncomeContext.Contains("Paused", StringComparison.Ordinal) && p.CompactUpkeep[2] == $"{city.FoodForecast.Unfed.Length} soldiers will sit out"
+            && Enum.GetValues<Resource>().All(r => p.ResourceIncome[r.ToString()] == IncomeText(State(resumed).Players.Single(c => c.Id == identity).ProductionIncome, r)), "reconnected income and forecast refresh", token);
+        await ClickAck(client, "Pause", token);
     }
 }

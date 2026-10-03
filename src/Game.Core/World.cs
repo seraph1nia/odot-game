@@ -10,29 +10,29 @@ public sealed record Rules
     public CombatSettings Combat { get; init; } = new();
     public ResearchSettings Research { get; init; } = new();
     public int CityHealth { get; init; } = 100;
-    public int StartingGold { get; init; } = 60;
-    public int BaseGold { get; init; } = 10;
-    public int BuildCost { get; init; } = 20;
-    public int UpgradeCost { get; init; } = 20;
-    public int MineOutput { get; init; } = 5;
-    public int MineOutputLevelTwo { get; init; } = 10;
+    public int StartingGold { get; init; } = 12;
+    public int BaseGold { get; init; } = 2;
+    public int BuildCost { get; init; } = 4;
+    public int UpgradeCost { get; init; } = 4;
+    public int MineOutput { get; init; } = 1;
+    public int MineOutputLevelTwo { get; init; } = 2;
     public int FarmOutputLevelTwo { get; init; } = 8;
-    public int StartingWood { get; init; } = 30;
-    public int WoodOutput { get; init; } = 5;
-    public int WoodOutputLevelTwo { get; init; } = 10;
+    public int StartingWood { get; init; } = 6;
+    public int WoodOutput { get; init; } = 1;
+    public int WoodOutputLevelTwo { get; init; } = 2;
     public int FarmOutput { get; init; } = 5;
-    public int StoneOutput { get; init; } = 5;
-    public int StoneOutputLevelTwo { get; init; } = 10;
-    public int MetalOutput { get; init; } = 20;
-    public int MetalOutputLevelTwo { get; init; } = 40;
-    public int ClothOutput { get; init; } = 20;
-    public int ClothOutputLevelTwo { get; init; } = 40;
-    public int SwordMetalCost { get; init; } = 10;
-    public int BerserkerMetalCost { get; init; } = 15;
-    public int CrossbowMetalCost { get; init; } = 5;
-    public int CrossbowWoodCost { get; init; } = 10;
-    public int MageClothCost { get; init; } = 15;
-    public int MageGoldCost { get; init; } = 5;
+    public int StoneOutput { get; init; } = 1;
+    public int StoneOutputLevelTwo { get; init; } = 2;
+    public int MetalOutput { get; init; } = 4;
+    public int MetalOutputLevelTwo { get; init; } = 8;
+    public int ClothOutput { get; init; } = 4;
+    public int ClothOutputLevelTwo { get; init; } = 8;
+    public int SwordMetalCost { get; init; } = 2;
+    public int BerserkerMetalCost { get; init; } = 3;
+    public int CrossbowMetalCost { get; init; } = 1;
+    public int CrossbowWoodCost { get; init; } = 2;
+    public int MageClothCost { get; init; } = 3;
+    public int MageGoldCost { get; init; } = 1;
     public int SwordUpkeep { get; init; } = 1;
     public int BerserkerUpkeep { get; init; } = 2;
     public int CrossbowUpkeep { get; init; } = 1;
@@ -94,6 +94,7 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
     public int Metal { get; init; }
     public int Cloth { get; init; }
     public ResourceCost Resources => new(Gold, Wood, Food, Stone, Metal, Cloth);
+    public ResourceCost? ProductionIncome { get; init; }
     public ResearchState Research { get; init; }
     public TechnologyEligibility[] Technologies { get; init; } = [];
     public RecruitmentQuote[] RecruitmentQuotes { get; init; } = [];
@@ -130,7 +131,8 @@ public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Pha
     public long OldestEventSequence { get; init; } = 1;
     public CombatEvent[] CombatEvents { get; init; } = [];
 }
-public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase, int TurnSerial, string Action, int City = 0, int Slot = -1, Building Building = Building.Empty, UnitType SoldierType = UnitType.Swordsman, long ExpectedGeneration = 0, int ExpectedExpansionCount = -1, Resource Resource = Resource.Wood, int Bundles = 0, TechnologyId Technology = TechnologyId.None);
+public enum ConstructionPayment { Standard, GoldRecovery }
+public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase, int TurnSerial, string Action, int City = 0, int Slot = -1, Building Building = Building.Empty, UnitType SoldierType = UnitType.Swordsman, long ExpectedGeneration = 0, int ExpectedExpansionCount = -1, Resource Resource = Resource.Wood, int Bundles = 0, TechnologyId Technology = TechnologyId.None, ConstructionPayment Payment = ConstructionPayment.Standard);
 public sealed record CommandResult(long Sequence, bool Accepted, string Message);
 public sealed class City
 {
@@ -174,7 +176,7 @@ public sealed class City
     public TowerState Defender { get; set; }
     public CityState Snapshot() => Snapshot(_combat.Soldiers(Id));
     internal CityState Snapshot(UnitState[] soldiers, bool terminal = false) => new(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
-    { Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+    { ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
 }
 
 public sealed class Match : IDisposable
@@ -293,6 +295,7 @@ public sealed class Match : IDisposable
         if (command.MatchId != Id || command.ExpectedPhase != Phase || command.TurnSerial != TurnSerial) return Reject("Stale match, phase or turn.");
         if (command.City != 0 && command.City != sender) return Reject("You do not own this city.");
         if (Phase is Phase.Victory or Phase.Defeat) return Reject("Match finished. Restart the server for a new match.");
+        if (!Enum.IsDefined(command.Payment) || command.Payment != ConstructionPayment.Standard && command.Action != "build") return Reject("Invalid construction payment choice.");
         if (command.Action is "pause" or "resume")
         {
             if (Phase == Phase.Lobby) return Reject("Start the match first.");
@@ -364,10 +367,16 @@ public sealed class Match : IDisposable
                 if (construction is null) return Reject("Unknown building.");
                 if (!slot.Purchased) return Reject("Purchase this plot first.");
                 if (slot.Type != Building.Empty) return Reject("Slot occupied.");
-                if (!CanPay(construction.Construction)) return Reject("Not enough resources.");
+                ResourceCost payment = construction.Construction;
+                if (command.Payment == ConstructionPayment.GoldRecovery)
+                {
+                    if (city.Wood != 0 || construction.RecoveryConstruction is not ResourceCost recovery) return Reject("Gold recovery requires zero wood and a Lumbermill.");
+                    payment = recovery;
+                }
+                if (!CanPay(payment)) return Reject("Not enough resources.");
                 if (city.NextBuildingGeneration == long.MaxValue) return Reject("Building identity exhausted.");
-                Pay(construction.Construction); city.Slots[command.Slot] = new(command.Building, 1)
-                { Purchased = true, Generation = city.NextBuildingGeneration++, Investment = construction.Construction };
+                Pay(payment); city.Slots[command.Slot] = new(command.Building, 1)
+                { Purchased = true, Generation = city.NextBuildingGeneration++, Investment = payment };
                 if (command.Building is Building.ArrowTower or Building.CatapultTower)
                     city.Towers[command.Slot] = new(city.Id, command.Slot, command.Building, 1);
                 break;

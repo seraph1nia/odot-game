@@ -35,7 +35,7 @@ public sealed class BuildingTransactionTests
         RejectUnchanged(match, Request(match, "build", 5, Building.Farm));
         Command stale = Request(match, "buy-plot", 5);
         RejectUnchanged(match, Request(match, "buy-plot", 8, city: 2));
-        int[] order = [8, 6, 5, 7], prices = [25, 40, 60, 90];
+        int[] order = [8, 6, 5, 7], prices = [5, 8, 12, 18];
         for (int count = 0; count < 4; count++)
         {
             int gold = match.Players[1].Gold; Act(match, "buy-plot", order[count]);
@@ -46,7 +46,7 @@ public sealed class BuildingTransactionTests
         }
         Act(match, "build", 8, Building.Farm); Act(match, "sell", 8);
         Assert.True(match.Players[1].Slots[8].Purchased); Assert.Equal(4, match.Players[1].ExpansionCount);
-        match.Players[1].Gold = 0; RejectUnchanged(match, Request(match, "build", 8, Building.Farm));
+        match.Players[1].Wood = 0; RejectUnchanged(match, Request(match, "build", 8, Building.Farm));
     }
 
     [Fact]
@@ -66,26 +66,26 @@ public sealed class BuildingTransactionTests
     public void SaleRefundsActualSummedInvestmentAndRejectsReplacementTargets()
     {
         using Match match = Start(rules: new Rules { BuildCost = 21, UpgradeCost = 23 }); City city = match.Players[1]; Stock(city);
-        Act(match, "build", 0, Building.Farm); Act(match, "upgrade", 0);
-        Assert.Equal(new ResourceCost(44, 20, Stone: 10), city.Slots[0].Investment);
-        Assert.Equal(new ResourceCost(22, 10, Stone: 5), city.Slots[0].Refund);
+        Act(match, "build", 0, Building.ArrowTower); Act(match, "upgrade", 0);
+        Assert.Equal(new ResourceCost(44, 5, Stone: 2), city.Slots[0].Investment);
+        Assert.Equal(new ResourceCost(22, 2, Stone: 1), city.Slots[0].Refund);
         Command[] stale = [Request(match, "sell", 0), Request(match, "upgrade", 0), Request(match, "recruit", 0), Request(match, "trade", 0), Request(match, "research", 0)];
         ResourceCost before = city.Resources; long oldGeneration = city.Slots[0].Generation;
-        Act(match, "sell", 0); Assert.True(before.TryAdd(new(22, 10, Stone: 5), out ResourceCost refunded));
+        Act(match, "sell", 0); Assert.True(before.TryAdd(new(22, 2, Stone: 1), out ResourceCost refunded));
         Assert.Equal(refunded, city.Resources); Assert.Equal(default, city.Slots[0].Investment); Assert.True(city.Slots[0].Purchased);
-        Act(match, "build", 0, Building.Farm); Assert.NotEqual(oldGeneration, city.Slots[0].Generation);
-        Assert.Equal(1, city.Slots[0].Level); Assert.Equal(new ResourceCost(21, 10), city.Slots[0].Investment);
-        Assert.Equal(new ResourceCost(10, 5), city.Slots[0].Refund);
+        Act(match, "build", 0, Building.ArrowTower); Assert.NotEqual(oldGeneration, city.Slots[0].Generation);
+        Assert.Equal(1, city.Slots[0].Level); Assert.Equal(new ResourceCost(21, 3), city.Slots[0].Investment);
+        Assert.Equal(new ResourceCost(10, 1), city.Slots[0].Refund);
         foreach (Command command in stale) RejectUnchanged(match, command);
         Act(match, "sell", 0); ResourceCost noProducer = city.Resources; Act(match, "ready");
-        Assert.Equal(noProducer.Food, city.Food); Assert.Equal(noProducer.Gold + 10, city.Gold);
+        Assert.Equal(noProducer.Food, city.Food); Assert.Equal(noProducer.Gold + 2, city.Gold);
     }
 
     [Fact]
     public void RefundAndTradeOverflowRejectWithoutRemovingInstanceOrStock()
     {
         using Match match = Start(); City city = match.Players[1]; Stock(city);
-        Act(match, "build", 0, Building.Market); city.Gold = int.MaxValue;
+        Act(match, "build", 0, Building.Market); city.Gold = int.MaxValue; city.Wood = int.MaxValue;
         RejectUnchanged(match, Request(match, "sell", 0));
         RejectUnchanged(match, Request(match, "trade", 0, resource: Resource.Food, bundles: 1));
         Assert.Equal(Building.Market, city.Slots[0].Type);
@@ -125,7 +125,7 @@ public sealed class BuildingTransactionTests
         using var session = new AuthoritySession(policy, new Rules { StartingGold = 300, StartingWood = 100 });
         int player = remote ? session.Admit(2, WireJson.ProtocolVersion, "", 1000).PlayerId : session.LocalPlayerId;
         long sequence = 0;
-        Command RequestAt(string action, int slot = -1, Building building = Building.Empty, Resource resource = Resource.Stone, int bundles = 0)
+        Command RequestAt(string action, int slot = -1, Building building = Building.Empty, Resource resource = Resource.Wood, int bundles = 0)
         {
             MatchSnapshot state = session.Snapshot(); CityState city = state.Players.Single(p => p.Id == player);
             return new(++sequence, state.MatchId, state.Phase, state.TurnSerial, action, player, slot, building,
@@ -155,7 +155,7 @@ public sealed class BuildingTransactionTests
             Assert.True(Send(command).Accepted); Assert.Equal(after, JsonSerializer.Serialize(session.Snapshot(), WireJson.Options));
         }
         CityState result = session.Snapshot().Players.Single(p => p.Id == player);
-        Assert.True(result.Slots[8].Purchased); Assert.Equal(Building.Empty, result.Slots[1].Type); Assert.Equal(5, result.Stone);
+        Assert.True(result.Slots[8].Purchased); Assert.Equal(Building.Empty, result.Slots[1].Type); Assert.Equal(2, result.Stone);
     }
 
     [Fact]
@@ -174,4 +174,38 @@ public sealed class BuildingTransactionTests
         for (int step = 0; step < 200; step++) match.Step();
         Assert.DoesNotContain(match.Snapshot().CombatEvents, e => e.Tower?.Slot == 2);
     }
+    [Fact]
+    public void RecoveryPaysItsExplicitQuoteAndRetriesRefundOnlyActualInvestment()
+    {
+        using Match match = Start(); City city = match.Players[1];
+        Command recovery = Request(match, "build", 0, Building.Lumbermill) with { Payment = ConstructionPayment.GoldRecovery };
+        RejectUnchanged(match, recovery); // Positive wood cannot use recovery.
+        city.Wood = 0;
+        RejectUnchanged(match, recovery with { Payment = (ConstructionPayment)99 });
+        RejectUnchanged(match, recovery with { Building = Building.Farm });
+        foreach (string action in new[] { "ready", "pause", "resume", "start", "upgrade", "sell", "trade", "research-tech" })
+            RejectUnchanged(match, recovery with { Action = action });
+        RejectUnchanged(match, recovery with { Payment = ConstructionPayment.Standard });
+        city.Gold = 3; RejectUnchanged(match, recovery);
+        city.Gold = 12;
+        var ledger = new CommandLedger();
+        Command wire = JsonSerializer.Deserialize<Command>(JsonSerializer.Serialize(recovery, WireJson.Options), WireJson.Options)!;
+        Assert.Equal(ConstructionPayment.GoldRecovery, wire.Payment);
+        Assert.True(ledger.Execute(wire, () => match.Apply(1, wire)).Accepted);
+        Assert.Equal(8, city.Gold); Assert.Equal(0, city.Wood);
+        Assert.Equal(new ResourceCost(4), city.Slots[0].Investment);
+        Assert.Equal(new ResourceCost(2), city.Slots[0].Refund);
+        string after = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
+        Assert.True(ledger.Execute(wire, () => match.Apply(1, wire)).Accepted);
+        Assert.Equal(after, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
+        Command staleSale = Request(match, "sell", 0);
+        Act(match, "sell", 0); Assert.Equal(10, city.Gold);
+        city.Wood = 1; Act(match, "build", 0, Building.Lumbermill);
+        Assert.Equal(new ResourceCost(Wood: 1), city.Slots[0].Investment);
+        Assert.Equal(default, city.Slots[0].Refund);
+        RejectUnchanged(match, staleSale);
+        Act(match, "sell", 0); Assert.Equal(10, city.Gold); Assert.Equal(0, city.Wood);
+        Assert.Equal(ConstructionPayment.Standard, Request(match, "build", 0, Building.Lumbermill).Payment);
+    }
+
 }

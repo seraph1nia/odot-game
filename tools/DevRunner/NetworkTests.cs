@@ -33,7 +33,7 @@ internal sealed partial class Runner
             int slot = decision.Slot switch { 1 => 2, 2 => 1, _ => decision.Slot };
             string command = decision.Action switch
             {
-                "build" => $"build {slot} {decision.Building}",
+                "build" => $"{(decision.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {slot} {decision.Building}",
                 "recruit" => $"recruit {slot} {decision.Unit}",
                 "research-tech" => $"research-tech {TechnologyIds.Name(decision.Technology)}",
                 "trade" => $"trade {slot} {decision.Resource} {decision.Bundles}",
@@ -145,17 +145,18 @@ internal sealed partial class Runner
         MatchSnapshot firstClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 2, "paid first-wave defense", token);
         Require(firstClear.Phase == Phase.Building, "ordinary equipment and upkeep clear wave one");
         await Observe(b, s => s.Phase == Phase.Building && s.Wave == 2, "B first clear", token);
-        await Action(b, "build 4 archeryrange", token);
+        await Action(b, "buy-plot 7", token);
+        await Action(b, "build 7 archeryrange", token);
         await Advance([a, b], token); await Advance([a, b], token);
         MatchSnapshot before = Latest(b);
-        CommandResult spent = (await Action(b, "recruit 4 crossbowman", token)).Result!;
-        var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 4, SoldierType: UnitType.Crossbowman, ExpectedGeneration: before.Players.Single(p => p.Id == cb.PlayerId).Slots[4].Generation);
+        CommandResult spent = (await Action(b, "recruit 7 crossbowman", token)).Result!;
+        var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 7, SoldierType: UnitType.Crossbowman, ExpectedGeneration: before.Players.Single(p => p.Id == cb.PlayerId).Slots[7].Generation);
         string replay = "raw " + JsonSerializer.Serialize(original, WireJson.Options);
         int army = Latest(b).Players.Single(p => p.Id == cb.PlayerId).Soldiers.Length;
         GameEvent[] beforeDuplicate = b.History();
         await b.Send(replay); GameEvent dup = await b.WaitFor(e => !beforeDuplicate.Any(old => ReferenceEquals(old, e)) && e.Type == "ack" && e.Result!.Sequence == spent.Sequence && e.State!.Players.Single(p => p.Id == cb.PlayerId).Soldiers.Length == army, "duplicate recruitment", options.StartupTimeout, token);
         CityState beforeRecruit = before.Players.Single(p => p.Id == cb.PlayerId), afterRecruit = State(dup).Players.Single(p => p.Id == cb.PlayerId);
-        ResourceCost equipment = beforeRecruit.RecruitmentQuotes.Single(q => q.Type == UnitType.Crossbowman && q.Level == beforeRecruit.Slots[4].Level).Cost;
+        ResourceCost equipment = beforeRecruit.RecruitmentQuotes.Single(q => q.Type == UnitType.Crossbowman && q.Level == beforeRecruit.Slots[7].Level).Cost;
         Require(beforeRecruit.Resources.TryPay(equipment, out ResourceCost paidEquipment) && afterRecruit.Resources == paidEquipment && afterRecruit.Food == beforeRecruit.Food, "equipment spends exactly once without recruitment food");
         await Advance([a, b], token);
         await Action(a, "build 4 mine", token, false);
@@ -203,7 +204,7 @@ internal sealed partial class Runner
     {
         while (CampaignStrategy.ReinforcementInvestment(Latest(child), child.PlayerId, receivingCity) is EconomyAction action)
         {
-            string request = action.Action == "build" ? $"build {action.Slot} {action.Building}" : $"{action.Action} {action.Slot}";
+            string request = action.Action == "build" ? $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}" : $"{action.Action} {action.Slot}";
             await Action(child, request, token);
         }
     }

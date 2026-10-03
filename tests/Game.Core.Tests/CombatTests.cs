@@ -196,8 +196,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         var ledger = new CommandLedger(); Assert.True(ledger.Execute(command, () => match.Apply(1, command)).Accepted);
         Assert.True(ledger.Execute(command, () => throw new InvalidOperationException("Applied twice")).Accepted);
         Assert.Equal(new[] { UnitType.Swordsman, UnitType.Crossbowman }, match.Players[1].Soldiers.Select(u => u.Type));
-        Assert.Equal(10, match.Players[1].Food); Assert.Equal(20, match.Players[1].Gold);
-        Assert.Equal(5, match.Players[1].Metal);
+        Assert.Equal(10, match.Players[1].Food); Assert.Equal(16, match.Players[1].Gold);
+        Assert.Equal(17, match.Players[1].Metal);
         Assert.Equal(3000, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
         Apply(match, "ready"); Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
         Assert.False(Apply(match, "recruit", 1, UnitType.Crossbowman).Accepted);

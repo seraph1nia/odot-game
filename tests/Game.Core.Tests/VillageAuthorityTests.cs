@@ -68,8 +68,8 @@ public sealed class VillageAuthorityTests
         { Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); Assert.True(VillageStrategyTests.Act(match, 2, "ready").Accepted); }
         Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(3, match.ProductionCount);
         Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); Assert.True(VillageStrategyTests.Act(match, 2, "pause").Accepted);
-        match.SetConnected(2, false); Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(90, match.Players[1].Gold);
-        Assert.True(VillageStrategyTests.Act(match, 1, "resume").Accepted); Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(90, match.Players[1].Gold);
+        match.SetConnected(2, false); Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(18, match.Players[1].Gold);
+        Assert.True(VillageStrategyTests.Act(match, 1, "resume").Accepted); Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(18, match.Players[1].Gold);
         Assert.Equal(3, match.ProductionCount); Assert.All(match.Players.Values, c => Assert.False(c.Ready));
     }
 }

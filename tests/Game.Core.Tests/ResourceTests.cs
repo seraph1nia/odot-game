@@ -56,7 +56,7 @@ public sealed class ResourceTests
         match.Players[2].Gold = 0;
         Assert.True(match.Apply(2, Request(2, "ready")).Accepted);
         Assert.Equal(1, match.ProductionCount);
-        Assert.Equal(10, match.Players[2].Gold);
+        Assert.Equal(2, match.Players[2].Gold);
         Assert.All(match.Players.Values, c => Assert.Equal(new ResourceCost(c.Gold, c.Wood), c.Resources));
     }
 
@@ -83,7 +83,7 @@ public sealed class ResourceTests
         foreach (Resource resource in Enum.GetValues<Resource>().Where(r => r != Resource.Gold))
         {
             Assert.True(economy.TryMarketQuote(resource, 2, out ResourceCost stock, out ResourceCost proceeds));
-            Assert.Equal(10, stock.Amount(resource));
+            Assert.Equal(resource == Resource.Food ? 50 : 10, stock.Amount(resource));
             Assert.Equal(resource is Resource.Metal or Resource.Cloth ? 4 : 2, proceeds.Gold);
             Assert.False(economy.TryMarketQuote(resource, int.MaxValue, out _, out _));
             Assert.False(economy.TryMarketQuote(resource, 0, out _, out _));

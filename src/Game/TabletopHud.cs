@@ -13,15 +13,28 @@ public partial class Tabletop
         _resources = new PanelContainer { Name = "ResourceTable", MouseFilter = Control.MouseFilterEnum.Stop };
         root.AddChild(_resources);
         _resources.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
-        _resources.OffsetLeft = -220; _resources.OffsetRight = -12; _resources.OffsetTop = 12;
-        var table = new GridContainer { Columns = 2 }; table.AddThemeConstantOverride("v_separation", 12); _resources.AddChild(table);
-        Text(table, "Resource name", 13); Text(table, "Amount", 13);
+        _resources.OffsetLeft = -272; _resources.OffsetRight = -12; _resources.OffsetTop = 12;
+        var stack = new VBoxContainer(); stack.AddThemeConstantOverride("separation", 5); _resources.AddChild(stack);
+        var table = new GridContainer { Columns = 3 }; table.AddThemeConstantOverride("v_separation", 3); stack.AddChild(table);
+        Text(table, "Resource", 12); Text(table, "Stock", 12).HorizontalAlignment = HorizontalAlignment.Right;
+        _incomeHeading = Text(table, "Income/turn", 11); _incomeHeading.HorizontalAlignment = HorizontalAlignment.Right;
         foreach (Game.Core.Resource resource in new[] { Game.Core.Resource.Gold, Game.Core.Resource.Food, Game.Core.Resource.Wood, Game.Core.Resource.Stone, Game.Core.Resource.Metal, Game.Core.Resource.Cloth })
         {
-            Text(table, resource.ToString(), 14);
-            Label amount = Text(table, "0", 14); amount.HorizontalAlignment = HorizontalAlignment.Right;
+            Text(table, resource.ToString(), 13);
+            Label amount = Text(table, "0", 13); amount.HorizontalAlignment = HorizontalAlignment.Right;
             _values[resource.ToString()] = amount;
+            Label income = Text(table, "0", 13); income.HorizontalAlignment = HorizontalAlignment.Right;
+            _incomes[resource.ToString()] = income;
         }
+        _incomeContext = Text(stack, "", 11);
+        Text(stack, "Upkeep", 12);
+        var upkeep = new GridContainer { Name = "UpkeepTable", Columns = 2 }; upkeep.AddThemeConstantOverride("v_separation", 2); stack.AddChild(upkeep);
+        _compactUpkeep = upkeep;
+        _upkeepLabel = Text(upkeep, "Next battle", 12); _upkeepValue = Text(upkeep, "0 food", 12);
+        _balanceLabel = Text(upkeep, "Food after payment", 12); _balanceValue = Text(upkeep, "0", 12);
+        _upkeepValue.HorizontalAlignment = _balanceValue.HorizontalAlignment = HorizontalAlignment.Right;
+        _upkeepValue.SizeFlagsHorizontal = _balanceValue.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
+        foreach (Label label in new[] { _upkeepLabel, _upkeepValue, _balanceLabel, _balanceValue }) label.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspector = new UnitInspector(); root.AddChild(_inspector);
         _homeHealth = new HomeHealthBar(); _healthRoot.AddChild(_homeHealth);
         _panel = new PanelContainer { Name = "BottomPanel", CustomMinimumSize = new(0, 180), MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
@@ -64,6 +77,8 @@ public partial class Tabletop
             _construction[type].Name = type.ToString();
         }
         for (int i = 0; i < 9; i++) { var empty = new Control { CustomMinimumSize = new(0, 32), MouseFilter = Control.MouseFilterEnum.Ignore }; _emptyBuildCells.Add(empty); _buildActions.AddChild(empty); }
+        _recovery = Button(context, "Lumbermill · gold recovery", () => ContextAction("build", Building.Lumbermill, payment: ConstructionPayment.GoldRecovery));
+        _recovery.Name = "LumbermillRecovery";
         _mine = _construction[Building.Mine]; _farm = _construction[Building.Farm]; _barracks = _construction[Building.Barracks];
         _buildingActions = new HBoxContainer(); context.AddChild(_buildingActions);
         _upgrade = Button(_buildingActions, "Upgrade", () => ContextAction("upgrade"));

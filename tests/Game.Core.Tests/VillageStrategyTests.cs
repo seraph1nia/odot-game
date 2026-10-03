@@ -84,13 +84,14 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.Throws<ArgumentException>(() => new Match(new Rules { StartingWood = -1 }));
     }
     [Fact]
-    public void CatalogConstructionIsAtomicAndLumbermillNeedsNoWood()
+    public void CatalogConstructionIsAtomicAndLumbermillRecoveryIsExplicit()
     {
         using Match match = Start(); City city = match.Players[1]; city.Wood = 0;
         string before = JsonSerializer.Serialize(match.Snapshot());
         Assert.False(Act(match, 1, "build", 0, Building.Farm).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
-        Assert.True(Act(match, 1, "build", 0, Building.Lumbermill).Accepted); Assert.True(Act(match, 1, "ready").Accepted);
-        Assert.Equal(5, city.Wood); Assert.Equal(50, city.Gold);
+        Assert.False(Act(match, 1, "build", 0, Building.Lumbermill).Accepted);
+        Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 0, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)).Accepted); Assert.True(Act(match, 1, "ready").Accepted);
+        Assert.Equal(1, city.Wood); Assert.Equal(10, city.Gold);
         Assert.Equal(13, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
     }
     [Fact]

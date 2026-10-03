@@ -19,7 +19,7 @@ public sealed class EconomyConfiguration
     private readonly FrozenDictionary<UnitType, int> _upkeep;
     public ResearchCatalog Research { get; }
     private readonly ResearchSettings _researchSettings;
-    private readonly int[] _expansionPrices = [25, 40, 60, 90];
+    private readonly int[] _expansionPrices = [5, 8, 12, 18];
     private readonly Dictionary<ulong, RecruitmentQuote[]> _quotes = [];
     private CombatConfiguration? _quoteConfiguration;
     private readonly BuildingDefinition[] _buildingCatalog;
@@ -38,7 +38,7 @@ public sealed class EconomyConfiguration
         BaseProduction = new(rules.BaseGold);
         BuildingDefinition[] buildings = Catalogs.Buildings(rules);
         if (!StartingResources.IsValid || !BaseProduction.IsValid
-            || buildings.Any(b => !b.Construction.IsValid || !b.Upgrade.IsValid || b.LevelOneOutput < 0 || b.LevelTwoOutput < 0 || b.MaximumLevel < 1 || (b.Produces is Resource r && !Enum.IsDefined(r))))
+            || buildings.Any(b => !b.Construction.IsValid || !b.Upgrade.IsValid || b.RecoveryConstruction is { IsValid: false } || b.LevelOneOutput < 0 || b.LevelTwoOutput < 0 || b.MaximumLevel < 1 || (b.Produces is Resource r && !Enum.IsDefined(r))))
             throw new ArgumentException("Invalid economy quotes or production.", nameof(rules));
         UnitDefinition[] units = Catalogs.Units(rules);
         if (rules.SwordMetalCost < 1 || rules.BerserkerMetalCost < 1 || rules.CrossbowMetalCost < 1 || rules.CrossbowWoodCost < 1 || rules.MageClothCost < 1 || rules.MageGoldCost < 1
@@ -53,12 +53,12 @@ public sealed class EconomyConfiguration
                 foreach (Resource resource in Enum.GetValues<Resource>())
                 {
                     int original = unit.Recruitment.Amount(resource);
-                    int amount = Progression.ScaleWhole(original, level, multiple: 5);
+                    int amount = Progression.ScaleWhole(original, level, multiple: 1);
                     if (original > 0 && amount == 0) throw new ArgumentException("Positive equipment components cannot round to zero.", nameof(rules));
                     price = price.With(resource, amount);
                 }
                 long total = Enum.GetValues<Resource>().Sum(r => (long)price.Amount(r));
-                if (total <= previous) throw new ArgumentException("Recruitment prices must increase with level.", nameof(rules));
+                if (total < previous) throw new ArgumentException("Recruitment prices must not decrease with level.", nameof(rules));
                 previous = total; recruitment.Add((unit.Type, level), price);
             }
         }
@@ -66,17 +66,19 @@ public sealed class EconomyConfiguration
         _upkeep = units.ToFrozenDictionary(u => u.Type, u => u.Upkeep);
         _buildings = buildings.Select(Copy).ToFrozenDictionary(b => b.Type);
         _rates = Enum.GetValues<Resource>().Where(r => r != Resource.Gold)
-            .Select(r => new MarketRate(r, 5, r is Resource.Metal or Resource.Cloth ? 2 : 1)).ToFrozenDictionary(r => r.Resource);
+            .Select(r => new MarketRate(r, r == Resource.Food ? 25 : 5, r is Resource.Metal or Resource.Cloth ? 2 : 1)).ToFrozenDictionary(r => r.Resource);
         _buildingCatalog = _buildings.Values.OrderBy(b => b.Type).ToArray();
         _marketCatalog = _rates.Values.OrderBy(r => r.Resource).ToArray();
         _recruitmentOrder = _recruitment.OrderBy(p => p.Key.Type).ThenBy(p => p.Key.Level).ToArray();
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(1); Write(writer, StartingResources); Write(writer, BaseProduction);
+            writer.Write(2); Write(writer, StartingResources); Write(writer, BaseProduction);
             foreach (BuildingDefinition b in _buildings.Values.OrderBy(b => b.Type))
             {
                 writer.Write((int)b.Type); Write(writer, b.Construction); Write(writer, b.Upgrade);
+                writer.Write(b.RecoveryConstruction.HasValue);
+                if (b.RecoveryConstruction is ResourceCost recovery) Write(writer, recovery);
                 writer.Write(b.LevelOneOutput); writer.Write(b.LevelTwoOutput); writer.Write(b.MaximumLevel); writer.Write(b.Produces is Resource r ? (int)r : -1);
                 for (int level = 1; level < b.MaximumLevel; level++)
                 { _ = TryUpgrade(b.Type, level, out ResourceCost upgrade); Write(writer, upgrade); }
@@ -125,7 +127,7 @@ public sealed class EconomyConfiguration
         quote = default;
         if (!_buildings.TryGetValue(type, out BuildingDefinition? building) || level < 1 || level >= building.MaximumLevel) return false;
         quote = building.Recruits is null ? building.Upgrade : level switch
-        { 1 => building.Upgrade, 2 => new(30, 10, Stone: 10), 3 => new(45, 10, Stone: 15), 4 => new(70, 10, Stone: 20), _ => throw new InvalidOperationException("Invalid recruitment level.") };
+        { 1 => building.Upgrade, 2 => new(6, 2, Stone: 2), 3 => new(9, 2, Stone: 3), 4 => new(14, 2, Stone: 4), _ => throw new InvalidOperationException("Invalid recruitment level.") };
         return true;
     }
     public ResourceCost Production(IEnumerable<SlotState> slots)
@@ -139,6 +141,11 @@ public sealed class EconomyConfiguration
             total = next;
         }
         return total;
+    }
+    public ResourceCost? ProjectedProduction(IEnumerable<SlotState> slots)
+    {
+        try { return Production(slots); }
+        catch (OverflowException) { return null; }
     }
     public MarketRate[] MarketRates() => _marketCatalog.ToArray();
     public bool TryMarketQuote(Resource resource, int bundles, out ResourceCost stock, out ResourceCost proceeds)

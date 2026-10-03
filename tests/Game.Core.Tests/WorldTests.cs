@@ -30,7 +30,7 @@ public sealed class WorldTests
     {
         using Match m = Started(count);
         Assert.Null(m.Join());
-        Assert.All(m.Players.Values, c => { Assert.Equal(60, c.Gold); Assert.Equal(0, c.Food); Assert.Equal(10000, c.Health); Assert.Equal(9, c.Slots.Length); });
+        Assert.All(m.Players.Values, c => { Assert.Equal(12, c.Gold); Assert.Equal(0, c.Food); Assert.Equal(10000, c.Health); Assert.Equal(9, c.Slots.Length); });
         string json = JsonSerializer.Serialize(m.Snapshot(), WireJson.Options);
         Assert.Equal(json, JsonSerializer.Serialize(JsonSerializer.Deserialize<MatchSnapshot>(json, WireJson.Options), WireJson.Options));
         using var lobby = new Match(); for (int i = 0; i < 4; i++) lobby.Join(); Assert.Null(lobby.Join());
@@ -45,7 +45,7 @@ public sealed class WorldTests
     public void PurchasesAreAtomicOwnedAndBounded()
     {
         using Match m = Started(2); Act(m, 1, "build", 0, Building.Mine);
-        Assert.Equal(40, m.Players[1].Gold);
+        Assert.Equal(12, m.Players[1].Gold);
         Command[] invalid = [Cmd(m, 1, "build", 0, Building.Farm), Cmd(m, 1, "build", -1, Building.Farm), Cmd(m, 1, "build", 9, Building.Farm), Cmd(m, 1, "build", 1, (Building)100), Cmd(m, 2, "build", 1, Building.Farm), Cmd(m, 1, "nonsense", 1)];
         foreach (Command c in invalid)
         {
@@ -53,7 +53,7 @@ public sealed class WorldTests
             Assert.False(m.Apply(1, c).Accepted); Assert.Equal(before, JsonSerializer.Serialize(m.Snapshot()));
         }
         Act(m, 1, "build", 1, Building.Farm); Act(m, 1, "build", 2, Building.Barracks);
-        Assert.False(m.Apply(1, Cmd(m, 1, "build", 3, Building.Mine)).Accepted); Assert.Equal(0, m.Players[1].Gold);
+        Assert.False(m.Apply(1, Cmd(m, 1, "build", 3, Building.Mine)).Accepted); Assert.Equal(0, m.Players[1].Wood);
     }
     [Fact]
     public void ProductionRecruitmentAndUpgradesAreExplicit()
@@ -68,7 +68,7 @@ public sealed class WorldTests
         Act(m, 1, "upgrade", 1); int food = m.Players[1].Food;
         Act(m, 1, "recruit", 1); Assert.Equal(food, m.Players[1].Food);
         Assert.Equal(4000, m.Players[1].Soldiers[0].Health); Assert.Equal(2, m.Players[1].Soldiers[1].Level);
-        using var n = Started(); n.Players[1].Stone = 10; Act(n, 1, "build", 0, Building.Mine); Act(n, 1, "upgrade", 0); Ready(n); Assert.Equal(40, n.Players[1].Gold);
+        using var n = Started(); n.Players[1].Stone = 10; Act(n, 1, "build", 0, Building.Mine); Act(n, 1, "upgrade", 0); Ready(n); Assert.Equal(16, n.Players[1].Gold);
     }
     [Fact]
     public void ReadyEditingDisconnectAndUniqueTurnGuards()
@@ -76,7 +76,7 @@ public sealed class WorldTests
         using Match m = Started(2); Command stale = Cmd(m, 2, "ready"); Act(m, 1, "ready");
         Assert.False(m.Apply(1, Cmd(m, 1, "build", 0, Building.Mine)).Accepted);
         Act(m, 1, "unready"); Act(m, 1, "build", 0, Building.Mine); Act(m, 1, "ready");
-        m.SetConnected(2, false); Assert.Equal(2, m.Turn); Assert.Equal(70, m.Players[2].Gold); Assert.False(m.Players[2].Ready);
+        m.SetConnected(2, false); Assert.Equal(2, m.Turn); Assert.Equal(14, m.Players[2].Gold); Assert.False(m.Players[2].Ready);
         m.SetConnected(2, true); Assert.False(m.Apply(2, stale).Accepted);
         m.SetConnected(1, false); m.SetConnected(2, false); long revision = m.Revision;
         for (int i = 0; i < 100; i++) m.Step(); Assert.Equal(revision, m.Revision); Assert.Equal(2, m.Turn);
@@ -88,7 +88,7 @@ public sealed class WorldTests
     {
         using Match m = Started(); var ledger = new CommandLedger(); Command command = Cmd(m, 1, "build", 0, Building.Farm, 5);
         CommandResult once = ledger.Execute(command, () => m.Apply(1, command));
-        Assert.Equal(once, ledger.Execute(command, () => throw new InvalidOperationException("Executed twice"))); Assert.Equal(40, m.Players[1].Gold);
+        Assert.Equal(once, ledger.Execute(command, () => throw new InvalidOperationException("Executed twice"))); Assert.Equal(12, m.Players[1].Gold);
         Command bad = command with { Sequence = 6, Slot = 0 }; Assert.False(ledger.Execute(bad, () => m.Apply(1, bad)).Accepted);
         Assert.False(ledger.Execute(bad with { Slot = 1 }, () => throw new InvalidOperationException("Reused rejection")).Accepted);
         Assert.True(ledger.Execute(command with { Sequence = 7, Slot = 1 }, () => m.Apply(1, command with { Sequence = 7, Slot = 1 })).Accepted);
@@ -237,10 +237,10 @@ public sealed class WorldTests
     {
         using Match m = Started(2);
         Act(m, 1, "ready"); Act(m, 2, "pause"); m.SetConnected(2, false);
-        Assert.Equal(1, m.Turn); Assert.Equal(60, m.Players[1].Gold);
+        Assert.Equal(1, m.Turn); Assert.Equal(12, m.Players[1].Gold);
         Act(m, 1, "resume");
-        Assert.Equal(2, m.Turn); Assert.Equal(70, m.Players[1].Gold); Assert.False(m.Players[1].Ready);
-        Assert.Equal(70, m.Players[2].Gold);
+        Assert.Equal(2, m.Turn); Assert.Equal(14, m.Players[1].Gold); Assert.False(m.Players[1].Ready);
+        Assert.Equal(14, m.Players[2].Gold);
     }
     [Fact]
     public void OrdinaryPaidOpeningFieldsSixFedSoldiersAndClearsFirstWave()

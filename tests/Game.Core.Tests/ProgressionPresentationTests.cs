@@ -92,7 +92,7 @@ public sealed class ProgressionPresentationTests
         using var fresh = new Match(combatSeed: 1); City newCity = fresh.Join()!;
         ProgressionView reset = ProgressionPresentation.Describe(fresh.Snapshot(), newCity.Snapshot());
         Assert.Equal("No clear reward yet", reset.Reward); Assert.Equal("No battle upkeep yet", reset.Food);
-        Assert.Contains("Land 5/9", reset.Land); Assert.Contains("25 gold", reset.Land);
+        Assert.Contains("Land 5/9", reset.Land); Assert.Contains("5 gold", reset.Land);
     }
     [Fact]
     public void PausedBossAndStalledDefeatKeepTheirAuthoritativeMeaning()
@@ -120,4 +120,43 @@ public sealed class ProgressionPresentationTests
         ProgressionView battle = ProgressionPresentation.Describe(match.Snapshot() with { Phase = Phase.Combat }, snapshot with { Soldiers = units });
         Assert.Contains("fed · capacity queue", battle.Army); Assert.Contains("· reserve", battle.Army); Assert.DoesNotContain("next:", battle.Army);
     }
+    [Fact]
+    public void CompactEconomyKeepsFutureIncomeForecastAndPaidReceiptsSeparate()
+    {
+        using var match = new Match(combatSeed: 1); match.Join();
+        MatchSnapshot state = match.Snapshot() with { Phase = Phase.Building };
+        CityState city = state.Players[0] with { Food = 15, FoodForecast = new(6, 15, 6, [1, 2, 3, 4, 5, 6], []) };
+        EconomyView view = ProgressionPresentation.Economy(state, city, true);
+        Assert.Equal("Income/turn", view.IncomeLabel); Assert.Equal("Next battle", view.UpkeepLabel);
+        Assert.Equal("6 food", view.UpkeepValue); Assert.Equal("Food after payment", view.BalanceLabel); Assert.Equal("9", view.BalanceValue);
+        Assert.Equal("+2", ProgressionPresentation.Income(city.ProductionIncome, Resource.Gold));
+        Assert.Equal("0", ProgressionPresentation.Income(city.ProductionIncome, Resource.Metal));
+        Assert.Equal("Unavailable", ProgressionPresentation.Income(null, Resource.Gold));
+        EconomyView shortage = ProgressionPresentation.Economy(state with { Phase = Phase.Preparation }, city with { FoodForecast = new(6, 4, 4, [1, 2, 3, 4], [5, 6]) }, true);
+        Assert.Equal("Next building turn", shortage.IncomeLabel); Assert.Contains("no income", shortage.Context); Assert.Equal("2 soldiers will sit out", shortage.BalanceLabel);
+        CityState paid = city with { LastUpkeep = new(3, 4, [1, 2, 3, 4], [5, 6]) };
+        EconomyView combat = ProgressionPresentation.Economy(state with { Phase = Phase.Combat }, paid, true);
+        Assert.Equal("Paid this battle · W3", combat.UpkeepLabel); Assert.Equal("4 food", combat.UpkeepValue); Assert.Equal("2", combat.BalanceValue);
+        Assert.Equal("Last battle · W3", ProgressionPresentation.Economy(state with { Phase = Phase.Victory }, paid, true).UpkeepLabel);
+        Assert.Contains("Inactive", ProgressionPresentation.Economy(state with { Phase = Phase.Victory }, paid, true).Context);
+        Assert.Contains("Paused", ProgressionPresentation.Economy(state with { Paused = true }, city, true).Context);
+        Assert.Contains("Stale", ProgressionPresentation.Economy(state, city, false).Context);
+        Assert.Equal("0 food", ProgressionPresentation.Economy(state, state.Players[0], true).UpkeepValue);
+    }
+
+    [Fact]
+    public void ProducerCostsAndFoodSaleConsequencesUseCompletePublishedQuotes()
+    {
+        using var match = new Match(combatSeed: 1); match.Join();
+        BuildingDefinition lumbermill = match.Economy.Building(Building.Lumbermill);
+        Assert.Equal("+1 wood/turn", ProgressionPresentation.ProducerBenefit(lumbermill));
+        Assert.Equal("1 → 2 wood/turn", ProgressionPresentation.ProducerBenefit(lumbermill, upgrade: true));
+        Assert.Contains("Need 2 more stone · Stonecutter", ProgressionPresentation.CostExplanation(lumbermill.Upgrade, new(Wood: 2)));
+        CityState city = match.Snapshot().Players[0] with { Food = 28, Soldiers = Enumerable.Range(1, 6).Select(id => new UnitState(id, 4000) { Type = UnitType.Swordsman }).ToArray() };
+        MarketRate rate = match.Economy.MarketRates().Single(r => r.Resource == Resource.Food);
+        Assert.Contains("pay 3 food · 3 soldiers will sit out", ProgressionPresentation.FoodSalePreview(city, rate));
+        Assert.Contains("Need 1 more food", ProgressionPresentation.FoodSalePreview(city with { Food = 24 }, rate));
+        Assert.Equal(28, city.Food);
+    }
+
 }

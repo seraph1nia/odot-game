@@ -16,7 +16,7 @@ public static class HealthPoints
 }
 public enum Faction { Adventurers, Skeletons }
 public enum UnitClass { Melee, Ranged, Magic }
-public sealed record BuildingDefinition(Building Type, ResourceCost Construction, ResourceCost Upgrade, int LevelOneOutput = 0, int LevelTwoOutput = 0, UnitType[]? Recruits = null, int MaximumLevel = 2, Resource? Produces = null)
+public sealed record BuildingDefinition(Building Type, ResourceCost Construction, ResourceCost Upgrade, int LevelOneOutput = 0, int LevelTwoOutput = 0, UnitType[]? Recruits = null, int MaximumLevel = 2, Resource? Produces = null, ResourceCost? RecoveryConstruction = null)
 {
     public int Output(int level) => level switch { 1 => LevelOneOutput, 2 => LevelTwoOutput, _ => 0 };
 }
@@ -26,19 +26,19 @@ public static class Catalogs
 {
     public static BuildingDefinition[] Buildings(Rules rules) =>
     [
-        new(Building.Farm, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.FarmOutput, rules.FarmOutputLevelTwo, Produces: Resource.Food),
-        new(Building.Mine, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.MineOutput, rules.MineOutputLevelTwo, Produces: Resource.Gold),
-        new(Building.Lumbermill, new(rules.BuildCost), new(rules.UpgradeCost, 10, Stone: 10), rules.WoodOutput, rules.WoodOutputLevelTwo, Produces: Resource.Wood),
-        new(Building.Barracks, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Swordsman, UnitType.Berserker], MaximumLevel: 5),
-        new(Building.ArcheryRange, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10), Recruits: [UnitType.Crossbowman], MaximumLevel: 5),
-        new(Building.Arcanum, new(25, 10, Stone: 15), new(rules.UpgradeCost, 10), Recruits: [UnitType.Mage], MaximumLevel: 5),
-        new(Building.ResearchTower, new(rules.BuildCost, 10, Stone: 10), new(rules.UpgradeCost, 10, Stone: 10)),
-        new(Building.ArrowTower, new(rules.BuildCost, 15), new(rules.UpgradeCost, 10, Stone: 10)),
-        new(Building.CatapultTower, new(30, 20, Stone: 15, Metal: 10), new(rules.UpgradeCost, 10, Stone: 10, Metal: 5)),
-        new(Building.Stonecutter, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.StoneOutput, rules.StoneOutputLevelTwo, Produces: Resource.Stone),
-        new(Building.MetalMine, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.MetalOutput, rules.MetalOutputLevelTwo, Produces: Resource.Metal),
-        new(Building.Weaver, new(rules.BuildCost, 10), new(rules.UpgradeCost, 10, Stone: 10), rules.ClothOutput, rules.ClothOutputLevelTwo, Produces: Resource.Cloth),
-        new(Building.Market, new(rules.BuildCost, 10, Stone: 10), default, MaximumLevel: 1)
+        new(Building.Farm, new(Wood: 2), new(Wood: 2, Stone: 2), rules.FarmOutput, rules.FarmOutputLevelTwo, Produces: Resource.Food),
+        new(Building.Mine, new(Wood: 2), new(Wood: 2, Stone: 2), rules.MineOutput, rules.MineOutputLevelTwo, Produces: Resource.Gold),
+        new(Building.Lumbermill, new(Wood: 1), new(Wood: 2, Stone: 2), rules.WoodOutput, rules.WoodOutputLevelTwo, Produces: Resource.Wood, RecoveryConstruction: new(4)),
+        new(Building.Barracks, new(Wood: 2), new(Wood: 2), Recruits: [UnitType.Swordsman, UnitType.Berserker], MaximumLevel: 5),
+        new(Building.ArcheryRange, new(Wood: 2), new(Wood: 2), Recruits: [UnitType.Crossbowman], MaximumLevel: 5),
+        new(Building.Arcanum, new(5, 2, Stone: 3), new(rules.UpgradeCost, 2), Recruits: [UnitType.Mage], MaximumLevel: 5),
+        new(Building.ResearchTower, new(Wood: 2, Stone: 2), new(rules.UpgradeCost, 2, Stone: 2)),
+        new(Building.ArrowTower, new(rules.BuildCost, 3), new(rules.UpgradeCost, 2, Stone: 2)),
+        new(Building.CatapultTower, new(6, 4, Stone: 3, Metal: 2), new(rules.UpgradeCost, 2, Stone: 2, Metal: 1)),
+        new(Building.Stonecutter, new(Wood: 2), new(Wood: 2, Stone: 2), rules.StoneOutput, rules.StoneOutputLevelTwo, Produces: Resource.Stone),
+        new(Building.MetalMine, new(Wood: 2), new(Wood: 2, Stone: 2), rules.MetalOutput, rules.MetalOutputLevelTwo, Produces: Resource.Metal),
+        new(Building.Weaver, new(Wood: 2), new(Wood: 2, Stone: 2), rules.ClothOutput, rules.ClothOutputLevelTwo, Produces: Resource.Cloth),
+        new(Building.Market, new(Wood: 2, Stone: 2), default, MaximumLevel: 1)
     ];
     public static TowerDefinition[] Towers(Rules? rules = null) => CombatConfiguration.TowerProfiles(rules ?? new());
     public static UnitDefinition[] Units(Rules rules) =>

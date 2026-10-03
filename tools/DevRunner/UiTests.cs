@@ -11,6 +11,7 @@ internal sealed record UiTarget(float X, float Y, bool Visible, bool Enabled)
     public string Icon { get; init; } = "";
     public string Text { get; init; } = "";
     public string CostText { get; init; } = "";
+    public string Tooltip { get; init; } = "";
 }
 internal sealed record UnitObservation
 {
@@ -152,6 +153,10 @@ internal sealed record UiObservation
     public int[] CityIds { get; init; } = [];
     public string[] PhaseRows { get; init; } = [];
     public Dictionary<string, int> ResourceBalances { get; init; } = [];
+    public Dictionary<string, string> ResourceIncome { get; init; } = [];
+    public string IncomeLabel { get; init; } = "";
+    public string IncomeContext { get; init; } = "";
+    public string[] CompactUpkeep { get; init; } = [];
     public bool ReturnConfirmationOpen { get; init; }
     public string ConfirmationFocus { get; init; } = "";
     public string ReturnWarning { get; init; } = "";
@@ -237,7 +242,7 @@ internal sealed partial class Runner
     {
         "combat-playback" => "Selected fixed-input runtime measurement of normal playback/views; owned 600-frame replay, no default-suite or large graphical fight",
         "combat" => "Paused focus away/return, current bones and inspection, camera/health-bar projection, rig/action/tower/effect/audio/casualty cleanup using the existing owned peers/display. Adds ordinary earned research through at most wave ten: actual global Fire purchase, permanent Frost lock and current paused burn badge/inspection. Research is separately selectable with 120s setup/30s feature bounds; default reuses the existing match, 300s total. Cheap tests cannot sample rendered controls, bones, pools or voices; no branch matrix or full graphical campaign.",
-        "economy" => "Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup, no extra battle. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep; no added battle. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
+        "economy" => "Income/upkeep, explicit zero-wood recovery, build/upgrade/sale capacity, both-size inspector bounds and paused transport refresh. One bounded additional ordinary clear and two productions fund a real shortage sale; no extra peers or display. Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or badges.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
         "launcher" => "Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
@@ -245,6 +250,7 @@ internal sealed partial class Runner
         "installed-linux" => "Installed archive reuses focused packed launch/solo/purchase/bindings/live animation/two-size/Exit route; inventory alone cannot establish an installed graphical launch.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
     };
+    private static string IncomeText(ResourceCost? income, Resource resource) => income is ResourceCost value ? value.Amount(resource) > 0 ? $"+{value.Amount(resource)}" : "0" : "Unavailable";
     private async Task SimulationSpeed(Child authority, int speed, CancellationToken token)
     {
         string id = Guid.NewGuid().ToString("N");
@@ -327,7 +333,8 @@ internal sealed partial class Runner
         MatchSnapshot accepted = State(result);
         if (accepted.Phase is Phase.Building or Phase.Preparation)
             await WaitUi(client, frame => frame.Revision >= accepted.Revision && accepted.Players.FirstOrDefault(city => city.Id == frame.ObservedCity) is { } city
-                && Enum.GetValues<Resource>().All(resource => frame.ResourceBalances.GetValueOrDefault(resource.ToString(), -1) == city.Resources.Amount(resource)), "exact displayed resource balances after accepted action", token);
+                && Enum.GetValues<Resource>().All(resource => frame.ResourceBalances.GetValueOrDefault(resource.ToString(), -1) == city.Resources.Amount(resource)
+                    && frame.ResourceIncome.GetValueOrDefault(resource.ToString()) == IncomeText(city.ProductionIncome, resource)), "exact displayed resource balances after accepted action", token);
         return result;
     }
     private async Task Pick(Child client, int slot, CancellationToken token)
@@ -426,7 +433,7 @@ internal sealed partial class Runner
         bool package = name == "exported-package";
         string? executable = package ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null;
         var started = await StartServer("ui-server", options.Port ?? _scope!.Port(), token, retryAutomatic: options.Port is null, exported: package ? Path.Combine(_root, "dist", "server", "odot.x86_64") : null,
-            extra: name is "combat" or "exported-package" ? ["--combat-seed", "1"] : []);
+            extra: name == "economy" ? ["--combat-seed", "14056307608042553509"] : name is "combat" or "exported-package" ? ["--combat-seed", "1"] : []);
         Child client = StartGame("ui-client", false, false, started.Port, executable);
         await client.WaitFor(e => e.Type == "connected", "graphical client connected", options.StartupTimeout, token);
         Child observer = StartGame("ui-observer", false, true, started.Port, executable, "--automated");
@@ -445,10 +452,10 @@ internal sealed partial class Runner
                 int gold = Latest(client).Players.Single(p => p.Id == client.PlayerId).Gold;
                 UiObservation costs = await UiProtocol.Probe(client, options.StartupTimeout, token);
                 ResourceCost farmCost = Latest(client).BuildingCatalog.Single(b => b.Type == Building.Farm).Construction;
-                Require(costs.Targets["Farm"].CostText.Contains(farmCost.Gold + " gold", StringComparison.Ordinal) && costs.Targets["Farm"].CostText.Contains(farmCost.Wood + " wood", StringComparison.Ordinal), "visible resource cost row retains exact authoritative gold/wood");
+                Require(costs.Targets["Farm"].CostText.Contains(farmCost.Wood + " wood", StringComparison.Ordinal) && !costs.Targets["Farm"].CostText.Contains("gold", StringComparison.Ordinal), "visible basic-building cost retains exact wood quote without gold");
                 GameEvent purchase = await ClickAck(client, "Farm", token);
                 await Observe(observer, s => s.Revision >= State(purchase).Revision && s.Players.Single(p => p.Id == client.PlayerId).Slots[0].Type == Building.Farm, "observer sees UI purchase", token);
-                Require(State(purchase).Players.Single(p => p.Id == client.PlayerId).Gold == gold - State(purchase).Rules.BuildCost, "UI purchase spends authoritative gold once");
+                Require(State(purchase).Players.Single(p => p.Id == client.PlayerId).Gold == gold - farmCost.Gold, "UI purchase uses the authoritative construction quote once");
                 if (!package)
                 {
                     await EconomyDetails(client, observer, token);
