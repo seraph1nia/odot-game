@@ -156,11 +156,12 @@ public sealed class LinuxPackagingTests
     }
 
     [Fact]
-    public void InnoCompilerFileVersionMustMatchPinnedCompiler()
+    public void InnoCompilerEngineVersionMustMatchPinnedCompiler()
     {
-        Runner.ValidateInnoCompilerVersion(new Version(6, 7, 3));
-        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion(new Version(6, 7, 2)));
-        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion(new Version(0, 0, 0)));
+        Runner.ValidateInnoCompilerVersion("Inno Setup 6 Command-Line Compiler\r\nCompiler engine version: Inno Setup 6.7.3\r\nCompiling...\r\n");
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion("Compiler engine version: Inno Setup 6.7.2\n"));
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion("Compiler engine version: Inno Setup 6.7.30\n"));
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion("Inno Setup 6 Command-Line Compiler\nUsage: iscc [options] scriptfile.iss\n"));
     }
 
     [Fact]

@@ -2310,8 +2310,14 @@ hosted failure at
 https://github.com/seraph1nia/odot-game/actions/runs/36763314446 occurred **before
 compilation**: `Capture(ISCC.exe, "/?")` treated ISCC's nonzero help exit as a
 failed version check. Windows export and packaged identity had already passed.
-The restoration reads the executable's version resource instead, retaining the
-6.7.3 acquisition checksum and rejecting another/missing compiler version.
+The first restoration probe also established on native Windows that ISCC's
+executable version resource reports `0.0.0`:
+https://github.com/seraph1nia/odot-game/actions/runs/37142779711.
+The fix therefore reads the **loaded compiler engine** banner from a successful
+nonquiet compilation (as implemented in upstream `ISCC.dpr`), retaining the
+6.7.3 acquisition checksum and rejecting another/missing compiler version
+before writing the platform manifest. Neither help failures nor zero-valued
+executable metadata are accepted as version evidence.
 
 The release workflow again requires both native packages, transfers their exact
 allowlisted artifacts, assembles matching two-target public metadata and checks

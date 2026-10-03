@@ -67,24 +67,31 @@ internal sealed partial class Runner
         string? compiler = Environment.GetEnvironmentVariable("ISCC_PATH");
         if (string.IsNullOrWhiteSpace(compiler) || !File.Exists(compiler))
             throw new VerificationPrerequisiteException($"Inno Setup {InnoSetupVersion} compiler missing. Set ISCC_PATH to its ISCC.exe; ordinary tasks never install it.");
-        // ISCC /? prints help to stderr and exits nonzero; it is not a version probe.
-        var compilerInfo = System.Diagnostics.FileVersionInfo.GetVersionInfo(compiler);
-        ValidateInnoCompilerVersion(new Version(compilerInfo.FileMajorPart, compilerInfo.FileMinorPart, compilerInfo.FileBuildPart));
         string release = Path.Combine(_root, "dist", "releases", version.Value);
         string payload = Path.Combine(release, "windows-x64");
         string name = $"odot-{version.Value}-windows-x64-setup";
-        await Execute("inno-installer", compiler, "/Qp", "/DSourceDir=" + payload, "/DOutputDir=" + release,
-            "/DOutputName=" + name, "/DAppVersion=" + version.Value, Path.Combine(_root, "tools", "Distribution", "Odot.iss"));
+        // ISCC /? exits nonzero and its executable version resource is 0.0.0.
+        // A nonquiet successful compile reports the actual loaded compiler engine.
+        await _evidence.Measure("inno-installer", "phase", async () =>
+        {
+            await using var child = new Child("inno-installer", compiler,
+                ["/DSourceDir=" + payload, "/DOutputDir=" + release, "/DOutputName=" + name,
+                    "/DAppVersion=" + version.Value, Path.Combine(_root, "tools", "Distribution", "Odot.iss")],
+                _root, evidenceDirectory: _evidence.Directory);
+            int code = await child.WaitExit(cancellation);
+            if (code != 0) throw new InvalidOperationException($"Inno Setup compilation failed with exit code {code}.");
+            ValidateInnoCompilerVersion(await File.ReadAllTextAsync(child.LogPath, cancellation));
+        });
         string installer = name + ".exe";
         if (!File.Exists(Path.Combine(release, installer))) throw new InvalidOperationException("Inno Setup did not create the expected installer.");
         await WritePlatformManifest(release, identity, [installer]);
         Console.WriteLine($"Windows release installer ready: {installer}. Nothing uploaded or published.");
     }
 
-    internal static void ValidateInnoCompilerVersion(Version version)
+    internal static void ValidateInnoCompilerVersion(string output)
     {
-        if (version != Version.Parse(InnoSetupVersion))
-            throw new VerificationPrerequisiteException($"ISCC_PATH must identify Inno Setup {InnoSetupVersion}; got: {version}");
+        if (!output.Split('\n').Any(line => line.TrimEnd('\r') == "Compiler engine version: Inno Setup " + InnoSetupVersion))
+            throw new VerificationPrerequisiteException($"ISCC_PATH must identify Inno Setup {InnoSetupVersion}; expected compiler engine banner is missing.");
     }
 
     private static async Task<string> Hash(string path)
