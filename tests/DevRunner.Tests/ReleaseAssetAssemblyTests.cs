@@ -16,6 +16,13 @@ public sealed class ReleaseAssetAssemblyTests
             await ReleaseAssetAssembly.Assemble(directory, "v0.1.0-beta.1", new string('a', 40));
             Assert.Equal(["SHA256SUMS", "build-info.json", "odot-0.1.0-beta.1-linux-x64-install.sh", "odot-0.1.0-beta.1-linux-x64.tar.gz", "odot-0.1.0-beta.1-windows-x64-setup.exe"],
                 Directory.EnumerateFiles(directory).Select(path => Path.GetFileName(path)!).Order(StringComparer.Ordinal));
+            string[] expected = ["odot-0.1.0-beta.1-linux-x64.tar.gz", "odot-0.1.0-beta.1-linux-x64-install.sh", "odot-0.1.0-beta.1-windows-x64-setup.exe", "build-info.json"];
+            Assert.Equal(await Task.WhenAll(expected.Select(name => Line(directory, name))),
+                await File.ReadAllLinesAsync(Path.Combine(directory, "SHA256SUMS")));
+            using var metadata = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, "build-info.json")));
+            Assert.Equal(new string('a', 40), metadata.RootElement.GetProperty("SourceCommit").GetString());
+            Assert.Equal(["linux-x64", "windows-x64"], metadata.RootElement.GetProperty("Targets").EnumerateArray()
+                .Select(target => target.GetProperty("Target").GetString()));
         }
         finally { Directory.Delete(directory, true); }
     }

@@ -136,7 +136,24 @@ never replaces existing release assets. Verification logs, screenshots, player
 data, and intermediate manifests remain in the ephemeral jobs and are not
 published. Ordinary CI runs only for pull requests targeting `main` and pushes
 to `main`; it remains read-only, runs Linux and native Windows package checks,
-and uploads nothing. Native Windows installer qualification remains deferred.
+and uploads nothing. Release-automation/package pull requests additionally run
+**Build published release** in nonpublishing qualification mode: each runner
+creates an ephemeral local `v0.0.0-ci.RUN_ID` tag at the exact PR head (never
+pushed), builds the real Linux archive/script and native Windows installer,
+transfers both artifact sets, then assembles and verifies the five-file public
+allowlist and checksums. Only a `release` event may attach assets; PR checks
+never create a GitHub tag/release or upload release assets. Actual Windows
+install/upgrade/uninstall qualification remains separate and deferred.
+
+Restoring the workflow does not backfill `v0.1.1-alpha.1`, whose assets are
+Linux-only. The supported automatic route is a later owner-approved release
+at a commit containing this workflow, with an initially empty asset set.
+Rerunning the old release uses its old workflow/source and the existing-assets
+preflight rejects it. A backfill would need separate authorization and a
+specifically designed procedure to build the **original tag's** Windows bytes
+and reconcile the shared metadata/checksums without overwriting existing
+assets; it is not an operation this workflow supports. Do not move the tag or
+replace assets to bypass that guard.
 
 Local package preparation and optional installation verification require a clean
 checkout of an existing exact tag:

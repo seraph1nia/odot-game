@@ -2301,3 +2301,54 @@ Full **`mise run ci --ui-jobs 1` passed** at tested head `c49b361`: **461.27s** 
 Because upstream changed shared tabletop observation/cleanup code, the affected bounded melee checkpoint was rechecked after synchronization, not assumed equivalent from the old selected pass: `logs/20261003-160610-bc3f0e44/`, case **37.02s**, worker **40.36s**, task **45.22s**, command **46.61s**. Twelve fresh progression observations and four progression PNGs took **4.18s**, proving advancing committed movement and equipped imported attack bones; all four near/far overview/close captures and **28** linked witnesses passed. All eight PNGs were inspected directly. They retain disconnected windup intention, local strike accents, distinct standing anchors and actual rig motion; overview cues remain small and overlapping health bars can still obscure individual miniatures. Capture timing is not a frame-rate benchmark.
 
 Both commands awaited their owned peers/displays and runtime cleanup before success. Scratch diagnostics were preserved under ignored `logs/autobattle-final/scout-scratch/`, not committed. The two synced main requirement/scenario blocks still exactly match their deltas, and strict change/main-spec validation passes with upstream economy requirements retained. Final completion/archive edits change documentation/planning only, not these tested game inputs, so no additional full game/export repeat is needed. Coverage remains owned Linux X11/software OpenGL/Dummy audio: native compositor/GPU pacing, physical input, listening quality, universal crowd readability, native Windows packaging and real paired Steam are not established. No release, upload, publication or merge was performed by these local checks. Only the completed `clarify-combat-presentation` change was archived to `openspec/changes/archive/2026-10-03-clarify-combat-presentation/`, with all 20 tasks complete; unrelated changes were left in place. Strict validation passed before archive and all eighteen main specs/four remaining active changes passed afterward. PR review/publishing and hosted CI belong to the authorized no-mistakes delivery pipeline, not this local acceptance record.
+
+## Windows release publishing restoration — 2026-10-03
+
+Commit `448a973` commented out the native Windows release job and replaced the
+shared two-platform asset assembler with a Linux-only shell path. The earlier
+hosted failure at
+https://github.com/seraph1nia/odot-game/actions/runs/36763314446 occurred **before
+compilation**: `Capture(ISCC.exe, "/?")` treated ISCC's nonzero help exit as a
+failed version check. Windows export and packaged identity had already passed.
+The first restoration probe also established on native Windows that ISCC's
+executable version resource reports `0.0.0`:
+https://github.com/seraph1nia/odot-game/actions/runs/37142779711.
+The fix therefore reads the **loaded compiler engine** banner from a successful
+nonquiet compilation (as implemented in upstream `ISCC.dpr`), retaining the
+6.7.3 acquisition checksum and rejecting another/missing compiler version
+before writing the platform manifest. Neither help failures nor zero-valued
+executable metadata are accepted as version evidence. The subsequent native run
+https://github.com/seraph1nia/odot-game/actions/runs/37143381683
+successfully compiled the intended setup executable in 58.578 seconds, then
+exposed Windows file-sharing rules when reopening the still-owned transcript.
+The final fix awaits compiler disposal before reading its exact engine banner;
+this keeps the ordinary process owner and cleanup rather than weakening the
+version check. Hosted release qualification then passed at
+https://github.com/seraph1nia/odot-game/actions/runs/37143811632:
+both native packages, two-platform transfer/assembly, exact public allowlist and
+all four final file checksums. GitHub confirmed the public attachment step was
+skipped. Ordinary source/Linux/native-Windows CI passed at
+https://github.com/seraph1nia/odot-game/actions/runs/37143811622.
+The final checkout-only follow-up disables persisted Git credentials in all
+four release/qualification jobs; token permission scopes and the explicit
+release-only upload credential remain unchanged.
+
+The release workflow again requires both native packages, transfers their exact
+allowlisted artifacts, assembles matching two-target public metadata and checks
+all final SHA-256 entries before upload. Release-specific safety, channel and
+Steam checks remain unchanged. Relevant PRs exercise those same jobs with local
+qualification tags; the public release upload is event-guarded and skipped.
+No production release/tag/asset is created or modified by qualification.
+
+Local locked solution restore, `mise run test` (439 core and 172 runner tests),
+`dotnet format Odot.slnx --no-restore` and `git diff --check` passed. Test evidence:
+`logs/20261003-180047-76d06586/`. Cheap assertions cover the pinned compiler version,
+both-platform workflow dependency/transfer/upload guards, exact public file set,
+final manifest bytes, both metadata targets, and rejection of corrupt Windows
+bytes or mismatched identities. No native Windows execution occurred locally.
+Hosted PR checks are the required native package-build evidence; their URLs and
+verdicts belong in the PR completion report. Actual installation, upgrades,
+uninstallation, Windows graphical interaction and real Steam accounts remain
+outside this release-only qualification. See [distribution](distribution.md)
+for the later-release route and why the existing Linux-only release is not
+silently backfilled.

@@ -156,6 +156,15 @@ public sealed class LinuxPackagingTests
     }
 
     [Fact]
+    public void InnoCompilerEngineVersionMustMatchPinnedCompiler()
+    {
+        Runner.ValidateInnoCompilerVersion("Inno Setup 6 Command-Line Compiler\r\nCompiler engine version: Inno Setup 6.7.3\r\nCompiling...\r\n");
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion("Compiler engine version: Inno Setup 6.7.2\n"));
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion("Compiler engine version: Inno Setup 6.7.30\n"));
+        Assert.Throws<VerificationPrerequisiteException>(() => Runner.ValidateInnoCompilerVersion("Inno Setup 6 Command-Line Compiler\nUsage: iscc [options] scriptfile.iss\n"));
+    }
+
+    [Fact]
     public void InnoCompilerAcquisitionIsPinned()
     {
         using JsonDocument pin = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root(), "tools", "Distribution", "inno-setup.json")));
