@@ -11,6 +11,13 @@ public sealed class CombatReplayFixtureTests
         CombatReplayInput input = CombatReplayFixture.Generate();
         Assert.Equal(600, input.Frames.Length); Assert.Equal(input.Digest, CombatReplayFixture.Generate().Digest);
         Assert.Equal(2, input.Commands);
+        foreach (CityState city in input.Frames[0].Snapshot!.Players)
+        {
+            Assert.Equal(2, city.Army!.PurchasedHomes); Assert.Equal(6, city.Soldiers.Length);
+            Assert.Equal(2, city.Soldiers.Select(u => u.Assignment!.Tile).Distinct().Count());
+            Assert.All(city.Soldiers, u => Assert.Equal(u.Assignment!.Position, u.Hex!.Position));
+            Assert.All(city.Soldiers.GroupBy(u => u.Assignment!.Tile), tile => Assert.Equal(6, tile.Sum(u => u.Size)));
+        }
         Assert.All(input.Frames, frame => Assert.Equal(1.0 / 60, frame.Delta));
         Assert.Equal(2, input.Frames[240].Focus); Assert.Equal(1, input.Frames[360].Focus);
         Assert.True(input.Frames[150].Snapshot!.Paused); Assert.False(input.Frames[170].Snapshot!.Paused);

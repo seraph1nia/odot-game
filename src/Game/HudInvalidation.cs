@@ -29,13 +29,13 @@ internal sealed class HudInvalidation
         Add(economy, city?.Slots.Select(s => (object)(s.Type, s.Level, s.Purchased)));
         if (city?.FoodForecast is { } forecast)
         {
-            economy.Add((forecast.Demand, forecast.Available, forecast.Paid)); Add(economy, forecast.Participating.Cast<object>()); Add(economy, forecast.Unfed.Cast<object>());
+            economy.Add((forecast.Demand, forecast.Available, forecast.Paid, forecast.FieldDemand, forecast.StoredDemand)); Add(economy, forecast.Funded.Cast<object>()); Add(economy, forecast.Participating.Cast<object>()); Add(economy, forecast.Unfed.Cast<object>());
         }
         else economy.Add(null);
         if (city?.LastUpkeep is { } upkeep)
-        { economy.Add((upkeep.Wave, upkeep.Paid)); Add(economy, upkeep.Participating.Cast<object>()); Add(economy, upkeep.Unfed.Cast<object>()); }
+        { Add(economy, upkeep.Funded.Cast<object>()); economy.Add((upkeep.Wave, upkeep.Paid)); Add(economy, upkeep.Participating.Cast<object>()); Add(economy, upkeep.Unfed.Cast<object>()); }
         else economy.Add(null);
-        Add(economy, city?.Soldiers.Select(u => (object)(u.Id, u.Type, u.Level, u.IsBoss, u.Health, u.Profile, u.Capabilities, u.Participating, u.Deployed)));
+        Add(economy, city?.Soldiers.Select(u => (object)(u.Id, u.Type, u.Level, u.IsBoss, u.Health, u.Profile, u.Capabilities, u.Participating, u.Deployed, u.Assignment, u.RecoveryEligible)));
         foreach (UnitState unit in city?.Soldiers ?? [])
         {
             economy.Add(unit.Statuses.Burn); economy.Add(unit.Statuses.Chill); Add(economy, unit.Statuses.Poison.Cast<object>());
@@ -49,6 +49,8 @@ internal sealed class HudInvalidation
         if (city?.Soldiers.Any(u => u.Statuses.Active) == true || enemies.Any(u => u.Statuses.Active)) economy.Add(state?.Tick);
         result[HudSection.Economy] = economy.ToArray();
         List<object?> context = [.. Common(), connected, focus, slot, group, player, city?.Resources, city?.Research, me?.Resources, me?.Ready, me?.Eliminated];
+        context.Add(city?.Army?.PurchasedHomes); Add(context, city?.Army?.HomePrices.Cast<object>());
+        Add(context, city?.Soldiers.Select(u => (object)(u.Id, u.Size, u.Assignment)));
         Add(context, city?.Slots.Cast<object>()); Add(context, city?.RecruitmentQuotes.Cast<object>());
         Add(context, state?.TowerCatalog.Cast<object>()); Add(context, state?.MarketRates.Cast<object>());
         Add(context, state?.TechnologyCatalog.Cast<object>()); Add(context, state?.PlotPrices.Cast<object>());

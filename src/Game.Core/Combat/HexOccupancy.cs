@@ -1,6 +1,6 @@
 namespace Game.Core;
 
-public enum UnitLifecycle { Queued, Alive, Dying, Reserve }
+public enum UnitLifecycle { Queued, Alive, Dying, Reserve, Stored }
 public enum UnitActionKind { Waiting, Moving, Windup, Recovery }
 public readonly record struct HexPosePoint(HexPosition Position, HexPosition Destination = default, int Transition = 0, int ElapsedTicks = 0, int DurationTicks = 0);
 public sealed record HexUnitState(int Id, int City, Faction Faction, UnitLifecycle Lifecycle, HexPosition Position,
@@ -132,7 +132,7 @@ internal sealed class HexOccupancy(HexBoard board)
             if (state.Id <= 0 || state.City <= 0 || !Enum.IsDefined(state.Faction) || !Enum.IsDefined(state.Lifecycle)
                 || state.Size is < 1 or > 6 || state.ActionSequence < 0 || !identities.Add(state.Id))
                 throw new ArgumentException("Invalid or duplicate unit identities.", nameof(units));
-            if (state.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve)
+            if (state.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve or UnitLifecycle.Stored)
             {
                 if (state.HoldsTransit) throw new ArgumentException("Inactive/queued actors cannot retain transit.", nameof(units));
                 continue;

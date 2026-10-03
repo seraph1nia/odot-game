@@ -59,7 +59,7 @@ internal sealed partial class CombatSimulation : IDisposable
     private CombatDecisionState NewDecision(int id, int city, long sequence)
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
 
-    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default)
+    public int Create(UnitType type, int owner, int origin, int destination, Faction faction = Faction.Adventurers, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default, ArmyAssignment? assignment = null)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (destination <= 0 || origin <= 0 || !Enum.IsDefined(faction)) throw new ArgumentException("Invalid unit identity.");
@@ -67,7 +67,7 @@ internal sealed partial class CombatSimulation : IDisposable
         int id = _nextId; _nextId = checked(_nextId + 1);
         Entity entity = _world.Create(new CombatUnit(new(id, type, owner, origin, destination, faction, rank, isBoss, level), profile.Health, profile,
             new(UnitLifecycle.Queued, default), new CombatAction.Waiting(), NewDecision(id, destination, 0))
-        { Capabilities = capabilities });
+        { Capabilities = capabilities, Assignment = assignment });
         _entities.Add(id, entity); return id;
     }
     public void Research(int city, ResearchState research, ResearchCatalog catalog)
@@ -128,7 +128,7 @@ internal sealed partial class CombatSimulation : IDisposable
         if (unit.Id <= 0 || unit.Identity.Level is < 1 or > Progression.MaximumExponentLevel || unit.Origin <= 0 || unit.Destination <= 0 || !Enum.IsDefined(unit.Type) || !Enum.IsDefined(unit.Faction)
             || !Enum.IsDefined(unit.Location.Lifecycle) || unit.Health < 0 || unit.Health > unit.Profile.Health
             || unit.Location.Lifecycle != UnitLifecycle.Dying && unit.Health == 0
-            || unit.Location.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve && unit.Action is CombatAction.Moving or CombatAction.Windup
+            || unit.Location.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve or UnitLifecycle.Stored && unit.Action is CombatAction.Moving or CombatAction.Windup
             || unit.Profile.Size is < 1 or > 6 || unit.Identity.IsBoss && unit.Profile.Size != 6)
             throw new ArgumentException("Invalid unit health, identity or profile anchor.", nameof(unit));
         unit.Capabilities.Validate(); StatusPolicy.Validate(unit.Statuses, _configuration.Statuses);
@@ -145,6 +145,61 @@ internal sealed partial class CombatSimulation : IDisposable
         if (!_entities.TryGetValue(id, out Entity entity)) return;
         _occupancy.Release(Unit(id).Destination, id); _observations.Remove(id); _entities.Remove(id); _world.Destroy(entity);
     }
+    internal void Assign(int id, ArmyAssignment assignment)
+    {
+        CombatUnit unit = Unit(id);
+        _occupancy.Release(unit.Destination, id); _observations.Remove(id);
+        Unit(id) = unit with
+        {
+            Assignment = assignment,
+            Location = new(assignment.Stored ? UnitLifecycle.Stored : UnitLifecycle.Queued, default),
+            Action = CombatActions.Cancel(unit.Action, _tick),
+            Statuses = StatusState.Empty
+        };
+    }
+    internal void RestoreHomes()
+    {
+        if (HasDeaths || !AnyUnit(u => u.Assignment is not null)) return;
+        _occupancy.Clear(); _routing.Clear(); _observations.Clear(); _cityObservations.Clear();
+        foreach (CombatUnit unit in Living())
+        {
+            UnitLifecycle lifecycle = unit.Assignment is { Stored: true } ? UnitLifecycle.Stored
+                : unit.Assignment is not null ? UnitLifecycle.Alive : UnitLifecycle.Queued;
+            CombatUnit restored = unit with
+            {
+                Location = new(lifecycle, unit.Assignment is { Stored: false } a ? a.Position : default),
+                Action = CombatActions.Cancel(unit.Action, _tick),
+                Decision = NewDecision(unit.Id, unit.Destination, unit.Decision.Sequence),
+                Statuses = StatusState.Empty
+            };
+            if (restored.IsTargetable && !_occupancy.TryPlace(restored.Reservation)) throw new InvalidOperationException("Persistent home claims overlap.");
+            Unit(unit.Id) = restored;
+        }
+        AdmitEntries(initial: true);
+    }
+    internal void AuthorizeRecovery(IEnumerable<int> funded)
+    {
+        var paid = funded.ToHashSet();
+        foreach (CombatUnit unit in Living().Where(u => u.Faction == Faction.Adventurers))
+            Unit(unit.Id) = unit with { RecoveryEligible = unit.Assignment is not null && paid.Contains(unit.Id) };
+    }
+    internal Dictionary<int, int> RecoveryPlan(IEnumerable<City> cities)
+    {
+        var plan = new Dictionary<int, int>();
+        foreach (City city in cities)
+            foreach (CombatUnit unit in SoldierMembership(city.Id).Where(u => u.RecoveryEligible && u.Assignment is { Stored: true }))
+            {
+                ArmyAssignment assignment = unit.Assignment!;
+                SlotState hall = city.Slots[assignment.HallSlot];
+                if (hall.Type != Building.TownHall || hall.Generation != assignment.HallGeneration) throw new InvalidOperationException("Stored unit lost its Town hall.");
+                plan.Add(unit.Id, ArmyConfiguration.HealedHealth(unit.Health, unit.Profile.Health, ArmyConfiguration.HealingPercent(hall.HealingLevel)));
+            }
+        return plan;
+    }
+    internal void Heal(IReadOnlyDictionary<int, int> plan)
+    {
+        foreach ((int id, int health) in plan) Unit(id) = Unit(id) with { Health = health };
+    }
     public void BeginWave(int wave = 1, IEnumerable<int>? unfed = null)
     {
         if (HasDeaths) throw new InvalidOperationException("Cannot reform while prior deaths hold space.");
@@ -154,12 +209,16 @@ internal sealed partial class CombatSimulation : IDisposable
         {
             Unit(unit.Id) = unit with
             {
-                Location = new(reserves.Contains(unit.Id) ? UnitLifecycle.Reserve : UnitLifecycle.Queued, default),
+                Location = new(unit.Assignment is { Stored: true } ? UnitLifecycle.Stored
+                    : reserves.Contains(unit.Id) ? UnitLifecycle.Reserve : unit.Assignment is not null ? UnitLifecycle.Alive : UnitLifecycle.Queued,
+                    unit.Assignment is { Stored: false } a && !reserves.Contains(unit.Id) ? a.Position : default),
                 Decision = NewDecision(unit.Id, unit.Destination, checked(unit.Decision.Sequence + 1)),
                 Action = CombatActions.Cancel(unit.Action, _tick),
                 Statuses = StatusState.Empty
             };
         }
+        foreach (CombatUnit unit in Living().Where(u => u.IsTargetable))
+            if (!_occupancy.TryPlace(unit.Reservation)) throw new InvalidOperationException("Persistent wave home claims overlap.");
         AdmitEntries(initial: true);
     }
     public void AdmitEntries(bool initial = false)

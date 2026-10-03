@@ -10,6 +10,24 @@ namespace DevRunner.Tests;
 public sealed class HarnessTests
 {
     [Fact]
+    public void CasualtyCaptureCannotFreezeBeforeItsDamagedOpponentExists()
+    {
+        // Captured failure: W3 tick 769, a fresh corpse, but every living enemy
+        // in the focused city was full-health; foreign damage is not sufficient.
+        var corpse = new UnitState(5, 0) { Destination = 1, Hex = new(5, 1, Faction.Adventurers, UnitLifecycle.Dying, new(17, 1), DeathStartTick: 757, DeathEndTick: 805) };
+        var full = new UnitState(41, 4000) { Destination = 1, Faction = Faction.Skeletons, Profile = new(4000, 1000, 1, 30, 12, 60) };
+        var foreign = full with { Id = 46, Destination = 2, Health = 3800 };
+        var state = new MatchSnapshot("capture", 1, 769, Phase.Combat, false, 3, 3, 12, new(), [], [full, foreign]) { DyingBodies = [corpse] };
+        Assert.False(Runner.CasualtyInspectionReady(state, 1, 750));
+        MatchSnapshot eligible = state with { Enemies = [full with { Health = 3000 }, foreign] };
+        Assert.True(Runner.CasualtyInspectionReady(eligible, 1, 750));
+        Assert.False(Runner.CasualtyInspectionReady(eligible, 1, 757));
+        Assert.False(Runner.CasualtyInspectionReady(eligible with { Tick = 793 }, 1, 750));
+        Assert.False(Runner.CasualtyInspectionReady(eligible with { DyingBodies = [] }, 1, 750));
+        Assert.False(Runner.CasualtyInspectionReady(eligible with { Enemies = [full with { Health = 0 }, foreign] }, 1, 750));
+    }
+
+    [Fact]
     public void EconomyObservationRoundTripPreservesIncomeUpkeepAndFullBounds()
     {
         var original = new UiObservation
@@ -91,6 +109,9 @@ public sealed class HarnessTests
     [Fact]
     public void EarlyMeleeCheckpointIsScopedToTheExistingCombatSlice()
     {
+        Assert.Equal("army", Options.Parse(["test-ui", "--scenario", "economy", "--checkpoint", "army"]).UiCheckpoint);
+        Assert.Equal("army", Options.Parse(["_ui-worker", "--scenario", "economy", "--checkpoint", "army"]).UiCheckpoint);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-ui", "--scenario", "combat", "--checkpoint", "army"]));
         Assert.Equal("melee", Options.Parse(["test-ui", "--scenario", "combat", "--checkpoint", "melee"]).UiCheckpoint);
         Assert.Equal("melee", Options.Parse(["_ui-worker", "--scenario", "combat", "--checkpoint", "melee"]).UiCheckpoint);
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-ui", "--checkpoint", "melee"]));

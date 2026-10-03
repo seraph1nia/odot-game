@@ -88,8 +88,8 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
-        if (checkpoint is not null && (scenario != "combat" || checkpoint is not ("melee" or "research")))
-            throw new ArgumentException("--checkpoint melee|research belongs to --scenario combat.");
+        if (checkpoint is not null && !(scenario == "combat" && checkpoint is "melee" or "research" || scenario == "economy" && checkpoint == "army"))
+            throw new ArgumentException("--checkpoint melee|research belongs to --scenario combat; army belongs to --scenario economy.");
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
         if (args.Contains("--jobs") && command is not ("test-network" or "test-ui" or "ci" or "ci-source")) throw new ArgumentException("--jobs belongs to network/UI/source verification.");

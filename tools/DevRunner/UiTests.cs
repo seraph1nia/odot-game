@@ -163,6 +163,11 @@ internal sealed record UiObservation
     public string DetailText { get; init; } = "";
     public string DetailsText { get; init; } = "";
     public bool DetailsOpen { get; init; }
+    public ArmyState? ArmyHomes { get; init; }
+    public string[] HomeMarkers { get; init; } = [];
+    public bool TownHallOpen { get; init; }
+    public string TownHallText { get; init; } = "";
+    public int SelectedStoredUnit { get; init; }
     public string[] ResourceOrder { get; init; } = [];
     public int ObservedCity { get; init; }
     public int[] CityIds { get; init; } = [];
@@ -431,7 +436,7 @@ internal sealed partial class Runner
             Require(target.X - target.Width / 2 >= -1 && target.X + target.Width / 2 <= frame.Width + 1 && target.Y - target.Height / 2 >= -1 && target.Y + target.Height / 2 <= frame.Height + 1,
                 "complete control bounds inside viewport: " + name);
     }
-    private async Task Checkpoint(Child client, string name, CancellationToken token)
+    private async Task Checkpoint(Child client, string name, CancellationToken token, string dataOwner = "ui-client")
     {
         string path = Path.Combine(_scope!.EvidenceDirectory, name + ".png");
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
@@ -448,12 +453,13 @@ internal sealed partial class Runner
         Require(frame.Display == "X11" && frame.Models > 0 && frame.Materials > 0 && frame.MusicLoaded, "rendered UI/models/materials/music loaded on owned X11 display");
         Require(frame.UnitBindings.Length == 18, "eight faction/role rigs, required clips/hand bindings and ten weapons imported");
         Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "actual client uses silent Dummy audio and Mesa software rendering");
-        Require(Path.GetFullPath(frame.UserDataPath).StartsWith(Path.Combine(_scope.Directory, "ui-client", "data") + Path.DirectorySeparatorChar, StringComparison.Ordinal), "effective user:// belongs to this client scope");
+        Require(Path.GetFullPath(frame.UserDataPath).StartsWith(Path.Combine(_scope.Directory, dataOwner, "data") + Path.DirectorySeparatorChar, StringComparison.Ordinal), "effective user:// belongs to this client scope");
         await File.WriteAllTextAsync(Path.Combine(_scope.EvidenceDirectory, name + "-observation.json"), JsonSerializer.Serialize(frame, Evidence.JsonOptions), token);
         Console.WriteLine($"FRAME {name}: {frame.Width}x{frame.Height}, colors={frame.Colors}, renderer={frame.Renderer}; {path}");
     }
     private async Task UiScenario(string name, CancellationToken token)
     {
+        if (name == "economy" && options.UiCheckpoint == "army") { await ArmyUiScenario(token); return; }
         if (options.UiCheckpoint is null) Console.WriteLine($"UI risk: {name}: {UiRisk(name)}");
         if (options.UiCheckpoint == "melee") Console.WriteLine("Melee checkpoint risk: fixed-anchor swings without a readable target, missed shared near/far occupants or conflicting routes. Ordinary six-Swordsman opening and recruitment up to wave two, four paused overview/close PNGs and live-node witnesses; 65s checkpoint/70s scenario bounds. Owned peers/display/data cleanup uses the existing combat slice.");
         using var combatDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -490,6 +496,7 @@ internal sealed partial class Runner
                     await EconomyDetails(client, observer, token);
                 }
                 await Checkpoint(client, package ? "packed-building" : "economy-building", token);
+                if (!package) { await client.DisposeAsync(); await ArmyUiScenario(token); }
                 break;
             case "combat":
                 if (options.UiCheckpoint == "melee")

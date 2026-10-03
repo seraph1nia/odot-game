@@ -35,7 +35,7 @@ public partial class Tabletop
         _upkeepValue.HorizontalAlignment = _balanceValue.HorizontalAlignment = HorizontalAlignment.Right;
         _upkeepValue.SizeFlagsHorizontal = _balanceValue.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
         foreach (Label label in new[] { _upkeepLabel, _upkeepValue, _balanceLabel, _balanceValue }) label.AutowrapMode = TextServer.AutowrapMode.Off;
-        _inspector = new UnitInspector(); root.AddChild(_inspector);
+        _inspector = new UnitInspector(game, CanEdit); root.AddChild(_inspector);
         _homeHealth = new HomeHealthBar(); _healthRoot.AddChild(_homeHealth);
         _panel = new PanelContainer { Name = "BottomPanel", CustomMinimumSize = new(0, 180), MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
         root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -180;
@@ -99,6 +99,7 @@ public partial class Tabletop
         }
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
         CreateResearch(city);
+        CreateArmyControls(city, context, details);
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = .22f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 12);
         _counters = Text(match, "", 11);

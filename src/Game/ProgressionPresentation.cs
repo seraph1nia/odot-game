@@ -20,8 +20,8 @@ public static class ProgressionPresentation
             : state?.Phase is Phase.Preparation or Phase.Combat ? "Ready for battle grants no income" : "";
         if (state?.Phase is Phase.Building or Phase.Preparation && city?.FoodForecast is { } forecast)
             return new(label, context, "Next battle", $"{forecast.Demand} food",
-                forecast.Unfed.Length > 0 ? $"{forecast.Unfed.Length} soldiers will sit out" : "Food after payment",
-                forecast.Unfed.Length > 0 ? "" : (forecast.Available - forecast.Paid).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                forecast.Unfed.Length > 0 ? city.Soldiers.Any(u => u.Assignment is { Stored: true }) ? "Unfunded soldiers" : $"{forecast.Unfed.Length} soldiers will sit out" : "Food after payment",
+                forecast.Unfed.Length > 0 ? city.Soldiers.Any(u => u.Assignment is { Stored: true }) ? forecast.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) : "" : (forecast.Available - forecast.Paid).ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (city?.LastUpkeep is { } receipt)
             return new(label, context, state?.Phase == Phase.Combat ? $"Paid this battle · W{receipt.Wave}" : $"Last battle · W{receipt.Wave}",
                 $"{receipt.Paid} food", "Sat out", receipt.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -62,6 +62,10 @@ public static class ProgressionPresentation
         bool preview = state.Phase is Phase.Building or Phase.Preparation;
         string food = preview && city.FoodForecast is BattleFoodForecast forecast ? $"Next: {forecast.Demand} food · pay {forecast.Paid} · {forecast.Participating.Length} fed/{forecast.Unfed.Length} reserve"
             : city.LastUpkeep is BattleUpkeepReceipt paid ? $"Wave {paid.Wave}: paid {paid.Paid} food · {paid.Participating.Length} participated" : "No battle upkeep yet";
+        if (preview && city.FoodForecast is { } split)
+            food += $"\nField demand {split.FieldDemand} · stored demand {split.StoredDemand}. Field first, then stored; level descending and ID ascending within each group.";
+        else if (city.LastUpkeep is { Funded.Length: > 0 } receipt)
+            food += $"\nPaid IDs {receipt.Funded.Length}: field {receipt.Participating.Length}, stored {receipt.Funded.Length - receipt.Participating.Length}. Funding authorizes stored recovery only after that battle completes; roster eligibility still refers to the most recent completed battle.";
         string reward = city.LastReward is WaveClearReceipt clear ? $"Last clear W{clear.Wave}: +{clear.Amount.Gold} gold, +{clear.Amount.Wood} wood, +{clear.Amount.Food} food, +{clear.Research} research" : "No clear reward yet";
         string army = string.Join('\n', city.Soldiers.Select(unit => ArmyDetail(unit, city, preview, state.Tick)));
         return new(phase, land, food, reward, army);
@@ -117,6 +121,9 @@ public static class ProgressionPresentation
     {
         string status = preview && city.FoodForecast is BattleFoodForecast forecast ? forecast.Participating.Contains(unit.Id) ? "next: fed" : "next: reserve"
             : !unit.Participating ? "reserve" : unit.Deployed ? "participating" : "fed · capacity queue";
+        if (unit.Assignment is { Stored: true } hall)
+            status = $"Town hall plot {hall.HallSlot + 1} · {(preview ? city.FoodForecast?.Funded.Contains(unit.Id) == true ? "next: funded" : "next: unfunded" : "noncombatant")} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no completed paid recovery")}";
+        else if (unit.Assignment is { } home) status += $" · home tile {home.Tile}, anchor {home.Anchor}";
         string committed = unit.Statuses.Chill is null ? "" : $" · committed impact {unit.ImpactTick}, ready {unit.ReadyTick}";
         return $"#{unit.Id} {unit.Type}{(unit.IsBoss ? " BOSS" : "")} L{unit.Level} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · damage {HealthPoints.Format(unit.Profile.Damage)} · size {unit.Size} · {status} · {CapabilityText(unit.Capabilities)} · {StatusText(unit.Statuses, tick)}{committed}";
     }

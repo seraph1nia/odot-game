@@ -27,7 +27,7 @@ internal sealed partial class Runner
                 for (int n = 0; n < 100; n++)
                 {
                     EconomyAction? action = CampaignStrategy.ResearchWitness(Latest(child), child.PlayerId); if (action is null) break;
-                    string command = action.Action switch { "build" => $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}", "recruit" => $"recruit {action.Slot} {action.Unit}", "trade" => $"trade {action.Slot} {action.Resource} {action.Bundles}", _ => $"{action.Action} {action.Slot}" };
+                    string command = action.Action switch { "build" => $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}", "recruit" => $"recruit {action.Slot} {action.Unit}", "trade" => $"trade {action.Slot} {action.Resource} {action.Bundles}", "retire" => $"retire {action.UnitId}", _ => $"{action.Action} {action.Slot}" };
                     await Action(child, command, token);
                 }
             }

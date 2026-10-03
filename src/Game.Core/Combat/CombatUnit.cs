@@ -9,6 +9,8 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
     CombatAction Action, CombatDecisionState Decision)
 {
     public UnitCapabilities Capabilities { get; init; }
+    public ArmyAssignment? Assignment { get; init; }
+    public bool RecoveryEligible { get; init; }
     public StatusState Statuses { get; init; } = new();
     public int Id => Identity.Id;
     public UnitType Type => Identity.Type;
@@ -97,6 +99,8 @@ internal static class CombatProjection
             AttackLanded = attack?.Landed,
             Profile = unit.Profile,
             Capabilities = unit.Capabilities,
+            Assignment = unit.Assignment,
+            RecoveryEligible = unit.RecoveryEligible,
             Statuses = unit.Statuses.Detach()
         };
     }
@@ -132,6 +136,6 @@ internal static class CombatProjection
         };
         return new(new(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank, state.IsBoss, state.Level), state.Health, profile,
             new(hex.Lifecycle, hex.Position, hex.AdmittedTick, hex.DeathStartTick, hex.DeathEndTick, hex.FrozenMoveTicks, hex.FrozenTick, hex.FrozenAim), action, decision)
-        { Capabilities = state.Capabilities, Statuses = state.Statuses.Detach() };
+        { Capabilities = state.Capabilities, Assignment = state.Assignment, RecoveryEligible = state.RecoveryEligible, Statuses = state.Statuses.Detach() };
     }
 }

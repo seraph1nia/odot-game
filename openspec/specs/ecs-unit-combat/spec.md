@@ -8,7 +8,7 @@ Keep automatic unit battles deterministic and readable through reliable lane con
 
 ### Requirement: Bounded lane contact and formation spacing
 
-Each living city SHALL have a bounded authoritative hex battlefield with declared adjacency and exactly six size capacity per hex. Every unit SHALL have a frozen integer size from one through six. All ordinary archetypes SHALL use size two, bosses size six, and no current archetype SHALL use size one. Same-team units SHALL share a hex whenever their occupied and reserved sizes total at most six; a geometrical footprint shape or rendered anchor arrangement SHALL NOT reject an otherwise legal fit. Occupancy and reservations in one hex SHALL belong to at most one team, allies or opponents, including dying bodies and move reservations. Units SHALL NOT exceed capacity, enter an opposing occupied/reserved hex, exchange places through one another or leave the board. Distinct graphical anchors SHALL preserve readability without adding a numerical capacity restriction. Initial formation and transferred arrivals SHALL obey the same size rules and permanent faction-specific deployment protection. Melee SHALL start forward with rear placement allocated to support; placement SHALL spread across columns before packing a cell. Overflow SHALL queue without taking the other tier's allocated setup capacity. Queued actors SHALL retain their destination army/enemy membership without duplication, deletion, spatial claims, targeting or attacks. Board adjacency SHALL determine movement and distance; rendered geometry, scenery collision and player orders SHALL NOT determine combat. Blocked units SHALL wait without locomotion. Stationary occupancy and its matching reservation SHALL count the same actor once per cell.
+Each living city SHALL have a bounded authoritative hex battlefield with declared adjacency and exactly six size capacity per hex. Every unit SHALL have a frozen integer size from one through six. All ordinary archetypes SHALL use size two, bosses size six, and no current archetype SHALL use size one. Same-team units SHALL share a hex whenever their occupied and reserved sizes total at most six; a geometrical footprint shape or rendered anchor arrangement SHALL NOT reject an otherwise legal fit. Occupancy and reservations in one hex SHALL belong to at most one team, allies or opponents, including dying bodies and move reservations. Units SHALL NOT exceed capacity, enter an opposing occupied/reserved hex, exchange places through one another or leave the board. Distinct graphical anchors SHALL preserve readability without adding a numerical capacity restriction. Initial formation and transferred arrivals SHALL obey the same size rules and permanent faction-specific deployment protection. In automatic enemy and isolated non-roster formation, melee SHALL start forward with rear placement allocated to support; placement SHALL spread across columns before packing a cell. Overflow SHALL queue without taking the other tier's allocated setup capacity. City-roster allied setup SHALL instead occupy persistent purchased first-fit homes under army-roster, independent of class; purchased homes SHALL NOT constrain later movement topology. Queued actors SHALL retain their destination army/enemy membership without duplication, deletion, spatial claims, targeting or attacks. Board adjacency SHALL determine movement and distance; rendered geometry, scenery collision and player orders SHALL NOT determine combat. Blocked units SHALL wait without locomotion. Stationary occupancy and its matching reservation SHALL count the same actor once per cell.
 
 #### Scenario: Opposing melee units meet
 - **WHEN** a Swordsman and an enemy approach from opposite entrances
@@ -21,7 +21,7 @@ Each living city SHALL have a bounded authoritative hex battlefield with declare
 - **AND** a size-two arrival and every opposing arrival are refused while that occupancy remains
 
 #### Scenario: Tens of units converge
-- **WHEN** at least thirty-two soldiers and thirty-two enemies converge on one city battlefield
+- **WHEN** an isolated non-roster workload has at least thirty-two soldiers and thirty-two enemies converging on one city battlefield
 - **THEN** deployed size reservations, movement reservations and entry queues remain bounded and conserved
 - **AND** reachable opponents engage and the ordinary default battle completes without a stalled-fight defeat
 
@@ -98,6 +98,8 @@ Soldiers and enemies SHALL have match-scoped stable identities that are never re
 #### Scenario: Fresh session after battle
 - **WHEN** a process ends a match with living units, moving units, dying bodies and recent events and starts another match
 - **THEN** the new match contains only its own roster and units and the old match's combat resources are released
+
+City-roster allied survivors SHALL restore their exact persistent home after retained death cleanup under army-roster, including final victory, without healing or reformation. Stored units SHALL retain identity/health while remaining noncombatants.
 
 ### Requirement: Committed movement and single attackable location
 
@@ -239,7 +241,7 @@ Each faction SHALL have permanently protected deployment cells and usable entry-
 
 ### Requirement: Specified automatic formation
 
-At wave setup the authority SHALL first allocate rear-band placement to ranged/magic support, then forward-band placement to melee, activating the completed formation together. Within a tier, lower initiative then seeded actor ties SHALL determine placement order. Each placement SHALL choose a compatible cell with the least occupied/reserved capacity, then the declared owner-relative column order; within that cell it SHALL assign a deterministic distinct graphical anchor without requiring a shaped footprint. Support SHALL NOT fill spare frontline cells during setup, and melee overflow SHALL NOT displace allocated support. Excess units SHALL remain queued. During combat queued melee SHALL prefer legal forward-band capacity then its protected rear fallback, while queued support SHALL use protected rear capacity; queue ordering SHALL use melee/support tier, initiative and persistent seeded ties, scanning past currently non-fitting actors for the first actor that fits a legal cell; skipped actors SHALL retain their identities and tie state. Ready deployed units SHALL follow ordinary closest-target/route rules across columns, hold when in range and make no free intra-hex rearrangements.
+For automatic enemy and isolated non-roster formation, at wave setup the authority SHALL first allocate rear-band placement to ranged/magic support, then forward-band placement to melee, activating the completed formation together. Within a tier, lower initiative then seeded actor ties SHALL determine placement order. Each placement SHALL choose a compatible cell with the least occupied/reserved capacity, then the declared owner-relative column order; within that cell it SHALL assign a deterministic distinct graphical anchor without requiring a shaped footprint. Support SHALL NOT fill spare frontline cells during setup, and melee overflow SHALL NOT displace allocated support. Excess units SHALL remain queued. During combat queued melee SHALL prefer legal forward-band capacity then its protected rear fallback, while queued support SHALL use protected rear capacity; queue ordering SHALL use melee/support tier, initiative and persistent seeded ties, scanning past currently non-fitting actors for the first actor that fits a legal cell; skipped actors SHALL retain their identities and tie state. Ready deployed units SHALL follow ordinary closest-target/route rules across columns, hold when in range and make no free intra-hex rearrangements.
 
 #### Scenario: Spread before filling a frontline hex
 - **WHEN** compatible empty forward cells exist in three declared columns and at least three melee units can deploy
@@ -259,6 +261,8 @@ At wave setup the authority SHALL first allocate rear-band placement to ranged/m
 #### Scenario: Larger queued actor does not block a fitting arrival
 - **WHEN** a size-six actor precedes a size-two actor in the canonical queue and a legal cell has only two free size
 - **THEN** the size-two actor is admitted and the size-six actor remains queued without lost identity or changed retry ties
+
+Allied city-roster units SHALL instead use persistent purchased first-fit homes under army-roster. Combat movement and later legal admission SHALL retain ordinary capacity/team/protection rules. Existing spread and tier scenarios SHALL remain applicable to automatic enemy and isolated non-roster formation, not override chosen allied homes.
 
 ### Requirement: Consistent current action and reservation evidence
 
