@@ -155,6 +155,33 @@ public sealed class EconomyCatalogTests
     }
 
     [Fact]
+    public void LauncherOpeningFundsMeleeAndRangedRecruitmentBeforeBattle()
+    {
+        using var match = new Match(combatSeed: 1); City city = match.Join()!;
+        Assert.True(Act(match, 1, "start").Accepted);
+        Assert.True(Act(match, 1, "build", 0, Building.Farm).Accepted);
+        Assert.True(Act(match, 1, "build", 2, Building.MetalMine).Accepted);
+        Assert.True(Act(match, 1, "build", 3, Building.Lumbermill).Accepted);
+        Assert.True(Act(match, 1, "ready").Accepted);
+        Assert.True(Act(match, 1, "ready").Accepted);
+        Assert.True(Act(match, 1, "build", 1, Building.Barracks).Accepted);
+        Assert.True(Act(match, 1, "recruit", 1).Accepted);
+        Assert.True(Act(match, 1, "ready").Accepted);
+        Assert.Equal(Phase.Preparation, match.Phase);
+        Assert.True(Act(match, 1, "sell", 0).Accepted);
+        Assert.True(Act(match, 1, "sell", 2).Accepted);
+        Assert.True(Act(match, 1, "build", 2, Building.ArcheryRange).Accepted);
+        Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 2,
+            SoldierType: UnitType.Crossbowman, ExpectedGeneration: city.Slots[2].Generation)).Accepted);
+        Assert.Equal(new ResourceCost(18, Food: 15, Metal: 9), city.Resources);
+        Assert.Collection(city.Soldiers,
+            soldier => Assert.Equal(UnitType.Swordsman, soldier.Type),
+            soldier => Assert.Equal(UnitType.Crossbowman, soldier.Type));
+        Assert.Equal(2, city.Snapshot().FoodForecast!.Demand);
+        Assert.Equal(3, match.ProductionCount);
+    }
+
+    [Fact]
     public void DefaultOpeningFundsSixSwordsmenWithoutSpendingGoldOnBasicBuildings()
     {
         using var match = new Match(combatSeed: 1); City city = match.Join()!;

@@ -112,6 +112,7 @@ internal sealed record CameraObservation
     public float DirectionX { get; init; }
     public float DirectionY { get; init; }
 }
+internal sealed record DeathCleanupObservation(int Id, long DeathEndTick, double CombatTick, double VisualSeconds);
 internal sealed record UiObservation
 {
     public Dictionary<int, string> StatusBadges { get; init; } = [];
@@ -194,6 +195,7 @@ internal sealed record UiObservation
     public Dictionary<string, UiTarget> Targets { get; init; } = [];
     public string[] UnitBindings { get; init; } = [];
     public UnitObservation[] Units { get; init; } = [];
+    public DeathCleanupObservation[] DeathCleanups { get; init; } = [];
     public StrikeObservation[] Strikes { get; init; } = [];
     public HealthBarObservation[] HealthBars { get; init; } = [];
     public Dictionary<string, string> ResourceIcons { get; init; } = [];
@@ -213,6 +215,18 @@ internal sealed record UiObservation
 
 internal static class UiProtocol
 {
+    public static DeathCleanupObservation DeathCleanup(UiObservation frame, int id, long deathEndTick, double sinceVisualSeconds)
+    {
+        DeathCleanupObservation? cleanup = frame.DeathCleanups.SingleOrDefault(sample => sample.Id == id);
+        if (cleanup is null || cleanup.DeathEndTick != deathEndTick || frame.Units.Any(unit => unit.Id == id)
+            || !double.IsFinite(cleanup.CombatTick) || cleanup.CombatTick < deathEndTick || cleanup.CombatTick > frame.CombatTick)
+            throw new InvalidOperationException("Death cleanup requires the removed model's current-session expiry witness.");
+        double elapsed = cleanup.VisualSeconds - sinceVisualSeconds;
+        if (!double.IsFinite(elapsed) || elapsed < 0 || elapsed > 2 || cleanup.VisualSeconds > frame.VisualSeconds)
+            throw new InvalidOperationException($"Death view must free within two unpaused seconds; actual removal elapsed={elapsed:R}.");
+        return cleanup;
+    }
+
     public static async Task<UiObservation> Probe(Child client, int timeout, CancellationToken token, string? screenshot = null)
     {
         string id = Guid.NewGuid().ToString("N");

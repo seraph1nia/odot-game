@@ -1968,3 +1968,193 @@ Locked solution restore and `dotnet format Odot.slnx --no-restore` passed withou
 The first after CI attempt failed in 38.16s (`logs/20261003-120815-0fda736c/ci-summary.json`): the authority/recovery network fixture assumed plot four remained empty after the first opening. Lower basic costs now fund its Stonecutter earlier. The Crossbowman witness buys plot seven at the ordinary authority quote and builds its Archery Range there, retaining the producer and all exact equipment, duplicate/restart, pending-action and research assertions. Failed partial coverage is not counted as the final gate; cancellation awaited owned peer/display cleanup.
 
 The selected authority/recovery network recheck passed in 22.62s (27.70s task), evidence `logs/20261003-121001-76e2f76c/`. The next full CI passed all cheap tests and all six network cases, then its randomly seeded economy setup lost the added wave-three battle; evidence `logs/20261003-121057-a05f0726/`, 152.13s failed gate. The original setup only required two clears. Economy now freezes seed `14056307608042553509`, captured from the successful selected three-clear witness, so its ordinary paid army, veteran wounds and bounded shortage setup are reproducible. No production, combat profile, equipment price or acceptance assertion changes. This UI seed is fixture evidence, not additional balance proof; the unchanged 21-campaign seed sample owns balance coverage.
+
+### Final integration follow-up, 2026-10-03
+
+The task-5.3 full recheck at source `0e1d4b7a64f431448294d3020affa534b1933664`
+failed in **173.95s** before exports. It passed all 438 gameplay and 145 runner
+checks, all six network cases, reconnect and settings, but the launcher route
+could not activate Crossbowman recruitment: after replacing its Metal Mine with
+an Archery Range it had one wood, while the new equipment quote requires two.
+Economy was cancelled, not passed; combat had not run. Evidence:
+`logs/20261003-122729-dd6e1cd5/ci-summary.json` and
+`logs/economy-final-integration/ci.log`.
+
+The minimal correction sells the launcher's Farm through an ordinary accepted
+command after its third production, refunding the missing one wood. This route
+starts no battle and requires no further production; its 15 food still covers
+the two soldiers. Actual Farm purchase, Metal Mine sale, Archery Range purchase,
+both recruitment controls, menu/solo transitions, hosted lifecycle, both-size
+geometry and cleanup assertions remain. The new cheap
+`LauncherOpeningFundsMeleeAndRangedRecruitmentBeforeBattle` regression freezes
+that complete paid opening, three productions, final stocks (18 gold, 15 food,
+zero wood, nine metal), both archetypes and two-food demand. A discarded trial
+adding a second Lumbermill failed world picking at plot one in the selected
+launcher route (`logs/20261003-123702-92bcb730/`); that trial is not shipped or
+counted as passing coverage. The final refund-funded selected launcher passed:
+case **77.74s**, worker **81.08s**, task **86.27s**, evidence
+`logs/20261003-124126-507e605b/`. Its paused solo PNG was inspected. Cheap checks
+passed **439 gameplay and 145 runner cases** in **27.87s** runner time,
+`logs/20261003-124015-bc1737be/`.
+
+The next full attempt (`logs/20261003-124328-e7f537e7/ci-summary.json`) failed in
+**248.71s**, before exports. It passed all cheap/network checks and source
+economy, reconnect, settings and launcher. In particular, the fixed-seed economy
+worker passed in **124.76s** with the additional wave-three clear and shortage
+setup. Its recovery/income, food-shortage and both-size inspector PNGs were
+inspected: the compact stack and scrollable inspector remain separated from the
+bottom HUD, and the shortage reads three soldiers sitting out at two food versus
+five demand. These passes verify the previously unconfirmed seed and compact
+column/input-protection changes, but the failed full run is not final acceptance.
+Combat failed while opening the live damaged-enemy inspector; by the deadline
+all enemies were gone. Selecting the lowest-health live target after resuming
+allowed it to die between probe and input. The existing casualty pause now owns
+selection and opening, then the ordinary observer Resume preserves the open
+inspector for live damage/casualty assertions. Earlier actual graphical
+Pause/Resume and outside-Pause dismissal, death freezing, declared cleanup,
+recovery and animation assertions remain; no deadline, gameplay rule, scenario,
+peer or display was added.
+
+Owned cancellation/cleanup completed for these failed and selected runs.
+Independent evidence inspection found no remaining owned runtime directories or
+live owned display groups/game processes; reports are
+`logs/economy-final-integration/failed-ci-cleanup.json`, `trial-cleanup.json`,
+`launcher-cleanup.json` and `second-ci-cleanup.json`. These diagnostic inspections
+supplement, rather than replace, the checked-in runner's awaited cleanup.
+
+The combat follow-up remains **partial, not accepted**. Cheap checks after moving
+selection passed 439 gameplay and 145 runner cases in 28.61s,
+`logs/20261003-125045-ff9ede4d/`. The first selected trial
+(`logs/20261003-125127-02ad6e8e/`, case 68.83s) opened the paused damaged-unit
+inspector but failed declared death cleanup: the diagnostic mistakenly sent
+`pause` rather than the explicit `resume` command, and a historical unpaused
+snapshot satisfied its wait. The correction sends `resume`, then an ordinary
+rejected command to obtain a fresh authoritative acknowledgment before requiring
+unpaused state. That selected trial (`logs/20261003-125427-bfb5aeca/`, case
+56.23s) passed declared death-model removal and reservation release but failed
+the unchanged two-unpaused-second visual cleanup bound. It therefore does not
+establish the complete combat assertions. Owned cleanup reports are
+`logs/economy-final-integration/combat-trial-cleanup.json` and
+`combat-resume-cleanup.json`. At that point task 5.3 remained unchecked; exports
+and package smokes were not executed by either full attempt above. Neither attempt establishes
+archive readiness or final integration success.
+
+### Combat cleanup diagnosis and retained bound
+
+The initiating trigger for the inspection failure was resuming a short, already
+wounded fight before choosing its lowest-health enemy. The masking condition was
+probe/input scheduling: the enemy could die before the native click. Paused
+selection followed by explicit ordinary Resume preserves that target's identity
+until inspection opens, without changing combat or extending its life. Actual
+live damage or its ensuing casualty is still required after Resume.
+
+The later two-second symptom was a separate measurement defect. Historical code
+at `cef9674` measured `cleaned.VisualSeconds - casualty.VisualSeconds` at the
+first *read* of an absent model, not at removal. `CombatPlayback` freezes visual
+time during pause; `Tabletop.UpdateUnits` removes expired views at its current
+sampled tick. In the failed trial the read reached tick 953 versus death end 910,
+and all sampled frames agreed with the declared model/tick boundary. This alone
+did not establish the earlier removal instant, so temporary renderer-side
+instrumentation was added and the same selected source case was reproduced.
+
+Disconfirming evidence is retained: the instrumented unchanged case passed at
+`logs/20261003-130158-8f3fda76/` (case 91.09s, task 100.00s), with actual watched
+removal at tick 916/end 910 and 0.8 unpaused visual seconds. The smallest
+counterfactual changed **only the verification read**: ordinary observer ticks
+postponed it until at least death end + 120. That run
+(`logs/20261003-130447-3a10a5da/`, case 56.97s) failed the original read-time
+assertion although the renderer removed unit 44 at tick 977/end 976 after
+**0.8 seconds**, while the later read was tick 1104 after **2.793 seconds** with
+no model present. Exact values are retained in
+`logs/economy-final-integration/delayed-read-diagnosis.json`; the instrumented
+engine logs retain actual removal events. This counterfactual accounts for both
+the passed and failed paths without blaming paused-time accounting or changing
+the accepted two-second limit. It does not claim every possible runtime stall
+will satisfy that limit.
+
+The permanent correction retains up to 64 renderer-side death-removal witnesses
+(id, declared deadline, actual sampled tick and visual time), cleared on fresh
+session or playback generation. Fresh UI observations require the watched model
+absent, its current-session witness at/after its deadline, and its **actual
+removal within the same exact two-unpaused-second bound**. Existing per-probe
+model/deadline equivalence and authoritative reservation release remain. The
+controlled read delay and temporary console instrumentation were removed.
+Four cheap runner cases cover delayed-read independence and wire retention,
+exact two seconds versus 2.001-second rejection, and absent/wrong-id/wrong-deadline,
+premature, still-rendered or negative-time witnesses. No timeout or acceptance
+assertion was dropped or relaxed; no new scenario, display or graphical match
+was admitted. The bounded diagnostic observation adds no gameplay/protocol state.
+The existing fresh-session UI assertion additionally checks witness reset.
+
+Locked restore and C# formatting passed. Cheap checks passed **439 gameplay and
+149 runner cases** in **26.48s**, `logs/20261003-130857-54f16118/`. The corrected
+selected combat passed: case **92.01s**, worker **95.32s**, task **100.88s**,
+`logs/20261003-130943-daf5ab22/`. Its `combat-death-cleanup.json` records unit six
+removed at tick 915/end 910 after 0.8 seconds; the fresh probe arrived at tick 927
+after 1.0 seconds. Live inspection, animation/recovery, casualty, research and
+fresh-session assertions passed. Owned cleanup for the diagnostic, delayed-read
+and corrected checks is retained in `combat-diagnostic-cleanup.json`,
+`combat-delayed-cleanup.json` and `combat-proof-cleanup.json` under
+`logs/economy-final-integration/`; none retained owned runtimes or live processes.
+
+### Final full gate: passed
+
+Full `mise run ci` passed in **296.18s** (**297.53s** including mise bootstrap):
+`logs/20261003-131156-23e7ae2e/ci-summary.json`. The complete console record is
+`logs/economy-final-integration/accepted-ci.log`. This is the final task-5.3
+acceptance, not a substitution of earlier partial or diagnostic runs. Tested
+source is based on `0e1d4b7a64f431448294d3020affa534b1933664` plus the documented
+launcher/combat verification corrections. The per-file source/asset hashes in
+`logs/economy-final-integration/accepted-source-sha256.txt` were unchanged
+through the complete gate (`accepted-source-unchanged.txt`). Locked .NET SDK
+10.0.401 and Godot .NET 4.7.2 were used; no tool/dependency locks changed.
+
+The gate passed **439 gameplay checks** (417 general, 13 solo/serialized and nine
+cooperative) and **149 runner checks**, without failures or skips. All 21
+ordinary twenty-wave strategy samples and their cooperative paid-army assertions
+remain. All six existing network scenarios and all five existing source UI
+scenarios passed under the shared two-scenario budget, graphical cap two and
+owned setup simulation speed four; actual graphical timing witnesses use speed
+one. Source preparation occurred once. Every source gate preceded the sequential
+client/server exports; both headless and graphical package smoke passed.
+
+| Final phase/scenario | Seconds |
+| --- | ---: |
+| Locked restore / format verification / build / import | 1.00 / 17.84 / 1.03 / 2.94 |
+| Cheap C# suite, concurrent partitions | 27.77 |
+| Network authority-resume-victory / redistribution | 22.54 / 22.67 |
+| Network defeat / failure-cases / solo-session / playing-host-lifecycle | 2.78 / 3.57 / 0.92 / 6.10 |
+| Network suite including shared admission | 108.20 |
+| Source economy case / owned worker | 111.44 / 114.74 |
+| Source reconnect case / owned worker | 38.30 / 41.61 |
+| Source settings case / owned worker | 27.24 / 30.54 |
+| Source launcher case / owned worker | 83.16 / 86.47 |
+| Source combat case / owned worker | 102.03 / 105.35 |
+| Source UI including shared admission | 242.62 |
+| Sequential client / server export | 6.07 / 5.00 |
+| Headless package smoke | 1.56 |
+| Graphical package case / owned worker | 12.90 / 16.22 |
+
+The final economy shortage and both-size inspector PNGs and packed animation PNG
+were inspected under this run's `economy-worker/economy/` and
+`exported-package-worker/exported-package/`. They preserve the compact readable
+resource/upkeep stack, scrollable inspector bounds, real food consequence and
+packed wave-tagged payment. The combat removal witness records unit six removed
+at tick 911/end 910 after **0.6 unpaused visual seconds**, not a probe-time guess:
+`combat-worker/combat/combat-death-cleanup.json`.
+
+The runner awaited every owned child/display cleanup before reporting success.
+Independent final evidence inspection checked **25 owned runtime directories**,
+**six owned display process groups** and **74 child cleanup checkpoints**, finding
+no remaining runtime directories or live owned game/runner/display processes.
+Evidence: `logs/economy-final-integration/accepted-cleanup.json`. Only this run's
+owners were inspected; no developer preferences or unrelated processes were
+changed. Generated outputs/evidence remain ignored, and nothing was uploaded or
+published. Later documentation/task/archive edits do not change the tested game
+inputs, so another local full game/export run is unnecessary.
+
+Coverage is Linux x86_64 on owned X11/software OpenGL with Dummy audio. It does
+not establish native GPU/compositor performance, physical input or listening
+quality, native Windows packaging/installer qualification, real two-account
+Steam acceptance, or release publishing. Those external/prerequisite-dependent
+checks and their archived records remain unchanged.
