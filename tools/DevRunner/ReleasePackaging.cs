@@ -103,7 +103,7 @@ internal sealed partial class Runner
         SHA256='{{hash}}'
         URL='https://github.com/{{ReleaseRepository}}/releases/download/v{{version}}/{{archive}}'
         if [ "${ODOT_INSTALL_TESTING:-}" = 1 ] && [ -n "${ODOT_ARCHIVE_URL:-}" ]; then URL=$ODOT_ARCHIVE_URL; fi
-        [ "$(uname -m)" = x86_64 ] || { echo 'Odot requires Linux x86_64.' >&2; exit 1; }
+        [ "$(uname -m)" = x86_64 ] || { echo 'The Common Watch requires Linux x86_64.' >&2; exit 1; }
         [ -n "${HOME:-}" ] || { echo 'HOME is required.' >&2; exit 1; }
         for tool in curl tar sha256sum mktemp; do command -v "$tool" >/dev/null 2>&1 || { echo "Missing prerequisite: $tool" >&2; exit 1; }; done
         DATA_BASE=${XDG_DATA_HOME:-"$HOME/.local/share"}
@@ -112,7 +112,7 @@ internal sealed partial class Runner
         APP_DIR=${ODOT_APPLICATIONS_DIR:-"$DATA_BASE/applications"}
         LOCK="$INSTALL_ROOT/.install-lock"
         mkdir -p "$INSTALL_ROOT" "$BIN_DIR" "$APP_DIR"
-        if ! mkdir "$LOCK" 2>/dev/null; then echo 'Another Odot install is running.' >&2; exit 1; fi
+        if ! mkdir "$LOCK" 2>/dev/null; then echo 'An installation of The Common Watch is already running.' >&2; exit 1; fi
         WORK=$(mktemp -d "${TMPDIR:-/tmp}/odot-install.XXXXXX")
         cleanup() { rm -rf "$WORK"; rmdir "$LOCK" 2>/dev/null || true; }
         trap cleanup EXIT HUP INT TERM
@@ -125,7 +125,7 @@ internal sealed partial class Runner
         tar -tzf "$WORK/$ARCHIVE" | awk 'BEGIN{ok=1} /(^\/|(^|\/)\.\.($|\/))/{ok=0} END{exit !ok}' || { echo 'Unsafe archive paths.' >&2; exit 1; }
         tar -xzf "$WORK/$ARCHIVE" -C "$WORK"
         SOURCE="$WORK/odot-$VERSION"
-        [ -x "$SOURCE/odot.x86_64" ] && [ -f "$SOURCE/odot.pck" ] && [ -f "$SOURCE/build-info.json" ] || { echo 'Incomplete Odot archive.' >&2; exit 1; }
+        [ -x "$SOURCE/odot.x86_64" ] && [ -f "$SOURCE/odot.pck" ] && [ -f "$SOURCE/build-info.json" ] || { echo 'Incomplete The Common Watch archive.' >&2; exit 1; }
         TARGET="$INSTALL_ROOT/versions/$VERSION"
         STAGE="$INSTALL_ROOT/versions/.stage-$VERSION-$$"
         mkdir -p "$INSTALL_ROOT/versions"
@@ -174,12 +174,12 @@ internal sealed partial class Runner
         cat > "$APP_DIR/odot.desktop" <<DESKTOP
         [Desktop Entry]
         Type=Application
-        Name=Odot
+        Name=The Common Watch
         Exec="$INSTALL_ROOT/launcher"
         Terminal=false
         Categories=Game;
         DESKTOP
         chmod 644 "$APP_DIR/odot.desktop"
-        echo "Installed Odot $VERSION. Run: $BIN_DIR/odot"
+        echo "Installed The Common Watch $VERSION. Run: $BIN_DIR/odot"
         """;
 }

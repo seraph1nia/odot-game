@@ -35,9 +35,9 @@ public sealed class ManualUpdateChecker : IDisposable
             ReleaseVersion installed = ReleaseVersion.TryParse(_identity.Version, out ReleaseVersion? version) ? version! : throw new InvalidDataException("Installed release version is invalid.");
             UpdateDiscoveryResult result = await ReleaseDiscovery.Discover(_client, installed, _identity.Repository, _target, bounded.Token);
             _candidate = result.Update;
-            if (result.Update is not null) return new(UpdateCheckState.Available, $"Odot {result.Update.Version.Value} is available.", result.Update);
+            if (result.Update is not null) return new(UpdateCheckState.Available, $"{GameBrand.Title} {result.Update.Version.Value} is available.", result.Update);
             return result.HasEligibleRelease
-                ? new(UpdateCheckState.UpToDate, "Odot is up to date.")
+                ? new(UpdateCheckState.UpToDate, $"{GameBrand.Title} is up to date.")
                 : new(UpdateCheckState.NoRelease, "No packaged release is available for this update channel.");
         }
         catch (OperationCanceledException) when (!_lifetime.IsCancellationRequested && !cancellation.IsCancellationRequested)
@@ -56,8 +56,8 @@ public sealed class ManualUpdateChecker : IDisposable
         {
             return _open(_candidate.DownloadUrl)
                 ? new(UpdateCheckState.Opened, _target == "windows-x64"
-                    ? "Download opened. Close Odot, then run the installer."
-                    : "Release page opened. Close Odot, then run the versioned install script.", _candidate)
+                    ? $"Download opened. Close {GameBrand.Title}, then run the installer."
+                    : $"Release page opened. Close {GameBrand.Title}, then run the versioned install script.", _candidate)
                 : new(UpdateCheckState.Failed, "Could not open the download in your browser.", _candidate);
         }
         catch

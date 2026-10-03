@@ -1,4 +1,6 @@
-# Nine Tiles POC
+# The Common Watch: gameplay
+
+See the [product introduction](../README.md) for the cooperative settlement-defense premise and [stable technical identity](../README.md#stable-technical-identity) for rebrand compatibility.
 
 One to four players share a match, each owning five initially open plots among nine indexed building slots displayed as three staggered rows of hex plots and a separate grassy battle approach. Single player starts one city immediately; hosted multiplayer waits for the original host to click Start. Join the roster before start. The roster is fixed after start; returning players can resume, fresh players cannot join. Return to menu and start again for a fresh local/hosted match; restart a dedicated server for another match.
 

@@ -11,7 +11,7 @@ Hosting SHALL create one private invitation-only Steam lobby for up to four play
 
 #### Scenario: Host and invite a friend
 - **WHEN** a Steam-connected player hosts a game and activates Invite friends
-- **THEN** one private lobby exists and Odot opens its own Steam friends picker targeting that lobby
+- **THEN** one private lobby exists and the application opens its own Steam friends picker targeting that lobby
 - **AND** selecting a friend's Invite action requests a direct Steam lobby invitation without requiring the overlay
 - **AND** an admitted friend appears alongside the host before the host starts the match
 

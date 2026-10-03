@@ -1,6 +1,6 @@
 # Repository guidance
 
-Odot is a C# Godot cooperative game with local, playing-host and dedicated authorities.
+The Common Watch is a C# Godot cooperative game with local, playing-host and dedicated authorities.
 Keep numerical rules in `src/Game.Core`, engine/presentation code in `src/Game`,
 and verification/process supervision in `tools/DevRunner`. Use `Odot.slnx` for
 the repository; Godot also needs its smaller `src/Game/Game.sln`.

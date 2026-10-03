@@ -85,6 +85,31 @@ public sealed class ReleaseDiscoveryTests
         Assert.Equal(UpdateCheckState.Failed, failure.OpenUpdate().State);
     }
 
+    [Theory]
+    [InlineData("windows-x64", false, "Download opened. Close The Common Watch, then run the installer.")]
+    [InlineData("linux-x64", true, "Release page opened. Close The Common Watch, then run the versioned install script.")]
+    public async Task PublicUpdateCopyRetainsLegacyRequestAndAssetIdentity(string target, bool linux, string openedMessage)
+    {
+        ReleaseIdentity identity = ReleaseIdentity.Create("v0.1.0-beta.1", new string('c', 40), target, false, null);
+        using var client = new HttpClient(new Handler(request =>
+        {
+            Assert.Equal("Odot-update-check", request.Headers.UserAgent.ToString());
+            Assert.StartsWith("https://api.github.com/repos/seraph1nia/odot-game/releases?", request.RequestUri!.AbsoluteUri);
+            return new(HttpStatusCode.OK) { Content = new StringContent(Page(Release("v0.2.0-beta.1", linux: linux)), Encoding.UTF8, "application/json") };
+        }));
+        using var checker = new ManualUpdateChecker(identity, target, client, _ => true);
+        UpdateCheckStatus available = await checker.Check();
+        Assert.Equal(UpdateCheckState.Available, available.State);
+        Assert.Equal("The Common Watch 0.2.0-beta.1 is available.", available.Message);
+        Assert.Equal(openedMessage, checker.OpenUpdate().Message);
+
+        using var currentClient = new HttpClient(new Handler(_ => new(HttpStatusCode.OK) { Content = new StringContent(Page(Release("v0.1.0-beta.1", linux: linux)), Encoding.UTF8, "application/json") }));
+        using var current = new ManualUpdateChecker(identity, target, currentClient, _ => true);
+        UpdateCheckStatus upToDate = await current.Check();
+        Assert.Equal(UpdateCheckState.UpToDate, upToDate.State);
+        Assert.Equal("The Common Watch is up to date.", upToDate.Message);
+    }
+
     [Fact]
     public async Task DisposalCancelsAnOwnedRequestWithoutAResultRace()
     {

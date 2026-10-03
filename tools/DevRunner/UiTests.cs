@@ -129,6 +129,10 @@ internal sealed record UiObservation
     public string Id { get; init; } = "";
     public string? Error { get; init; }
     public string Screen { get; init; } = "";
+    public string WindowTitle { get; init; } = "";
+    public string BrandTitle { get; init; } = "";
+    public string BrandPositioning { get; init; } = "";
+    public bool BrandTextFits { get; init; }
     public string FocusedControl { get; init; } = "";
     public ulong MusicInstance { get; init; }
     public ulong NativeWindow { get; init; }
@@ -259,7 +263,7 @@ internal sealed partial class Runner
         "economy" => "Income/upkeep, explicit zero-wood recovery, build/upgrade/sale capacity, both-size inspector bounds and paused transport refresh. One bounded additional ordinary clear and two productions fund a real shortage sale; no extra peers or display. Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or badges.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
-        "launcher" => "Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
+        "launcher" => "Live Common Watch title/window identity, cooperative positioning and measured label fit at existing sizes/return checkpoints; a few assertions and one multiplayer capture, no extra fixture. Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
         "exported-package" => "Packed shared countryside and contacts through existing captures; no additional match. Packed cursor zoom/pan/reset/picking parity using actual events in existing setup. Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
         "installed-linux" => "Installed archive reuses focused packed launch/solo/purchase/bindings/live animation/two-size/Exit route; inventory alone cannot establish an installed graphical launch.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
@@ -390,6 +394,7 @@ internal sealed partial class Runner
     }
     private static void TrioPresentation(UiObservation frame)
     {
+        Branding(frame);
         Require(frame.UiProvenanceBundled, "kit provenance and permission documentation bundled with UI assets");
         Require(frame.PanelTexture == "res://Assets/TrioUI/cozy/panel_plain.svg" && frame.FocusBorder == 2, "actual kit panel and keyboard focus styles loaded");
         Require(frame.ButtonTextures.Length == 4 && frame.ButtonTextures.Distinct().Count() == 4 && frame.ButtonTextures.All(p => p.StartsWith("res://Assets/TrioUI/derived/button_", StringComparison.Ordinal)), "four distinct kit button-state textures");

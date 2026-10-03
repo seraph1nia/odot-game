@@ -14,6 +14,7 @@ public partial class GameApplication(Main session) : Node
     private Button _solo = null!, _multiplayer = null!, _menuSettings = null!, _exit = null!, _host = null!, _back = null!;
     private Label _feedback = null!;
     private Label _steamStatus = null!;
+    private Label _brandTitle = null!, _brandPositioning = null!;
     private AudioStreamPlayer _music = null!;
     private Tabletop? _tabletop;
     private ConfirmationDialog _leave = null!;
@@ -34,6 +35,7 @@ public partial class GameApplication(Main session) : Node
 
     public override void _Ready()
     {
+        GetWindow().Title = GameBrand.Title;
         Theme = ApplicationTheme.Create();
         var canvas = new CanvasLayer { Name = "ApplicationUi", Layer = 10 }; AddChild(canvas);
         var root = new Control { Name = "ApplicationControls", Theme = Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -48,10 +50,12 @@ public partial class GameApplication(Main session) : Node
         CreateBackground();
         _menuRoot = new CenterContainer { Name = "Menu", MouseFilter = Control.MouseFilterEnum.Ignore };
         root.AddChild(_menuRoot); _menuRoot.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        var panel = new PanelContainer { Name = "MenuPanel", CustomMinimumSize = new(370, 0) }; _menuRoot.AddChild(panel);
+        var panel = new PanelContainer { Name = "MenuPanel", CustomMinimumSize = new(460, 0) }; _menuRoot.AddChild(panel);
         var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 14); panel.AddChild(content);
-        var title = new Label { Text = "ODOT", HorizontalAlignment = HorizontalAlignment.Center }; title.AddThemeFontSizeOverride("font_size", 42); content.AddChild(title);
-        var subtitle = new Label { Text = "Nine plots. One countryside.", HorizontalAlignment = HorizontalAlignment.Center }; content.AddChild(subtitle);
+        _brandTitle = new Label { Name = "BrandTitle", Text = GameBrand.Title, HorizontalAlignment = HorizontalAlignment.Center };
+        _brandTitle.AddThemeFontSizeOverride("font_size", 32); content.AddChild(_brandTitle);
+        _brandPositioning = new Label { Name = "BrandPositioning", Text = GameBrand.Positioning, HorizontalAlignment = HorizontalAlignment.Center };
+        content.AddChild(_brandPositioning);
         _startMenu = new VBoxContainer { Name = "StartMenu" }; _startMenu.AddThemeConstantOverride("separation", 12); content.AddChild(_startMenu);
         _solo = Button(_startMenu, "Singleplayer", "Single player", session.StartSolo);
         _multiplayer = Button(_startMenu, "Multiplayer", "Multiplayer", () => ShowMultiplayer());
@@ -279,6 +283,8 @@ public partial class GameApplication(Main session) : Node
         foreach (Button button in new[] { _solo, _multiplayer, _menuSettings, _exit, _host, _back }) ObserveControl(targets, button.Name, button);
         ObserveControl(targets, "Settings", Screen == "menu" ? _menuSettings : Settings.SettingsButton);
         ObserveControl(targets, "SteamStatus", _steamStatus);
+        ObserveControl(targets, "BrandTitle", _brandTitle);
+        ObserveControl(targets, "BrandPositioning", _brandPositioning);
         if (Settings.IsOpen)
         {
             ObserveControl(targets, "GraphicsTab", Settings.Categories.GetTabBar(), Settings.Categories.GetTabBar().GetTabRect(0));
@@ -315,6 +321,10 @@ public partial class GameApplication(Main session) : Node
             ["FocusBorder"] = (Theme.GetStylebox("focus", "Button") as StyleBoxFlat)?.BorderWidthTop,
             ["SliderTexture"] = Theme.GetIcon("grabber", "HSlider").ResourcePath,
             ["Screen"] = Screen,
+            ["WindowTitle"] = GetWindow().Title,
+            ["BrandTitle"] = _brandTitle.Text,
+            ["BrandPositioning"] = _brandPositioning.Text,
+            ["BrandTextFits"] = new[] { _brandTitle, _brandPositioning }.All(label => label.GetMinimumSize().X <= label.Size.X && label.GetMinimumSize().Y <= label.Size.Y),
             ["Revision"] = -1L,
             ["SelectedSlot"] = -1,
             ["Connected"] = session.Connected,
