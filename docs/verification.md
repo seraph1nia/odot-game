@@ -757,12 +757,11 @@ unchanged; current tests assert resource loading, gain/settings and lifecycle,
 not audible quality or loop boundaries. Historical normal-close diagnostics
 above are not erased by this supervised-quit verification.
 
-The Ubuntu 24.04 workflow explicitly provisions Xvfb/Xauthority/X11/Mesa/Openbox
-and executes the same required `mise run ci`, retaining its 15-minute job limit,
-locked toolchain and read-only permissions. No checks silently skip, and no
-upload/publish/deploy steps were added. The hosted Actions job was not run from
-this workspace. Windows/macOS, native Wayland/GPU behavior, physical input and
-new listening checks were not executed as part of this change.
+For current hosted workflow commands and prerequisites, see
+[Verification command details](../README.md#verification-command-details).
+The hosted Actions job was not run from this workspace at this baseline.
+Windows/macOS, native Wayland/GPU behavior, physical input and new listening
+checks were not executed as part of this change.
 
 ## Strict C# compilation
 
@@ -2022,8 +2021,8 @@ live owned display groups/game processes; reports are
 `launcher-cleanup.json` and `second-ci-cleanup.json`. These diagnostic inspections
 supplement, rather than replace, the checked-in runner's awaited cleanup.
 
-The combat follow-up remains **partial, not accepted**. Cheap checks after moving
-selection passed 439 gameplay and 145 runner cases in 28.61s,
+At this stage, the combat follow-up was **partial, not accepted**. Cheap checks
+after moving selection passed 439 gameplay and 145 runner cases in 28.61s,
 `logs/20261003-125045-ff9ede4d/`. The first selected trial
 (`logs/20261003-125127-02ad6e8e/`, case 68.83s) opened the paused damaged-unit
 inspector but failed declared death cleanup: the diagnostic mistakenly sent
