@@ -198,8 +198,10 @@ geometry. A separate city distance anchor links the neutral home frontier and
 provides no movement shortcut. Board scale and anchors passed the early rendered gate. Neighboring rendered centers are approximately
 three world units apart; render anchors use integer thousandths of a world
 unit for presentation only. Melee deliberately uses tabletop presentation:
-rigged swings at fixed anchors, a directional connection to the sampled target,
-then an authoritative impact or miss cue. It does not manufacture physical
+rigged swings at fixed anchors, restrained dashed ground-space windup intent
+and a pointer to the locked target, then a short local sword/axe accent and an
+authoritative landed target flash or grey miss cue. It draws no opaque spanning
+sword beam. It does not manufacture physical
 weapon contact or move an attacking model between anchors.
 
 Each side's rear row is permanently protected against opposing placement and
@@ -315,7 +317,7 @@ progress; walking, misses and admissions cannot extend it. Normal completion and
 all-cities-fallen defeat take precedence. An unresolved limit ends the match as
 `BattleStalled` defeat with unchanged surviving health. Numerical lifecycle, limit and early rendered checks pass. Final full integration acceptance passes; see `docs/verification.md` for evidence.
 
-Knight, Barbarian, Rogue and Mage and the four corresponding free Skeleton rigs use imported skeletons and role weapons at `handslot.r`. Programmatic AnimationTrees retain synchronized idle/walk/run, timed attack one-shots, filtered hit layers and terminal death. Sword uses horizontal slice, Berserker two-handed chop, Crossbowman ranged shot and Mage Spellcast_Shoot. Horizontal root motion is suppressed. Sword strike is 0.40 clip seconds, crossbow release 0.43, axe descent 23/30 (0.767) and cast extension 8/30 (0.267), mapped onto authoritative impact and recovery. Cosmetic effects never apply damage. The hex presentation migration aligns death clips and retained bodies to authoritative death intervals, including cleanup outside combat and reconnect. See the [verification record](verification.md#final-full-gate-passed) for completed source/package checks, final CI and coverage limitations.
+Knight, Barbarian, Rogue and Mage and the four corresponding free Skeleton rigs use imported skeletons and role weapons at `handslot.r`. Committed visual steps interpolate straight between their declared anchors on the common snapshot clock, using walking instead of sprinting. Transient visual crossings of other moving, standing or dying models are intentional; settled models remain at distinct anchors. None of these crossings changes numerical capacity, source attackability, reservations, route choice or arrival timing. Programmatic AnimationTrees sample bounded idle/walk, attack and filtered hit blends, with immediate terminal death precedence. Facing follows the shortest angle using combat-clock advancement and freezes with positions/poses on pause or transport loss. Admission reconstructs the current direction rather than playing a historical turn. These are smoother presentation transitions, not slow motion: every ordinary 60 Hz numerical tick, concurrent action deadline and outcome remains unchanged. Sword uses horizontal slice, Berserker two-handed chop, Crossbowman ranged shot and Mage Spellcast_Shoot. Horizontal root motion is suppressed. Sword strike is 0.40 clip seconds, crossbow release 0.43, axe descent 23/30 (0.767) and cast extension 8/30 (0.267), mapped onto authoritative impact and recovery. Cosmetic effects never apply damage. The hex presentation migration aligns death clips and retained bodies to authoritative death intervals, including cleanup outside combat and reconnect. See the [final presentation gate](verification.md#final-synchronized-presentation-gate-passed) for completed source/package checks and coverage limitations.
 
 Terraces, riverbank, bridge, mountain edges, flags, grain/racks/scaffolding and structural tower bases provide village detail. Raised surfaces, building bounds and selection rings use per-plot heights. The combat approach stays flat. Level two adds distinct structures/props instead of enlarging the whole building. The windmill rotates its separate authored fan node; flags use restrained procedural motion on the same presentation clock.
 
@@ -326,14 +328,15 @@ Accepted local construction/recruitment/research commands cue once by match and 
 A shared, bounded snapshot clock interpolates all bodies with the same fraction,
 without extrapolating beyond authority. A 120-tick, at-most-4096-record event
 history carries final casualty states. Initial admission, reconnect and detected
-history gaps baseline the event cursor at the current high-water mark: only living
-current poses are reconstructed. Overlapping snapshots deduplicate effects;
+history gaps baseline the event cursor at the current high-water mark: current
+living poses and unexpired dying bodies are reconstructed from complete state,
+without historical effects. Overlapping snapshots deduplicate effects;
 revision and match guards reject stale state. A fresh session clears all live/dead
 views, pose buffers and cursors.
 
 New entry visuals wait for their deployment snapshot’s common clock before appearing, preserving separation from interpolated neighbors. Surviving units return to idle after combat while death visuals finish independently.
 
-The 32-vs-32 fixtures verify body separation every step, finite progress and identical serialized results with reversed entity storage, including all four friendly roles against mixed skeleton melee. Ordinary strategy fixtures retain the real defender and default resources and record resources, recruits/casualties, city HP and bounded battle duration.
+The 32-vs-32 numerical fixtures verify legal occupancy every step, finite progress and identical serialized results with reversed entity storage, including all four friendly roles against mixed skeleton melee. Ordinary strategy fixtures retain the real defender and default resources and record resources, recruits/casualties, city HP and bounded battle duration.
 
 
 Economy balance evidence uses the shared ordinary-command policy in `tools/DevRunner/CampaignStrategy.cs`: four solo families and frontline co-op with two, three and four players, each at seeds 0, 1 and 123 (21 complete campaigns). All reached wave-twenty Victory with all original cities alive, 60 real productions and paid battle upkeep. Initial stone/metal/cloth were zero. Final equipment outputs are Metal Mine/Weaver 4/8 per turn; gold/material defaults are rebased, food and combat values remain unchanged. Earlier trials exposed insufficient replacements and late Market construction; the final policies retain more troops and establish Markets earlier.

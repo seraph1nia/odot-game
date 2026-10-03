@@ -41,7 +41,9 @@ internal sealed partial class Runner
             }
             if (Latest(a).Players.Single(c => c.Id == a.PlayerId).Research.Has(TechnologyId.Fire)) await SimulationSpeed(server, 1, token);
             foreach (Child child in new[] { a, b }) await Action(child, "ready", token);
-            MatchSnapshot barrier = Latest(b); await Observe(a, s => s.Revision >= barrier.Revision && s.TurnSerial >= barrier.TurnSerial, "research readiness barrier", token);
+            MatchSnapshot barrier = Latest(b);
+            foreach (Child child in new[] { a, b })
+                await Observe(child, s => ResearchReadyBarrier.Resolved(state, barrier, s), "research stage actually resolves after readiness/cleanup", token);
         }
         MatchSnapshot frozen = State(await Action(a, "pause", token));
         MatchSnapshot seen = await Observe(b, s => s.Paused && s.Tick == frozen.Tick, "same paused active status tick", token);
