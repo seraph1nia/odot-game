@@ -23,7 +23,7 @@ Only authority calls `Step()` on the fixed physics tick. Local rendering and
 remote reliable channel-1 broadcasts consume complete authoritative snapshots.
 Reliable channel 0 carries admission, requests, acknowledgments and session end.
 An acknowledgment is still delivered if a newer channel-1 snapshot has already
-arrived; presentation retains the newer state. Protocol v4 retains v3 handshake attempt
+arrived; presentation retains the newer state. Admission retains handshake attempt
 and expected-match isolation. Exported reconnect retains the required Godot
 RPC-node reset while the persistent application stays alive.
 
@@ -70,7 +70,8 @@ status without forcibly destroying an existing match; Valve documents the live
 connection semantics of [BLoggedOn](https://partner.steamgames.com/doc/api/ISteamUser#BLoggedOn).
 
 
-Current protocol v11 includes typed recruitment, hex movement/profile/action
+The current protocol, declared by
+[`WireJson.ProtocolVersion`](../src/Game.Core/Diagnostics.cs), includes typed recruitment, hex movement/profile/action
 state and bounded ordered combat-event history, plus purchased army homes,
 field/Town hall assignments, independent hall levels/quotes and completed-paid
 recovery eligibility. `Command.UnitId` targets retire/store/send;
