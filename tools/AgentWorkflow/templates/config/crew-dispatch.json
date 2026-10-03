@@ -1,8 +1,0 @@
-{
-  "rules": [
-    { "when": "Odot Scout: intake, investigation or proposal preflight", "use": { "harness": "codex" } },
-    { "when": "Odot Shipper: exactly one approved OpenSpec change", "use": { "harness": "codex" } },
-    { "when": "Odot Reviewer: independent read-only OpenSpec verification", "use": { "harness": "codex" } }
-  ],
-  "default": { "harness": "codex" }
-}

@@ -224,26 +224,3 @@ description = "Profile the selected 600-frame playback on an owned software-rend
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll profile-presentation"
 raw_args = true
-
-[tasks.planning-validate]
-description = "Validate Git-backed roadmap, references and lifecycle receipts without Godot"
-depends = ["runner"]
-run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll planning-validate"
-raw_args = true
-
-[tasks.planning-next]
-description = "Select earliest eligible approved change without changing roadmap order"
-depends = ["runner"]
-run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll planning-next"
-raw_args = true
-
-[tasks.agent-primary]
-description = "Start Pi/FirstMate inside the owned Herdr session (user-provided runtime)"
-run = "bash tools/AgentWorkflow/agent-primary"
-raw_args = true
-
-[tasks.planning-inputs]
-description = "Print current change and code digests for scoped approval/review receipts"
-depends = ["runner"]
-run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll planning-inputs"
-raw_args = true

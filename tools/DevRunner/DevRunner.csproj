@@ -3,7 +3,6 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <InternalsVisibleTo Include="DevRunner.Tests" />
     <ProjectReference Include="../../src/Game.Core/Game.Core.csproj" />
     <Compile Include="../../src/Game/Distribution/ReleaseVersion.cs" Link="Distribution/ReleaseVersion.cs" />

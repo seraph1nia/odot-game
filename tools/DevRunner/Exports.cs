@@ -134,8 +134,6 @@ internal sealed partial class Runner
 
     private async Task CiSource()
     {
-        var planning = PlanningValidation.Check(_root);
-        if (!planning.Valid) throw new InvalidDataException(string.Join("\n", planning.Diagnostics));
         PrivateDisplay.CheckPrerequisites();
         await Preflight();
         await VerifySteamFiles();

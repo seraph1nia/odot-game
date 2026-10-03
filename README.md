@@ -125,7 +125,7 @@ For routine edits, choose the affected slice using the [execution policy](AGENTS
 | Change rendered controls or recovery | `mise run test-ui --scenario reconnect` | Standalone source preparation and owned Linux private display; selected recovery controls/rendering coverage. |
 | Check existing exported presentation | `mise run test-ui --scenario exported-package` | Existing client/server exports and private-display prerequisites required; selected packed UI coverage, with no source preparation or implicit package rebuild. |
 | Start/finish a substantial implementation | `mise run ci` | Full local Linux source gates, ordered client/server exports and headless/graphical package checks; reuse a successful before baseline when source/environment inputs are unchanged. |
-| Edit documentation or planning only | Relevant link/content consistency; `mise run planning-validate` for planning; `openspec validate CHANGE-ID --strict` for changed proposals | No automatic game/export run. Ordinary mise planning tasks restore/build DevRunner but start no Godot; see [planning conventions](planning/README.md). |
+| Edit documentation or an OpenSpec proposal only | Relevant link/content consistency; `openspec validate CHANGE-ID --strict` for changed proposals | No automatic game/export run. |
 
 A filtered pass is partial coverage and cannot replace a required full gate. Run full CI before and after a substantial implementation task; normal CI triggers retain all required gates. Repeat a successful check only for changed relevant inputs, failure or an unresolved concern. See the [selector and preparation details below](#verification-command-details) and [coverage, timings and retained log/PNG evidence](docs/verification.md#verification-speed-implementation-evidence-2026-10-02).
 
@@ -302,17 +302,3 @@ for phase boundaries, counter meanings, scope and comparison limitations.
 Campaign checks retain compact complete summaries and expand their latest 64
 domain records on failure. Set `ODOT_CAMPAIGN_TRACE=1` for detailed successful
 transactions; leave it unset for matched performance measurements.
-
-## Agent workflow POC
-
-Git-backed planning lives in [planning/README.md](planning/README.md). Use
-`mise run planning-validate` to check references, lifecycle receipts and hard
-dependencies, and `mise run planning-next -- --json` for deterministic approved
-next-work selection. These commands start no Godot or agents.
-
-The single Pi/FirstMate primary uses native Herdr/Treehouse/Codex execution;
-[setup and startup](docs/agent-workflow.md) require user-provided runtime tools and
-an owned managed pane. Run `mise run agent-primary` from this checkout inside
-that Herdr pane; the launcher locates FirstMate itself. [Five real-project acceptance scenarios](docs/agent-workflow-scenarios.md)
-remain distinct from the bootstrap tooling tests. Incomplete live acceptance is
-not POC viability; every merge requires explicit approval.
