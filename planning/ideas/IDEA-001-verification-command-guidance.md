@@ -11,9 +11,9 @@ tags: [verification, documentation, developer-experience]
 # Problem
 
 The user wants to "make it easier to tell which Odot verification command I need."
-The confusing situation, intended reader and preferred form of guidance are not
-yet specified. Treat this as a problem to investigate, not approval for a guide
-or a command-selection tool.
+The confusing situation and intended reader are not yet specified. During intake,
+FirstMate relayed the human's shaping choice, "Documentation guide." That selects
+an approach for further shaping, without approving a proposal or implementation.
 
 # Desired outcome
 
@@ -56,8 +56,8 @@ execution and the distinction between partial and complete coverage.
    scenario name, understanding preparation/prerequisites, or interpreting a pass?
 2. Who should the first improvement serve: a human contributor, a coding agent,
    or both? Should the entry point be README, runner help, or another existing page?
-3. Would a short task-based guide, a comprehensive command reference, or an
-   executable recommendation help most? These are options, not selected solutions.
+3. For the selected documentation guide, would a short task-based path or a
+   comprehensive command reference help most? Where should readers find it?
 4. Should the initial scope cover routine rules/network/UI/CI/planning checks,
    with profiles, native packages and two-account Steam acceptance linked separately?
 
@@ -70,17 +70,22 @@ execution and the distinction between partial and complete coverage.
 | Improved runner help or a read-only recommender | Makes choices discoverable at invocation time | Production runner work; needs defined inputs and recommendation semantics, cheap tests, and a way to avoid presenting heuristics as full verification |
 | First reconcile existing guidance and canonical-spec drift | Reduces contradictory descriptions and builds on existing work | Requires separately scoped lifecycle authority; may not solve the user's particular confusion |
 
-If the difficulty is routine tier selection, a narrow documentation improvement
-is the lowest-cost candidate. That recommendation is conditional and does not
-choose a surface or authorize implementation.
+The human selected a documentation guide while intake was running. If the
+difficulty is routine tier selection, a narrow task-based guide is the
+lowest-cost candidate within that approach. Its surface and content remain
+undecided; the recommendation does not authorize implementation.
 
 # Decisions
 
 Record `IDEA-001` as `exploring`. Active and archived idea directories contained
 only their README files at intake, so this is the next unused stable ID.
-No solution, audience, implementation scope, roadmap position, approval or
-promotion has been decided. The questions above concern possible future shaping;
-none requires an answer to finish this planning-only intake.
+One human shaping intervention selected "Documentation guide," relayed by
+FirstMate in task inbox message `002.msg` at 2026-10-03T09:37:13Z. Retain
+`exploring`: the audience, document location, content boundaries, acceptance
+examples and roadmap position remain undecided. No proposal, implementation
+approval or promotion was created. The questions above concern possible future
+shaping; none requires an answer to finish this planning-only intake, which
+FirstMate explicitly instructed the worker to finish without starting scenario 2.
 
 # Relevant code
 
