@@ -2203,3 +2203,38 @@ This source-only run does not claim fresh export/package coverage or a replaceme
 GitHub check. Unchanged package coverage remains the passing hosted jobs and the
 full local gate recorded above. The outer pipeline must publish the corrected
 head and obtain its replacement passing GitHub source verdict; no check was waived.
+
+### Hosted combat locomotion timing repair, 2026-10-03
+
+GitHub run `37135250968`, source job `111238369073`, head
+`c2298c21f76f01dda2f4e3dacae546299a9bf89f`, failed the combat slice at
+`actual locomotion pose`; launcher was cancelled by the resulting suite cleanup.
+The source fixture resumed after its paused Catapult capture, before a pacing
+acknowledgment and the first locomotion probe. Those round trips could consume
+the remaining movement window. The local before slice passed (91.58s scenario,
+104.40s runner), so the hosted deadline was not reproduced locally.
+
+The fixture now retains the tower pause through the return-to-own-city and first
+locomotion observation, then resumes before the existing position-and-bone-change
+assertion. A live observation assertion requires that first source witness to be
+paused. No deadline, retry, gameplay rule, scenario or existing assertion changed.
+Locked restore, formatting and all 439 gameplay / 149 runner checks passed.
+Selected combat passed in 94.18s (101.95s runner), with evidence at
+`logs/20261003-161700-2a5bb311/`.
+
+The exact affected hosted command,
+`mise run ci-source --startup-timeout-ms 60000`, passed in **272.60s**
+(**275.10s** including mise bootstrap), with locked restore/format/build/import,
+all 439+149 C# checks, all six network scenarios and all five source UI slices.
+Evidence: `logs/20261003-161907-64fa0421/ci-source-summary.json`; console logs
+and cleanup inspection: `logs/ci-combat-diagnosis/`. Network took 113.90s
+including admission; source UI took 246.89s. Combat's owned worker took 100.99s
+and passed both the paused first witness and ensuing live movement/pose checks.
+All 19 owned runtime directories were absent after awaited cleanup, with 60 child
+cleanup checkpoints and no remaining processes referencing their runtime/evidence
+paths or owned display-worker groups (`cleanup.json`).
+
+This is Linux private-X11/software-OpenGL/Dummy-audio source coverage, not a new
+full export/package gate or a replacement hosted verdict. No packages were rebuilt,
+published or uploaded. The outer executor still owns publication and the required
+GitHub checks on the corrected head.
