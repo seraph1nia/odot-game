@@ -5,13 +5,10 @@ Friends do not need Godot, the .NET SDK, mise, or a dedicated server. Packaged
 multiplayer uses Steam; when Steam is unavailable, the start screen and solo
 game remain usable and explain that multiplayer is unavailable.
 
-The public name is The Common Watch (formerly Odot). Package filenames, URLs,
-`odot` commands, install locations and the `Odot - Nine Tiles` Godot user-data
-identity remain unchanged so upgrades retain existing preferences and private
-credentials. Windows Start Menu shortcut/group aliases remain **Odot**; the
-installer product name and Linux application-menu display name are **The Common
-Watch**. Earlier released packages may still show the old public title; this
-rebrand does not itself publish or bump a release.
+See the [stable technical identity](../README.md#stable-technical-identity)
+for the rebrand's compatibility policy. The installer product name and Linux
+application-menu display name are **The Common Watch**. Earlier released
+packages may still show the old public title.
 
 ## Installing on Windows
 
@@ -19,7 +16,8 @@ Download `odot-V-windows-x64-setup.exe` from the selected GitHub release and
 run it. The unsigned installer may trigger Microsoft Defender SmartScreen;
 inspect the release checksum and choose the operating-system option to continue
 only if the checksum matches. It installs for the current user under
-`%LOCALAPPDATA%\Programs\Odot`, creates an **Odot** Start Menu entry, and does
+`%LOCALAPPDATA%\Programs\Odot`, retains the legacy **Odot** Start Menu
+shortcut/group aliases, and does
 not request administrator access. Godot and a system-wide .NET runtime are not
 required.
 

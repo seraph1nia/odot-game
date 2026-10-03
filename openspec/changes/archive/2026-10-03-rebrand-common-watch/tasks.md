@@ -9,7 +9,7 @@
 
 ## 2. Package display identity without migrations
 
-- [x] 2.1 Update Linux desktop display name and installer user messages, plus Windows installer product/version/launch display text, preserving every GUID, path, shortcut/group alias, executable, launcher and release identifier; extend cheap packaging/source-identity assertions and verify `mise run test` including existing Linux install/upgrade/uninstall coverage.
+- [x] 2.1 Update Linux desktop display name and installer user messages, plus Windows installer product/version/launch display text, preserving every GUID, path, shortcut/group alias, executable, launcher and release identifier; extend cheap normalized installer/desktop configuration assertions and verify `mise run test` including existing Linux install/upgrade/uninstall coverage.
 - [x] 2.2 Update distribution/player launch documentation and Steam paired-check instructions for the public title, explicitly documenting stable Odot paths/commands and Windows shortcut aliases; verify all command and path examples still match unchanged tooling, without running real invitation UI or publishing a release.
 
 ## 3. Integration and handoff

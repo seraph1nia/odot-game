@@ -32,7 +32,7 @@ Update current README and gameplay/distribution descriptions, but preserve techn
 
 ### Extend existing verification at the affected boundaries
 
-Use cheap packaging/update/source-identity assertions for display strings and stable identities. Extend the existing `launcher` UI observation with live title, positioning, window title and title control bounds, asserting fit and consistency at its already-tested sizes and after returning from solo. The defect caught is stale/clipped branding or a window-title reset: cheap source assertions cannot establish native layout, and existing launcher checks do not inspect branded labels. Added execution cost is a few assertions/probes within the owned fixture; no additional display, battle or standalone scenario is justified. Existing source/packed CI then verifies export inclusion.
+Use cheap executable update-copy assertions and normalized active installer/desktop configuration checks for display strings and stable installation identities. Observe Godot's data identity through the existing live user-data path assertion rather than redundant source/configuration substring checks. Extend the existing `launcher` UI observation with live title, positioning, window title and title control bounds, asserting fit and consistency at its already-tested sizes and after returning from solo. The defect caught is stale/clipped branding or a window-title reset: cheap configuration assertions cannot establish native layout, and existing launcher checks do not inspect branded labels. Added execution cost is a few assertions/probes within the owned fixture; no additional display, battle or standalone scenario is justified. Existing source/packed CI then verifies export inclusion.
 
 ## Risks / Trade-offs
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Give all Odot-owned graphical menus and match controls a consistent free Trio UI presentation with meaningful icons and readable, accessible interactions.
+Give all game-owned graphical menus and match controls a consistent free Trio UI presentation with meaningful icons and readable, accessible interactions.
 
 ## Requirements
 

@@ -11,7 +11,7 @@ The name describes a watch kept for everyone's homes: separate villages, shared 
 
 ### Stable technical identity
 
-The Common Watch was previously named Odot. Technical names remain unchanged for compatibility: `Odot.slnx`, namespaces, `ODOT_*` variables, repository/release URLs, `odot` executables and package names. Godot's internal project name remains `Odot - Nine Tiles` so existing preferences and private credentials keep their original user-data path; the graphical window and menus use The Common Watch. Windows shortcut/group aliases still say **Odot**, while the installer product name and Linux application-menu display name use **The Common Watch**. No data migration, protocol change or separate release is implied.
+The Common Watch was previously named Odot. Technical names remain unchanged for compatibility: `Odot.slnx`, namespaces, `ODOT_*` variables, repository/release URLs, `odot` executables and package names. Godot's internal project name remains `Odot - Nine Tiles` so existing preferences and private credentials keep their original user-data path; the graphical window and menus use The Common Watch. No data migration, protocol change, version bump or separate release is implied. See [desktop distribution](docs/distribution.md) for installation display names and legacy launch aliases.
 
 ## License and contributions
 
