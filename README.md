@@ -111,6 +111,25 @@ Run `prepare` first for direct commands. Headless is a display mode; explicit `-
 
 ## Verification and exports
 
+### Choose a check
+
+For routine edits, choose the affected slice using the [execution policy](AGENTS.md#choose-checks-by-cost-and-affected-behavior). These examples show relative cost and coverage; choose another current selector when it better matches the change.
+
+| Task | Check | Preparation, cost and coverage |
+| --- | --- | --- |
+| Change numerical rules or runner logic | `mise run test` | Locked restore/build of cheap C# gameplay and runner suites; no Godot. Run frequently when applicable. |
+| Diagnose affected networking or transfer | `mise run test-network --scenario redistribution` | Standalone source preparation and real headless peers; selected transfer coverage. |
+| Change rendered controls or recovery | `mise run test-ui --scenario reconnect` | Standalone source preparation and owned Linux private display; selected recovery controls/rendering coverage. |
+| Check existing exported presentation | `mise run test-ui --scenario exported-package` | Existing client/server exports and private-display prerequisites required; selected packed UI coverage, with no source preparation or implicit package rebuild. |
+| Start/finish a substantial implementation | `mise run ci` | Full local Linux source gates, ordered client/server exports and headless/graphical package checks; reuse a successful before baseline when source/environment inputs are unchanged. |
+| Edit documentation or planning only | Relevant link/content consistency; `mise run planning-validate` for planning; `openspec validate CHANGE-ID --strict` for changed proposals | No automatic game/export run. Ordinary mise planning tasks restore/build DevRunner but start no Godot; see [planning conventions](planning/README.md). |
+
+A filtered pass is partial coverage and cannot replace a required full gate. Run full CI before and after a substantial implementation task; normal CI triggers retain all required gates. Repeat a successful check only for changed relevant inputs, failure or an unresolved concern. See the [selector and preparation details below](#verification-command-details) and [coverage, timings and retained log/PNG evidence](docs/verification.md#verification-speed-implementation-evidence-2026-10-02).
+
+[Setup](#setup) owns the locked tools and user-managed OS/private-display prerequisites. Missing prerequisites are **unexecuted**; assertion/rendering failures are **failed**. Software-rendered frames and silent audio assertions do not establish native compositor/GPU performance, physical input or listening quality. [Runtime profiles](docs/simulation-performance.md), [native package checks](docs/distribution.md) and [paired Steam acceptance](docs/verification.md#external-steam-prerequisites-and-deferred-acceptance) remain separate routes.
+
+### Verification command details
+
 `test` runs cheap xUnit gameplay and runner tests without Godot. `test-network` launches separate real headless ENet peers and preserves ownership, economy, readiness, battle, pause/resume, retry, transfer, observer and early-clear/defeat coverage; complete victory and boss flows run in C#. Stable ids are `authority-resume-victory`, `redistribution`, `defeat`, `failure-cases`, `solo-session` and `playing-host-lifecycle`. The new slices cover socketless solo and original playing-host lifetime. Independent cases run with two workers by default; `--jobs 1` runs the same assertions serially. `--scenario NAME` runs only that case and reports selected coverage. `--port` pins the authority case, so it is rejected with other selected cases. Failure checks include unavailable/stopped servers, occupied ports, automatic bind retry, readiness deadlines and child exit; unrelated owners are preserved.
 
 `test-ui` runs five source slices with at most two workers, each on its own Xvfb/Xauthority/Openbox display: `economy` checks picking, six-resource costs, equipment recruitment, upkeep, land expansion, Market trades and sale/rebuild input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking plus one persisted volume change. `launcher` checks menu, offline feedback, settings/music continuity, solo, return/fresh session and actual Exit at 1100×820 and 1280×720. `combat` checks mixed rigged units, contact, attack/effect/death poses, pause and fresh-session cleanup. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
