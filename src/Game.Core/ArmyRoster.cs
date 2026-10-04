@@ -17,7 +17,8 @@ public sealed record TownHallState(int Slot, long Generation, int CapacityLevel,
 public sealed record ArmyState(int PurchasedHomes, ArmyHomeState[] Homes, int[] HomePrices, TownHallState[] Halls);
 
 // One frozen quote/placement module serves authority, projections and disabled-action previews.
-// All placement inputs are living owned soldiers; health and lifetime remain in combat.
+// Callers supply the owned roster; only living assigned soldiers claim placement.
+// Health and lifetime remain in combat.
 public sealed class ArmyConfiguration
 {
     private readonly int[] _prices;
