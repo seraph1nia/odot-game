@@ -50,17 +50,16 @@ public sealed class ArmyConfiguration
     public ArmyAssignment? Find(IEnumerable<UnitState> soldiers, int purchased, int size, int hallSlot = -1, long generation = 0, int capacity = 0)
     {
         if (size is < 1 or > 6 || purchased is < 2 or > 6) throw new ArgumentOutOfRangeException(nameof(size));
-        ArmyAssignment[] claims = soldiers.Where(u => u.Health > 0 && u.Assignment is not null)
+        UnitState[] claims = soldiers.Where(u => u.Health > 0 && u.Assignment is not null)
             .Where(u => hallSlot < 0 ? !u.Assignment!.Stored : u.Assignment!.HallSlot == hallSlot && u.Assignment.HallGeneration == generation)
-            .Select(u => u.Assignment!).ToArray();
-        UnitState[] owned = soldiers.Where(u => u.Health > 0 && u.Assignment is not null).ToArray();
+            .ToArray();
         IEnumerable<int> tiles = hallSlot < 0 ? _cells.Take(purchased) : Enumerable.Range(0, capacity / 6);
         foreach (int tile in tiles)
         {
-            int used = owned.Where(u => u.Assignment!.Tile == tile && claims.Contains(u.Assignment)).Sum(u => u.Size);
+            int used = claims.Where(u => u.Assignment!.Tile == tile).Sum(u => u.Size);
             if (used + size > 6) continue;
             foreach (int anchor in _anchors)
-                if (!claims.Any(c => c.Tile == tile && c.Anchor == anchor)) return new(hallSlot, generation, tile, anchor);
+                if (!claims.Any(u => u.Assignment!.Tile == tile && u.Assignment.Anchor == anchor)) return new(hallSlot, generation, tile, anchor);
         }
         return null;
     }

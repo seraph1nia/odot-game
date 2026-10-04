@@ -19,6 +19,23 @@ remote actions. Hosted start belongs to the original bound host; dedicated
 start remains available to connected members. Capacity is four, with nine plots
 per city. No gameplay or balance rules are duplicated in presentation.
 
+`Command.FromSnapshot` captures match/phase/stage and building-generation,
+plot-count, home-count and selected hall-track expectations for both `Main`
+and ordinary campaign verification. Callers reserve the sequence first and
+retain the resulting request for retry; they never refresh its quotes when
+resending it. The raw wire constructor/defaults remain available for delivery
+and deliberately stale/invalid request checks. Authority validation remains
+mandatory; constructing a request does not authorize or mutate it.
+
+After its shared owner/match/phase/payment/pause/Ready guards, `Match.Apply`
+delegates city editing to the internal `SettlementCommands` module and advances
+revision once for an accepted edit. That module owns quote/instance/capacity
+checks and validated city mutations, not admission, retries, production or
+battle progression. `ArmyConfiguration.Find` uses one living assigned-soldier
+view scoped to field or exact hall generation for both size and anchor checks;
+authority and previews share it. Combat remains the only unit health/identity
+store, with unchanged restoration and death-cleanup barriers.
+
 Only authority calls `Step()` on the fixed physics tick. Local rendering and
 remote reliable channel-1 broadcasts consume complete authoritative snapshots.
 Reliable channel 0 carries admission, requests, acknowledgments and session end.

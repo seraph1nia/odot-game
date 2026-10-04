@@ -43,6 +43,80 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         Assert.Equal(before.Soldiers.Select(u => (u.Id, u.Health, u.Assignment)), after.Soldiers.Take(6).Select(u => (u.Id, u.Health, u.Assignment)));
     }
 
+    // Recovered network transcript: logs/20261004-050537-85a32d77.
+    // Same default paid opening and seed; tick 391 retains the captured cleanup.
+    [Fact]
+    public void RecoveredNetworkSeedPaysForRoomBeforeExplicitRangedRecruitAndKeepsRetries()
+    {
+        const ulong seed = 11669866211869037831UL;
+        using var flow = new SessionFlow(AuthorityPolicy.Dedicated, seed: seed);
+        void Act(int player, EconomyAction action) => flow.Act(player, action);
+        void Ready() { Act(1, new("ready")); Act(2, new("ready")); }
+        void Recruit(int player, int count) { for (int i = 0; i < count; i++) Act(player, new("recruit", 1)); }
+        CityState City() => flow.State.Players.Single(p => p.Id == 2);
+        string Frozen() => JsonSerializer.Serialize(flow.State, WireJson.Options);
+        Act(1, new("start"));
+        foreach (int player in new[] { 1, 2 })
+        {
+            Act(player, new("build", 0, Building.Farm));
+            Act(player, new("build", 1, Building.Barracks));
+            Act(player, new("build", 2, Building.MetalMine));
+        }
+        foreach (int player in new[] { 1, 2 })
+        { Act(player, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)); Act(player, new("ready")); }
+        Recruit(1, 2); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
+        foreach (int player in new[] { 1, 2 })
+        { Act(player, new("build", 4, Building.Stonecutter)); Act(player, new("buy-plot", 5)); Recruit(player, 2); Act(player, new("ready")); }
+        Recruit(1, 2); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
+        flow.StepUntil(s => s.Phase == Phase.Building);
+        Assert.Equal(2, flow.State.Wave);
+        Act(2, new("buy-plot", 7)); Act(2, new("build", 7, Building.ArcheryRange));
+        Act(1, new("upgrade", 1)); Ready();
+        flow.StepUntil(s => s.Tick == 391);
+        Recruit(1, 1); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
+        CityState before = City();
+        Assert.Equal(seed, flow.State.CombatSeed);
+        Assert.Equal(3, flow.State.Turn);
+        Assert.Equal(new ResourceCost(7, 2, Food: 24, Stone: 3, Metal: 4), before.Resources);
+        Assert.Equal(2, before.Army!.PurchasedHomes);
+        Assert.Equal([6, 6], before.Army.Homes.Where(h => h.Purchased).Select(h => h.Used));
+        Assert.Equal([3, 7, 11, 12, 22, 23], before.Soldiers.Select(u => u.Id));
+        Assert.Equal([4000, 1000, 2000, 3000, 4000, 4000], before.Soldiers.Select(u => u.Health));
+        var ranged = new EconomyAction("recruit", 7, Unit: UnitType.Crossbowman);
+        Command rejected = flow.Command(2, ranged); string unchanged = Frozen();
+        CommandResult refusal = flow.Send(2, rejected);
+        Assert.False(refusal.Accepted);
+        Assert.Equal("Battlefield homes are full. Buy a home, store or retire a unit.", refusal.Message);
+        Assert.Equal(unchanged, Frozen());
+        Assert.Equal(refusal, flow.Send(2, rejected)); Assert.Equal(unchanged, Frozen());
+        Assert.Equal(5, before.Army.HomePrices[before.Army.PurchasedHomes - 2]);
+        long revision = flow.State.Revision;
+        Command purchase = flow.Act(2, new("buy-home"));
+        CityState expanded = City();
+        Assert.Equal(revision + 1, flow.State.Revision);
+        Assert.Equal(new ResourceCost(2, 2, Food: 24, Stone: 3, Metal: 4), expanded.Resources);
+        Assert.Equal(3, expanded.Army!.PurchasedHomes);
+        unchanged = Frozen();
+        Assert.True(flow.Send(2, purchase).Accepted); Assert.Equal(unchanged, Frozen());
+        // Refused identities remain refused after capacity changes; a fresh request succeeds.
+        Assert.Equal(refusal, flow.Send(2, rejected)); Assert.Equal(unchanged, Frozen());
+        Command accepted = flow.Command(2, ranged);
+        CommandResult result = flow.Send(2, accepted); Assert.True(result.Accepted);
+        CityState after = City();
+        Assert.Equal(revision + 2, flow.State.Revision);
+        Assert.Equal(new ResourceCost(2, 0, Food: 24, Stone: 3, Metal: 3), after.Resources);
+        Assert.Equal(7, after.Soldiers.Length);
+        Assert.Equal(before.Soldiers.Select(u => (u.Id, u.Health, u.Assignment)), after.Soldiers.Take(6).Select(u => (u.Id, u.Health, u.Assignment)));
+        UnitState recruited = after.Soldiers[^1];
+        Assert.Equal(UnitType.Crossbowman, recruited.Type);
+        Assert.Equal(after.Army!.Homes[2].Cell, recruited.Assignment!.Tile);
+        unchanged = Frozen(); Assert.Equal(result, flow.Send(2, accepted)); Assert.Equal(unchanged, Frozen());
+        string gameplay = SessionFlow.Gameplay(flow.State);
+        flow.Disconnect(2); flow.Rebind(2, 9);
+        Assert.Equal(result, flow.Send(2, accepted)); Assert.Equal(gameplay, SessionFlow.Gameplay(flow.State));
+        output.WriteLine(JsonSerializer.Serialize(new { seed, before.Resources, After = after.Resources, recruited.Id, Revision = revision + 2 }, WireJson.Options));
+    }
+
     [Fact]
     public void SameSeedOrdinaryCampaignPreparesAndClearsTheThirdWaveWithoutFixtureGrants()
     {
