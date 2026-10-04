@@ -7,10 +7,9 @@ internal sealed record EconomyAction(string Action, int Slot = -1, Building Buil
 {
     public Command Command(MatchSnapshot state, int player, long sequence = 1)
     {
-        CityState city = state.Players.Single(p => p.Id == player);
-        return new(sequence, state.MatchId, state.Phase, state.TurnSerial, Action, player, Slot, Building, Unit,
-            Slot is >= 0 and < 9 ? city.Slots[Slot].Generation : 0, city.Slots.Count(s => s.Purchased) - 5, Resource, Bundles, Technology, Payment, UnitId, city.Army?.PurchasedHomes ?? -1,
-            Slot is >= 0 and < 9 ? Action == "upgrade-capacity" ? city.Slots[Slot].CapacityLevel : Action == "upgrade-healing" ? city.Slots[Slot].HealingLevel : -1 : -1);
+        _ = state.Players.Single(p => p.Id == player);
+        return Game.Core.Command.FromSnapshot(state, sequence, Action, player, Slot, Building, Unit,
+            Technology, Resource, Bundles, Payment, UnitId);
     }
 }
 

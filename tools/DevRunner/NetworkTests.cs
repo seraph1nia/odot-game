@@ -149,6 +149,9 @@ internal sealed partial class Runner
         await Action(b, "buy-plot 7", token);
         await Action(b, "build 7 archeryrange", token);
         await Advance([a, b], token); await Advance([a, b], token);
+        // Policy refill can occupy both homes after ordinary first-wave casualties.
+        // Buy quoted field room before the explicit retry/reconnect witness.
+        await EnsureFieldRoom(b, token, actualInput: false);
         MatchSnapshot before = Latest(b);
         CommandResult spent = (await Action(b, "recruit 7 crossbowman", token)).Result!;
         var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 7, SoldierType: UnitType.Crossbowman, ExpectedGeneration: before.Players.Single(p => p.Id == cb.PlayerId).Slots[7].Generation);

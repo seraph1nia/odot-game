@@ -1,5 +1,49 @@
 # Cooperative POC verification
 
+## Settlement-command architecture hardening, 2026-10-04
+
+Behavior-preserving request construction, internal city-edit dispatch and scoped
+persistent placement retain protocol 11, paid roster/recovery rules, numerical
+configuration, dependency/asset locks and all five frozen reference digests.
+`CommandConstructionTests` independently checks contextual fields, defaults,
+wire parity and stale request/retry behavior. `SettlementCommandTests` passed
+five paid authority/placement characterizations before extraction; the recurring
+acceptance command is `mise run test`, without a Godot process.
+
+Full before-CI on landed `8f3d62e` passed in **350.61s** (**481 gameplay / 173 runner**), evidence
+`logs/20261004-043222-241a9359/ci-summary.json`. The first focused
+`authority-resume-victory` run failed in **6.71s** (runner **12.30s**),
+`logs/20261004-050537-85a32d77/`: seed `11669866211869037831` left two full
+homes after policy refill, but the fixture unconditionally recruited a Crossbowman.
+`EconomyArmyFixtureTests.RecoveredNetworkSeedPaysForRoomBeforeExplicitRangedRecruitAndKeepsRetries`
+replays ordinary paid production/battle setup on both landed baseline and
+refactored source (**1.0420s / 1.0384s**). It preserves exact veteran ids,
+wounds/assignments, atomic full-home rejection, quoted 5-gold expansion,
+2-wood/1-metal equipment payment and original accepted/refused identities through
+retries/rebind. The existing network slice now reuses `EnsureFieldRoom` before
+its explicit recruit and payment snapshot; no grants, retirement, weakened
+assertions, gameplay change or additional expensive scenario.
+
+Corrected `mise run test-network --scenario authority-resume-victory` passed
+in **26.12s** (runner **31.76s**), `logs/20261004-051549-3ee514e9/`.
+`mise run test-ui --scenario economy --checkpoint army` passed in **52.72s**
+(runner **61.01s**), `logs/20261004-051622-e0e5fb0b/`. Inspected baseline/after
+full-hall PNGs are byte-identical; after opening, expansion/retirement and
+paid-recovery frames retain readable controls, physical locks and veteran ids.
+
+Full after `mise run ci` passed in **341.79s**: **494 gameplay / 173 runner**,
+zero failures/skips; all six network cases, five source UI slices, sequential
+Linux client/server exports, headless package smoke and graphical package smoke.
+Evidence: `logs/20261004-051738-7303260d/ci-summary.json`; source UI **290.50s**,
+exports **5.94s / 3.85s**, headless smoke **1.30s**, graphical package **15.25s**.
+The packed 1280×720 frame was inspected. Owned peers/displays/data cleanup was
+awaited with no cleanup error; no desktop sessions or preferences were used.
+This is Linux x86_64 X11/llvmpipe/Dummy-audio evidence, not native GPU/compositor,
+physical input/listening, Windows/macOS qualification or paired Steam acceptance.
+Only the private review HTML's optional browser-render audit is explicitly
+unverified/deferred for missing owned browser prerequisites; all required game
+checks executed. No uploads or publishing occurred.
+
 ## Economy, army and campaign implementation baseline, 2026-10-02
 
 At source revision `ad771f7595db3a9db53a0a698bba281644597fcf`, the initial

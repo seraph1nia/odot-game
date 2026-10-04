@@ -462,11 +462,8 @@ public partial class Main : Node, IGameSession
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
         int owner = city == 0 ? PlayerId : city;
-        CityState? target = State.Players.FirstOrDefault(p => p.Id == owner);
-        long generation = target is not null && slot is >= 0 and < 9 ? target.Slots[slot].Generation : 0;
-        var request = new Command(sequence, State.MatchId, State.Phase, State.TurnSerial, action, owner, slot, building, soldierType,
-            generation, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5, resource, bundles, technology, payment, unitId, target?.Army?.PurchasedHomes ?? -1,
-            target is not null && slot is >= 0 and < 9 ? action == "upgrade-capacity" ? target.Slots[slot].CapacityLevel : action == "upgrade-healing" ? target.Slots[slot].HealingLevel : -1 : -1);
+        Command request = Command.FromSnapshot(State, sequence, action, owner, slot, building, soldierType,
+            technology, resource, bundles, payment, unitId);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
