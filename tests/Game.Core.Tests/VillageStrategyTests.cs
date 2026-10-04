@@ -9,9 +9,10 @@ namespace Game.Core.Tests;
 public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
     [Theory]
-    [InlineData(90UL)]
-    // A reproducible live-frontage witness, not a balance sample. The new wave-two
-    // all-melee composition and funded L2 opening produce this contact at seed 90 under combat rules 5.
+    [InlineData(109UL)]
+    // A reproducible frontage witness, not a balance sample. First-fit paid homes
+    // use a Stonecutter-backed L3 receiving opening; seed 109 retains every
+    // cleared-frontage, bounded admission, retained identity and survival assertion.
     public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
     {
         using Match match = Start(3, seed);
@@ -92,7 +93,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.False(Act(match, 1, "build", 0, Building.Lumbermill).Accepted);
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 0, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)).Accepted); Assert.True(Act(match, 1, "ready").Accepted);
         Assert.Equal(1, city.Wood); Assert.Equal(10, city.Gold);
-        Assert.Equal(13, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
+        Assert.Equal(14, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
     }
     [Fact]
     public void ThirdProductionCanBeSpentBeforeBattleAndPreparationHasNoIncome()

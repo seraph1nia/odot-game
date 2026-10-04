@@ -21,7 +21,7 @@ internal sealed class CombatLayout(HexBoard board)
     }
     private Vector3 Position(int city, HexUnitState hex, double tick)
     {
-        if (hex.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve) return Center(city);
+        if (hex.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve or UnitLifecycle.Stored) return Center(city);
         Vector3 position = Anchor(board, hex.Position);
         if (hex.HoldsTransit)
         {

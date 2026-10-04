@@ -23,7 +23,7 @@ Only authority calls `Step()` on the fixed physics tick. Local rendering and
 remote reliable channel-1 broadcasts consume complete authoritative snapshots.
 Reliable channel 0 carries admission, requests, acknowledgments and session end.
 An acknowledgment is still delivered if a newer channel-1 snapshot has already
-arrived; presentation retains the newer state. Protocol v4 retains v3 handshake attempt
+arrived; presentation retains the newer state. Admission retains handshake attempt
 and expected-match isolation. Exported reconnect retains the required Godot
 RPC-node reset while the persistent application stays alive.
 
@@ -70,8 +70,17 @@ status without forcibly destroying an existing match; Valve documents the live
 connection semantics of [BLoggedOn](https://partner.steamgames.com/doc/api/ISteamUser#BLoggedOn).
 
 
-Protocol v4 adds typed recruitment, scalar forward/lateral bodies, movement,
-profile and target/action timing, and bounded ordered combat-event history.
+The current protocol, declared by
+[`WireJson.ProtocolVersion`](../src/Game.Core/Diagnostics.cs), includes typed recruitment, hex movement/profile/action
+state and bounded ordered combat-event history, plus purchased army homes,
+field/Town hall assignments, independent hall levels/quotes and completed-paid
+recovery eligibility. `Command.UnitId` targets retire/store/send;
+`ExpectedHomeCount` binds the next home price, `ExpectedTrackLevel` binds the
+selected hall upgrade quote, and `ExpectedGeneration` binds the hall instance.
+The existing authenticated owner, match/phase/stage, ready/pause and sequence
+ledger checks still apply. Full snapshots detach assignments, all-owned food
+forecast/funded/field-participant receipts and current wounds; reconnect never
+replays production, food payment or healing.
 `recruit <slot>` still means Swordsman; automation also accepts
 `recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
 is no mixed-version play. Stable unit IDs and event sequences are match-scoped,

@@ -38,7 +38,8 @@ public static class Catalogs
         new(Building.Stonecutter, new(Wood: 2), new(Wood: 2, Stone: 2), rules.StoneOutput, rules.StoneOutputLevelTwo, Produces: Resource.Stone),
         new(Building.MetalMine, new(Wood: 2), new(Wood: 2, Stone: 2), rules.MetalOutput, rules.MetalOutputLevelTwo, Produces: Resource.Metal),
         new(Building.Weaver, new(Wood: 2), new(Wood: 2, Stone: 2), rules.ClothOutput, rules.ClothOutputLevelTwo, Produces: Resource.Cloth),
-        new(Building.Market, new(Wood: 2, Stone: 2), default, MaximumLevel: 1)
+        new(Building.Market, new(Wood: 2, Stone: 2), default, MaximumLevel: 1),
+        new(Building.TownHall, new(5, 2, Stone: 2), default, MaximumLevel: 1)
     ];
     public static TowerDefinition[] Towers(Rules? rules = null) => CombatConfiguration.TowerProfiles(rules ?? new());
     public static UnitDefinition[] Units(Rules rules) =>

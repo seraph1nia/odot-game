@@ -42,14 +42,30 @@ internal sealed partial class Runner
         {
             await Action(observer, "sell 2", token); city = State(await Action(observer, "build 2 catapulttower", token)).Players.Single(p => p.Id == observer.PlayerId);
         }
-        if (city.Slots[2].Type == Building.CatapultTower && city.Slots[2].UpgradeQuote is ResourceCost upgrade && city.Resources.TryPay(upgrade, out _)) await Action(observer, "upgrade 2", token);
+        if (city.Slots[2].Type == Building.CatapultTower && city.Slots[2].UpgradeQuote is ResourceCost upgrade && city.Resources.TryPay(upgrade, out _))
+            city = State(await Action(observer, "upgrade 2", token)).Players.Single(p => p.Id == observer.PlayerId);
+    }
+    private async Task EnsureFieldRoom(Child client, CancellationToken token, bool actualInput = true)
+    {
+        CityState city = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        if (city.Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6)) return;
+        int next = city.Army.PurchasedHomes - 2;
+        Require(next < city.Army.HomePrices.Length && city.Gold >= city.Army.HomePrices[next], "ordinary quoted expansion funds the next role's physical home");
+        if (actualInput) await ClickAck(client, "BuyHome", token); else await Action(client, "buy-home", token);
     }
     private async Task UiSwords(Child client, int slot, int target, CancellationToken token, bool actualInput = true)
     {
         if (actualInput && !_inputWitnesses.Contains("Recruit")) await Pick(client, slot, token);
-        while (Latest(client).Players.Single(p => p.Id == client.PlayerId) is CityState city && city.Soldiers.Length < target
+        while (Latest(client).Players.Single(p => p.Id == client.PlayerId) is CityState city && city.Soldiers.Count(u => u.Assignment is not { Stored: true }) < target
             && city.Resources.TryPay(city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[slot].Level).Cost, out _))
         {
+            if (!city.Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6))
+            {
+                int next = city.Army.PurchasedHomes - 2;
+                if (next >= city.Army.HomePrices.Length || city.Gold < city.Army.HomePrices[next]) break;
+                if (actualInput) await ClickAck(client, "BuyHome", token); else await Action(client, "buy-home", token);
+                continue;
+            }
             int food = city.Food; GameEvent recruit = actualInput && _inputWitnesses.Add("Recruit") ? await ClickAck(client, "Recruit", token) : await Action(client, $"recruit {slot}", token);
             Require(State(recruit).Players.Single(p => p.Id == client.PlayerId).Food == food, "actual material recruitment does not deduct food");
         }
@@ -70,13 +86,16 @@ internal sealed partial class Runner
         await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
         await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
         await TowerOpening(observer, token);
-        await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
         await Pick(client, 3, token); await Click(client, "ProductionChoices", token);
         UiObservation recovery = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(recovery.Targets["LumbermillRecovery"].Visible && recovery.Targets["LumbermillRecovery"].Enabled && !recovery.Targets["Lumbermill"].Enabled, "zero-wood recovery is explicit and the normal build stays disabled");
         Require(recovery.Targets["LumbermillRecovery"].Text.Contains("4 Gold", StringComparison.Ordinal), "recovery displays its full authoritative gold quote");
         await ClickAck(client, "LumbermillRecovery", token);
         await Checkpoint(client, "economy-recovery-income", token);
+        // Start ordinary material production early enough to fund replacement
+        // equipment; the packed-home opening loses one more veteran than before.
+        await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
+        await Action(client, "build 4 stonecutter", token);
         await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
         await UiSwords(client, 2, 6, token);
         CityState equipped = Latest(client).Players.Single(p => p.Id == client.PlayerId);
@@ -84,8 +103,11 @@ internal sealed partial class Runner
         await UiReadyPair(client, observer, token);
         Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).LastUpkeep is { Wave: 1, Paid: 6 }, "battle-start food receipt pays once through actual Ready input");
         await UiClear(client, observer, 1, token);
-        await Action(client, "build 4 stonecutter", token);
-        for (int production = 0; production < 3; production++) { await UiReadyPair(client, observer, token); await TowerInvestment(observer, token); }
+        for (int production = 0; production < 3; production++)
+        {
+            await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
+            if (production == 0) { await Pick(client, 1, token); await ClickAck(client, "Upgrade", token); }
+        }
         await Pick(client, 1, token); await ClickAck(client, "Sell", token);
         await ClickAck(client, "ResearchTower", token);
 
@@ -188,7 +210,23 @@ internal sealed partial class Runner
         // a food bundle whose remainder is smaller than the army's demand.
         Child server = _scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal));
         await SimulationSpeed(server, options.SimulationSpeed, token);
-        await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token);
+        await UiSwords(client, 2, 9, token);
+        int actions = 0;
+        while (CampaignStrategy.EconomyDefense(Latest(observer), observer.PlayerId) is EconomyAction preparation)
+        {
+            Require(actions++ < 16, "bounded ordinary cooperative defense preparation");
+            string command = preparation.Action switch
+            {
+                "build" => $"build {preparation.Slot} {preparation.Building}",
+                "buy-home" => "buy-home",
+                _ => $"{preparation.Action} {preparation.Slot}"
+            };
+            await Action(observer, command, token);
+        }
+        CityState prepared = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        Require(prepared.Army!.PurchasedHomes == 3 && prepared.Soldiers.Length >= 7, "paid first home and recurring equipment replenish the wounded field");
+        Require(Latest(observer).Players.Single(p => p.Id == observer.PlayerId).Soldiers.Length == 9, "paid observer trainer and home preserve cooperative defense alongside its Catapult");
+        await UiReadyPair(client, observer, token);
         UiObservation paid = await WaitUi(client, p => p.CompactUpkeep.Length == 4 && p.CompactUpkeep[0] == "Paid this battle · W3", "compact current-wave actual upkeep receipt", token);
         CityState battle = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(paid.CompactUpkeep[1] == $"{battle.LastUpkeep!.Paid} food", "compact receipt shows actual authority payment");
