@@ -8,9 +8,20 @@ internal sealed partial class Runner
     internal static bool AuthoredAttack(UnitObservation unit, UnitType type)
         => unit.Visible && !unit.Dead && unit.Type == type && unit.Clip == "attack" && unit.AttackActive;
 
+    private static readonly Lazy<IReadOnlyDictionary<string, GlbSummary>> CasualtyClips = new(() =>
+        AuthoredAssets.Validate(Path.Combine(FindRoot(), "src", "Game", "Assets", "Authored")));
+
+    internal static bool FreshDeathPose(double poseSeconds) => poseSeconds < .35;
+
+    internal static IEnumerable<UnitState> EligibleCasualties(MatchSnapshot state, int city, long after)
+        => state.DyingBodies.Where(u => PresentationLimits.SamplesPose(u, city)
+            && u.Hex is { Lifecycle: UnitLifecycle.Dying } hex && hex.DeathStartTick > after && hex.DeathEndTick > state.Tick + 12
+            && FreshDeathPose(CombatPlayback.DeathPose(u, hex.FrozenTick ?? state.Tick,
+                CasualtyClips.Value[Game.AssetCatalog.Unit(u.Type, u.Faction).Path].ClipLengths["death"])));
+
     internal static bool CasualtyInspectionReady(MatchSnapshot state, int city, long after)
-        => state.DyingBodies.Any(u => u.Destination == city && u.Hex!.DeathStartTick > after && u.Hex.DeathEndTick > state.Tick + 12)
-            && state.Enemies.Any(u => u.Destination == city && u.Health > 0 && u.Health < u.Profile.Health);
+        => EligibleCasualties(state, city, after).Any()
+            && state.Enemies.Any(u => PresentationLimits.SamplesPose(u, city) && u.Health > 0 && u.Health < u.Profile.Health);
 
     internal static void RenderedContact(UiObservation observation)
     {
@@ -253,11 +264,11 @@ internal sealed partial class Runner
         }
         await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-casualty-pause.json"),
             JsonSerializer.Serialize(retainedDeath, Evidence.JsonOptions), token);
-        int dead = retainedDeath.DyingBodies.Where(u => u.Destination == client.PlayerId && u.Hex!.DeathStartTick > casualtyAfter)
+        int dead = EligibleCasualties(retainedDeath, client.PlayerId, casualtyAfter)
             .MaxBy(u => u.Hex!.DeathStartTick)!.Id;
         await Action(client, "unknown", token, false);
         UiObservation casualty = await WaitUi(client, p => p.CombatTick == retainedDeath.Tick && p.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
-            && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && u.PoseSeconds < .35), "same paused authoritative casualty rendered freshly", token);
+            && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && FreshDeathPose(u.PoseSeconds)), "same paused authoritative casualty rendered freshly", token);
         CasualtyAdmission.Frame(retainedDeath, Latest(client), casualty, client.PlayerId, casualtyAfter, dead);
         Require(!casualty.HealthBars.Any(b => b.Id == dead), "death immediately removes overhead bar");
         Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");

@@ -143,8 +143,6 @@ internal sealed record UiObservation
     public RenderCostObservation? RenderCosts { get; init; }
     public ProbeCostObservation? ProbeCosts { get; init; }
     public RenderGroupObservation[] RenderGroups { get; init; } = [];
-    public JsonElement? RenderProof { get; init; }
-    public JsonElement? RenderFrameComparison { get; init; }
     public Game.OwnedFrameCapture.Receipt? RawCapture { get; init; }
     public Dictionary<int, string> StatusBadges { get; init; } = [];
     public string ResearchText { get; init; } = "";

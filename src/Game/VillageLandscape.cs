@@ -45,7 +45,7 @@ internal sealed partial class VillageLandscape : Node3D
         }) _static.Add(assets.Place(this, path, VillageLayout.Hex(column, row), size));
         // This complete authored stream/bridge cell replaces, not overlays, one
         // stream instance. Preserve bank zero and intentionally submerged supports.
-        _bridge = assets.Native(this, AssetCatalog.Bridge, VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow), VillageLayout.TerrainScale, 90, original: true);
+        _bridge = assets.Native(this, AssetCatalog.Bridge, VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow), VillageLayout.TerrainScale, 90);
         _waterEdges[AssetCatalog.Bridge] = WaterEdges(_bridge);
         for (int slot = 0; slot < 9; slot++) PlotOutline(slot);
     }
@@ -112,9 +112,6 @@ internal sealed partial class VillageLandscape : Node3D
                 _assets.Place(cell, "environment/components/forest_boulder.glb", Vector3.Zero, .5f);
         }
         RebuildTerrain();
-        // Deferred candidate: ordinary gameplay keeps the original hierarchy
-        // without allocating hidden native batches. Only the owned cost slice
-        // exercises this measured but insufficient optimization.
     }
     private void RebuildTerrain()
     {
@@ -128,7 +125,7 @@ internal sealed partial class VillageLandscape : Node3D
                     _meshes[group.Key.Kind] = imported = _assets.Terrain(group.Key.Kind);
                     if (group.Key.Kind == AssetCatalog.Stream)
                     {
-                        Node3D template = _assets.Native(this, group.Key.Kind, Vector3.Zero, 1, original: true);
+                        Node3D template = _assets.Native(this, group.Key.Kind, Vector3.Zero, 1);
                         _waterEdges[group.Key.Kind] = WaterEdges(template);
                         this.RemoveChild(template); template.Free();
                     }

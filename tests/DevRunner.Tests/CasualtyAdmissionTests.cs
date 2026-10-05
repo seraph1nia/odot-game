@@ -66,6 +66,86 @@ public sealed class CasualtyAdmissionTests
         Assert.Equal(OnePause, driver.Commands);
     }
 
+    [Fact]
+    public async Task AgedHistoricalBodyCannotAuthorizeLatestPause()
+    {
+        var driver = new Driver();
+        Assert.True(Runner.CasualtyInspectionReady(Eligible(), 1, 800));
+        driver.Arrivals.Enqueue(Eligible(922, 836));
+        MatchSnapshot fresh = FreshAfterAging();
+        driver.Arrivals.Enqueue(fresh);
+        driver.Receipts.Enqueue(Ack(fresh with { Revision = 925, Paused = true }));
+        MatchSnapshot frozen = await driver.Run();
+        Assert.Equal(841, frozen.Tick);
+        Assert.Equal(new long[] { 917, 922 }, driver.Floors);
+        Assert.Equal(OnePause, driver.Commands);
+    }
+
+    private static MatchSnapshot FreshAfterAging()
+    {
+        MatchSnapshot state = Eligible(924, 841);
+        UnitState body = state.DyingBodies[0];
+        return state with { DyingBodies = [body with { Hex = body.Hex! with { DeathStartTick = 838, DeathEndTick = 886 } }] };
+    }
+
+    [Fact]
+    public async Task RequestToReceiptAgingResumesAndWaitsForANewFreshBody()
+    {
+        var driver = new Driver();
+        driver.Arrivals.Enqueue(Eligible());
+        MatchSnapshot aged = Eligible(922, 836, true);
+        Assert.False(Runner.CasualtyInspectionReady(aged, 1, 800));
+        driver.Receipts.Enqueue(Ack(aged));
+        driver.Receipts.Enqueue(Ack(aged with { Revision = 923, Paused = false }, 12));
+        MatchSnapshot fresh = FreshAfterAging();
+        driver.Arrivals.Enqueue(fresh);
+        driver.Receipts.Enqueue(Ack(fresh with { Revision = 925, Paused = true }, 13));
+        MatchSnapshot frozen = await driver.Run();
+        Assert.Equal(841, frozen.Tick);
+        Assert.Equal(RearmedPause, driver.Commands);
+        Assert.Equal(new long[] { 917, 923 }, driver.Floors);
+    }
+
+    [Fact]
+    public void EveryAuthoredRigRejectsAgedBodyDespiteRemainingLifetime()
+    {
+        foreach (Faction faction in Enum.GetValues<Faction>())
+            foreach (UnitType type in Enum.GetValues<UnitType>())
+            {
+                MatchSnapshot state = Eligible(tick: 836);
+                UnitState body = state.DyingBodies[0] with { Type = type, Faction = faction };
+                state = state with { DyingBodies = [body] };
+                Assert.True(body.Hex!.DeathStartTick > 800 && body.Hex.DeathEndTick > state.Tick + 12);
+                Assert.False(Runner.CasualtyInspectionReady(state, 1, 800));
+                Assert.False(Runner.CasualtyInspectionReady(state with { Tick = 832 }, 1, 800));
+                Assert.True(Runner.CasualtyInspectionReady(state with { Tick = 831 }, 1, 800));
+            }
+    }
+
+    [Fact]
+    public void FreshPoseBoundaryRemainsStrict()
+    {
+        Assert.True(Runner.FreshDeathPose(Math.BitDecrement(.35)));
+        Assert.False(Runner.FreshDeathPose(.35));
+        Assert.False(Runner.FreshDeathPose(Math.BitIncrement(.35)));
+    }
+
+    [Fact]
+    public void BodySelectionAndFrameRejectNewerButAgedBodyWhenAnotherBodyIsEligible()
+    {
+        MatchSnapshot state = Eligible(922, 836, true);
+        UnitState body = state.DyingBodies[0];
+        UnitState fresh = body with { Hex = body.Hex! with { DeathEndTick = 918 } };
+        UnitState aged = body with { Id = 42, Hex = body.Hex! with { Id = 42, DeathStartTick = 822, DeathEndTick = 870 } };
+        state = state with { DyingBodies = [fresh, aged] };
+        UnitState selected = Runner.EligibleCasualties(state, 1, 800).MaxBy(u => u.Hex!.DeathStartTick)!;
+        Assert.Equal(41, selected.Id);
+        UiObservation frame = Frame() with { CombatTick = 836 };
+        CasualtyAdmission.Frame(state, state, frame, 1, 800, selected.Id);
+        frame = frame with { Units = [frame.Units[0] with { Id = 42 }, frame.Units[1]] };
+        Assert.Throws<InvalidOperationException>(() => CasualtyAdmission.Frame(state, state, frame, 1, 800, 42));
+    }
+
     [Theory]
     [InlineData("full")]
     [InlineData("foreign")]
@@ -209,6 +289,10 @@ public sealed class CasualtyAdmissionTests
     [InlineData("tick")]
     [InlineData("revision")]
     [InlineData("body")]
+    [InlineData("aged")]
+    [InlineData("boundary")]
+    [InlineData("hidden-body")]
+    [InlineData("foreign-body")]
     public void ActualFrozenRenderedFrameMustContainSameFreshBodyAndFocusedDamagedTarget(string fault)
     {
         MatchSnapshot receipt = Eligible(922, 827, true);
@@ -223,6 +307,10 @@ public sealed class CasualtyAdmissionTests
             "tick" => frame with { CombatTick = 828 },
             "revision" => frame with { Revision = 918 },
             "body" => frame with { Units = [target] },
+            "aged" => frame with { Units = [frame.Units[0] with { PoseSeconds = .4844 }, target] },
+            "boundary" => frame with { Units = [frame.Units[0] with { PoseSeconds = .35 }, target] },
+            "hidden-body" => frame with { Units = [frame.Units[0] with { Visible = false }, target] },
+            "foreign-body" => frame with { Units = [frame.Units[0] with { Destination = 2 }, target] },
             _ => frame
         };
         if (fault == "valid") CasualtyAdmission.Frame(receipt, receipt, frame, 1, 800, 41);

@@ -25,9 +25,9 @@ internal sealed class LandscapeAssets
             Engine.GetVersionInfo()["string"].AsString(), ProjectSettings.GetSetting("rendering/renderer/rendering_method").AsString());
     }
 
-    internal Node3D Native(Node3D parent, string path, Vector3 position, float scale, float rotation = 0, bool original = true)
+    internal Node3D Native(Node3D parent, string path, Vector3 position, float scale, float rotation = 0)
     {
-        Node3D node = original ? Scene(path).Instantiate<Node3D>() : new MeshInstance3D { Mesh = Terrain(path) };
+        Node3D node = Scene(path).Instantiate<Node3D>();
         node.Position = position; node.Scale = Vector3.One * scale; node.RotationDegrees = new(0, rotation, 0);
         node.SetMeta("asset", path);
         parent.AddChild(node); return node;

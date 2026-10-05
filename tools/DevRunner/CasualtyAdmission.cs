@@ -78,8 +78,9 @@ internal static class CasualtyAdmission
         if (!Runner.CasualtyInspectionReady(receipt, city, after) || !Runner.CasualtyInspectionReady(current, city, after)
             || frame.ObservedCity != city || frame.Revision != current.Revision || frame.CombatTick != receipt.Tick
             || !frame.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
-            || !receipt.DyingBodies.Any(u => u.Id == dead && u.Destination == city && u.Hex!.DeathStartTick > after && u.Hex.DeathEndTick > receipt.Tick + 12)
-            || !frame.Units.Any(u => u.Id == dead && u.Dead && u.Visible && u.Destination == city && u.PoseSeconds < .35)
+            || !Runner.EligibleCasualties(receipt, city, after).Any(u => u.Id == dead)
+            || !Runner.EligibleCasualties(current, city, after).Any(u => u.Id == dead)
+            || !frame.Units.Any(u => u.Id == dead && u.Dead && u.Visible && u.Destination == city && Runner.FreshDeathPose(u.PoseSeconds))
             || !frame.Units.Any(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Destination == city && u.Health > 0 && u.Health < u.MaximumHealth
                 && receipt.Enemies.Any(e => e.Id == u.Id && e.Destination == city && e.Health == u.Health && e.Profile.Health == u.MaximumHealth)))
             throw new InvalidOperationException("Casualty frame does not bind the current pause, fresh body and focused living damaged opponent.");

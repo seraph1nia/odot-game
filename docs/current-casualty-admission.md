@@ -2,11 +2,37 @@
 
 ## Status
 
-**Resolved under steering 016.** The narrow fixture correction now passes the
-owned combat scenario and complete migration CI, including exports and both package
-smokes. The failed pause827/revision922 below remains the historical first divergence,
-not current acceptance. Gameplay, predicate, wave/death/equipment bounds and original
-deadlines are unchanged. See [final migration evidence](authored-migration.md).
+**Steering 016 evidence is historical for the review correction below.** Its
+focused combat and complete migration CI passed on the earlier inputs, including
+exports and both package smokes. Those passes do not validate the review's changed
+inputs. The failed pause827/revision922 below remains the historical first divergence.
+Gameplay, wave/death/equipment bounds and original deadlines are unchanged. See
+[retained migration evidence](authored-migration.md).
+
+Review found a separate missing acceptance constraint: body41 death818→866 at
+current tick836 still has more than twelve ticks remaining, but its rendered death
+pose is already beyond the required strict `PoseSeconds < .35` boundary. An accepted
+pause at that tick cannot become fresh while frozen.
+
+The shared eligible-body set now uses `CombatPlayback.DeathPose`, the body's sampled
+frozen/current tick and its role/faction's death-clip endpoint from provenance-validated
+GLB bytes. The same strict freshness predicate governs current eligibility, accepted
+receipt eligibility, body selection, the rendered wait and frame validation. Focus,
+deployment, declared lifetime and the focused living damaged target remain required.
+The existing own-pause resume/re-arm path handles request-to-receipt aging without
+new attempts, state or deadlines. Cheap executable controls cover tick836, adjacent
+source-timing ticks831/832 for all eight rigs, the exact `.35` boundary, multiple-body
+selection, witness/request/receipt aging and rendered freshness/visibility failures.
+
+Review-round verification: **38 focused casualty/caller/frame tests passed**, zero
+failed or skipped; locked solution restore, formatting restricted to the six changed
+C# files and graphical-project compilation passed with zero warnings/errors. Evidence:
+`logs/review-casualty-freshness/casualty.trx` and `verification-retry.log`. The first
+attempt stopped at mise's worktree trust prerequisite before restore; the retry used
+process-local trust with automatic installation disabled, not persistent tool settings.
+No Godot process, full test/lint suite or full CI ran in this review round. New
+current-frame combat evidence and full-run acceptance belong to the outer pipeline;
+the retained historical passes below are not substituted for that evidence.
 
 ## First divergence retained
 
