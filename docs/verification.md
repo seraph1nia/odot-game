@@ -2521,3 +2521,62 @@ This is locally verified repair evidence, not exact-final-head hosted readiness:
 the outer pipeline still owns publication and all hosted source/Linux/Windows
 package/required checks for PR #8. Software-rendered silent Linux checks do not
 establish native GPU/compositor performance, listening quality or paired Steam.
+
+## Deterministic network recovery opening, 2026-10-05
+
+Hosted head `5dcc148c5f8c4f43e18c5ad21c34f308b7d4dd82`, run
+`37348523905` / source job `111893175861`, failed on B's `buy-plot 7`:
+`Only living cities can act during building.` This is not timeout exhaustion.
+The retained hosted console lacks session/revision/city-liveness payloads;
+GitHub reported zero run artifacts, and the named operator metadata file was
+not present in this worktree. The exact hosted combat seed therefore remains
+unknown. The unchanged local selected case passed at a different random seed,
+`logs/20261005-173614-297a4b67/`; it did not disprove the hosted failure.
+
+`NetworkOpeningTests` executes the same ordinary paid opening. Seed `96`
+reproduces a team clear to Building/W2 at tick853 with A living and B eliminated;
+B's plot purchase receives the exact hosted refusal without any state mutation.
+The fixture previously selected an OS-random combat seed but required B's
+subsequent paid construction, typed recruitment and recovery. Its dedicated
+server now uses seed `16366921918512773030`, recovered from the prior complete
+`logs/20261005-171424-d97ea622/` pass, including owned bind retries. First and
+second clears explicitly require both cities living. Cheap coverage retains the
+negative seed, checks both fixed-seed cities live and verifies actual plot and
+building payment. Production matches still use their ordinary seed policy.
+
+The first fixed-seed slice exposed a separate exact-retry measurement race:
+`logs/20261005-174111-d9e4f665/`. B's home purchase at revision440/tick388 had one
+remaining body; pause at revision444/tick391 followed ordinary final-body cleanup
+and veteran home restoration. Placement/action state changed, not stocks or
+health. `RecruitAll` now awaits same-match, non-older, body-free state before
+investment, at the shared boundary for both `Advance` passes and the Steam
+opening caller. It does not mask placement, weaken exact city comparisons or
+change cleanup timing. The executable regression checks ordinary restoration
+preserves stocks, identities, wounds and assignments, then verifies a settled
+purchase remains exact through delayed pause. Steam paired execution was not
+repeated; its opening has no post-clear bodies and passes this barrier immediately.
+
+Final selected `authority-resume-victory` passed **32.09s**,
+`logs/20261005-174345-40c16bf6/`; its whole-scenario recovery, retry, research and
+refusal assertions remain. All three new cheap cases passed. Complete local
+`mise run ci --startup-timeout-ms 60000` passed **539.80s**, evidence
+`logs/20261005-174440-1deb528f/ci-summary.json`, console
+`logs/ci-network-full.log`: all **798** cheap tests (500 gameplay/298 runner),
+six network scenarios, five source UI cases, formatting/build/import/static
+fidelity, sequential Linux client/server exports and both package smokes.
+The complete run's network recovery case passed **29.58s**. Its economy proof
+retains session `d0cd737691dd48fb936f5e5a2fddbee2`, Ready sequence35/revision968/
+tick872, Pause sequence36/revision973/tick876, and the fresh same-session frozen
+revision973/W3/turn15/city1 HUD displaying `7 food` paid and zero sit-outs.
+Current repair hashes are recorded in `logs/ci-network-verified-inputs.json`.
+All historical failures remain retained, including the initial bounded seed diagnostic that
+found no counterexample in seeds0..63; the expanded diagnostic found seed96.
+
+No timeout values changed in this repair, and no numerical gameplay, speed,
+assets, wire protocol, production transport or poll ownership changed. Prior
+native five-arm and conservation proofs are reused: all their recorded
+implementation hashes still match `logs/ci-receipt-verified-inputs.json`.
+The prior 546.39s complete pass is the before baseline, not new hosted evidence.
+This final local pass does not establish exact-final-head hosted readiness;
+publication and all hosted source/Linux/Windows package/required checks remain
+owned by the outer executor. PR #8 is not claimed ready to merge.
