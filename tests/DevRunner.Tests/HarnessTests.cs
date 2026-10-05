@@ -28,6 +28,29 @@ public sealed class HarnessTests
     }
 
     [Fact]
+    public void HistoricalCasualtyEligibilityDoesNotEstablishActualPauseReceiptEligibility()
+    {
+        // Retained latest-CI pause: tick827/revision922, focused city1 has a
+        // fresh corpse but living enemies44/45 are full; damaged46/47 are city2.
+        // Earlier eligibility is controlled data, not a reconstructed timestamp.
+        var corpse = new UnitState(41, 0)
+        {
+            Destination = 1,
+            Faction = Faction.Skeletons,
+            Hex = new(41, 1, Faction.Skeletons, UnitLifecycle.Dying, new(11, 1), DeathStartTick: 818, DeathEndTick: 866)
+        };
+        var full = new UnitState(44, 3000) { Destination = 1, Faction = Faction.Skeletons, Profile = new(3000, 1000, 1, 30, 12, 60) };
+        var foreign = new UnitState(46, 600) { Destination = 2, Faction = Faction.Skeletons, Profile = new(4000, 1000, 1, 30, 12, 60) };
+        var actualPause = new MatchSnapshot("current-casualty", 922, 827, Phase.Combat, true, 3, 3, 12, new(), [], [full, foreign]) { DyingBodies = [corpse] };
+        MatchSnapshot earlier = actualPause with { Revision = 918, Tick = 824, Paused = false, Enemies = [full with { Health = 2000 }, foreign] };
+        Assert.True(Runner.CasualtyInspectionReady(earlier, 1, 800));
+        Assert.False(Runner.CasualtyInspectionReady(actualPause, 1, 800));
+        Assert.Contains(actualPause.DyingBodies, u => u.Destination == 1 && u.Hex!.DeathEndTick > actualPause.Tick + 12);
+        Assert.Contains(actualPause.Enemies, u => u.Health > 0 && u.Health < u.Profile.Health);
+        Assert.DoesNotContain(actualPause.Enemies, u => u.Destination == 1 && u.Health > 0 && u.Health < u.Profile.Health);
+    }
+
+    [Fact]
     public void EconomyObservationRoundTripPreservesIncomeUpkeepAndFullBounds()
     {
         var original = new UiObservation

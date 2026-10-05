@@ -25,8 +25,8 @@ internal sealed partial class Runner
         for (int recruit = 0; recruit < 6; recruit++) await Action(client, "recruit 1", token);
         await SimulationSpeed(client, 1, token);
         await Action(client, "ready", token);
-        UiObservation live = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "Walking_A"), "packed live representative animation", token);
-        Require(live.UnitBindings.Length == 18 && live.Units.Any(u => u.WeaponAttached), "packed faction rigs, required clips and weapon bindings load from archive");
+        UiObservation live = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk"), "packed live representative animation", token);
+        Require(live.UnitBindings.Length == Game.AssetCatalog.RequiredPaths.Count() + 8 && live.Units.Any(u => u.WeaponAttached), "packed required authored models, faction rigs, clips and socket-bound equipment load from archive");
         await Action(client, "pause", token);
         await WaitUi(client, p => p.Units.Length > 0, "packed paused layout checkpoint", token);
         await MenuCheckpoint(client, "packed-animation", token);

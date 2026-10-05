@@ -5,11 +5,13 @@ namespace Game;
 // Decorative geometry only; these IDs remain the nine authoritative array indices.
 internal static class VillageLayout
 {
-    public const float TerrainScale = 1.5f;
-    public const float HalfWidth = TerrainScale;
-    public const float Radius = 1.1547005f * TerrainScale;
+    public const float HalfWidth = 1.5f;
+    public const float Radius = 1.1547005f * HalfWidth;
     public const float RowStep = Radius * 1.5f;
-    public static float Height(int column, int row) => column == 3 ? -0.4f : row >= 4 ? 1.0f : row >= 3 ? 0.5f : 0;
+    public const float TerrainScale = Radius / 2.55f;
+    public const int RiverRow = 5;
+    public const int BridgeColumn = 1;
+    public static float Height(int column, int row) => row == RiverRow ? -.03f : row >= 4 ? .18f : row >= 3 ? .09f : 0;
     public static Vector3 Hex(int column, int row) => new(column * HalfWidth * 2 + (Math.Abs(row) % 2) * HalfWidth, Height(column, row), row * RowStep);
     public static float Surface(Vector3 point)
     {

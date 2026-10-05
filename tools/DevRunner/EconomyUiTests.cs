@@ -182,7 +182,8 @@ internal sealed partial class Runner
         UiObservation upgraded = await WaitUi(client, p => p.BuildingVariants.Length == 9 && p.BuildingVariants[2] == 2, "actual Catapult structural upgrade", token);
         Require(upgraded.PlotHeights.Length == 9 && upgraded.PlotHeights[0] < upgraded.PlotHeights[3] && upgraded.PlotHeights[3] < upgraded.PlotHeights[6], "three actual terrace heights");
         Countryside(upgraded);
-        Require(upgraded.Placements.Any(p => p.Asset.EndsWith("tower_base_blue.gltf", StringComparison.Ordinal)) && upgraded.Placements.Any(p => p.Name == "Slot2" && p.Support > 1), "actual tower seated on raised support deck");
+        AssetPlacementObservation pedestal = upgraded.Placements.Single(p => p.Name == "Upgrade2" && p.Asset == Game.AssetCatalog.Plinth);
+        Require(upgraded.Placements.Any(p => p.Name == "Slot2" && Math.Abs(p.Support - pedestal.Top) < .002f && p.Support > pedestal.Support), "actual tower seated on the measured authored support deck");
         CityState city = Latest(client).Players.Single(c => c.Id == observer.PlayerId);
         Require(upgraded.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "actual resource piles match current stocks");
         for (int slot = 0; slot < 9; slot++) await Pick(client, slot, token);

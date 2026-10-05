@@ -23,7 +23,7 @@ public sealed class CombatProgressionProofTests
         {
             CombatTick = tick,
             Units = [new() { Id = 1, Destination = 1, Visible = true, Deployed = true, Hex = hex,
-                X = position.X, Z = position.Z, Clip = "Walking_A", WalkingBlend = .8 }]
+                X = position.X, Z = position.Z, Clip = "walk", WalkingBlend = .8 }]
         };
     }
     [Fact]
@@ -34,9 +34,26 @@ public sealed class CombatProgressionProofTests
         Assert.True(CombatProgressionProof.MovementAdvanced([first, next]));
         Assert.False(CombatProgressionProof.MovementAdvanced([first, first]));
         Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { X = first.Units[0].X + .1f }] }, Board));
-        Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { Clip = "Running_A" }] }, Board));
+        Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { Clip = "run" }] }, Board));
         Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { WalkingBlend = 1 }] }, Board));
     }
+    [Theory]
+    [InlineData(UnitType.Swordsman)]
+    [InlineData(UnitType.Berserker)]
+    [InlineData(UnitType.Crossbowman)]
+    [InlineData(UnitType.Mage)]
+    public void EveryAuthoredRoleWitnessUsesItsActualClipAndLiveLayer(UnitType type)
+    {
+        UnitObservation unit = new() { Type = type, Visible = true, Clip = "attack", AttackActive = true };
+        Assert.True(Runner.AuthoredAttack(unit, type));
+        foreach (string oldOrInactive in new[] { "2H_Melee_Attack_Chop", "1H_Melee_Attack_Slice", "Spellcast_Shoot", "hit", "idle", "walk" })
+            Assert.False(Runner.AuthoredAttack(unit with { Clip = oldOrInactive }, type));
+        Assert.False(Runner.AuthoredAttack(unit with { AttackActive = false }, type));
+        Assert.False(Runner.AuthoredAttack(unit with { Visible = false }, type));
+        Assert.False(Runner.AuthoredAttack(unit with { Dead = true }, type));
+        Assert.False(Runner.AuthoredAttack(unit with { Type = type == UnitType.Mage ? UnitType.Berserker : UnitType.Mage }, type));
+    }
+
     [Fact]
     public void AttackWitnessRequiresOneIdentityAdvancingClockAndImportedBones()
     {
@@ -45,7 +62,9 @@ public sealed class CombatProgressionProofTests
             Id = 1,
             Visible = true,
             WeaponAttached = true,
-            Clip = "1H_Melee_Attack_Slice_Horizontal",
+            EquipmentAligned = true,
+            EquipmentRotation = "first",
+            Clip = "attack",
             AttackActive = true,
             AttackBlend = 1,
             AttackSequence = 1,
@@ -54,13 +73,15 @@ public sealed class CombatProgressionProofTests
             BoneRotation = "first"
         };
         UiObservation first = new() { CombatTick = 106, Units = [actor] };
-        UiObservation next = new() { CombatTick = 110, Units = [actor with { PoseSeconds = .3, BoneRotation = "second" }] };
+        UiObservation next = new() { CombatTick = 110, Units = [actor with { PoseSeconds = .3, BoneRotation = "second", EquipmentRotation = "second" }] };
         Assert.True(CombatProgressionProof.AttackAdvanced([first, next]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, first]));
-        Assert.False(CombatProgressionProof.AttackAdvanced([first with { Units = [actor with { Clip = "Hit_A" }] }, next with { Units = [next.Units[0] with { Clip = "Hit_A" }] }]));
+        Assert.False(CombatProgressionProof.AttackAdvanced([first with { Units = [actor with { Clip = "hit" }] }, next with { Units = [next.Units[0] with { Clip = "hit" }] }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { WeaponAttached = false }] }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { CombatTick = first.CombatTick }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { AttackSequence = 2 }] }]));
         Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { BoneRotation = "first" }] }]));
+        Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { EquipmentAligned = false }] }]));
+        Assert.False(CombatProgressionProof.AttackAdvanced([first, next with { Units = [next.Units[0] with { EquipmentRotation = "first" }] }]));
     }
 }

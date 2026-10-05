@@ -19,7 +19,7 @@ Odot's original code and documentation are licensed under the [GNU General Publi
 
 Development is maintainer-led, and external contributions and pull requests are not accepted. Write access, including branch creation in this repository, is limited to authorized maintainers. You may fork the project and develop your own branches under the applicable licenses.
 
-Third-party materials retain their own terms and are excluded from Odot's GPL grant. See the [KayKit asset notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
+Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
 
 ## Setup
 
@@ -79,7 +79,7 @@ Read [the rules and tested campaign strategies](docs/gameplay.md). Six resources
 
 Each city earns one personal research point per shared wave clear. Research Towers add +1/+2 per full three-production cycle, retaining partial progress; multiple towers add together. Open **Research** without selecting a plot to buy 3/6/9-point foundations, exclusive specializations and masteries. Points and choices reset each match; sale preserves them. Fire gives burn, Venom poison, and Frost slows future actions. Inspector text and status badges show current effects. Freeze/stun are deferred; incompatible older peers are refused.
 
-The graphical client uses vendored free KayKit assets in a grass-and-river hex landscape with a lower angled view. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
+The graphical client uses owner-permitted immutable exports from `odot-game-assets` in a grass-and-river hex landscape with a lower angled view. [Asset mappings](docs/assets.md) document honest cosmetic substitutes (Bakery, Woodcutter hut, Knight and Archer) while canonical rule/save/protocol identities remain unchanged. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
 
 ## Development commands
 
@@ -99,6 +99,11 @@ mise run test-ui --scenario settings
 mise run test-ui --scenario launcher
 mise run test-ui --scenario combat
 mise run test-ui --scenario combat --checkpoint melee
+mise run test-assets
+# Explicit diagnostics, not additional default CI matches:
+mise run test-native-pump
+mise run test-ui --scenario combat --checkpoint admission
+mise run test-ui --scenario launcher --checkpoint assets
 mise run test-ui --scenario combat --ui-checkpoint research
 mise run ci
 ```
@@ -109,7 +114,7 @@ In the tabletop, scroll up/down over the world to zoom in/out toward the ground 
 
 Use **Buy unit space**, the owned-unit inspector and **Town hall roster** to manage your army. See [army homes, retirement, storage and recovery](docs/gameplay.md#purchased-army-homes-and-town-hall-rotation) for controls, capacity, costs and production cadence.
 
-The village sits in continuous medieval countryside that fills the world view, including permitted zoom/pan positions and window changes. Buildings, the home and defender align to supporting hex footprints; resource groups and props sit on their local terrain, and upgraded towers attach to the base's central deck. The nine plots and grassy battle approach stay clear. Open grass near the village gives way to trees, hills and rocks farther out. The start screen and multiplayer entry show that same empty starting countryside, with matching asset scales and lighting; returning to the menu clears match buildings and units. Terrain and camera changes remain cosmetic: city capacity, slot identities, movement, targeting and spending follow the authority.
+The village sits in continuous authored woodland countryside that fills the world view, including permitted zoom/pan positions and window changes. Buildings, the home and defender align to supporting hex footprints; resource groups and props sit on their local terrain, and upgraded towers attach to the base's central deck. The nine plots and grassy battle approach stay clear. Open grass near the village gives way to trees, hills and rocks farther out. The start screen and multiplayer entry show that same empty starting countryside, with matching asset scales and lighting; returning to the menu clears match buildings and units. Terrain and camera changes remain cosmetic: city capacity, slot identities, movement, targeting and spending follow the authority.
 
 
 `mise run prepare` checks tools, builds C# and imports resources. `mise run build` compiles only. `mise run check` verifies formatting. Direct Godot startup uses a role after the engine argument separator:
@@ -122,7 +127,7 @@ godot --path src/Game -- --playing-host --bind 127.0.0.1 --port 7001
 godot --headless --path src/Game -- --solo
 ```
 
-Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. See [session ownership and compatibility](docs/sessions.md) for the current protocol, roster command guards and synchronized army/recovery state. Snapshots include the seed, configuration fingerprint, board/actions, current dying bodies, reservations, admission bounds and outcome reason; rebuilding current state does not require historical effects. Older versions cannot join. Complete snapshot RPC payloads use bounded whole-message Brotli encoding; ordinary diagnostics remain JSON. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries changed, revision-ordered complete snapshots at up to 20 Hz during combat, with immediate paused/noncombat changes. Unchanged paused states are not repeatedly queued. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
+Run `prepare` first for direct commands. Headless is a display mode; explicit `--solo`, `--playing-host`, `--server` and `--client` roles bypass the menu. The dedicated export defaults to server role. Conflicting roles/malformed arguments fail clearly. The shared RPC node is `/root/Game`. See [session ownership and compatibility](docs/sessions.md) for the current protocol, roster command guards and synchronized army/recovery state. Snapshots include the seed, configuration fingerprint, board/actions, current dying bodies, reservations, admission bounds and outcome reason; rebuilding current state does not require historical effects. Older versions cannot join. Complete snapshot RPC payloads use bounded whole-message Brotli encoding; ordinary diagnostics remain JSON. Reliable channel 0 carries requests, acknowledgments and lifecycle messages; channel 1 carries changed, revision-ordered complete snapshots at up to 20 Hz during combat, with immediate paused/noncombat changes. Unchanged paused states are not repeatedly queued. Shared `AuthoritySession` validates ownership, costs, phase/turn, retries, resume and start policy for local/remote requests. Only authority advances combat at fixed 60 Hz; guests render snapshots. Root ENet guests service their original native API through one owner-thread fixed-physics driver instead of render-coupled automatic admission; authorities, solo/playing hosts, Steam and other APIs retain original service. No intermediate snapshots/events are coalesced or dropped. See [service ownership and measured proof](docs/enet-guest-cadence.md). Steam identity comes from the native peer, while ENet retains possession-based private resume credentials. No client prediction is used.
 
 ## Verification and exports
 

@@ -12,8 +12,10 @@ internal sealed partial class Runner
     private async Task<GameEvent> Action(Child child, string command, CancellationToken token, bool accepted = true)
     {
         long previous = child.History().Where(e => e.Type == "ack").Select(e => e.Result!.Sequence).DefaultIfEmpty().Max();
+        if (command is "ready" or "pause" or "resume") _timing?.Record("driver-request", Latest(child), info: new { Child = child.Name, Command = command, AfterSequence = previous });
         await child.Send(command);
         GameEvent result = await child.WaitFor(e => e.Type == "ack" && e.Result!.Sequence > previous, command, options.StartupTimeout, token);
+        if (command is "ready" or "pause" or "resume") _timing?.Record("driver-ack", result.State, info: new { Child = child.Name, Command = command, result.Result!.Sequence, result.Result.Accepted });
         Require(result.Result!.Accepted == accepted, $"{child.Name}: {command}: {result.Message}");
         return result;
     }

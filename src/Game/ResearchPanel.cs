@@ -54,7 +54,7 @@ public partial class Tabletop
             TechnologyDefinition? sibling = state?.TechnologyCatalog.FirstOrDefault(t => node?.Tier == 2 && t.Tier == 2 && t.Class == node.Class && t.Id != id);
             string requirement = node?.Prerequisite is null or TechnologyId.None ? "" : " · requires " + TechnologyIds.Name(node.Prerequisite);
             string choice = sibling is null ? "" : " · locks " + sibling.Name + " + its mastery";
-            button.Text = node is null ? TechnologyIds.Name(id) : $"{node.Name} · {node.Cost} points{choice}\n{ProgressionPresentation.CapabilityText(node.Benefit)}\n{string.Join(", ", node.EligibleTypes)}{requirement}\n{gate}";
+            button.Text = node is null ? TechnologyIds.Name(id) : $"{node.Name} · {node.Cost} points{choice}\n{ProgressionPresentation.CapabilityText(node.Benefit)}\n{string.Join(", ", node.EligibleTypes.Select(type => AssetCatalog.UnitName(type)))}{requirement}\n{gate}";
             button.TooltipText = (node?.Prerequisite != TechnologyId.None ? "Requires " + TechnologyIds.Name(node?.Prerequisite ?? TechnologyId.None) + ". " : "")
                 + (sibling is null ? "" : "Purchase permanently locks " + sibling.Name + " and its mastery. ") + gate;
         }

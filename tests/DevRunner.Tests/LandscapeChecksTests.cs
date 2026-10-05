@@ -44,4 +44,33 @@ public sealed class LandscapeChecksTests
         Assert.False(LandscapeChecks.SameStartingArea(scene, scene with { Static = [scene.Static[0] with { Scale = 2 }] }));
         Assert.False(LandscapeChecks.SameStartingArea(scene, scene with { Static = [scene.Static[0] with { X = 0 }] }));
     }
+    [Fact]
+    public void StreamAndBridgeRequireActualContinuousWaterEdgesAndExactlyOneBridge()
+    {
+        var scene = new LandscapeObservation
+        {
+            River = [
+            new(Game.AssetCatalog.Stream, [-4.5f, -.144f, 12.99f], [-1.5f, -.144f, 12.99f]),
+            new(Game.AssetCatalog.Bridge, [-1.5f, -.144f, 12.99f], [1.5f, -.144f, 12.99f]),
+            new(Game.AssetCatalog.Stream, [1.5f, -.144f, 12.99f], [4.5f, -.144f, 12.99f])]
+        };
+        Assert.True(LandscapeChecks.JoinedRiver(scene));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [.. scene.River, scene.River[1]] }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0], scene.River[1], scene.River[2] with { Start = [1.6f, -.144f, 12.99f] }] }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0], scene.River[1] with { Start = [-1.5f, .2f, 12.99f] }, scene.River[2]] }));
+    }
+    [Fact]
+    public void ImportedTerrainFootprintRejectsWrongScaleHeightAndLegacySubstitution()
+    {
+        var scene = new LandscapeObservation
+        {
+            TerrainBounds = [
+            new(Game.AssetCatalog.Meadow, [-2.55f, -.36f, -2.20836f], [2.55f, 0, 2.20836f]),
+            new(Game.AssetCatalog.Stream, [-2.55f, -.36f, -2.20836f], [2.55f, 0, 2.20836f])]
+        };
+        Assert.True(LandscapeChecks.AuthoredTerrain(scene));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [scene.TerrainBounds[0], scene.TerrainBounds[1] with { Asset = "legacy" }] }));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [scene.TerrainBounds[0] with { Max = [3, 0, 2.20836f] }, scene.TerrainBounds[1]] }));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [scene.TerrainBounds[0] with { Max = [2.55f, .2f, 2.20836f] }, scene.TerrainBounds[1]] }));
+    }
 }

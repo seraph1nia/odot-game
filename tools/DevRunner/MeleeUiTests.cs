@@ -5,7 +5,7 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
-    private async Task MeleeArmy(Child client, Child observer, CancellationToken token)
+    private async Task MeleeArmy(Child client, Child observer, CancellationToken token, Action<MatchSnapshot>? beforeReady = null, Action<MatchSnapshot>? readyAcknowledged = null)
     {
         await Pick(client, 0, token); await ClickAck(client, "Farm", token);
         await Pick(client, 2, token); await ClickAck(client, "MetalMine", token);
@@ -21,16 +21,27 @@ internal sealed partial class Runner
         CityState army = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(army.Soldiers.Length == 6 && army.Soldiers.All(u => u.Type == UnitType.Swordsman)
             && army.Food == 15 && army.Wood == 0, "ordinary Farm/Metal Mine recruitment equips six frontline units without food spending or grants");
+        // Admit speed 1 BEFORE Ready can start combat. Detailed authored
+        // scenes made the former post-entry barrier acknowledge at tick 404,
+        // after the seed-1 shared windup at 301 had already passed.
+        Child authority = _scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal));
+        await SimulationSpeed(authority, 1, token);
+        Require(Latest(authority).Phase == Phase.Preparation && Latest(authority).Tick == 0, "normal-speed barrier precedes combat admission and its short milestones");
+        beforeReady?.Invoke(Latest(observer));
         await Action(client, "ready", token); MatchSnapshot battle = State(await Action(observer, "ready", token));
+        readyAcknowledged?.Invoke(battle);
         await Observe(client, s => s.Phase == Phase.Combat && s.Revision >= battle.Revision, "melee first wave", token);
         Require(Latest(client).CombatSeed == battle.CombatSeed && Latest(client).ConfigurationFingerprint == battle.ConfigurationFingerprint,
             "cooperative clients agree on the generated combat seed and configuration");
     }
-    private async Task MeleeProgression(Child client, HexBoard board, CancellationToken token)
+    private async Task MeleeProgression(Child client, HexBoard board, CancellationToken token, MeleeAdmission? admission = null)
     {
         var frames = new List<UiObservation>();
         var timestamps = new List<DateTimeOffset>();
         var watch = System.Diagnostics.Stopwatch.StartNew();
+        var captures = new List<int>();
+        var persistence = new List<object>();
+        double liveSeconds = 0, ioSeconds = 0;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(12000);
         try
         {
@@ -38,43 +49,73 @@ internal sealed partial class Runner
             {
                 for (int index = 0; index < 2; index++)
                 {
-                    // PNG encoding is slower than a 30-tick move on software
-                    // rendering. Pair fresh live-node frames before capturing;
-                    // never slow authority or claim PNGs are a throughput test.
-                    UiObservation live = await WaitUi(client, f => phase == "step" ? f.Units.Any(u => u.Visible && !u.Dead && u.Clip == "Walking_A" && u.WalkingBlend > 0)
-                        : f.Units.Any(u => u.Visible && !u.Dead && u.Class == UnitClass.Melee && u.AttackActive && u.AttackBlend > 0 && u.Clip != "Hit_A"),
-                        "normal-speed " + phase + " progression", deadline.Token);
+                    // All observations and actual raw viewport acquisitions
+                    // retain the original live 12s bound. Only persistence of
+                    // those immutable frames is deferred; never resample them.
+                    UiObservation live = await WaitUi(client, f => phase == "step" ? f.Units.Any(u => u.Visible && !u.Dead && u.Clip == "walk" && u.WalkingBlend > 0)
+                        : f.Units.Any(u => u.Visible && !u.Dead && u.Class == UnitClass.Melee && u.AttackActive && u.AttackBlend > 0 && u.Clip != "hit"),
+                        "normal-speed " + phase + " progression", deadline.Token, live: true);
                     CombatProgressionProof.Motion(live, board); frames.Add(live); timestamps.Add(DateTimeOffset.UtcNow);
-                    UiObservation next = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token);
+                    UiObservation next = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: true);
                     CombatProgressionProof.Motion(next, board); frames.Add(next); timestamps.Add(DateTimeOffset.UtcNow);
                     string path = Path.Combine(_scope!.EvidenceDirectory, $"combat-progression-{phase}-{index}.png");
-                    UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, path);
-                    UiProtocol.Frame(frame, path); RenderedContact(frame); HealthBars(frame); CombatProgressionProof.Motion(frame, board);
-                    frames.Add(frame); timestamps.Add(DateTimeOffset.UtcNow);
-                    await File.WriteAllTextAsync(Path.ChangeExtension(path, ".json"), JsonSerializer.Serialize(frame, Evidence.JsonOptions), deadline.Token);
+                    UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, path, deferred: true, live: true);
+                    Require(frame.Screenshot is null && frame.RawCapture is { } raw && raw.Id == frame.Id && raw.Path == path && raw.Width == frame.Width && raw.Height == frame.Height,
+                        "actual raw acquisition retains fresh frame identity/resolution without pretending PNG exists");
+                    RenderedContact(frame); HealthBars(frame); CombatProgressionProof.Motion(frame, board);
+                    captures.Add(frames.Count); frames.Add(frame); timestamps.Add(DateTimeOffset.UtcNow);
 
                 }
             }
+            Game.OwnedFrameCapture.RequireLiveCompletion(watch.Elapsed, frames.Count, captures.Count);
+            Require(frames.All(f => f.ProbeCosts is { Live: true }) && frames.Zip(frames.Skip(1)).All(p => p.First.ProbeCosts!.ProcessFrame < p.Second.ProbeCosts!.ProcessFrame),
+                "ordered live observations each follow a distinct actual rendered process frame");
             Require(CombatProgressionProof.MovementAdvanced(frames), "owned normal-speed frames show the same committed walking action advancing directly");
             Require(CombatProgressionProof.AttackAdvanced(frames), "owned normal-speed frames show the same attack identity and imported bones progressing");
-            Console.WriteLine($"MELEE PROGRESSION: {frames.Count} frames, {watch.Elapsed.TotalSeconds:F2}s owned capture/setup; normal speed, no frame-throughput claim.");
+            admission?.Handoff(watch.Elapsed, frames.Count, captures.Count);
+            Console.WriteLine($"MELEE LIVE PROGRESSION: {frames.Count} observations/four actual raw frames, {watch.Elapsed.TotalSeconds:F2}s within unchanged 12s; PNG persistence still pending.");
         }
         finally
         {
-            await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-progression.json"),
+            liveSeconds = watch.Elapsed.TotalSeconds;
+            var ioWatch = System.Diagnostics.Stopwatch.StartNew();
+            // Even on failed live acquisition/cancellation, await acquired
+            // evidence ownership before scope disposal. This never turns a
+            // failed live deadline into success; each child has one driver.
+            using var ioDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            try
+            {
+                foreach (int index in captures)
+                {
+                    var persisted = await UiProtocol.Persist(client, frames[index], options.StartupTimeout, ioDeadline.Token);
+                    frames[index] = persisted.Frame;
+                    persistence.Add(new { persisted.Frame.Id, persisted.Frame.CombatTick, persisted.Frame.Revision, persisted.Frame.RawCapture!.PixelHash, persisted.Milliseconds });
+                    await File.WriteAllTextAsync(Path.ChangeExtension(persisted.Frame.Screenshot!, ".json"), JsonSerializer.Serialize(persisted.Frame, Evidence.JsonOptions), ioDeadline.Token);
+                }
+            }
+            finally
+            {
+                ioSeconds = ioWatch.Elapsed.TotalSeconds;
+                await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-progression.json"),
                 JsonSerializer.Serialize(new
                 {
                     Seconds = watch.Elapsed.TotalSeconds,
+                    LiveSeconds = liveSeconds,
+                    EvidenceIoSeconds = ioSeconds,
+                    LiveLimitSeconds = 12,
+                    EvidenceIoLimitSeconds = 30,
+                    OriginalCombined12SecondContractClaimed = false,
+                    Persistence = persistence,
                     Timestamps = timestamps,
                     Frames = frames,
                     MovementAdvanced = CombatProgressionProof.MovementAdvanced(frames),
                     AttackAdvanced = CombatProgressionProof.AttackAdvanced(frames)
                 }, Evidence.JsonOptions), CancellationToken.None);
+            }
         }
     }
-    private async Task MeleeCheckpoint(Child client, Child observer, CancellationToken token)
+    private async Task MeleeCheckpoint(Child client, Child observer, CancellationToken token, MeleeAdmission? admission = null, Task<MatchSnapshot>? earlyPause = null)
     {
-        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         var board = new HexBoard(Latest(client).Rules.Combat.Board);
         MeleeCoverage covered = MeleeCoverage.None;
         var witnesses = new List<MeleeWitness>();
@@ -87,16 +128,18 @@ internal sealed partial class Runner
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(65000);
         try
         {
-            await MeleeProgression(client, board, deadline.Token);
+            await MeleeProgression(client, board, deadline.Token, admission);
+            MatchSnapshot? initialPause = earlyPause is null ? null : await earlyPause;
             while ((covered & required) != required || captures.Count < 2)
             {
                 MeleeCoverage phase = !captures.Contains(MeleeCoverage.Windup) ? MeleeCoverage.Windup : MeleeCoverage.Impact;
-                UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token);
+                UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: true);
                 RenderedContact(initial); HealthBars(initial); CombatProgressionProof.Motion(initial, board);
-                MatchSnapshot state = Latest(client);
-                if (state.Phase == Phase.Combat)
+                MatchSnapshot state = initialPause ?? Latest(client); initialPause = null;
+                if (state.Phase == Phase.Combat && !state.Paused)
                 {
                     long revision = Latest(observer).Revision;
+                    _timing?.Record("milestone-register", Latest(observer), info: new { Floor = revision, Phase = phase });
                     using var milestoneCancellation = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
                     async Task<MatchSnapshot> PauseMilestone()
                     {
@@ -109,7 +152,7 @@ internal sealed partial class Runner
                     {
                         while (!pause.IsCompleted)
                         {
-                            UiObservation moving = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token);
+                            UiObservation moving = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: true);
                             RenderedContact(moving); HealthBars(moving); CombatProgressionProof.Motion(moving, board);
                             foreach (MeleeWitness witness in MeleeVisualProof.Inspect(moving, board)) { covered |= witness.Coverage; witnesses.Add(witness); }
                         }
@@ -148,6 +191,7 @@ internal sealed partial class Runner
                 }
                 UiObservation frozen = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal) && p.CombatTick == state.Tick,
                     "melee capture pause", deadline.Token);
+                MeleeAdmission.FrozenFrame(frozen, state);
                 RenderedContact(frozen); HealthBars(frozen);
                 MeleeWitness[] current = MeleeVisualProof.Inspect(frozen, board);
                 foreach (MeleeWitness witness in current) { covered |= witness.Coverage; witnesses.Add(witness); }
@@ -163,7 +207,7 @@ internal sealed partial class Runner
                     MeleeCoverage capturedSide = (paused.Coverage & MeleeCoverage.Near) != 0 ? MeleeCoverage.Near : MeleeCoverage.Far;
                     string label = (phase == MeleeCoverage.Windup ? "windup-" : "impact-") + capturedSide.ToString().ToLowerInvariant();
                     await Click(client, "ResetView", deadline.Token); RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token));
-                    await Checkpoint(client, "combat-melee-" + label + "-overview", deadline.Token);
+                    await MeleeCapture(client, observer, "combat-melee-" + label + "-overview", state, paused, phase, board, deadline.Token);
                     UiObservation overview = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token);
                     StrikeObservation strike = overview.Strikes.Single(s => s.Id == paused.Actor && s.AttackSequence == paused.Sequence);
                     float x = (strike.SourceScreenX + strike.TargetScreenX) / 2, y = (strike.SourceScreenY + strike.TargetScreenY) / 2;
@@ -177,7 +221,7 @@ internal sealed partial class Runner
                         "both linked melee endpoints remain visible in the close view");
                     Require(frozen.CombatTick == close.CombatTick && JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(close.Units),
                         "camera inspection does not change paused anchors, poses or actions");
-                    await Checkpoint(client, "combat-melee-" + label + "-close", deadline.Token);
+                    await MeleeCapture(client, observer, "combat-melee-" + label + "-close", state, paused, phase, board, deadline.Token);
                     await Click(client, "ResetView", deadline.Token); captures.Add(phase);
                     if (phase == MeleeCoverage.Windup) firstSide = capturedSide;
                 }

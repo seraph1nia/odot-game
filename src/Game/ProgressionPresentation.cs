@@ -31,13 +31,13 @@ public static class ProgressionPresentation
         => string.Join('\n', Enum.GetValues<Resource>().Where(r => cost.Amount(r) > 0).Select(r => stocks.Amount(r) >= cost.Amount(r)
             ? $"{r}: {stocks.Amount(r)}/{cost.Amount(r)} · affordable"
             : $"Need {cost.Amount(r) - stocks.Amount(r)} more {r.ToString().ToLowerInvariant()} · " + (r switch
-            { Resource.Gold => "production, Gold Mine or Market", Resource.Wood => "Lumbermill", Resource.Food => "Farm", Resource.Stone => "Stonecutter", Resource.Metal => "Metal Mine", _ => "Weaver" })));
+            { Resource.Gold => "production, Gold mine or Market", Resource.Wood => AssetCatalog.BuildingName(Building.Lumbermill), Resource.Food => AssetCatalog.BuildingName(Building.Farm), Resource.Stone => AssetCatalog.BuildingName(Building.Stonecutter), Resource.Metal => AssetCatalog.BuildingName(Building.MetalMine), _ => AssetCatalog.BuildingName(Building.Weaver) })));
     public static string ProducerBenefit(BuildingDefinition definition, int level = 1, bool upgrade = false)
         => definition.Produces is Resource resource ? upgrade ? $"{definition.Output(level)} → {definition.Output(level + 1)} {resource.ToString().ToLowerInvariant()}/turn"
             : $"+{definition.Output(level)} {resource.ToString().ToLowerInvariant()}/turn" : "";
     public static string FoodSalePreview(CityState city, MarketRate rate)
     {
-        if (city.Food < rate.Units) return $"Need {rate.Units - city.Food} more food · Farm";
+        if (city.Food < rate.Units) return $"Need {rate.Units - city.Food} more food · {AssetCatalog.BuildingName(Building.Farm)}";
         BattleFoodForecast forecast = BattleFood.Forecast(city.Soldiers, city.Food - rate.Units, city.RecruitmentQuotes);
         return $"After sale: pay {forecast.Paid} food · {forecast.Unfed.Length} soldiers will sit out · food after payment {forecast.Available - forecast.Paid}";
     }
@@ -109,14 +109,8 @@ public static class ProgressionPresentation
     }
     public static string StatusBadge(StatusState state, double tick)
         => string.Join("\n", new[] { state.Burn is { } b && tick < b.ExpiresTick ? "▲ Burn" : "", state.Poison.Any(p => tick < p.ExpiresTick) ? $"● Poison ×{state.Poison.Count(p => tick < p.ExpiresTick)}" : "", state.Chill is { } c && tick < c.ExpiresTick ? "◆ Chill" : "" }.Where(s => s.Length > 0));
-    public static string UnitName(UnitState unit) => (unit.IsBoss ? "Boss · " : "") + (unit.Faction == Faction.Skeletons ? "Skeleton " : "") + unit.Type;
-    public static string UnitDescription(UnitState unit) => unit.Type switch
-    {
-        UnitType.Berserker => "A heavy melee fighter with powerful axe attacks.",
-        UnitType.Crossbowman => "A ranged fighter who attacks with a crossbow.",
-        UnitType.Mage => "A spellcaster who attacks with magic.",
-        _ => "A close combat fighter armed with a sword."
-    };
+    public static string UnitName(UnitState unit) => (unit.IsBoss ? "Boss · " : "") + AssetCatalog.UnitName(unit.Type, unit.Faction);
+    public static string UnitDescription(UnitState unit) => AssetCatalog.UnitDescription(unit.Type, unit.Faction);
     private static string ArmyDetail(UnitState unit, CityState city, bool preview, long tick)
     {
         string status = preview && city.FoodForecast is BattleFoodForecast forecast ? forecast.Participating.Contains(unit.Id) ? "next: fed" : "next: reserve"
@@ -125,6 +119,6 @@ public static class ProgressionPresentation
             status = $"Town hall plot {hall.HallSlot + 1} · {(preview ? city.FoodForecast?.Funded.Contains(unit.Id) == true ? "next: funded" : "next: unfunded" : "noncombatant")} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no completed paid recovery")}";
         else if (unit.Assignment is { } home) status += $" · home tile {home.Tile}, anchor {home.Anchor}";
         string committed = unit.Statuses.Chill is null ? "" : $" · committed impact {unit.ImpactTick}, ready {unit.ReadyTick}";
-        return $"#{unit.Id} {unit.Type}{(unit.IsBoss ? " BOSS" : "")} L{unit.Level} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · damage {HealthPoints.Format(unit.Profile.Damage)} · size {unit.Size} · {status} · {CapabilityText(unit.Capabilities)} · {StatusText(unit.Statuses, tick)}{committed}";
+        return $"#{unit.Id} {AssetCatalog.UnitName(unit.Type, unit.Faction)}{(unit.IsBoss ? " BOSS" : "")} L{unit.Level} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · damage {HealthPoints.Format(unit.Profile.Damage)} · size {unit.Size} · {status} · {CapabilityText(unit.Capabilities)} · {StatusText(unit.Statuses, tick)}{committed}";
     }
 }

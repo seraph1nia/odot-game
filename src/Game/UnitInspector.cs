@@ -28,8 +28,8 @@ internal sealed partial class UnitInspector : PanelContainer
         var box = new VBoxContainer { CustomMinimumSize = new(196, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill }; box.AddThemeConstantOverride("separation", 2); scroll.AddChild(box);
         var container = new SubViewportContainer { CustomMinimumSize = new(192, 80), Stretch = true, MouseFilter = MouseFilterEnum.Ignore }; box.AddChild(container); container.AddChild(_preview);
         var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 2.3f, Position = new(2.5f, 1.5f, 4), Current = true }; _preview.AddChild(camera); camera.Transform = camera.Transform.LookingAt(new(0, .65f, 0));
-        _preview.AddChild(new DirectionalLight3D { RotationDegrees = new(-45, -30, 0), LightEnergy = 1.2f });
-        _preview.AddChild(new WorldEnvironment { Environment = new Godot.Environment { AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = Colors.White, AmbientLightEnergy = .7f } });
+        _preview.AddChild(VillageLighting.Sun(studio: true));
+        _preview.AddChild(new WorldEnvironment { Environment = VillageLighting.Environment(studio: true) });
         box.AddChild(_description); box.AddChild(_health); box.AddChild(_stats);
         _retire.Pressed += () => { if (canEdit() && _sample is { } unit && unit.Owner == game.PlayerId) game.SendAction("retire", unitId: unit.Id); };
         _store.Pressed += () => { if (canEdit() && _sample is { } unit && unit.Owner == game.PlayerId && _hall.ItemCount > 0) game.SendAction("store", _hall.GetSelectedId(), unitId: unit.Id); };
@@ -45,7 +45,7 @@ internal sealed partial class UnitInspector : PanelContainer
         _model = UnitAssets.Instantiate(UnitAssets.Character(unit.Type, unit.Faction));
         _model.Scale = Vector3.One * .43f; _preview.AddChild(_model);
         var rig = UnitAssets.Bind(_model, unit.Type); UnitAssets.Equip(_model, rig.Skeleton, unit.Type, unit.Faction);
-        rig.Player.Play("Idle"); rig.Player.Advance(0); rig.Player.Pause();
+        rig.Player.Play("idle"); rig.Player.Advance(0); rig.Player.Pause();
         _preview.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
         Sample(unit); Visible = true;
     }

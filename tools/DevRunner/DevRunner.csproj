@@ -9,6 +9,11 @@
     <Compile Include="../../src/Game/Distribution/ReleaseIdentity.cs" Link="Distribution/ReleaseIdentity.cs" />
     <Compile Include="../../src/Game/Distribution/ReleaseDiscovery.cs" Link="Distribution/ReleaseDiscovery.cs" />
     <Compile Include="../../src/Game/GameBrand.cs" Link="GameBrand.cs" />
+    <Compile Include="../../src/Game/AssetCatalog.cs" Link="AssetCatalog.cs" />
+    <Compile Include="../../src/Game/OwnedFrameCapture.cs" Link="OwnedFrameCapture.cs" />
+    <Compile Include="../../src/Game/OwnedTimingTrace.cs" Link="OwnedTimingTrace.cs" />
+    <Compile Include="../../src/Game/GuestPollOwnership.cs" Link="GuestPollOwnership.cs" />
+    <Compile Include="../../src/Game/StaticRenderKey.cs" Link="StaticRenderKey.cs" />
     <Compile Include="../../src/Game/AudioMixProgress.cs" Link="AudioMixProgress.cs" />
   </ItemGroup>
 </Project>

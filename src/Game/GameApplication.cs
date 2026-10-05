@@ -277,7 +277,7 @@ public partial class GameApplication(Main session) : Node
         StopAudio();
     }
 
-    public object ObserveUi(string id, string? screenshot, int colors)
+    public Dictionary<string, object?> ObserveUi(string id, string? screenshot, int colors)
     {
         var targets = new Dictionary<string, object>();
         foreach (Button button in new[] { _solo, _multiplayer, _menuSettings, _exit, _host, _back }) ObserveControl(targets, button.Name, button);
@@ -315,6 +315,8 @@ public partial class GameApplication(Main session) : Node
         var fields = new Dictionary<string, object?>
         {
             ["Id"] = id,
+            ["AuthoredProvenanceBundled"] = Godot.FileAccess.FileExists(AssetCatalog.Root + "manifest.json") && Godot.FileAccess.FileExists(AssetCatalog.Root + "NOTICE.md"),
+            ["InstalledModels"] = UnitAssets.InstalledModels(),
             ["UiProvenanceBundled"] = Godot.FileAccess.FileExists(UiAssets.Root + "manifest.json") && Godot.FileAccess.FileExists(UiAssets.Root + "UPSTREAM-README.txt") && Godot.FileAccess.FileExists(UiAssets.Root + "README.md"),
             ["PanelTexture"] = (Theme.GetStylebox("panel", "PanelContainer") as StyleBoxTexture)?.Texture?.ResourcePath,
             ["ButtonTextures"] = ApplicationTheme.ButtonStates.Select(state => (Theme.GetStylebox(state, "Button") as StyleBoxTexture)?.Texture?.ResourcePath).ToArray(),
@@ -351,6 +353,19 @@ public partial class GameApplication(Main session) : Node
             ["AudioDriver"] = AudioServer.GetDriverName(),
             ["UserDataPath"] = ProjectSettings.GlobalizePath("user://"),
             ["Renderer"] = RenderingServer.GetVideoAdapterName(),
+            ["RenderCosts"] = new
+            {
+                DrawCalls = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame),
+                Objects = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalObjectsInFrame),
+                Primitives = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalPrimitivesInFrame),
+                TextureBytes = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TextureMemUsed),
+                BufferBytes = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.BufferMemUsed),
+                Nodes = Performance.GetMonitor(Performance.Monitor.ObjectNodeCount),
+                Resources = Performance.GetMonitor(Performance.Monitor.ObjectResourceCount),
+                FramesPerSecond = Performance.GetMonitor(Performance.Monitor.TimeFps),
+                ProcessMilliseconds = Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000,
+                PhysicsMilliseconds = Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000
+            },
             ["Models"] = _landscapeAssets.Paths.Count(),
             ["Landscape"] = _landscape.Observe(_menuCamera, GetViewport().GetVisibleRect()),
             ["Materials"] = 0,
@@ -370,6 +385,7 @@ public partial class GameApplication(Main session) : Node
             ["SteamStatus"] = _steamStatus.Text
         };
         _tabletop?.AppendUiObservation(fields, targets);
+        if (System.Environment.GetEnvironmentVariable("ODOT_ASSET_COSTS") == "1") { fields["RenderGroups"] = RenderInventory.Observe(this); }
         return fields;
     }
     internal void ObserveControl(Dictionary<string, object> targets, string name, Control control, Rect2? local = null)
@@ -397,9 +413,9 @@ public partial class GameApplication(Main session) : Node
     private void CreateBackground()
     {
         _scenery = new Node3D { Name = "MenuScenery" }; AddChild(_scenery);
-        _menuEnvironment = new Godot.Environment { BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new("a7c4c2"), AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new("f2f0df"), AmbientLightEnergy = 0.2f, TonemapMode = Godot.Environment.ToneMapper.Linear };
+        _menuEnvironment = VillageLighting.Environment();
         _environment = new WorldEnvironment { Environment = _menuEnvironment }; _scenery.AddChild(_environment);
-        _scenery.AddChild(new DirectionalLight3D { RotationDegrees = new(-55, -25, 0), LightEnergy = 0.35f, ShadowEnabled = true });
+        _scenery.AddChild(VillageLighting.Sun());
         _menuCamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 28, Position = new(18, 22, 30), Current = true }; _scenery.AddChild(_menuCamera); _menuCamera.LookAt(Vector3.Zero);
         _landscape = new VillageLandscape(_scenery, _landscapeAssets);
         _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);

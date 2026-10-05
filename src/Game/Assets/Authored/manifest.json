@@ -1,0 +1,2353 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/seraph1nia/odot-game-assets.git",
+  "revision": "a640d721065233dfbf488747694cd95110d4a907",
+  "permission": "the repo is my own work, so yes, use it",
+  "permissionScope": "Required authored game-ready exports and embedded maps for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
+  "files": [
+    {
+      "path": "buildings/archery_range.glb",
+      "sourcePath": "exports/buildings/archery_range.glb",
+      "sha256": "773325095940b3b3379338e2d84af5398c41a922b676e5f1f15ef3762babbf81",
+      "bytes": 5483064,
+      "embeddedImages": 31,
+      "materials": 38,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/arrow_tower.glb",
+      "sourcePath": "exports/buildings/arrow_tower.glb",
+      "sha256": "c23bada7f7e3fee2ba1a954cb55efcb8de68731136e9785e9de9ea7d6a030a76",
+      "bytes": 1261112,
+      "embeddedImages": 0,
+      "materials": 35,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/bakery.glb",
+      "sourcePath": "exports/buildings/bakery.glb",
+      "sha256": "643158e9b686a6a1d9e1f8b90533da47deb57923baa3b7a3e1e1a3bc894e27fe",
+      "bytes": 1607316,
+      "embeddedImages": 0,
+      "materials": 16,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/barracks.glb",
+      "sourcePath": "exports/buildings/barracks.glb",
+      "sha256": "142fc3044369e6e6af04f4dd3c81966280d7ccffe2d335a9033f103d2e1ade7b",
+      "bytes": 1480168,
+      "embeddedImages": 0,
+      "materials": 35,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/bombarding_tower.glb",
+      "sourcePath": "exports/buildings/bombarding_tower.glb",
+      "sha256": "d85259b5fd09e071d15d1da153312b07556017cbbd7b6746b5b1319a709840a8",
+      "bytes": 1082380,
+      "embeddedImages": 0,
+      "materials": 29,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/gold_mine.glb",
+      "sourcePath": "exports/buildings/gold_mine.glb",
+      "sha256": "9b7dd112218fe0241c89ec7482cb0175c35219e82f3091f4270de97b1036902f",
+      "bytes": 789880,
+      "embeddedImages": 0,
+      "materials": 15,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/magic_academy.glb",
+      "sourcePath": "exports/buildings/magic_academy.glb",
+      "sha256": "e2bcefa7a3ead6afff0400198b895d4b5af448c4e831aa24653c3c92438107c4",
+      "bytes": 1480140,
+      "embeddedImages": 0,
+      "materials": 32,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/metal_mine.glb",
+      "sourcePath": "exports/buildings/metal_mine.glb",
+      "sha256": "f03e7487735ac055a06acf7c6715cae87ff9cd771284168ee16fcf0b6cd1cbaa",
+      "bytes": 5252972,
+      "embeddedImages": 32,
+      "materials": 35,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/research_tower.glb",
+      "sourcePath": "exports/buildings/research_tower.glb",
+      "sha256": "22ee71ebef473aec72d869d49cc1faa12d724ed8c4f408abb68d15d678d09ac4",
+      "bytes": 5611168,
+      "embeddedImages": 32,
+      "materials": 36,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/stone_cutter.glb",
+      "sourcePath": "exports/buildings/stone_cutter.glb",
+      "sha256": "b794740ad916ed966cdde669e0fe582820b30051524260cdf8564b39e732d384",
+      "bytes": 1279604,
+      "embeddedImages": 0,
+      "materials": 27,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/town_hall.glb",
+      "sourcePath": "exports/buildings/town_hall.glb",
+      "sha256": "d4e38bbf4a1754701211f937b6eee79fb105b03a13e547c179ba18172822150b",
+      "bytes": 8849548,
+      "embeddedImages": 31,
+      "materials": 30,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/trade_market.glb",
+      "sourcePath": "exports/buildings/trade_market.glb",
+      "sha256": "3279b62cc6eb67da1ff95210b91735575daa0aa93f1ddf79e8ad3b8ab6d09fdb",
+      "bytes": 1256240,
+      "embeddedImages": 0,
+      "materials": 29,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/tree_house.glb",
+      "sourcePath": "exports/buildings/tree_house.glb",
+      "sha256": "77b46f53fa0dc56e1a7102e9f14dd4d04ad474167f4ef626c8c718519d476d5e",
+      "bytes": 796256,
+      "embeddedImages": 0,
+      "materials": 15,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/weaver.glb",
+      "sourcePath": "exports/buildings/weaver.glb",
+      "sha256": "bbffda6346918180bfe8b72cd54870dde97559cafc66309e078c52318c1f5247",
+      "bytes": 5427916,
+      "embeddedImages": 32,
+      "materials": 33,
+      "animationNames": []
+    },
+    {
+      "path": "buildings/woodcutter_hut.glb",
+      "sourcePath": "exports/buildings/woodcutter_hut.glb",
+      "sha256": "145107c3a2f3154da970bd1a76ecfba0110af7c841aa211324ac6415d39e33ee",
+      "bytes": 1376604,
+      "embeddedImages": 0,
+      "materials": 20,
+      "animationNames": []
+    },
+    {
+      "path": "characters/archer.glb",
+      "sourcePath": "exports/characters/archer.glb",
+      "sha256": "904f890755acd43276e5f4f832a0194ac7f2485b07095f44a40f1990d700fc42",
+      "bytes": 455172,
+      "embeddedImages": 0,
+      "materials": 14,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/berserker.glb",
+      "sourcePath": "exports/characters/berserker.glb",
+      "sha256": "a9782457f77466439d5881f6c0051cd84ad7173ec6a364aac8a094a4cfa25930",
+      "bytes": 1080084,
+      "embeddedImages": 0,
+      "materials": 17,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/evil_berserker_unit.glb",
+      "sourcePath": "exports/characters/evil_berserker_unit.glb",
+      "sha256": "3902fd908b742c9ab2b3e5d8dfcb052a2e61dde50ee56fc48eec0041893fe3fb",
+      "bytes": 716616,
+      "embeddedImages": 0,
+      "materials": 15,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/evil_mage_unit.glb",
+      "sourcePath": "exports/characters/evil_mage_unit.glb",
+      "sha256": "e7c0d79a21d618124db1a43258110c830e0a6a4163144f092107294edfab438d",
+      "bytes": 631112,
+      "embeddedImages": 0,
+      "materials": 16,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/evil_melee_unit.glb",
+      "sourcePath": "exports/characters/evil_melee_unit.glb",
+      "sha256": "9d97c29db7eb0e1639508b0ec7943bb7bd062bda5fed8a24219d92c9a7bc3e84",
+      "bytes": 791840,
+      "embeddedImages": 0,
+      "materials": 15,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/evil_ranged_unit.glb",
+      "sourcePath": "exports/characters/evil_ranged_unit.glb",
+      "sha256": "5808c64a27e3ae9e0ce193c1b979625d76c55b50d96bc390e73415a5df7a95bc",
+      "bytes": 712228,
+      "embeddedImages": 0,
+      "materials": 23,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/knight.glb",
+      "sourcePath": "exports/characters/knight.glb",
+      "sha256": "1ffa02091ffae7617cd7cbb1c1108150703409086e8380f12c080e9f6bbb2130",
+      "bytes": 662780,
+      "embeddedImages": 0,
+      "materials": 13,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "characters/mage.glb",
+      "sourcePath": "exports/characters/mage.glb",
+      "sha256": "76b9980295c51ea178878afb6fc7a5ea7e93af2ccf2930e0bcffcbd99ff6ff55",
+      "bytes": 509272,
+      "embeddedImages": 0,
+      "materials": 12,
+      "animationNames": [
+        "attack",
+        "death",
+        "hit",
+        "idle",
+        "run",
+        "walk"
+      ]
+    },
+    {
+      "path": "environment/components/forest_boulder.glb",
+      "sourcePath": "exports/environment/components/forest_boulder.glb",
+      "sha256": "88d721b332224223a91b03f0185a80079b29da321c126af8f11d70fbf9335c1e",
+      "bytes": 532572,
+      "embeddedImages": 5,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_bridge_plank.glb",
+      "sourcePath": "exports/environment/components/forest_bridge_plank.glb",
+      "sha256": "3bbe29bf0da09a8854e91fa1a1d0d7cec4101fe364599f97b92258ba2517955e",
+      "bytes": 350896,
+      "embeddedImages": 4,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_fern.glb",
+      "sourcePath": "exports/environment/components/forest_fern.glb",
+      "sha256": "4758429b9344dd459518dccb51807a63353b5cce8d48b3ef97dbf905514d5ec9",
+      "bytes": 414796,
+      "embeddedImages": 4,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_hex_meadow.glb",
+      "sourcePath": "exports/environment/components/forest_hex_meadow.glb",
+      "sha256": "36406de0a4db79e007694d1b2e83418ed1e46ea370c9b65780ea93be676d4829",
+      "bytes": 355240,
+      "embeddedImages": 3,
+      "materials": 4,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_hex_stream.glb",
+      "sourcePath": "exports/environment/components/forest_hex_stream.glb",
+      "sha256": "c83cf0f4509e2183a20eff14d8a82f97ef687edc8ab3e46c8d66ac008aac315b",
+      "bytes": 522936,
+      "embeddedImages": 7,
+      "materials": 5,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_lantern_post.glb",
+      "sourcePath": "exports/environment/components/forest_lantern_post.glb",
+      "sha256": "3dc307419001367a0954c26d7e68294ce538f9ff6d4c454595dbb569e5c9b87d",
+      "bytes": 814724,
+      "embeddedImages": 10,
+      "materials": 6,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_leaf_clump.glb",
+      "sourcePath": "exports/environment/components/forest_leaf_clump.glb",
+      "sha256": "3b41297dc9e70d3d111b13c911bd272aa58e808531b8d59ef54ad3fccad86a09",
+      "bytes": 334612,
+      "embeddedImages": 4,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_moss.glb",
+      "sourcePath": "exports/environment/components/forest_moss.glb",
+      "sha256": "12ddfecd05b27bd16faeaf73b0965d381a81428567341f762d8ec625205d8469",
+      "bytes": 344188,
+      "embeddedImages": 4,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_mushroom_small.glb",
+      "sourcePath": "exports/environment/components/forest_mushroom_small.glb",
+      "sha256": "c98d4556cb00aafd690419a9a1298bd6b5aa01cc25dd02a56d107e212aec2f27",
+      "bytes": 1619876,
+      "embeddedImages": 9,
+      "materials": 5,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_shrine_plinth.glb",
+      "sourcePath": "exports/environment/components/forest_shrine_plinth.glb",
+      "sha256": "0048c6c81f4a0e17c506a935b8b3525f3ee8953e4765622d1c7359d972117ebe",
+      "bytes": 443148,
+      "embeddedImages": 4,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "environment/components/forest_spiral_tree.glb",
+      "sourcePath": "exports/environment/components/forest_spiral_tree.glb",
+      "sha256": "c49a9dfd4cd1ebd52a05c04eddeeb72c88fb83eee599410764fe1c2981b82260",
+      "bytes": 1038932,
+      "embeddedImages": 11,
+      "materials": 5,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_woodland_bridge.glb",
+      "sourcePath": "exports/environment/hex_woodland_bridge.glb",
+      "sha256": "2195443dbb4712b58dc623c3dbf1fa3d3037f212ed3cd30db24f4c026f113024",
+      "bytes": 7843060,
+      "embeddedImages": 47,
+      "materials": 57,
+      "animationNames": []
+    },
+    {
+      "path": "props/arrow.glb",
+      "sourcePath": "exports/props/arrow.glb",
+      "sha256": "c699a5cfb4c0df39f88fdb4a8c7b29bb4f196589d46c24a13d377423b515c397",
+      "bytes": 4960,
+      "embeddedImages": 0,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_barrel.glb",
+      "sourcePath": "exports/props/kit_barrel.glb",
+      "sha256": "f0b9e517005a7ed474ef812638df72dbc3aa2e4f1b74b7145a0d714993530505",
+      "bytes": 43640,
+      "embeddedImages": 0,
+      "materials": 4,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_book.glb",
+      "sourcePath": "exports/props/kit_book.glb",
+      "sha256": "26f8c966a14ffb6cb14d88d0d901fec95bad51d1b4805a9125f5902499f716b2",
+      "bytes": 36232,
+      "embeddedImages": 0,
+      "materials": 4,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_crate.glb",
+      "sourcePath": "exports/props/kit_crate.glb",
+      "sha256": "028c087d09acc750e137035caa32985318bd56f002aadd9b3a776b6f321735bf",
+      "bytes": 106308,
+      "embeddedImages": 0,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_open_barrel.glb",
+      "sourcePath": "exports/props/kit_open_barrel.glb",
+      "sha256": "baeb2fa060bae123666252f3225814350f7be726c1a655dd7d08914eacce3172",
+      "bytes": 52532,
+      "embeddedImages": 0,
+      "materials": 4,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_parcel.glb",
+      "sourcePath": "exports/props/kit_parcel.glb",
+      "sha256": "4a49bff67c836c80f2cf17418e7306f5685a7b7c736d488d46dd37ef04f931b7",
+      "bytes": 24268,
+      "embeddedImages": 0,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_pine.glb",
+      "sourcePath": "exports/props/kit_pine.glb",
+      "sha256": "cf28aa3d7993aef40496fb4c706bcc9877ee8c571d24204fc2354df31c2751e4",
+      "bytes": 12328,
+      "embeddedImages": 0,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_spear.glb",
+      "sourcePath": "exports/props/kit_spear.glb",
+      "sha256": "f8de355f656c58cf1f2a64ac3c658fa227fe0102ee329da6be3087889dc730cf",
+      "bytes": 18508,
+      "embeddedImages": 0,
+      "materials": 3,
+      "animationNames": []
+    },
+    {
+      "path": "props/kit_target.glb",
+      "sourcePath": "exports/props/kit_target.glb",
+      "sha256": "991d682bea6337b0c9579b7f8bf16ef13889f4b3d949f1fd0e1c4297b803862b",
+      "bytes": 41276,
+      "embeddedImages": 0,
+      "materials": 4,
+      "animationNames": []
+    }
+  ],
+  "derived": [
+    {
+      "path": "buildings/archery_range_painted_leaf_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_leaf_color",
+      "sha256": "d41eed8122aa9a306d1b32ddce53dbcf27a14ffc5a37a20d4e12c77299129375",
+      "bytes": 92448
+    },
+    {
+      "path": "buildings/archery_range_painted_leaf_dark_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_leaf_dark_color",
+      "sha256": "6979e556652d0eed6ad96d81ff11177702f92e5e6092d75ea5969862718fbef8",
+      "bytes": 78265
+    },
+    {
+      "path": "buildings/archery_range_painted_leaf_light_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_leaf_light_color",
+      "sha256": "92ef7b1ae70ffca9256c98949f01038c07f427db52af247d6e97404905c0b3dc",
+      "bytes": 105073
+    },
+    {
+      "path": "buildings/archery_range_painted_leaf_normal.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "buildings/archery_range_painted_leaf_roughness.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
+      "bytes": 14341
+    },
+    {
+      "path": "buildings/archery_range_painted_plaster_normal.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_plaster_normal",
+      "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
+      "bytes": 44763
+    },
+    {
+      "path": "buildings/archery_range_painted_plaster_roughness.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_plaster_roughness",
+      "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
+      "bytes": 19596
+    },
+    {
+      "path": "buildings/archery_range_painted_roof_blue_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_roof_blue_color",
+      "sha256": "4271ed4434104c909dca1c0ae602eb40b0d8acf1e92ee3a69145b3afa4eda5c9",
+      "bytes": 47437
+    },
+    {
+      "path": "buildings/archery_range_painted_roof_blue_dark_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_roof_blue_dark_color",
+      "sha256": "1b4fab691e29752a3d6081612dd5408a04b80a28ed029e5bba40f102cf458a71",
+      "bytes": 38172
+    },
+    {
+      "path": "buildings/archery_range_painted_roof_blue_light_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_roof_blue_light_color",
+      "sha256": "006e15a3cc1b4b7c1b83d3b5e76b729e32214bfa0a43bf9e0b2a42b4935ddc20",
+      "bytes": 57329
+    },
+    {
+      "path": "buildings/archery_range_painted_roof_normal.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_roof_normal",
+      "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
+      "bytes": 185014
+    },
+    {
+      "path": "buildings/archery_range_painted_roof_roughness.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_roof_roughness",
+      "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
+      "bytes": 10146
+    },
+    {
+      "path": "buildings/archery_range_painted_stone_dark_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "buildings/archery_range_painted_stone_light_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "buildings/archery_range_painted_stone_normal.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "buildings/archery_range_painted_stone_roughness.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "buildings/archery_range_painted_wall_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wall_color",
+      "sha256": "0013b45d96552fd88ca97384ff85ab02c23661ff513df32605eedfb2c3477f73",
+      "bytes": 151781
+    },
+    {
+      "path": "buildings/archery_range_painted_wall_light_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wall_light_color",
+      "sha256": "37167742425fb9fa188cf85be76cc061c2fb7dcccefef3ef8766e429e0959891",
+      "bytes": 164566
+    },
+    {
+      "path": "buildings/archery_range_painted_window_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "buildings/archery_range_painted_window_emission.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "buildings/archery_range_painted_window_hot_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "buildings/archery_range_painted_window_hot_emission.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "buildings/archery_range_painted_window_roughness.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "buildings/archery_range_painted_window_shade_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_shade_color",
+      "sha256": "73c9fb4610224057eff0a1d8be2a17bbb2a8983b4b83823c614e2ab8bfb0a7be",
+      "bytes": 36433
+    },
+    {
+      "path": "buildings/archery_range_painted_window_shade_emission.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_window_shade_emission",
+      "sha256": "30e1df4afbf1cd6ba474cc5ddb93b04dbb699fe79a79995d0e680eb7ad5b78fe",
+      "bytes": 45715
+    },
+    {
+      "path": "buildings/archery_range_painted_wood_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wood_color",
+      "sha256": "f3e3b06e314cb48690a7ce02190dd2751ecf7b8612e1d91350ce61a960df976b",
+      "bytes": 105198
+    },
+    {
+      "path": "buildings/archery_range_painted_wood_dark_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "buildings/archery_range_painted_wood_edge_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "buildings/archery_range_painted_wood_light_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "buildings/archery_range_painted_wood_normal.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "buildings/archery_range_painted_wood_roughness.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "buildings/metal_mine_painted_leaf_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_leaf_color",
+      "sha256": "d41eed8122aa9a306d1b32ddce53dbcf27a14ffc5a37a20d4e12c77299129375",
+      "bytes": 92448
+    },
+    {
+      "path": "buildings/metal_mine_painted_leaf_dark_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_leaf_dark_color",
+      "sha256": "6979e556652d0eed6ad96d81ff11177702f92e5e6092d75ea5969862718fbef8",
+      "bytes": 78265
+    },
+    {
+      "path": "buildings/metal_mine_painted_leaf_light_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_leaf_light_color",
+      "sha256": "92ef7b1ae70ffca9256c98949f01038c07f427db52af247d6e97404905c0b3dc",
+      "bytes": 105073
+    },
+    {
+      "path": "buildings/metal_mine_painted_leaf_normal.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "buildings/metal_mine_painted_leaf_roughness.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
+      "bytes": 14341
+    },
+    {
+      "path": "buildings/metal_mine_painted_plaster_normal.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_plaster_normal",
+      "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
+      "bytes": 44763
+    },
+    {
+      "path": "buildings/metal_mine_painted_plaster_roughness.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_plaster_roughness",
+      "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
+      "bytes": 19596
+    },
+    {
+      "path": "buildings/metal_mine_painted_roof_blue_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_roof_blue_color",
+      "sha256": "4271ed4434104c909dca1c0ae602eb40b0d8acf1e92ee3a69145b3afa4eda5c9",
+      "bytes": 47437
+    },
+    {
+      "path": "buildings/metal_mine_painted_roof_blue_dark_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_roof_blue_dark_color",
+      "sha256": "1b4fab691e29752a3d6081612dd5408a04b80a28ed029e5bba40f102cf458a71",
+      "bytes": 38172
+    },
+    {
+      "path": "buildings/metal_mine_painted_roof_blue_light_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_roof_blue_light_color",
+      "sha256": "006e15a3cc1b4b7c1b83d3b5e76b729e32214bfa0a43bf9e0b2a42b4935ddc20",
+      "bytes": 57329
+    },
+    {
+      "path": "buildings/metal_mine_painted_roof_normal.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_roof_normal",
+      "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
+      "bytes": 185014
+    },
+    {
+      "path": "buildings/metal_mine_painted_roof_roughness.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_roof_roughness",
+      "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
+      "bytes": 10146
+    },
+    {
+      "path": "buildings/metal_mine_painted_stone_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_stone_color",
+      "sha256": "67307cfeb71a485760da6095086ce87270ef36b0c2d42cf87943a03ccf0fc8c8",
+      "bytes": 140973
+    },
+    {
+      "path": "buildings/metal_mine_painted_stone_dark_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "buildings/metal_mine_painted_stone_light_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "buildings/metal_mine_painted_stone_normal.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "buildings/metal_mine_painted_stone_roughness.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "buildings/metal_mine_painted_wall_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wall_color",
+      "sha256": "0013b45d96552fd88ca97384ff85ab02c23661ff513df32605eedfb2c3477f73",
+      "bytes": 151781
+    },
+    {
+      "path": "buildings/metal_mine_painted_wall_light_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wall_light_color",
+      "sha256": "37167742425fb9fa188cf85be76cc061c2fb7dcccefef3ef8766e429e0959891",
+      "bytes": 164566
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_emission.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_hot_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_hot_emission.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_roughness.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_shade_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_shade_color",
+      "sha256": "73c9fb4610224057eff0a1d8be2a17bbb2a8983b4b83823c614e2ab8bfb0a7be",
+      "bytes": 36433
+    },
+    {
+      "path": "buildings/metal_mine_painted_window_shade_emission.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_window_shade_emission",
+      "sha256": "30e1df4afbf1cd6ba474cc5ddb93b04dbb699fe79a79995d0e680eb7ad5b78fe",
+      "bytes": 45715
+    },
+    {
+      "path": "buildings/metal_mine_painted_wood_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wood_color",
+      "sha256": "f3e3b06e314cb48690a7ce02190dd2751ecf7b8612e1d91350ce61a960df976b",
+      "bytes": 105198
+    },
+    {
+      "path": "buildings/metal_mine_painted_wood_dark_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "buildings/metal_mine_painted_wood_edge_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "buildings/metal_mine_painted_wood_light_color.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "buildings/metal_mine_painted_wood_normal.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "buildings/metal_mine_painted_wood_roughness.png",
+      "parent": "buildings/metal_mine.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "buildings/research_tower_painted_leaf_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_leaf_color",
+      "sha256": "d41eed8122aa9a306d1b32ddce53dbcf27a14ffc5a37a20d4e12c77299129375",
+      "bytes": 92448
+    },
+    {
+      "path": "buildings/research_tower_painted_leaf_dark_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_leaf_dark_color",
+      "sha256": "6979e556652d0eed6ad96d81ff11177702f92e5e6092d75ea5969862718fbef8",
+      "bytes": 78265
+    },
+    {
+      "path": "buildings/research_tower_painted_leaf_light_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_leaf_light_color",
+      "sha256": "92ef7b1ae70ffca9256c98949f01038c07f427db52af247d6e97404905c0b3dc",
+      "bytes": 105073
+    },
+    {
+      "path": "buildings/research_tower_painted_leaf_normal.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "buildings/research_tower_painted_leaf_roughness.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
+      "bytes": 14341
+    },
+    {
+      "path": "buildings/research_tower_painted_plaster_normal.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_plaster_normal",
+      "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
+      "bytes": 44763
+    },
+    {
+      "path": "buildings/research_tower_painted_plaster_roughness.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_plaster_roughness",
+      "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
+      "bytes": 19596
+    },
+    {
+      "path": "buildings/research_tower_painted_roof_blue_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_roof_blue_color",
+      "sha256": "4271ed4434104c909dca1c0ae602eb40b0d8acf1e92ee3a69145b3afa4eda5c9",
+      "bytes": 47437
+    },
+    {
+      "path": "buildings/research_tower_painted_roof_blue_dark_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_roof_blue_dark_color",
+      "sha256": "1b4fab691e29752a3d6081612dd5408a04b80a28ed029e5bba40f102cf458a71",
+      "bytes": 38172
+    },
+    {
+      "path": "buildings/research_tower_painted_roof_blue_light_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_roof_blue_light_color",
+      "sha256": "006e15a3cc1b4b7c1b83d3b5e76b729e32214bfa0a43bf9e0b2a42b4935ddc20",
+      "bytes": 57329
+    },
+    {
+      "path": "buildings/research_tower_painted_roof_normal.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_roof_normal",
+      "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
+      "bytes": 185014
+    },
+    {
+      "path": "buildings/research_tower_painted_roof_roughness.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_roof_roughness",
+      "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
+      "bytes": 10146
+    },
+    {
+      "path": "buildings/research_tower_painted_stone_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_stone_color",
+      "sha256": "67307cfeb71a485760da6095086ce87270ef36b0c2d42cf87943a03ccf0fc8c8",
+      "bytes": 140973
+    },
+    {
+      "path": "buildings/research_tower_painted_stone_dark_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "buildings/research_tower_painted_stone_light_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "buildings/research_tower_painted_stone_normal.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "buildings/research_tower_painted_stone_roughness.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "buildings/research_tower_painted_wall_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wall_color",
+      "sha256": "0013b45d96552fd88ca97384ff85ab02c23661ff513df32605eedfb2c3477f73",
+      "bytes": 151781
+    },
+    {
+      "path": "buildings/research_tower_painted_wall_light_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wall_light_color",
+      "sha256": "37167742425fb9fa188cf85be76cc061c2fb7dcccefef3ef8766e429e0959891",
+      "bytes": 164566
+    },
+    {
+      "path": "buildings/research_tower_painted_window_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "buildings/research_tower_painted_window_emission.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "buildings/research_tower_painted_window_hot_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "buildings/research_tower_painted_window_hot_emission.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "buildings/research_tower_painted_window_roughness.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "buildings/research_tower_painted_window_shade_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_shade_color",
+      "sha256": "73c9fb4610224057eff0a1d8be2a17bbb2a8983b4b83823c614e2ab8bfb0a7be",
+      "bytes": 36433
+    },
+    {
+      "path": "buildings/research_tower_painted_window_shade_emission.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_window_shade_emission",
+      "sha256": "30e1df4afbf1cd6ba474cc5ddb93b04dbb699fe79a79995d0e680eb7ad5b78fe",
+      "bytes": 45715
+    },
+    {
+      "path": "buildings/research_tower_painted_wood_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wood_color",
+      "sha256": "f3e3b06e314cb48690a7ce02190dd2751ecf7b8612e1d91350ce61a960df976b",
+      "bytes": 105198
+    },
+    {
+      "path": "buildings/research_tower_painted_wood_dark_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "buildings/research_tower_painted_wood_edge_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "buildings/research_tower_painted_wood_light_color.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "buildings/research_tower_painted_wood_normal.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "buildings/research_tower_painted_wood_roughness.png",
+      "parent": "buildings/research_tower.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "buildings/town_hall_painted_leaf_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_leaf_color",
+      "sha256": "d41eed8122aa9a306d1b32ddce53dbcf27a14ffc5a37a20d4e12c77299129375",
+      "bytes": 92448
+    },
+    {
+      "path": "buildings/town_hall_painted_leaf_dark_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_leaf_dark_color",
+      "sha256": "6979e556652d0eed6ad96d81ff11177702f92e5e6092d75ea5969862718fbef8",
+      "bytes": 78265
+    },
+    {
+      "path": "buildings/town_hall_painted_leaf_light_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_leaf_light_color",
+      "sha256": "92ef7b1ae70ffca9256c98949f01038c07f427db52af247d6e97404905c0b3dc",
+      "bytes": 105073
+    },
+    {
+      "path": "buildings/town_hall_painted_leaf_normal.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "buildings/town_hall_painted_leaf_roughness.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
+      "bytes": 14341
+    },
+    {
+      "path": "buildings/town_hall_painted_plaster_normal.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_plaster_normal",
+      "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
+      "bytes": 44763
+    },
+    {
+      "path": "buildings/town_hall_painted_plaster_roughness.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_plaster_roughness",
+      "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
+      "bytes": 19596
+    },
+    {
+      "path": "buildings/town_hall_painted_roof_blue_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_roof_blue_color",
+      "sha256": "4271ed4434104c909dca1c0ae602eb40b0d8acf1e92ee3a69145b3afa4eda5c9",
+      "bytes": 47437
+    },
+    {
+      "path": "buildings/town_hall_painted_roof_blue_dark_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_roof_blue_dark_color",
+      "sha256": "1b4fab691e29752a3d6081612dd5408a04b80a28ed029e5bba40f102cf458a71",
+      "bytes": 38172
+    },
+    {
+      "path": "buildings/town_hall_painted_roof_blue_light_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_roof_blue_light_color",
+      "sha256": "006e15a3cc1b4b7c1b83d3b5e76b729e32214bfa0a43bf9e0b2a42b4935ddc20",
+      "bytes": 57329
+    },
+    {
+      "path": "buildings/town_hall_painted_roof_normal.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_roof_normal",
+      "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
+      "bytes": 185014
+    },
+    {
+      "path": "buildings/town_hall_painted_roof_roughness.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_roof_roughness",
+      "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
+      "bytes": 10146
+    },
+    {
+      "path": "buildings/town_hall_painted_stone_dark_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "buildings/town_hall_painted_stone_light_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "buildings/town_hall_painted_stone_normal.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "buildings/town_hall_painted_stone_roughness.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "buildings/town_hall_painted_wall_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wall_color",
+      "sha256": "0013b45d96552fd88ca97384ff85ab02c23661ff513df32605eedfb2c3477f73",
+      "bytes": 151781
+    },
+    {
+      "path": "buildings/town_hall_painted_wall_light_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wall_light_color",
+      "sha256": "37167742425fb9fa188cf85be76cc061c2fb7dcccefef3ef8766e429e0959891",
+      "bytes": 164566
+    },
+    {
+      "path": "buildings/town_hall_painted_window_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "buildings/town_hall_painted_window_emission.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "buildings/town_hall_painted_window_hot_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "buildings/town_hall_painted_window_hot_emission.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "buildings/town_hall_painted_window_roughness.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "buildings/town_hall_painted_window_shade_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_shade_color",
+      "sha256": "73c9fb4610224057eff0a1d8be2a17bbb2a8983b4b83823c614e2ab8bfb0a7be",
+      "bytes": 36433
+    },
+    {
+      "path": "buildings/town_hall_painted_window_shade_emission.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_window_shade_emission",
+      "sha256": "30e1df4afbf1cd6ba474cc5ddb93b04dbb699fe79a79995d0e680eb7ad5b78fe",
+      "bytes": 45715
+    },
+    {
+      "path": "buildings/town_hall_painted_wood_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wood_color",
+      "sha256": "f3e3b06e314cb48690a7ce02190dd2751ecf7b8612e1d91350ce61a960df976b",
+      "bytes": 105198
+    },
+    {
+      "path": "buildings/town_hall_painted_wood_dark_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "buildings/town_hall_painted_wood_edge_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "buildings/town_hall_painted_wood_light_color.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "buildings/town_hall_painted_wood_normal.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "buildings/town_hall_painted_wood_roughness.png",
+      "parent": "buildings/town_hall.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "buildings/weaver_painted_leaf_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_leaf_color",
+      "sha256": "d41eed8122aa9a306d1b32ddce53dbcf27a14ffc5a37a20d4e12c77299129375",
+      "bytes": 92448
+    },
+    {
+      "path": "buildings/weaver_painted_leaf_dark_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_leaf_dark_color",
+      "sha256": "6979e556652d0eed6ad96d81ff11177702f92e5e6092d75ea5969862718fbef8",
+      "bytes": 78265
+    },
+    {
+      "path": "buildings/weaver_painted_leaf_light_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_leaf_light_color",
+      "sha256": "92ef7b1ae70ffca9256c98949f01038c07f427db52af247d6e97404905c0b3dc",
+      "bytes": 105073
+    },
+    {
+      "path": "buildings/weaver_painted_leaf_normal.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "buildings/weaver_painted_leaf_roughness.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
+      "bytes": 14341
+    },
+    {
+      "path": "buildings/weaver_painted_plaster_normal.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_plaster_normal",
+      "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
+      "bytes": 44763
+    },
+    {
+      "path": "buildings/weaver_painted_plaster_roughness.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_plaster_roughness",
+      "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
+      "bytes": 19596
+    },
+    {
+      "path": "buildings/weaver_painted_roof_blue_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_roof_blue_color",
+      "sha256": "4271ed4434104c909dca1c0ae602eb40b0d8acf1e92ee3a69145b3afa4eda5c9",
+      "bytes": 47437
+    },
+    {
+      "path": "buildings/weaver_painted_roof_blue_dark_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_roof_blue_dark_color",
+      "sha256": "1b4fab691e29752a3d6081612dd5408a04b80a28ed029e5bba40f102cf458a71",
+      "bytes": 38172
+    },
+    {
+      "path": "buildings/weaver_painted_roof_blue_light_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_roof_blue_light_color",
+      "sha256": "006e15a3cc1b4b7c1b83d3b5e76b729e32214bfa0a43bf9e0b2a42b4935ddc20",
+      "bytes": 57329
+    },
+    {
+      "path": "buildings/weaver_painted_roof_normal.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_roof_normal",
+      "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
+      "bytes": 185014
+    },
+    {
+      "path": "buildings/weaver_painted_roof_roughness.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_roof_roughness",
+      "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
+      "bytes": 10146
+    },
+    {
+      "path": "buildings/weaver_painted_stone_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_stone_color",
+      "sha256": "67307cfeb71a485760da6095086ce87270ef36b0c2d42cf87943a03ccf0fc8c8",
+      "bytes": 140973
+    },
+    {
+      "path": "buildings/weaver_painted_stone_dark_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "buildings/weaver_painted_stone_light_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "buildings/weaver_painted_stone_normal.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "buildings/weaver_painted_stone_roughness.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "buildings/weaver_painted_wall_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wall_color",
+      "sha256": "0013b45d96552fd88ca97384ff85ab02c23661ff513df32605eedfb2c3477f73",
+      "bytes": 151781
+    },
+    {
+      "path": "buildings/weaver_painted_wall_light_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wall_light_color",
+      "sha256": "37167742425fb9fa188cf85be76cc061c2fb7dcccefef3ef8766e429e0959891",
+      "bytes": 164566
+    },
+    {
+      "path": "buildings/weaver_painted_window_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "buildings/weaver_painted_window_emission.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "buildings/weaver_painted_window_hot_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "buildings/weaver_painted_window_hot_emission.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "buildings/weaver_painted_window_roughness.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "buildings/weaver_painted_window_shade_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_shade_color",
+      "sha256": "73c9fb4610224057eff0a1d8be2a17bbb2a8983b4b83823c614e2ab8bfb0a7be",
+      "bytes": 36433
+    },
+    {
+      "path": "buildings/weaver_painted_window_shade_emission.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_window_shade_emission",
+      "sha256": "30e1df4afbf1cd6ba474cc5ddb93b04dbb699fe79a79995d0e680eb7ad5b78fe",
+      "bytes": 45715
+    },
+    {
+      "path": "buildings/weaver_painted_wood_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wood_color",
+      "sha256": "f3e3b06e314cb48690a7ce02190dd2751ecf7b8612e1d91350ce61a960df976b",
+      "bytes": 105198
+    },
+    {
+      "path": "buildings/weaver_painted_wood_dark_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "buildings/weaver_painted_wood_edge_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "buildings/weaver_painted_wood_light_color.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "buildings/weaver_painted_wood_normal.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "buildings/weaver_painted_wood_roughness.png",
+      "parent": "buildings/weaver.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "environment/components/forest_boulder_painted_stone_color.png",
+      "parent": "environment/components/forest_boulder.glb",
+      "imageName": "painted_stone_color",
+      "sha256": "67307cfeb71a485760da6095086ce87270ef36b0c2d42cf87943a03ccf0fc8c8",
+      "bytes": 140973
+    },
+    {
+      "path": "environment/components/forest_boulder_painted_stone_dark_color.png",
+      "parent": "environment/components/forest_boulder.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "environment/components/forest_boulder_painted_stone_light_color.png",
+      "parent": "environment/components/forest_boulder.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "environment/components/forest_boulder_painted_stone_normal.png",
+      "parent": "environment/components/forest_boulder.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "environment/components/forest_boulder_painted_stone_roughness.png",
+      "parent": "environment/components/forest_boulder.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "environment/components/forest_bridge_plank_painted_wood_dark_color.png",
+      "parent": "environment/components/forest_bridge_plank.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "environment/components/forest_bridge_plank_painted_wood_light_color.png",
+      "parent": "environment/components/forest_bridge_plank.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "environment/components/forest_bridge_plank_painted_wood_normal.png",
+      "parent": "environment/components/forest_bridge_plank.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "environment/components/forest_bridge_plank_painted_wood_roughness.png",
+      "parent": "environment/components/forest_bridge_plank.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "environment/components/forest_fern_painted_forest_leaf_color.png",
+      "parent": "environment/components/forest_fern.glb",
+      "imageName": "painted_forest_leaf_color",
+      "sha256": "ce0357ecd0b48ac6d270684ae13ded39a4af9ae3b029b0a7b23d8c0e73ea8ae4",
+      "bytes": 86523
+    },
+    {
+      "path": "environment/components/forest_fern_painted_forest_leaf_light_color.png",
+      "parent": "environment/components/forest_fern.glb",
+      "imageName": "painted_forest_leaf_light_color",
+      "sha256": "715321310140ca9892aeb59705ff9a0fd1c1d555adba5ffc49e801203813eada",
+      "bytes": 97955
+    },
+    {
+      "path": "environment/components/forest_fern_painted_leaf_normal.png",
+      "parent": "environment/components/forest_fern.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "environment/components/forest_fern_painted_leaf_roughness.png",
+      "parent": "environment/components/forest_fern.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
+      "bytes": 14858
+    },
+    {
+      "path": "environment/components/forest_hex_meadow_painted_grass_color.png",
+      "parent": "environment/components/forest_hex_meadow.glb",
+      "imageName": "painted_grass_color",
+      "sha256": "7e9b9118d3865e5e375e40a195cc436546f26aca443a50fd67d9f16c5f6d81f8",
+      "bytes": 164537
+    },
+    {
+      "path": "environment/components/forest_hex_meadow_painted_grass_dark_color.png",
+      "parent": "environment/components/forest_hex_meadow.glb",
+      "imageName": "painted_grass_dark_color",
+      "sha256": "89a677cd68f61f0204f157c814c84e47c685d79a53a0aaa60049ed4cb3cc8f9a",
+      "bytes": 145186
+    },
+    {
+      "path": "environment/components/forest_hex_meadow_painted_ground_roughness.png",
+      "parent": "environment/components/forest_hex_meadow.glb",
+      "imageName": "painted_ground_roughness",
+      "sha256": "9aa2d06c20413d78b271f0d8519edc3ac05061095dad8513a30722468020f9e9",
+      "bytes": 28235
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_grass_color.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_grass_color",
+      "sha256": "7e9b9118d3865e5e375e40a195cc436546f26aca443a50fd67d9f16c5f6d81f8",
+      "bytes": 164537
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_ground_roughness.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_ground_roughness",
+      "sha256": "9aa2d06c20413d78b271f0d8519edc3ac05061095dad8513a30722468020f9e9",
+      "bytes": 28235
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_water_color.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_water_color",
+      "sha256": "7ac667b3318fadb2e9c962846e7da92112bffaf7e5f03b9e18b73f795f688107",
+      "bytes": 54336
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_water_emission.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_water_emission",
+      "sha256": "eafa3a8f3bec3d90461b9f4189e81d3b700c2be6d29896ab1d930b5556979b3c",
+      "bytes": 73904
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_water_light_color.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_water_light_color",
+      "sha256": "4306fbc3f6d0d0997cdc79bc34d205a36cd7996f7165058b17a6d99d12b4ff8b",
+      "bytes": 74167
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_water_light_emission.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_water_light_emission",
+      "sha256": "83ca38ee27ee7c7567ed2b6570c0858aaf0ae1463bb605f90f00e6203320a867",
+      "bytes": 91553
+    },
+    {
+      "path": "environment/components/forest_hex_stream_painted_water_roughness.png",
+      "parent": "environment/components/forest_hex_stream.glb",
+      "imageName": "painted_water_roughness",
+      "sha256": "4f39e82ca1650a6189c43af75c3ebe07da3a44612b7d2b2bc268dcde2bf661ae",
+      "bytes": 10693
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_window_color.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_window_emission.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_window_hot_color.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_window_hot_emission.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_window_roughness.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_wood_dark_color.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_wood_edge_color.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_wood_light_color.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_wood_normal.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "environment/components/forest_lantern_post_painted_wood_roughness.png",
+      "parent": "environment/components/forest_lantern_post.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "environment/components/forest_leaf_clump_painted_forest_leaf_color.png",
+      "parent": "environment/components/forest_leaf_clump.glb",
+      "imageName": "painted_forest_leaf_color",
+      "sha256": "ce0357ecd0b48ac6d270684ae13ded39a4af9ae3b029b0a7b23d8c0e73ea8ae4",
+      "bytes": 86523
+    },
+    {
+      "path": "environment/components/forest_leaf_clump_painted_forest_leaf_light_color.png",
+      "parent": "environment/components/forest_leaf_clump.glb",
+      "imageName": "painted_forest_leaf_light_color",
+      "sha256": "715321310140ca9892aeb59705ff9a0fd1c1d555adba5ffc49e801203813eada",
+      "bytes": 97955
+    },
+    {
+      "path": "environment/components/forest_leaf_clump_painted_leaf_normal.png",
+      "parent": "environment/components/forest_leaf_clump.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "environment/components/forest_leaf_clump_painted_leaf_roughness.png",
+      "parent": "environment/components/forest_leaf_clump.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
+      "bytes": 14858
+    },
+    {
+      "path": "environment/components/forest_moss_painted_grass_light_color.png",
+      "parent": "environment/components/forest_moss.glb",
+      "imageName": "painted_grass_light_color",
+      "sha256": "366fe0481229a8f63f7030e6f2e14557d2f1c621878811913e0a3a01e5c54e3e",
+      "bytes": 176833
+    },
+    {
+      "path": "environment/components/forest_moss_painted_ground_roughness.png",
+      "parent": "environment/components/forest_moss.glb",
+      "imageName": "painted_ground_roughness",
+      "sha256": "9aa2d06c20413d78b271f0d8519edc3ac05061095dad8513a30722468020f9e9",
+      "bytes": 28235
+    },
+    {
+      "path": "environment/components/forest_moss_painted_moss_color.png",
+      "parent": "environment/components/forest_moss.glb",
+      "imageName": "painted_moss_color",
+      "sha256": "a6535d3b1c299b9a2dd1bb027256e7f3fe8b147d37dc8b3ed5b197798c6df430",
+      "bytes": 87270
+    },
+    {
+      "path": "environment/components/forest_moss_painted_moss_roughness.png",
+      "parent": "environment/components/forest_moss.glb",
+      "imageName": "painted_moss_roughness",
+      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
+      "bytes": 14858
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_crystal_light_color.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_crystal_light_color",
+      "sha256": "5c555fe9543d493727effd4920b9b3f1cadda6811a0a761ae2fc62a24b0a9df7",
+      "bytes": 514955
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_crystal_light_emission.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_crystal_light_emission",
+      "sha256": "d48da21419b8a6735446dc1d442d88806efaca6d485fcd61908ed14757ff08be",
+      "bytes": 535692
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_crystal_roughness.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_crystal_roughness",
+      "sha256": "30b422faa3d40580b67226d74fc825c905a11f2eaf8d9c23a3cc7968dca6b2e2",
+      "bytes": 61077
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_gill_glow_color.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_gill_glow_color",
+      "sha256": "8072479a7cc048e0e442e02915e417caa409a75abe100bfe889815a53111651c",
+      "bytes": 77326
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_gill_glow_emission.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_gill_glow_emission",
+      "sha256": "f6ff5550fe7d78c234f2514f0a51f7a64bd3dde2c52c591f14c5c6edecf3b4cf",
+      "bytes": 97414
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_gill_roughness.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_gill_roughness",
+      "sha256": "c47bcb7bb50411a475bedec4c5062f3b01bb9aefb9aa8e11a10ed115b9d08ca4",
+      "bytes": 10983
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_mushroom_blue_color.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_mushroom_blue_color",
+      "sha256": "61f77c57ac8bf711dec0f7bbbf128ca9f68411fe845bfda9cfe7719ed7a1677d",
+      "bytes": 65388
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_mushroom_blue_emission.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_mushroom_blue_emission",
+      "sha256": "6d91df2547d38cf2a41185db6b528883b8cd1df613595e1ac679f5bd2a359834",
+      "bytes": 85148
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_painted_mushroom_roughness.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "painted_mushroom_roughness",
+      "sha256": "c881f6e5689b943be545aa26487d2a1a22fa233b416c7314f7b1e81d0358d13a",
+      "bytes": 10202
+    },
+    {
+      "path": "environment/components/forest_shrine_plinth_painted_stone_dark_color.png",
+      "parent": "environment/components/forest_shrine_plinth.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "environment/components/forest_shrine_plinth_painted_stone_light_color.png",
+      "parent": "environment/components/forest_shrine_plinth.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "environment/components/forest_shrine_plinth_painted_stone_normal.png",
+      "parent": "environment/components/forest_shrine_plinth.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "environment/components/forest_shrine_plinth_painted_stone_roughness.png",
+      "parent": "environment/components/forest_shrine_plinth.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_bark_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_bark_color",
+      "sha256": "cae61f8f81c3675c849c9b72e9646553081b312a5d4c200af6c2f0478422cb84",
+      "bytes": 94849
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_bark_light_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_bark_light_color",
+      "sha256": "8dfcadd8e563bc828a70aaeffca5e8db7c8c391693a9686362805a82364bb1bc",
+      "bytes": 113960
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_forest_leaf_lilac_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_forest_leaf_lilac_color",
+      "sha256": "b4dab5300358aaf52f74b859b7c2beceb587df011af3e64cda4d9fad8e4e8a72",
+      "bytes": 109864
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_forest_leaf_teal_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_forest_leaf_teal_color",
+      "sha256": "6d63f4991e4a133c4482b643824fc1d0bbe0c6f2a82353c5af12d4bffbc77882",
+      "bytes": 92812
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_gill_glow_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_gill_glow_color",
+      "sha256": "8072479a7cc048e0e442e02915e417caa409a75abe100bfe889815a53111651c",
+      "bytes": 77326
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_gill_glow_emission.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_gill_glow_emission",
+      "sha256": "f6ff5550fe7d78c234f2514f0a51f7a64bd3dde2c52c591f14c5c6edecf3b4cf",
+      "bytes": 97414
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_gill_roughness.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_gill_roughness",
+      "sha256": "c47bcb7bb50411a475bedec4c5062f3b01bb9aefb9aa8e11a10ed115b9d08ca4",
+      "bytes": 10983
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_leaf_normal.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_leaf_roughness.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
+      "bytes": 14858
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_wood_normal.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_painted_wood_roughness.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_blue_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_blue_color",
+      "sha256": "727c5ee6506e3bd2265d3c019833b68662989b57ee24cbc48dfe367d9d26ddf2",
+      "bytes": 527717
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_blue_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_blue_emission",
+      "sha256": "0033c2e3d415fb2bb48a59a30a18d12feb4f8c46dc2735ce2a7c976db3e513f4",
+      "bytes": 531973
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_cyan_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_cyan_color",
+      "sha256": "3a6c992cd6f5624fb3e0ba347b522bb1ccac8b944238abdd692ae8e7b7154fbc",
+      "bytes": 525661
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_cyan_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_cyan_emission",
+      "sha256": "eb151ff7f2ac316821321efa3e3e58cadbac2391405fc016f6e9f931b3838f2e",
+      "bytes": 537394
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_light_color",
+      "sha256": "5c555fe9543d493727effd4920b9b3f1cadda6811a0a761ae2fc62a24b0a9df7",
+      "bytes": 514955
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_light_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_light_emission",
+      "sha256": "d48da21419b8a6735446dc1d442d88806efaca6d485fcd61908ed14757ff08be",
+      "bytes": 535692
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_crystal_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_crystal_roughness",
+      "sha256": "30b422faa3d40580b67226d74fc825c905a11f2eaf8d9c23a3cc7968dca6b2e2",
+      "bytes": 61077
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_forest_leaf_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_forest_leaf_color",
+      "sha256": "ce0357ecd0b48ac6d270684ae13ded39a4af9ae3b029b0a7b23d8c0e73ea8ae4",
+      "bytes": 86523
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_forest_leaf_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_forest_leaf_light_color",
+      "sha256": "715321310140ca9892aeb59705ff9a0fd1c1d555adba5ffc49e801203813eada",
+      "bytes": 97955
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_gill_glow_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_gill_glow_color",
+      "sha256": "8072479a7cc048e0e442e02915e417caa409a75abe100bfe889815a53111651c",
+      "bytes": 77326
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_gill_glow_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_gill_glow_emission",
+      "sha256": "f6ff5550fe7d78c234f2514f0a51f7a64bd3dde2c52c591f14c5c6edecf3b4cf",
+      "bytes": 97414
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_gill_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_gill_roughness",
+      "sha256": "c47bcb7bb50411a475bedec4c5062f3b01bb9aefb9aa8e11a10ed115b9d08ca4",
+      "bytes": 10983
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_grass_dark_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_grass_dark_color",
+      "sha256": "89a677cd68f61f0204f157c814c84e47c685d79a53a0aaa60049ed4cb3cc8f9a",
+      "bytes": 145186
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_grass_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_grass_light_color",
+      "sha256": "366fe0481229a8f63f7030e6f2e14557d2f1c621878811913e0a3a01e5c54e3e",
+      "bytes": 176833
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_ground_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_ground_roughness",
+      "sha256": "9aa2d06c20413d78b271f0d8519edc3ac05061095dad8513a30722468020f9e9",
+      "bytes": 28235
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_hex_woodland_bridge_ground_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_hex_woodland_bridge_ground_color",
+      "sha256": "dd8afbf93af21599e6cab529be29a2a280145382a9ed359d934c52e7599817a3",
+      "bytes": 492795
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_hex_woodland_bridge_ground_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_hex_woodland_bridge_ground_emission",
+      "sha256": "c136588ff4609f806c8dab2ab234ee631c46c2bf9d8a1dd8cb596ec7de4ab57a",
+      "bytes": 130541
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_leaf_normal.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_leaf_normal",
+      "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+      "bytes": 128018
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_leaf_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_leaf_roughness",
+      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
+      "bytes": 14858
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_moss_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_moss_color",
+      "sha256": "a6535d3b1c299b9a2dd1bb027256e7f3fe8b147d37dc8b3ed5b197798c6df430",
+      "bytes": 87270
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_moss_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_moss_roughness",
+      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
+      "bytes": 14858
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_mushroom_blue_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_mushroom_blue_color",
+      "sha256": "61f77c57ac8bf711dec0f7bbbf128ca9f68411fe845bfda9cfe7719ed7a1677d",
+      "bytes": 65388
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_mushroom_blue_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_mushroom_blue_emission",
+      "sha256": "6d91df2547d38cf2a41185db6b528883b8cd1df613595e1ac679f5bd2a359834",
+      "bytes": 85148
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_mushroom_purple_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_mushroom_purple_color",
+      "sha256": "c387cd04962bef57d647686fb8b22a7dd01303038af412885ff1f96f10909acd",
+      "bytes": 70330
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_mushroom_purple_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_mushroom_purple_emission",
+      "sha256": "46b596b63a313fda8492f8a55b0279f68c8001ed75edec39c149d7ea96b1bc78",
+      "bytes": 90127
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_mushroom_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_mushroom_roughness",
+      "sha256": "c881f6e5689b943be545aa26487d2a1a22fa233b416c7314f7b1e81d0358d13a",
+      "bytes": 10202
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_stone_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_stone_color",
+      "sha256": "67307cfeb71a485760da6095086ce87270ef36b0c2d42cf87943a03ccf0fc8c8",
+      "bytes": 140973
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_stone_dark_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_stone_dark_color",
+      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
+      "bytes": 131685
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_stone_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_stone_light_color",
+      "sha256": "71bb56dbb113bc418a413386d10cc0d0065f78e61ff263daec740d563c0a3a6b",
+      "bytes": 148365
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_stone_normal.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_stone_normal",
+      "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+      "bytes": 51007
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_stone_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_stone_roughness",
+      "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+      "bytes": 19983
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_water_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_water_color",
+      "sha256": "7ac667b3318fadb2e9c962846e7da92112bffaf7e5f03b9e18b73f795f688107",
+      "bytes": 54336
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_water_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_water_emission",
+      "sha256": "eafa3a8f3bec3d90461b9f4189e81d3b700c2be6d29896ab1d930b5556979b3c",
+      "bytes": 73904
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_water_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_water_light_color",
+      "sha256": "4306fbc3f6d0d0997cdc79bc34d205a36cd7996f7165058b17a6d99d12b4ff8b",
+      "bytes": 74167
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_water_light_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_water_light_emission",
+      "sha256": "83ca38ee27ee7c7567ed2b6570c0858aaf0ae1463bb605f90f00e6203320a867",
+      "bytes": 91553
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_water_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_water_roughness",
+      "sha256": "4f39e82ca1650a6189c43af75c3ebe07da3a44612b7d2b2bc268dcde2bf661ae",
+      "bytes": 10693
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_window_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_window_color",
+      "sha256": "d3537d6bbef532336ad0ea0451a3f30272fd2b71246ad782d7ccd9dcdbc56ef5",
+      "bytes": 49777
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_window_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_window_emission",
+      "sha256": "216273767ea0efd3aeb3f3840c32710cddab6d8e529d33f90c35c2cf7b905f76",
+      "bytes": 62001
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_window_hot_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_window_hot_color",
+      "sha256": "085782fd97204224edc9e8abe44d6877a6956298a8909f389d82e82ae4e6bfc2",
+      "bytes": 59972
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_window_hot_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_window_hot_emission",
+      "sha256": "1ae531fb463b2a398f19db9acca08385601d87b5f325f9102c2f393b2305eafa",
+      "bytes": 74204
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_window_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_window_roughness",
+      "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+      "bytes": 8981
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_wood_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_wood_color",
+      "sha256": "f3e3b06e314cb48690a7ce02190dd2751ecf7b8612e1d91350ce61a960df976b",
+      "bytes": 105198
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_wood_dark_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_wood_dark_color",
+      "sha256": "1c165acef967f2779eb6caab34c33a751a5e19245a66c2e9ad0806434835161a",
+      "bytes": 76586
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_wood_edge_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_wood_edge_color",
+      "sha256": "c6e3bda3af6745dd955fa97383e31020bb34f893e237502c17b5ce7351a04f2b",
+      "bytes": 142938
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_wood_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_wood_light_color",
+      "sha256": "742cf923eef62ad63cfa04effa48f006bc0837b3587426f3382702290e05659f",
+      "bytes": 127878
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_wood_normal.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_wood_normal",
+      "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+      "bytes": 95248
+    },
+    {
+      "path": "environment/hex_woodland_bridge_painted_wood_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "painted_wood_roughness",
+      "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+      "bytes": 22819
+    }
+  ]
+}

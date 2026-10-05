@@ -123,6 +123,183 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
         Runner.RenderedContact(frame with { Strikes = [frame.Strikes[0]] });
         Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(frame with { Strikes = [frame.Strikes[0] with { StrikeRadius = 3 }] }));
     }
+    // Deterministic admission controls, not renderer/transport or PNG acceptance.
+    // The delayed schedules below are controlled inputs, not reconstructed wall
+    // timestamps: the retained compact protocol logs contain no arrival clock.
+    private static Match PreparedAdmissionControl()
+    {
+        var match = new Match(combatSeed: 1); match.Join(); match.Join(); Act(match, 1, "start");
+        Act(match, 1, "build", 0, Building.Farm); Act(match, 1, "build", 2, Building.MetalMine); Act(match, 1, "build", 1, Building.Barracks);
+        for (int production = 1; production <= 3; production++)
+        {
+            Act(match, 1, "ready"); Act(match, 2, "ready");
+            while (match.Players[1].Soldiers.Count < 6 && match.Players[1].Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(match, 1, "recruit", 1);
+        }
+        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(0, match.Tick);
+        return match;
+    }
+    private static void AdmitCombat(Match match) { Act(match, 1, "ready"); Act(match, 2, "ready"); }
+
+    [Fact]
+    public void PreReadyRegistrationAndSerializedLateRegistrationHaveDifferentLiveWindows()
+    {
+        using var match = PreparedAdmissionControl();
+        long registeredRevision = match.Revision;
+        AdmitCombat(match);
+        long early = -1, late = -1;
+        // Model 50ms publication at fixed tick granularity, not real ENet timing.
+        // 638 is a controlled 10.63s speed-1 delay, not the retained observer's
+        // unknown exact revision when the current fixture finally registered.
+        while (match.Phase == Phase.Combat)
+        {
+            match.Step();
+            if (match.Tick % 4 != 0) continue;
+            MatchSnapshot state = match.Snapshot();
+            if (state.Revision <= registeredRevision || !MeleeVisualProof.HasMilestone(state, MeleeCoverage.Windup, Board)) continue;
+            if (early < 0) early = state.Tick;
+            if (match.Tick >= 638 && late < 0) late = state.Tick;
+        }
+        output.WriteLine($"Controlled registration: pre-Ready first published windup={early}; after tick638={late}; terminal={match.Phase}/{match.Tick}.");
+        Assert.InRange(early, 301, 307); Assert.Equal(-1, late);
+        Assert.Equal(Phase.Defeat, match.Phase); Assert.Equal(973, match.Tick);
+    }
+    [Fact]
+    public void EarlyLivePausePreservesMilestoneAcrossDelayedRenderingAndOrderedPersistence()
+    {
+        using var match = PreparedAdmissionControl();
+        AdmitCombat(match);
+        while (!MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board)) match.Step();
+        Act(match, 2, "pause"); MatchSnapshot paused = match.Snapshot();
+        var playback = new CombatPlayback(); playback.Accept(paused);
+        var owner = new Game.OwnedFrameCapture(); byte[] pixels = new byte[16];
+        var first = owner.Acquire("overview", "overview.png", 2, 2, pixels, $"revision={paused.Revision};tick={paused.Tick};view=overview");
+        var second = owner.Acquire("close", "close.png", 2, 2, pixels, $"revision={paused.Revision};tick={paused.Tick};view=close");
+        for (int delayed = 0; delayed < 1200; delayed++) { match.Step(); playback.Advance(.1, true); }
+        Assert.Equal(paused.Tick, match.Tick); Assert.Equal(paused.Tick, playback.Tick);
+        Assert.True(MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board));
+        Assert.Throws<InvalidOperationException>(() => owner.Persist(second.Id, (_, p) => p));
+        Assert.Equal(first, owner.Persist(first.Id, (_, p) => p));
+        Assert.Equal(second, owner.Persist(second.Id, (_, p) => p));
+        Assert.Equal(0, owner.Pending);
+        // This does not prove the live progression can still meet 12 seconds:
+        // early pause can freeze its current action before progression completes.
+    }
+    [Fact]
+    public void PresentationUsesNewestAcceptedStateRatherThanDrainingAStateQueue()
+    {
+        using var match = PreparedAdmissionControl(); AdmitCombat(match);
+        var playback = new CombatPlayback(); playback.Accept(match.Snapshot());
+        MatchSnapshot? older = null, newest = null;
+        for (int step = 1; step <= 440; step++)
+        {
+            match.Step();
+            if (step % 4 != 0) continue;
+            older = newest; newest = match.Snapshot();
+            // Delayed rendering: all arrived revisions can be accepted without
+            // advancing a graphical frame. Combat events are NOT discarded.
+            Assert.True(playback.Accept(newest));
+        }
+        Assert.InRange(playback.Tick, newest!.Tick - 3, newest.Tick);
+        Assert.False(playback.Accept(older!));
+        playback.Advance(.1, true); Assert.Equal(newest.Tick, playback.Tick);
+        Assert.NotEmpty(playback.Drain());
+        Assert.All(playback.Units(), u => Assert.Contains(u.Id, CombatPlayback.All(newest).Concat(newest.DyingBodies).Select(v => v.Id)));
+        output.WriteLine($"Controlled delayed presentation: latest received/applied={newest.Tick}; presented={playback.Tick}; older revision rejected.");
+    }
+    [Fact]
+    public void HistoricalMilestoneDoesNotMakeAStalePauseActAtItsHistoricalTick()
+    {
+        using var match = PreparedAdmissionControl(); AdmitCombat(match);
+        while (!MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board)) match.Step();
+        MatchSnapshot milestone = match.Snapshot();
+        var history = new ChildEvents(); history.Add(new("snapshot", State: milestone), 100);
+        while (match.Tick < 638) match.Step();
+        MatchSnapshot current = match.Snapshot(); history.Add(new("snapshot", State: current), 100);
+        GameEvent? historical = history.Find(e => e.State is { } s && MeleeVisualProof.HasMilestone(s, MeleeCoverage.Windup, Board));
+        Assert.Equal(milestone, historical!.State);
+        Assert.False(MeleeVisualProof.HasMilestone(current, MeleeCoverage.Windup, Board));
+        // Pause quotes validate match/phase/turn, NOT tick/revision. Thus a
+        // stale same-turn quote can succeed, but freezes current authority.
+        Assert.True(match.Apply(2, Command.FromSnapshot(milestone, 100, "pause", 2)).Accepted);
+        Assert.Equal(current.Tick, match.Tick); Assert.NotEqual(milestone.Tick, match.Tick);
+        Assert.True(match.Paused); Assert.False(MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board));
+        output.WriteLine($"Controlled stale pause: historical={milestone.Tick}; actual authority pause={match.Tick} (not a milestone capture).");
+    }
+    [Fact]
+    public void CurrentAuthorityTerminalStateRejectsBothHistoricalAndFreshPauseQuotes()
+    {
+        using var match = PreparedAdmissionControl(); AdmitCombat(match);
+        MatchSnapshot stale = match.Snapshot();
+        while (match.Phase == Phase.Combat) match.Step();
+        MatchSnapshot terminal = match.Snapshot(); Assert.Equal(Phase.Defeat, terminal.Phase);
+        CommandResult old = match.Apply(2, Command.FromSnapshot(stale, 100, "pause", 2));
+        CommandResult fresh = match.Apply(2, Command.FromSnapshot(terminal, 101, "pause", 2));
+        Assert.False(old.Accepted); Assert.Contains("Stale", old.Message);
+        Assert.False(fresh.Accepted); Assert.Contains("finished", fresh.Message);
+        Assert.False(match.Paused); Assert.Equal(terminal.Tick, match.Tick);
+    }
+
+    [Fact]
+    public void EarlyObserverCannotPauseUntilActualProgressionHandoff()
+    {
+        using var match = PreparedAdmissionControl();
+        var admission = new MeleeAdmission(match.Snapshot()); AdmitCombat(match); admission.Arm(match.Snapshot());
+        while (!MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board)) match.Step();
+        MatchSnapshot live = match.Snapshot(); admission.Witness(live, Board);
+        Assert.True(admission.LiveWitnesses > 0); Assert.False(match.Paused);
+        Assert.False(admission.MayPause(live, live, MeleeCoverage.Windup, Board));
+        admission.Handoff(TimeSpan.FromSeconds(11.9), 12, 4);
+        Assert.True(admission.MayPause(live, live, MeleeCoverage.Windup, Board));
+        Act(match, 2, "pause"); MatchSnapshot paused = match.Snapshot();
+        MeleeAdmission.FrozenFrame(Frame(paused) with { Revision = paused.Revision, PhaseText = "Combat PAUSED" }, paused);
+    }
+    [Fact]
+    public void DelayedPeerRenderAndPersistenceCannotAuthorizeHistoricalOrTerminalPause()
+    {
+        using var match = PreparedAdmissionControl();
+        var admission = new MeleeAdmission(match.Snapshot()); AdmitCombat(match); admission.Arm(match.Snapshot());
+        while (!MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board)) match.Step();
+        MatchSnapshot historical = match.Snapshot(); admission.Witness(historical, Board);
+        var pixels = new Game.OwnedFrameCapture();
+        for (int index = 0; index < 4; index++) pixels.Acquire("progression-" + index, index + ".png", 2, 2, new byte[16], "acquired immutable progression metadata");
+        admission.Handoff(TimeSpan.FromSeconds(11), 12, 4);
+        // Ordinary authority continues while peer/render and ordered I/O lag.
+        while (match.Tick < 638) match.Step();
+        for (int index = 0; index < 4; index++) pixels.Persist("progression-" + index, (_, p) => p);
+        Assert.False(admission.MayPause(historical, match.Snapshot(), MeleeCoverage.Windup, Board));
+        Assert.False(admission.MayPause(historical with { MatchId = "other" }, historical, MeleeCoverage.Windup, Board));
+        while (match.Phase == Phase.Combat) match.Step(); MatchSnapshot terminal = match.Snapshot();
+        Assert.False(admission.MayPause(terminal, terminal, MeleeCoverage.Windup, Board));
+        Assert.False(match.Paused); Assert.Equal(0, pixels.Pending);
+    }
+    [Fact]
+    public void FrozenMilestoneRejectsStaleTickRevisionPhaseAndTerminalAuthority()
+    {
+        using var match = PreparedAdmissionControl(); AdmitCombat(match);
+        while (!MeleeVisualProof.HasMilestone(match.Snapshot(), MeleeCoverage.Windup, Board)) match.Step();
+        Act(match, 2, "pause"); MatchSnapshot paused = match.Snapshot();
+        UiObservation frame = Frame(paused) with { Revision = paused.Revision, PhaseText = "Combat PAUSED" };
+        MeleeAdmission.FrozenFrame(frame, paused);
+        Assert.Throws<InvalidOperationException>(() => MeleeAdmission.FrozenFrame(frame with { CombatTick = frame.CombatTick - 1 }, paused));
+        Assert.Throws<InvalidOperationException>(() => MeleeAdmission.FrozenFrame(frame with { Revision = paused.Revision - 1 }, paused));
+        Assert.Throws<InvalidOperationException>(() => MeleeAdmission.FrozenFrame(frame with { PhaseText = "Combat" }, paused));
+        Assert.Throws<InvalidOperationException>(() => MeleeAdmission.FrozenFrame(frame, paused with { Phase = Phase.Defeat }));
+    }
+    [Fact]
+    public void ObserverRegistrationAndHandoffKeepTickZeroAndOriginalCountsBounds()
+    {
+        using var match = PreparedAdmissionControl(); MatchSnapshot preparation = match.Snapshot();
+        Assert.Throws<InvalidOperationException>(() => new MeleeAdmission(preparation with { Tick = 1 }));
+        var admission = new MeleeAdmission(preparation);
+        Assert.Throws<InvalidOperationException>(() => admission.Arm(preparation));
+        AdmitCombat(match); admission.Arm(match.Snapshot());
+        Assert.Throws<InvalidOperationException>(() => admission.Handoff(TimeSpan.FromSeconds(12.001), 12, 4));
+        Assert.Throws<InvalidOperationException>(() => admission.Handoff(TimeSpan.FromSeconds(11), 11, 4));
+        Assert.Throws<InvalidOperationException>(() => admission.Handoff(TimeSpan.FromSeconds(11), 12, 3));
+        admission.Handoff(TimeSpan.FromSeconds(11), 12, 4);
+        Assert.Throws<InvalidOperationException>(() => admission.Handoff(TimeSpan.FromSeconds(11), 12, 4));
+    }
+
     [Theory]
     [InlineData(0UL)]
     [InlineData(1UL)]

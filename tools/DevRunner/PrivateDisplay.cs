@@ -150,11 +150,13 @@ internal sealed partial class Runner
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
             if (name == "combat-playback") await worker.PresentationProfileScenario(token);
+            else if (name == "launcher" && options.UiCheckpoint == "assets") await worker.AssetCostScenario(token);
             else if (name == "launcher") await worker.MenuUiScenario(null, token);
             else if (name is "installed-linux" or "exported-package")
                 await worker.PackedUiScenario(name == "installed-linux" ? options.InstalledClient! : Path.Combine(_root, "dist", "client", "odot.x86_64"), token);
             else await worker.UiScenario(name, token);
             await owned.DisposeAsync(); owned.CheckErrors();
+            if (options.UiCheckpoint == "admission") MeleeTimingReport.Write(owned.EvidenceDirectory);
         }))).ToArray();
         Console.WriteLine($"UI coverage: {(options.Scenario is null ? "all source slices" : "selected: " + options.Scenario)}; jobs=1; {string.Join(", ", selected)}");
         await ScenarioScheduler.Run(scenarios, 1, deadline.Token);
