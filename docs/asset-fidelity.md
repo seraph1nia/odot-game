@@ -2,7 +2,10 @@
 
 **Current continuation:** [Runtime rendering and live cadence](runtime-rendering.md)
 records steering 012, official Godot guidance, the rejected opaque-static candidate,
-the retained live-admission correction and the latest incomplete melee capture gate.
+the retained live-admission correction and historical melee capture failures.
+[ENet guest cadence](enet-guest-cadence.md#early-observer-and-exact-paused-images)
+owns the subsequent passing four-view proof; the [migration report](authored-migration.md#retained-acceptance-evidence)
+separates pre-review acceptance from changed review inputs.
 Sections below retain historical causal evidence, not current execution permissions.
 Both disabled instancing/batching experiments and their native diagnostic branches
 have been retired from compiled gameplay into ignored audit scratch. Source-authoring

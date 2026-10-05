@@ -18,9 +18,10 @@ remain historical evidence. Separately authorized steering 015 proved exclusive 
 ENet guest service and a safe early observer handoff; **the four-view melee gate now passes**.
 See [current service/capture evidence](enet-guest-cadence.md) and the
 [migration report](authored-migration.md) for final environment/full-CI/package status.
-Steering 016 resolved [current-authority casualty admission](current-casualty-admission.md)
-without weakening its predicate/deadline; full after-CI including both package smokes
-passed `logs/20261005-122036-c53487dd/` in553.42s. This is not permission for another
+Steering 016's migration gate and the subsequent review freshness correction are
+separated in [current-authority casualty admission](current-casualty-admission.md#status)
+and the [migration evidence](authored-migration.md#retained-acceptance-evidence).
+The earlier full-CI pass does not validate changed review inputs. This is not permission for another
 rendering optimization or renewed melee budget. Earlier stopping points below are historical.
 
 ## Official guidance and the actual backend

@@ -2,35 +2,17 @@
 
 ## Authored 3D migration, 2026-10-05
 
-Full before-CI at `0332c44` passed344.53s (`logs/20261004-184946-7b57e3b1/`).
-Final full after `mise run ci` passed **553.42s**, **500 gameplay/250 tooling tests**,
-all six network cases and five source UI slices, fidelity/PNG controls, sequential
-Linux client/server exports and headless/graphical package smokes. Evidence:
-`logs/20261005-122036-c53487dd/ci-summary.json`. Source UI487.50s, network172.54s,
-exports4.90s/3.84s, headless smoke1.30s and graphical package23.60s. No required
-stage was skipped, and no upload/publishing occurred. Owned peers/displays/state
-were awaited and removed without touching the developer's preferences/endpoints.
+The [migration report](authored-migration.md#retained-acceptance-evidence) owns
+before/after CI outcomes, source/package costs, retained failures and follow-up
+decisions. Its complete migration pass precedes review commit `8eeabc9`; it is not
+full acceptance of that commit's changed inputs. [Current casualty admission](current-casualty-admission.md#status)
+owns the freshness correction's focused evidence and remaining acceptance status.
+[ENet guest cadence](enet-guest-cadence.md#early-observer-and-exact-paused-images)
+owns the separate four-view melee proof, which ordinary full-CI combat does not replace.
 
-The separate required four-view melee gate passed `logs/20261005-102101-8a020ed8/`:
-63.51s scenario; twelve live observations/four exact acquisitions4.35s and fully
-awaited persistence1.47s; genuine current near/far overview/close captures and all
-walking/attack/bone/equipment/contact flags. Full CI's ordinary combat is distinct
-coverage, not another independently renewed melee attempt.
-
-Failed runs and causal corrections remain in [authored-migration.md](authored-migration.md),
-[current-casualty-admission.md](current-casualty-admission.md) and
-[enet-guest-cadence.md](enet-guest-cadence.md). Latest-state and accepted-pause receipt
-checks repair fixture admission, not gameplay; exact source/import/remap inventory
-projection repairs the packaged representation, not the required asset set. Original
-bounds, predicates, protocol identities, numerical frozen traces, source bytes,
-UI/audio notices and cooperative/paid roster guards remain. Scope-specific cheap
-controls precede selected affected scenes and the final coherent full gate.
-
-Linux x86_64 X11/Xvfb/llvmpipe/Dummy-audio results do not establish native GPU/
-compositor performance, physical input/listening, paired Steam acceptance or native
-Windows/macOS qualification. [Final cost and follow-up decisions](authored-migration.md)
-record source/import/package bytes and practical scene/submission costs. No speculative
-feature or source-project optimization was implemented.
+These owned Linux software-rendered results retain their stated platform,
+physical-input, listening and Steam limitations; no speculative source-project
+optimization or additional feature is implied.
 
 ## Settlement-command architecture hardening, 2026-10-04
 

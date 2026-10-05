@@ -7,9 +7,10 @@ and **270 byte-identical extracted PNG maps** (25,167,952 bytes). All 71 legacy
 active/dormant models and their 166 buffer/atlas/import supports are removed;
 historical notices and the old manifest remain attributable, outside runtime 3D.
 Actual imported rigs, populated village, roster, combat/death/pause/reconnect and
-four required near/far images have passing owned evidence. Full after-CI/package
-results are tracked in the [migration report](authored-migration.md), not inferred
-from a focused pass. See [runtime rendering](runtime-rendering.md) and
+four required near/far images have retained owned evidence. Acceptance outcomes
+and their pre-review input boundary are tracked in the [migration report](authored-migration.md#retained-acceptance-evidence),
+not inferred from a focused pass. [Current casualty admission](current-casualty-admission.md#status)
+records the subsequent freshness correction's verification status. See [runtime rendering](runtime-rendering.md) and
 [guest service/observer handoff](enet-guest-cadence.md) for measured costs and the
 integration correction; neither rejected optimization candidate ships.
 
@@ -108,32 +109,15 @@ imported gameplay callbacks remain forbidden.
 
 ## Verification evidence
 
-- Full required pre-migration CI passed on landed `0332c44`:
-  `logs/20261004-184946-7b57e3b1/` (source/network/UI/client/server exports,
-  headless package smoke and owned graphical package smoke).
-- The concrete OpenSpec `asset-map.json` covers all 71 old scene files, their
-  166 buffer/atlas/import support files, role substitutes and source export
-  hashes; dormant bundles have explicit removal dispositions.
-- `mise run test` runs cheap actual manifest/GLB byte-contract checks, typed
-  catalog/role projections, all eight exported clip/socket/equipment hierarchies,
-  corrupt/truncated/LFS-container rejection and existing numerical/runner suites.
-- Final required set/eight equipped rigs and two-size launcher controls passed
-  `logs/20261005-105822-31653932/launcher-worker/`.
-- Final economy/roster passed in that same full-CI attempt; selected roster proof
-  independently passed `logs/20261005-105320-f29d8cc4/` (99.38s).
-- Full source combat, including cast/axe/sword/hit/recovery, death precedence,
-  paused poses/focus return, resize, research and fresh-session cleanup passed
-  `logs/20261005-111135-31569449/` (156.80s).
-- Four actual near/far overview/close images and live motion/equipment advancement
-  passed `logs/20261005-102101-8a020ed8/`; exact acquisition/persistence and current
-  authority action/camera/pixel identities are recorded, not historical substitutions.
-- Cheap C# coverage: **713** (13 solo/session, 9 cooperative, 478 general, 213 tooling),
-  `logs/20261005-113824-f735c0b5/`, preserving the previous 702.
-- Final actual static buffers/native PNG roundtrip passed
-  `logs/20261005-103918-fd8cb4a7/`; original static-cost characterization passed
-  `logs/20261005-104128-886cb582/`. Unsafe consolidation remains deferred with
-  all normal/winding/material failures retained; source hierarchies are untouched.
-- Software rendering does not prove native compositor/GPU performance, physical
-  input, audio listening quality, Steam acceptance or unexecuted platform support.
-  UI approval is not creator license clearance. Final full-CI/package status is
-  reported explicitly in the migration report.
+The [migration report](authored-migration.md#retained-acceptance-evidence) owns
+full/selected outcomes, counts, costs and limitations; [current casualty admission](current-casualty-admission.md#status)
+owns the review correction's evidence. The archived
+[asset map](../openspec/changes/archive/2026-10-05-migrate-authored-3d-assets/asset-map.json)
+records legacy scene/support removal dispositions.
+
+`mise run test` runs cheap manifest/GLB byte-contract checks, typed catalog/role
+projections, exported clip/socket/equipment hierarchies and corrupt/truncated/LFS
+container rejection alongside existing numerical/runner suites. Actual engine
+buffer fidelity and graphical pose/placement acceptance have separate scopes;
+see [static fidelity](asset-fidelity.md) and
+[the four-view proof](enet-guest-cadence.md#early-observer-and-exact-paused-images).

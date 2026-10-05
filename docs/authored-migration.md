@@ -56,10 +56,17 @@ substitutions, not a claim of one-to-one thematic fidelity.
 
 ### Retained acceptance evidence
 
+**Input boundary:** the table records migration acceptance before review commit
+`8eeabc9`. That commit tightens rendered death-pose freshness and removes unused
+renderer surfaces; the earlier full-CI pass is historical for those changed inputs,
+not a complete-gate result for the reviewed head. [Current casualty admission](current-casualty-admission.md#status)
+owns the correction's focused verification and remaining acceptance status. The
+native-service and four-view melee inputs remain unchanged.
+
 | Check | Evidence | Result |
 |---|---|---|
 | Clean-main full before CI | `logs/20261004-184946-7b57e3b1/` | passed, source/network/UI/exports/package |
-| Final cheap tests | `logs/20261005-121856-cb2c2053/` and final CI | **750 passed**: 500 gameplay/250 tooling; original baseline retained |
+| Pre-review final cheap tests | `logs/20261005-121856-cb2c2053/` and final CI | **750 passed**: 500 gameplay/250 tooling; original baseline retained |
 | Native conservation/cadence/lifecycle | `logs/20261005-103819-bd0dd052/` | exact 80/80 snapshots, 15 receipts, retry/reconnect/pause/cancel/owner guards |
 | Single real timing comparison | `logs/20261005-100632-5b96b17c/` | receive median12.26s→1.17s; final aligned gap790→8 ticks; startup transient remains |
 | Focused melee acceptance | `logs/20261005-102101-8a020ed8/` | 12 observations/four acquisitions4.35s; exact persistence1.47s; all six flags/four paused views |
@@ -69,16 +76,16 @@ substitutions, not a claim of one-to-one thematic fidelity.
 | Full source combat | `logs/20261005-111135-31569449/` | passed156.80s, all roles/death/pause/resize/research/fresh session |
 | Authorized current casualty correction | `logs/20261005-120254-70454a9b/` | source combat151.61s; actual pause797/rev892, focused damaged enemy/fresh body, normal inspection and cleanup |
 | Selected graphical package | `logs/20261005-121957-3388ee29/` | passed20.34s; exact imported inventory, rigs/animation/equipment, ordinary input at both sizes |
-| **Final full after CI** | **`logs/20261005-122036-c53487dd/`** | **passed553.42s**, all source/network/UI, sequential exports and both package smokes |
+| **Pre-review final full after CI** | **`logs/20261005-122036-c53487dd/`** | **passed553.42s**, all source/network/UI, sequential exports and both package smokes |
 
-**The complete gate passed; no required stage was skipped.** Before CI took344.53s;
+**The pre-review complete gate passed; no required stage was skipped.** Before CI took344.53s;
 after553.42s. Source UI487.50s includes economy307.08s, combat161.81s,
 launcher153.15s, reconnect70.39s and settings48.91s (owned slices overlap).
 Network172.54s, sequential client/server exports4.90s/3.84s, headless smoke1.30s
 and graphical package23.60s are separately retained in `ci-summary.json`.
 These are actual warm-build software-verification costs, not native load/frame budgets.
 
-Historical failures remain evidence, not current blockers: occluded plot selector
+Historical migration failures remain evidence, not waivers for changed review inputs: occluded plot selector
 (`logs/20261005-104225-8acbe650/`), legacy Berserker clip predicate
 (`logs/20261005-105822-31653932/`) and current casualty admission
 (`logs/20261005-111934-a7cc3f3b/`,469.03s). [The narrow latest-state/accepted-receipt

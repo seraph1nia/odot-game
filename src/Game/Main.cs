@@ -118,8 +118,9 @@ public partial class Main : Node, IGameSession
         if (System.Environment.GetEnvironmentVariable("ODOT_TIMING_PATH") is { } tracePath)
         {
             Timing = new OwnedTimingTrace(tracePath, _pacing.Owned);
-            // Locked SceneTree polls all native peers immediately before this signal.
-            // This is the post-poll boundary, not a fabricated native-poll duration.
+            // Locked SceneTree admits automatic API polling before this signal.
+            // Wrapped ENet guests suppress native work here; their fixed-physics
+            // service is traced separately. This is not a native-poll duration.
             ulong tracedPhysicsFrame = ulong.MaxValue;
             GetTree().ProcessFrame += () =>
             {

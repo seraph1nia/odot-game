@@ -7,7 +7,7 @@ Basic buildings use small wood costs; gold remains for land and advanced buildin
 
 The Common Watch is a one-to-four-player cooperative settlement-planning and city-defense POC in C# and Godot. Each player starts with five of nine indexed hex plots, manages six resources, equips and feeds persistent leveled soldiers, and readies up with teammates for automatic battles. Survive twenty waves together: fallen cities pass enemy pressure to survivors, and one surviving city secures victory for everyone. Solo uses the same rules with a local authority; multiplayer uses the original playing host or an explicit dedicated server. Guests render authoritative snapshots and can resume retained cities against the same running authority.
 
-The name describes a watch kept for everyone's homes: separate villages, shared defense. The existing medieval countryside and tabletop presentation remain; this is not competitive conquest or direct shooter combat.
+The name describes a watch kept for everyone's homes: separate villages, shared defense. The woodland countryside and tabletop presentation support that premise; this is not competitive conquest or direct shooter combat.
 
 ### Stable technical identity
 
@@ -196,7 +196,7 @@ After a client exits, relaunch its exact client command to recover the city. A d
 
 The runner assigns different temporary paths to each `dev` run's A/B windows and uses isolated temporary paths for network tests. The direct game accepts `--session-file`; its default is endpoint-scoped under Godot's user data directory, so two direct clients must specify different files. Private session files contain a credential and next command sequence, are written atomically, and must not be committed. Credentials never appear in shared snapshots or event logs. A sequence is reserved before sending; retries preserve identity, rejected identities cannot be repurposed, and new actions reserve new identities. ENet uses possession-based resume credentials. Steam credentials also require the SDK-authenticated account, original host, application and lobby/match namespace.
 
-See [asset provenance and mapping](src/Game/Assets/KayKit/README.md). Assets are available from a clean checkout; runtime never downloads them. All six resources are gameplay balances; bundled props and explicit labels distinguish their producers.
+See [asset provenance and mapping](docs/assets.md). Assets are available from a clean checkout; runtime never downloads them. All six resources are gameplay balances; bundled props and explicit labels distinguish their producers.
 
 
 ## Steam development and acceptance

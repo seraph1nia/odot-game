@@ -34,7 +34,7 @@ No Godot process, full test/lint suite or full CI ran in this review round. New
 current-frame combat evidence and full-run acceptance belong to the outer pipeline;
 the retained historical passes below are not substituted for that evidence.
 
-## First divergence retained
+## Historical first divergence retained
 
 Final full after-CI: `logs/20261005-111934-a7cc3f3b/`, failed after469.03s.
 Rules and all six network/source economy/launcher/reconnect/settings checks passed;
@@ -42,11 +42,12 @@ source combat failed at111.19s, before exports. Its earlier independently select
 combat passed156.80s (`logs/20261005-111135-31569449/`): that is partial evidence,
 not permission to ignore the failed complete gate.
 
-`CombatCheckpoint.PauseFreshCasualty` awaits `CasualtyInspectionReady` against
-retained headless snapshots, then requests an ordinary pause. It does not revalidate
-that eligibility against the actual pause receipt. Later it requires a currently
-visible, living damaged enemy in the focused city while the authority is frozen.
-The latest run's retained pause/UI state is **tick827/revision922, Combat, paused**:
+At that failure, `CombatCheckpoint.PauseFreshCasualty` awaited
+`CasualtyInspectionReady` against retained headless snapshots, then requested an
+ordinary pause without revalidating eligibility against the actual pause receipt.
+It later required a currently visible, living damaged enemy in the focused city
+while the authority was frozen. That run's retained pause/UI state is
+**tick827/revision922, Combat, paused**:
 
 - City1 fresh dying body41: death818→866 (39 ticks remain).
 - Living city1 enemies44/45: **3000/3000**, deployed/visible, undamaged.
