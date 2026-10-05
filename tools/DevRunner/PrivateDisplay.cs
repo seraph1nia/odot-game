@@ -155,6 +155,7 @@ internal sealed partial class Runner
             else if (name is "installed-linux" or "exported-package")
                 await worker.PackedUiScenario(name == "installed-linux" ? options.InstalledClient! : Path.Combine(_root, "dist", "client", "odot.x86_64"), token);
             else await worker.UiScenario(name, token);
+            await owned.QuitGames(token);
             await owned.DisposeAsync(); owned.CheckErrors();
             if (options.UiCheckpoint == "admission") MeleeTimingReport.Write(owned.EvidenceDirectory);
         }))).ToArray();

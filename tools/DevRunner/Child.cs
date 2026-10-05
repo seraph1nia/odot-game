@@ -214,6 +214,13 @@ internal sealed class Child : IAsyncDisposable
         return ExitCode;
     }
 
+    public async Task QuitGame(CancellationToken cancellation)
+    {
+        if (!_game || HasExited) return;
+        await Send("quit");
+        await WaitExit(cancellation);
+    }
+
     public void TerminateUnexpectedly()
     {
         if (_process.HasExited) throw new InvalidOperationException(Name + " exited before the owned host-loss check.");

@@ -174,6 +174,12 @@ internal sealed class ScenarioScope : IAsyncDisposable
     }
     public Child Own(Child child) { _children.Add(child); return child; }
     public int Port() { int port = PortAllocator.Acquire(); _ports.Add(port); return port; }
+    public async Task QuitGames(CancellationToken cancellation)
+    {
+        // Successful verification uses its still-active deadline for orderly
+        // application shutdown. Dispose remains bounded emergency cleanup.
+        foreach (Child child in Enumerable.Reverse(_children)) await child.QuitGame(cancellation);
+    }
     public void CheckErrors()
     {
         foreach (Child child in _children)
