@@ -55,7 +55,7 @@ internal sealed partial class Runner
             Require(!locked.Targets["TechFrost"].Enabled && Latest(client).Players.Single(c => c.Id == client.PlayerId).Research.Points == points - 6, "Fire spends six actual points and locks Frost");
             await Checkpoint(client, "research-fire-frost-lock", feature.Token); await Click(client, "CloseResearch", feature.Token);
             while (Latest(client).Phase is Phase.Building or Phase.Preparation) await UiReadyPair(client, observer, feature.Token, actualInput: false);
-            await Observe(observer, s => s.Enemies.Any(u => u.Destination == client.PlayerId && u.Statuses.Burn is not null), "real researched Mage burn", feature.Token);
+            await ObserveCurrent(observer, s => s.Enemies.Any(u => u.Destination == client.PlayerId && u.Statuses.Burn is not null), "real researched Mage burn", feature.Token);
             MatchSnapshot paused = State(await Action(observer, "pause", feature.Token));
             await Observe(client, s => s.Paused && s.Tick == paused.Tick, "burn pause barrier", feature.Token);
             UiObservation burning = await WaitUi(client, p => p.StatusBadges.Values.Any(v => v.Contains("Burn", StringComparison.Ordinal)), "current burn badge", feature.Token);

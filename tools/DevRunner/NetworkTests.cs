@@ -21,6 +21,10 @@ internal sealed partial class Runner
     }
     private async Task<MatchSnapshot> Observe(Child child, Func<MatchSnapshot, bool> predicate, string expectation, CancellationToken token)
         => State(await child.WaitFor(e => e.State is not null && predicate(e.State), expectation, options.Timeout, token));
+    // Transient witnesses must still exist in the newest delivered state;
+    // ordinary Observe intentionally permits retained historical barriers.
+    internal Task<MatchSnapshot> ObserveCurrent(Child child, Func<MatchSnapshot, bool> predicate, string expectation, CancellationToken token)
+        => Observe(child, s => ReferenceEquals(s, Latest(child)) && predicate(s), expectation, token);
     private async Task RecruitAll(Child child, CancellationToken token)
     {
         // A clear enters Building before the last bodies release their reservations.

@@ -18,7 +18,7 @@ internal sealed partial class Runner
             if (state.Phase is Phase.Victory or Phase.Defeat || state.Wave > 10) throw new InvalidOperationException("Research transport opening exceeded wave ten or ended without a status witness.");
             if (state.Phase == Phase.Combat)
             {
-                MatchSnapshot settled = await Observe(a, s => s.Revision >= state.Revision && (s.Phase != Phase.Combat || s.Enemies.Any(u => u.Statuses.Burn is not null)), "shared clear or real burn", token);
+                MatchSnapshot settled = await ObserveCurrent(a, s => s.Revision >= state.Revision && (s.Phase != Phase.Combat || s.Enemies.Any(u => u.Statuses.Burn is not null)), "shared clear or real burn", token);
                 if (settled.Enemies.Any(u => u.Statuses.Burn is not null)) break;
                 await Observe(b, s => s.Revision >= settled.Revision && s.Phase == settled.Phase, "ordinary research stage agreement", token); continue;
             }
