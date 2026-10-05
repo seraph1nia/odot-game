@@ -297,9 +297,11 @@ mise run test-scale --scenario large-battle --seed 1
 mise run profile-scale --scenario large-battle --sizes 128,512,2048 --seed 1 --iterations 3 --configuration Release
 mise run profile-snapshots --scenario ordinary-and-large --iterations 3 --configuration Release
 mise run profile-presentation --scenario combat-playback --frames 600 --iterations 3 --configuration Debug
+mise run profile-presentation --scenario authored-scale --frames 600 --iterations 1 --configuration Debug
 ```
 
-See the [interaction scaling review](docs/simulation-performance.md) and
+See the [interaction scaling review](docs/simulation-performance.md),
+[authored-era performance loop](docs/authored-performance.md) and
 [recorded performance evidence](docs/verification.md) for measurement scopes,
 baselines, efficiency counts and the separate verification-speed comparison.
 

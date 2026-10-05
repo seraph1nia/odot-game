@@ -113,7 +113,7 @@ internal sealed partial class Runner
             "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
         args.AddRange(["--scenario", name, "--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
         if (options.Trace) args.Add("--trace");
-        if (name == "combat-playback")
+        if (name is "combat-playback" or "authored-scale")
         {
             args.AddRange(["--frames", "600", "--configuration", "Debug"]);
             if (options.ProfileWorkCounters) args.Add("--work-counters");
@@ -149,7 +149,7 @@ internal sealed partial class Runner
         {
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
-            if (name == "combat-playback") await worker.PresentationProfileScenario(token);
+            if (name is "combat-playback" or "authored-scale") await worker.PresentationProfileScenario(token);
             else if (name == "launcher" && options.UiCheckpoint == "assets") await worker.AssetCostScenario(token);
             else if (name == "launcher") await worker.MenuUiScenario(null, token);
             else if (name is "installed-linux" or "exported-package")

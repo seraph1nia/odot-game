@@ -88,8 +88,20 @@ internal sealed class HexRouting(HexBoard board, HexOccupancy occupancy)
         var key = (actor.Faction, actor.Location.Position.Cell, actor.Profile.HexRange, target.Kind, targetCell);
         if (search.Scores.TryGetValue(key, out var cached)) return new(target, targetCell, initiative, cached.Steps, cached.StaticSteps);
         var goals = GoalCells(actor, target, targetCell);
-        int steps = goals.All.Select(cell => search.Distances.GetValueOrDefault(cell, int.MaxValue)).Where(distance => distance > 0).DefaultIfEmpty(int.MaxValue).Min();
-        int staticSteps = goals.Legal.Select(cell => board.MovementDistance(actor.Faction, actor.Location.Position.Cell, cell)).DefaultIfEmpty(int.MaxValue).Min();
+        int steps = int.MaxValue;
+        foreach (int cell in goals.All)
+        {
+            int distance = search.Distances.GetValueOrDefault(cell, int.MaxValue);
+            if (distance > 0 && distance < steps) steps = distance;
+            // Zero is deliberately excluded: one is the exact lower bound.
+            if (steps == 1) break;
+        }
+        int staticSteps = int.MaxValue;
+        foreach (int cell in goals.Legal)
+        {
+            staticSteps = Math.Min(staticSteps, board.MovementDistance(actor.Faction, actor.Location.Position.Cell, cell));
+            if (staticSteps == 0) break;
+        }
         search.Scores.Add(key, (steps, staticSteps));
         return new(target, targetCell, initiative, steps, staticSteps);
     }
