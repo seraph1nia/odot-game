@@ -44,12 +44,16 @@ contract; no content, material, shadow, asset or camera tradeoff was adopted.
   frames, remaining 40 supply nearest-rank p50/p95/p99. Scripted delta 1/60 does not
   change authority speed. Actual frame intervals use a monotonic wall clock, not
   Godot's clamped engine delta. Managed update timing excludes diagnostic sampling
-  and PNG persistence; whole-window time includes those separately owned barriers.
+  and PNG persistence; whole-window time includes diagnostic sampling and intermediate
+  capture barriers, but excludes the final PNG/observation capture.
 - Pressure preset names 16/64/256 describe recipe scaling, **not actor counts**.
   Ordinary board/home limits are retained: settlements have 6/12/18 friendly rigs
   and 2/5/9 buildings; initial combat populations are 14/44/146 (friendly plus
-  8/32/128 enemies, including queues). Actual deployed/living counts are recorded
-  per frame. Ordinary commands build/buy/recruit; funding is diagnostic-owned.
+  8/32/128 enemies, including queues). Per-frame `StoredUnits` counts living units
+  in the latest snapshot, including queued/stored units but excluding dying bodies;
+  `VisibleViews` counts visible retained rigs, including dying views. Neither is a
+  deployed-living count; lifecycle/deployment details remain in the input snapshots.
+  Ordinary commands build/buy/recruit; funding is diagnostic-owned.
 - Every input script and source inventory is hashed. Authored script digest:
   `0D3C9F044497DD911B86FADA9932015ACB58CDF2E7D4C6CDA641D7395673470F`.
   Original ordinary replay serialization/digest is preserved by omitting new
