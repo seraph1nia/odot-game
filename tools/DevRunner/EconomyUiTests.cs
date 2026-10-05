@@ -5,13 +5,28 @@ namespace DevRunner;
 internal sealed partial class Runner
 {
     private readonly HashSet<string> _inputWitnesses = [];
-    private async Task<MatchSnapshot> UiReadyPair(Child client, Child observer, CancellationToken token, bool actualInput = true)
+    private async Task<MatchSnapshot> UiReadyPair(Child client, Child observer, CancellationToken token, bool actualInput = true, bool pauseBattle = false)
     {
         await TowerInvestment(observer, token);
         if (actualInput && _inputWitnesses.Add("Ready")) await ClickAck(client, "Ready", token);
         else await Action(client, "ready", token);
-        MatchSnapshot resolved = State(await Action(observer, "ready", token));
-        return await Observe(client, s => s.Revision >= resolved.Revision && s.TurnSerial == resolved.TurnSerial && s.Phase == resolved.Phase, "ordinary UI production/battle synchronization", token);
+        GameEvent ready = await Action(observer, "ready", token);
+        MatchSnapshot resolved = State(ready);
+        if (pauseBattle)
+        {
+            Require(resolved.Phase == Phase.Combat && !resolved.Paused && resolved.Wave == 3
+                && resolved.Players.Single(p => p.Id == client.PlayerId).LastUpkeep is { Wave: 3 }, "Ready actually enters the current upkeep battle");
+            GameEvent pause = await Action(observer, "pause", token);
+            MatchSnapshot frozen = State(pause);
+            Require(frozen.MatchId == resolved.MatchId && frozen.Phase == Phase.Combat && frozen.Paused
+                && frozen.Wave == resolved.Wave && frozen.TurnSerial == resolved.TurnSerial, "pause receipt retains the admitted upkeep battle");
+            await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "upkeep-command-receipts.json"),
+                System.Text.Json.JsonSerializer.Serialize(new { Ready = ready, Pause = pause }, Evidence.JsonOptions), token);
+            resolved = frozen;
+        }
+        return await Observe(client, s => s.MatchId == resolved.MatchId && s.Revision >= resolved.Revision
+            && s.TurnSerial == resolved.TurnSerial && s.Phase == resolved.Phase && s.Wave == resolved.Wave && s.Paused == resolved.Paused,
+            "ordinary UI production/battle synchronization", token);
     }
     private async Task TowerOpening(Child observer, CancellationToken token)
     {
@@ -227,10 +242,14 @@ internal sealed partial class Runner
         CityState prepared = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(prepared.Army!.PurchasedHomes == 3 && prepared.Soldiers.Length >= 7, "paid first home and recurring equipment replenish the wounded field");
         Require(Latest(observer).Players.Single(p => p.Id == observer.PlayerId).Soldiers.Length == 9, "paid observer trainer and home preserve cooperative defense alongside its Catapult");
-        await UiReadyPair(client, observer, token);
-        UiObservation paid = await WaitUi(client, p => p.CompactUpkeep.Length == 4 && p.CompactUpkeep[0] == "Paid this battle · W3", "compact current-wave actual upkeep receipt", token);
-        CityState battle = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-        Require(paid.CompactUpkeep[1] == $"{battle.LastUpkeep!.Paid} food", "compact receipt shows actual authority payment");
+        // Freeze through the headless Ready owner before waiting for graphical
+        // synchronization. Rendering latency must not consume the receipt's wave.
+        MatchSnapshot battle = await UiReadyPair(client, observer, token, pauseBattle: true);
+        UiObservation paid = await WaitUi(client, p => UiProtocol.PaidUpkeep(p, battle, client.PlayerId), "compact current-wave actual upkeep receipt", token);
+        Require(paid.CompactUpkeep[1] == $"{battle.Players.Single(p => p.Id == client.PlayerId).LastUpkeep!.Paid} food", "compact receipt shows actual authority payment");
+        await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "upkeep-frame.json"),
+            System.Text.Json.JsonSerializer.Serialize(paid, Evidence.JsonOptions), token);
+        await Action(observer, "resume", token);
         await UiClear(client, observer, 3, token);
         for (int production = 0; production < 2; production++) await UiReadyPair(client, observer, token);
         await UiSwords(client, 2, 6, token);

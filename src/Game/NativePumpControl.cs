@@ -48,7 +48,7 @@ internal static class NativePumpControl
             int port = int.Parse(Environment.GetEnvironmentVariable("ODOT_PUMP_PORT")!, System.Globalization.CultureInfo.InvariantCulture);
             string matchId = Guid.NewGuid().ToString("N");
             owner.GetTree().MultiplayerPoll = false; // One manual owner per original API, only this isolated test tree.
-            var reports = new List<object>();
+            var reports = new List<(string Digest, object Report)>();
             // Same native traffic and 15s withheld guest service; only SetTimeout varies.
             reports.Add(await LivenessMode(owner, port, evidence, matchId, 10000, 15000, true));
             reports.Add(await LivenessMode(owner, port, evidence, matchId, 60000, 15000, true));
@@ -56,10 +56,12 @@ internal static class NativePumpControl
             reports.Add(await LivenessMode(owner, port, evidence, matchId, 10000, 500, false));
             reports.Add(await LivenessMode(owner, port, evidence, matchId, 60000, 500, false));
             reports.Add(await LivenessMode(owner, port, evidence, matchId, 1000, 2500, true));
+            if (reports.Select(report => report.Digest).Distinct().Count() != 1)
+                throw new InvalidOperationException("Native liveness arms did not publish matched baseline traffic.");
             Main.Emit(new("native-pump", Message: JsonSerializer.Serialize(new
             {
                 FixtureLivenessAlignmentProven = true,
-                Reports = reports,
+                Reports = reports.Select(report => report.Report).ToArray(),
                 Limitation = "Injected headless service withholding proves native fixture timeout alignment, not hosted stall duration, service root cause or graphical Start acceptance."
             }, WireJson.Options)));
             owner.GetTree().Quit();
@@ -68,7 +70,7 @@ internal static class NativePumpControl
         finally { owner.GetTree().MultiplayerPoll = automatic; }
     }
 
-    private static async Task<object> LivenessMode(Node owner, int port, string evidence, string matchId, int timeout, int duration, bool withhold)
+    private static async Task<(string Digest, object Report)> LivenessMode(Node owner, int port, string evidence, string matchId, int timeout, int duration, bool withhold)
     {
         using var trace = new OwnedTimingTrace(Path.Combine(evidence, $"native-liveness-{timeout}-{withhold}.jsonl"), true);
         using var serverPeer = new ENetMultiplayerPeer(); using var guestPeer = new ENetMultiplayerPeer();
@@ -76,7 +78,7 @@ internal static class NativePumpControl
         var serverRoot = new Node { Name = "LivenessServer" }; var guestRoot = new Node { Name = "LivenessGuest" };
         owner.AddChild(serverRoot); owner.AddChild(guestRoot);
         owner.GetTree().SetMultiplayer(serverApi, serverRoot.GetPath()); owner.GetTree().SetMultiplayer(guestApi, guestRoot.GetPath());
-        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, matchId: matchId);
+        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, matchId: matchId, combatSeed: 1);
         var server = new NativePumpPeer { Name = "Endpoint", Trace = trace, Session = session }; var guest = new NativePumpPeer { Name = "Endpoint", Trace = trace };
         serverRoot.AddChild(server); guestRoot.AddChild(guest);
         long started = OwnedTimingTrace.Now(), limit = started + 20_000_000_000;
@@ -112,9 +114,12 @@ internal static class NativePumpControl
             var record = (state.Revision, OwnedTimingTrace.Digest(payload), state.EventSequence);
             server.Publish(stablePeer, payload, null); await Until(() => guest.Snapshots.Count == 1);
             if (guest.Snapshots.Single() != record) throw new InvalidOperationException("Baseline message/session/event cursor changed.");
-            // Flush a real retry from the original guest API, then withhold only
-            // subsequent guest service while the authority sends reliable data/ack.
-            guest.SendRequest(start); Poll(true);
+            // Flush ONLY the guest's outgoing retry. Do not service the authority
+            // or deliver its acknowledgment until the matched schedule begins.
+            guest.SendRequest(start);
+            if (guestApi.Poll() != Error.Ok) throw new InvalidOperationException("Guest retry flush failed.");
+            guestPolls++;
+            if (guest.Results.Count != 1 || server.Admitted.Count != 1) throw new InvalidOperationException("Retry was not genuinely pending before withholding.");
             server.Publish(stablePeer, payload, null);
             long stallStart = OwnedTimingTrace.Now(), pollsBefore = guestPolls;
             trace.Record("liveness-schedule-begin", state, record.Item2, new { Timeout = timeout, Duration = duration, Withhold = withhold, Peer = stablePeer, start.Sequence });
@@ -123,23 +128,40 @@ internal static class NativePumpControl
             bool expectDisconnect = withhold && timeout < duration;
             if ((disconnected == 1) != expectDisconnect || disconnected > 1 || (withhold && pollsDuring != 0))
                 throw new InvalidOperationException($"Liveness counterfactual contradicted: timeout={timeout}, withheld={withhold}, disconnected={disconnected}, guestPollsDuring={pollsDuring}.");
+            if (server.Admitted.Count != 2 || server.Admitted[1].Result != accepted
+                || server.Admitted[1].State.MatchId != matchId || server.Admitted[1].State.Revision != state.Revision)
+                throw new InvalidOperationException("Pending retry did not reach the same authority ledger/state.");
+            trace.Record("liveness-guest-service-resumed", session.Snapshot(), info: new { GuestPollsBeforeResume = guestPolls, AuthorityDisconnected = disconnected });
             if (expectDisconnect)
             {
-                await Until(() => guestDisconnected == 1);
-                if (guest.Snapshots.Count != 1 || guest.Results.Count != 1) throw new InvalidOperationException("Disconnected control unexpectedly applied pending reliable records.");
+                // The serviced authority proves native peer loss. The unserviced
+                // guest may retain already-sent UDP records; do not invent their
+                // loss or require its own independent timeout to have elapsed.
+                await Tick(true); await Tick(true);
             }
             else
             {
                 await Until(() => guest.Snapshots.Count == 2 && guest.Results.Count == 2);
-                if (disconnected != 0 || guestDisconnected != 0 || guestApi.GetUniqueId() != stablePeer || guest.Welcomes != 1
-                    || !guest.Snapshots.SequenceEqual(new[] { record, record }) || guest.Results[1] != accepted
-                    || guest.Applied!.MatchId != matchId || guest.Applied.Revision != state.Revision || trace.Truncated)
-                    throw new InvalidOperationException("Surviving peer changed message/session/peer/event/receipt identity.");
+                if (disconnected != 0 || guestDisconnected != 0 || guestApi.GetUniqueId() != stablePeer || guest.Welcomes != 1)
+                    throw new InvalidOperationException("Surviving peer changed connection identity.");
+            }
+            if (guest.Snapshots.Count is < 1 or > 2 || guest.Results.Count is < 1 or > 2 || guestDisconnected > 1
+                || !guest.Snapshots.SequenceEqual(Enumerable.Repeat(record, guest.Snapshots.Count))
+                || guest.Results.Any(result => result != accepted)
+                || guest.ResultStates.Any(receipt => receipt.MatchId != matchId || receipt.Revision != state.Revision
+                    || receipt.EventSequence != state.EventSequence || receipt.Phase != Phase.Building) || trace.Truncated)
+                throw new InvalidOperationException("Native delivery changed message/session/event/receipt provenance.");
+            int retryReceipts = guest.Results.Count;
+            if (!expectDisconnect)
+            {
                 guest.SendRequest(Command.FromSnapshot(session.Snapshot(), 2001, "pause", guest.StablePlayer));
                 await Until(() => guest.Results.Count == 3);
-                if (!guest.Results[^1].Accepted || !session.Paused) throw new InvalidOperationException("Surviving peer could not execute its next ordinary command.");
+                MatchSnapshot paused = guest.ResultStates[^1];
+                if (!guest.Results[^1].Accepted || guest.Results[^1].Sequence != 2001 || !session.Paused
+                    || paused.MatchId != matchId || paused.Phase != Phase.Building || !paused.Paused || paused.Revision != session.Snapshot().Revision)
+                    throw new InvalidOperationException("Surviving peer could not execute its next ordinary command.");
             }
-            return new
+            return (record.Item2, new
             {
                 TimeoutMilliseconds = timeout,
                 NativeMinimumMilliseconds = Math.Max(1, timeout / 2),
@@ -160,10 +182,32 @@ internal static class NativePumpControl
                 ServerPolls = serverPolls,
                 GuestPolls = guestPolls,
                 GuestPollsDuringSchedule = pollsDuring,
-                PendingConserved = !expectDisconnect,
+                PendingBeforeSchedule = true,
+                RetryReceiptsAfterResume = retryReceipts,
+                PendingConserved = retryReceipts == 2 && guest.Snapshots.Count == 2,
+                ReceiptProvenance = guest.Results.Select((result, index) => new
+                {
+                    result.Sequence,
+                    result.Accepted,
+                    guest.ResultStates[index].MatchId,
+                    guest.ResultStates[index].Revision,
+                    guest.ResultStates[index].EventSequence,
+                    guest.ResultStates[index].Phase,
+                    guest.ResultStates[index].Paused
+                }).ToArray(),
+                AuthorityProvenance = server.Admitted.Select(receipt => new
+                {
+                    receipt.Result.Sequence,
+                    receipt.Result.Accepted,
+                    receipt.State.MatchId,
+                    receipt.State.Revision,
+                    receipt.State.EventSequence,
+                    receipt.State.Phase,
+                    receipt.State.Paused
+                }).ToArray(),
                 ExpectedDisconnect = expectDisconnect,
                 Seconds = (OwnedTimingTrace.Now() - started) / 1e9
-            };
+            });
         }
         finally
         {

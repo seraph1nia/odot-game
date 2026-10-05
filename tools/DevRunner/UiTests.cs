@@ -204,6 +204,11 @@ internal sealed record UiObservation
     public string[] LockedMarkers { get; init; } = [];
     public string RosterText { get; init; } = "";
     public long Revision { get; init; }
+    public string MatchId { get; init; } = "";
+    public Phase MatchPhase { get; init; }
+    public int Wave { get; init; }
+    public bool Paused { get; init; }
+    public int TurnSerial { get; init; }
     public int SelectedSlot { get; init; }
     public bool Connected { get; init; }
     public bool SettingsOpen { get; init; }
@@ -253,6 +258,15 @@ internal sealed record UiObservation
 
 internal static class UiProtocol
 {
+    public static bool PaidUpkeep(UiObservation frame, MatchSnapshot battle, int player)
+    {
+        BattleUpkeepReceipt? receipt = battle.Players.Single(p => p.Id == player).LastUpkeep;
+        return battle.Phase == Phase.Combat && battle.Paused && receipt?.Wave == battle.Wave
+            && frame.Connected && frame.MatchId == battle.MatchId && frame.Revision == battle.Revision
+            && frame.MatchPhase == battle.Phase && frame.Paused && frame.Wave == battle.Wave && frame.TurnSerial == battle.TurnSerial
+            && frame.ObservedCity == player && frame.CompactUpkeep.SequenceEqual(new[]
+            { $"Paid this battle · W{receipt.Wave}", $"{receipt.Paid} food", "Sat out", receipt.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+    }
     public static DeathCleanupObservation DeathCleanup(UiObservation frame, int id, long deathEndTick, double sinceVisualSeconds)
     {
         DeathCleanupObservation? cleanup = frame.DeathCleanups.SingleOrDefault(sample => sample.Id == id);

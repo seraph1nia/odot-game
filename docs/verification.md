@@ -2457,3 +2457,67 @@ The first affected combat run (`logs/20261003-221231-11b531a4/`) reached the fre
 **Full before/after CI passed 292.32s / 342.11s**, `logs/20261003-185828-ba485153/` and `logs/20261003-223504-02c3e88e/ci-summary.json`; consoles `logs/army-balance/{before-ci,after-ci-second}.log`. After CI restores locked, verifies formatting/build/import, executes **481 gameplay / 172 runner** tests (cheap suite **38.47s**), all six network scenarios (shared admission elapsed **120.79s**) and all five source UI scenarios (shared admission elapsed **287.49s**), then sequential client/server exports **8.92s/3.87s**, headless package smoke **1.30s** and graphical packed smoke **12.05s** (**15.35s** with display ownership). Source case times: economy **165.28s**, reconnect **41.95s**, settings **27.26s**, launcher **80.65s**, combat **91.40s**; individual cases overlap and admitted suite elapsed includes budget waits, not just network execution. Owned cancellation/peer/display cleanup completes before scopes are released. Final source army and packed PNGs were inspected. No publish/upload/release occurs.
 
 Only three ordinarily paid replay/pause-terminal hashes changed, causally from bounded purchased allied setup and explicit roster/protocol state; the two isolated numerical combat hashes are byte-exact. Protocol is **11**, combat rules remain **5**, and tool/NuGet locks plus asset provenance are unchanged. All rendering uses owned Linux X11/software OpenGL/Dummy audio; native compositor/GPU performance, physical input, listening quality, native Windows packaging and paired Steam are outside this record. Price calibration establishes paid options and challenging controls, not a universal balance guarantee. Final documentation/spec sync needs consistency checks, not another unchanged full export run.
+
+### 2026-10-05 CI upkeep receipt and native counterfactual correction
+
+Hosted source run `37339665585`, job `111863206002`, failed the economy
+current-wave compact upkeep wait after 415.53s. The retained console establishes
+the failed wait, not the exact final graphical/authority state; the run exposes
+no downloadable artifacts. The driver nevertheless had a reproducible receipt
+window defect: it synchronized the graphical client after final Ready while the
+battle kept advancing. Once that wave ends, waiting longer cannot restore its
+current-battle label. Cheap executable regression coverage advances an ordinary
+paid match past battle completion, then contrasts ordinary pause retaining the
+actual receipt through 10,000 attempted ticks and ordinary resume progressing
+without a second payment. Negative controls reject wrong session, revision,
+phase, pause state, wave, turn, city, connection and any of the four HUD values.
+
+The existing headless observer now pauses immediately after its accepted final
+Ready, before graphical synchronization. Both command receipts must remain in
+Combat/W3 in the same session/turn; the fresh rendered HUD must match the frozen
+revision, city and complete actual upkeep. Then the observer resumes and the
+existing clear, shortage and reconnect assertions continue. No gameplay rules,
+assets, simulation speeds, production transport or timeout constants changed.
+The selected economy command used `--timeout-ms 900000` (the existing CI budget)
+instead of the standalone 300000ms invocation default: retained constrained
+runs exhausted 300s, and this complete CI economy worker took 300.60s. The finite
+Start/probe allowance remains 60000ms in these invocations; native modes remain
+20s each and the native diagnostic remains 60s overall. Ordinary public/dev,
+Steam and explicit-short launch policies are unchanged.
+
+The previously malformed native liveness control now flushes only the guest's
+pending retry before withholding; authority admission and guest delivery cannot
+occur before the schedule. A fixed diagnostic seed gives every arm identical
+baseline snapshot bytes. The serviced authority proves disconnect; only after
+guest service resumes are retained deliveries checked, without assuming queued
+UDP records must disappear or requiring an unserviced owner's timeout event.
+`mise run test-native-pump --scenario peer-liveness --startup-timeout-ms 60000`
+passed all five arms, `logs/20261005-170818-1ffdffc8/`: old
+`SetTimeout(32,5000,10000)` disconnected at 5645.44ms during 15s withholding;
+fixture `SetTimeout(32,30000,60000)` survived the same schedule, conserved the
+pending retry and accepted the next pause. Both no-stall arms conserved delivery;
+explicit `SetTimeout(32,500,1000)` disconnected at 1504.14ms during 2.5s withholding.
+Actual admission/receipt session, sequence, revision, event cursor, service counts
+and teardown are retained. This proves whole-session owned-fixture native
+liveness alignment, **not** the hosted stall duration or receive-service root
+cause. The original native conservation/reconnect/pause/cancellation-drain
+control also passed, `logs/20261005-172418-06430830/`, without another poll owner.
+The earlier failed control and all unreached-arm records remain historical
+failures, not retroactive passes.
+
+All 795 cheap tests passed (500 gameplay/295 runner). Selected economy passed
+281.56s, `logs/20261005-170859-693ab9c6/`. Complete local
+`mise run ci --startup-timeout-ms 60000` then passed **546.39s**,
+`logs/20261005-171424-d97ea622/ci-summary.json`, console
+`logs/ci-receipt-full.log`: locked restore/format/build/import/static fidelity,
+all cheap partitions, all six network cases, all five source UI cases, sequential
+client/server exports, headless package smoke and graphical package smoke.
+Its `economy-worker/economy/upkeep-command-receipts.json` records session
+`75ea7d5fa1c148c9bbbd6a8402dcef52`, Ready sequence35/revision968/tick872 and
+pause sequence36/revision973/tick876; `upkeep-frame.json` is the same frozen
+revision/W3/turn15/city1 and displays `7 food` with zero sit-outs. Awaited owned
+cleanup passed. No other implementation inputs changed after this full pass.
+This is locally verified repair evidence, not exact-final-head hosted readiness:
+the outer pipeline still owns publication and all hosted source/Linux/Windows
+package/required checks for PR #8. Software-rendered silent Linux checks do not
+establish native GPU/compositor performance, listening quality or paired Steam.

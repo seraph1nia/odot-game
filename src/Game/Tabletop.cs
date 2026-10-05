@@ -172,6 +172,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             }).ToArray() : [];
         fields["Camera"] = _navigation.Observe(Center(_focus) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
         fields["Revision"] = _revision;
+        fields["MatchId"] = _matchId;
+        fields["MatchPhase"] = game.State?.Phase ?? Phase.Lobby;
+        fields["Wave"] = game.State?.Wave ?? 0;
+        fields["Paused"] = game.State?.Paused ?? false;
+        fields["TurnSerial"] = game.State?.TurnSerial ?? 0;
         fields["SelectedSlot"] = _slot;
         fields["Models"] = _landscapeAssets.Paths.Count();
         fields["LoadedModels"] = _landscapeAssets.Paths.Order().ToArray();

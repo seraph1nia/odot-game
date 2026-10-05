@@ -19,6 +19,8 @@ internal sealed partial class NativePumpPeer : Node
     private string _credential = "";
     private string _attempt = "";
     internal readonly List<CommandResult> Results = [];
+    internal readonly List<(CommandResult Result, MatchSnapshot State)> Admitted = [];
+    internal readonly List<MatchSnapshot> ResultStates = [];
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void Hello(int version, string credential, string match, string attempt)
     {
@@ -39,7 +41,10 @@ internal sealed partial class NativePumpPeer : Node
     {
         if (Session is null) return;
         CommandResult result = Session.Request(Multiplayer.GetRemoteSenderId(), json, Time.GetTicksMsec()) ?? throw new InvalidOperationException("Unauthenticated native request.");
-        RpcId(Multiplayer.GetRemoteSenderId(), MethodName.Acknowledged, System.Text.Json.JsonSerializer.Serialize(result, WireJson.Options), SnapshotPayload.Encode(Session.Snapshot()));
+        MatchSnapshot state = Session.Snapshot();
+        Admitted.Add((result, state));
+        Trace.Record("control-request-admitted", state, info: new { result.Sequence, result.Accepted });
+        RpcId(Multiplayer.GetRemoteSenderId(), MethodName.Acknowledged, System.Text.Json.JsonSerializer.Serialize(result, WireJson.Options), SnapshotPayload.Encode(state));
     }
     internal void Join(string match)
     {
@@ -65,7 +70,8 @@ internal sealed partial class NativePumpPeer : Node
     {
         CommandResult receipt = System.Text.Json.JsonSerializer.Deserialize<CommandResult>(result, WireJson.Options)!;
         MatchSnapshot state = SnapshotPayload.Decode(payload)!;
-        Receipts.Add(receipt.Sequence); Results.Add(receipt);
+        if (WelcomeState is not null && state.MatchId != WelcomeState.MatchId) throw new InvalidOperationException("Native receipt crossed session identity.");
+        Receipts.Add(receipt.Sequence); Results.Add(receipt); ResultStates.Add(state);
         Trace.Record("control-ack", state, OwnedTimingTrace.Digest(payload), new { receipt.Sequence, receipt.Accepted });
     }
     internal void Publish(int peer, string payload, CommandResult? result)
