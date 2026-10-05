@@ -92,6 +92,7 @@ public partial class Main : Node, IGameSession
             }
             else if (args is ["--supervised", "--asset-fidelity-probe"]) _ = AssetFidelityProbe.Run(this);
             else if (args is ["--supervised", "--native-pump-control"]) _ = NativePumpControl.Run(this);
+            else if (args is ["--supervised", "--native-liveness-control"]) _ = NativePumpControl.Liveness(this);
             else if (args.Length == 1 && args[0] is "--steam-probe" or "--steam-probe-offline")
                 SteamProbe.Run(this, args[0] == "--steam-probe");
             else if (DisplayServer.GetName() == "headless") Setup(args);

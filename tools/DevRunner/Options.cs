@@ -85,7 +85,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
-            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : [];
+            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
         if (checkpoint is not null && !(scenario == "combat" && checkpoint is "melee" or "research" or "admission" || scenario == "economy" && checkpoint == "army" || scenario == "launcher" && checkpoint == "assets"))

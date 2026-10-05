@@ -14,7 +14,7 @@ internal sealed partial class Runner
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(60000);
             await using var owned = new ScenarioScope("native-pump", _evidence);
             var worker = new Runner(options, deadline.Token, _evidence, owned, _root);
-            Child child = worker.StartGameRole("native-pump", "menu", true, 0, extra: ["--native-pump-control"]);
+            Child child = worker.StartGameRole("native-pump", "menu", true, 0, extra: [options.Scenario == "peer-liveness" ? "--native-liveness-control" : "--native-pump-control"]);
             GameEvent result = await child.WaitFor(e => e.Type == "native-pump", "native record/receipt conservation", 60000, deadline.Token);
             await File.WriteAllTextAsync(Path.Combine(owned.EvidenceDirectory, "native-pump.json"), result.Message, deadline.Token);
             Require(await child.WaitExit(deadline.Token) == 0 && !child.HasEngineErrors, "native pump process and teardown succeed");
