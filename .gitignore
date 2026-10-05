@@ -13,3 +13,7 @@
 .DS_Store
 
 .sessions/
+
+# Local audit/report artifacts; preserve them outside implementation commits.
+/.art-audit/
+/.lavish/
