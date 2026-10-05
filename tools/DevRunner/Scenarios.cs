@@ -180,6 +180,14 @@ internal sealed class ScenarioScope : IAsyncDisposable
         // application shutdown. Dispose remains bounded emergency cleanup.
         foreach (Child child in Enumerable.Reverse(_children)) await child.QuitGame(cancellation);
     }
+    public async Task CompleteGames(CancellationToken cancellation)
+    {
+        // Retire the completed phase without deleting shared runtime data or
+        // removing children from the final exit/error evidence checks.
+        await QuitGames(cancellation);
+        foreach (Child child in Enumerable.Reverse(_children)) await child.DisposeAsync();
+        CheckErrors();
+    }
     public void CheckErrors()
     {
         foreach (Child child in _children)

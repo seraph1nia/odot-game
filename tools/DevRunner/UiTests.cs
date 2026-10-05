@@ -543,7 +543,11 @@ internal sealed partial class Runner
                     await EconomyDetails(client, observer, token);
                 }
                 await Checkpoint(client, package ? "packed-building" : "economy-building", token);
-                if (!package) { await client.DisposeAsync(); await ArmyUiScenario(token); }
+                if (!package)
+                {
+                    await _scope!.CompleteGames(token);
+                    await ArmyUiScenario(token);
+                }
                 break;
             case "combat":
                 if (options.UiCheckpoint == "admission") { await MeleeAdmissionDiagnostic(client, observer, token); break; }
