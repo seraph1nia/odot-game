@@ -29,6 +29,9 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     break;
                 case "prepare": await Prepare(); break;
                 case "test-rules": await CheapTests(); break;
+                case "test-assets": await Prepare(); await AssetFidelity(); break;
+                case "test-native-pump": await Prepare(); await NativePump(); break;
+                case "inspect-admission-timing": MeleeTimingReport.Write(options.EvidenceDirectory ?? throw new ArgumentException("Missing owned --evidence-directory.")); break;
                 case "check-steam-extension": await CheckSteamExtension(); break;
                 case "test-steam": await TestSteam(); break;
                 case "dev": await Interactive(); break;
@@ -75,6 +78,9 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                 "test-ui" or "_ui-worker" => "all source UI slices",
                 "ci" or "test-network" => "full required set",
                 "test-rules" => "all C# rules, campaign partitions and tooling; no Godot",
+                "test-assets" => "owned headless static rendering buffers and corruption regressions; optional unsafe consolidation deferred",
+                "test-native-pump" => "owned native reliable snapshot/event-cursor/receipt conservation under ordinary and delayed polling, cancellation drain and cleanup; no graphical acceptance",
+                "inspect-admission-timing" => "read-only inspection of retained owned timing evidence; no Godot or new game acceptance",
                 "ci-source" => "all source gates; no exports or package coverage",
                 "ci-linux-package" => "Linux exports/native/headless/private UI; source gates separate",
                 "ci-windows" => "Windows source/native/export/offline solo; Linux and real Steam gates separate",
@@ -190,14 +196,14 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
     private Child StartGame(string name, bool server, bool headless, int port, string? exported = null, params string[] extra)
         => StartGameRole(name, server ? "server" : "client", headless, port, exported, extra);
 
-    private Child StartGameRole(string name, string role, bool headless, int port, string? exported = null, params string[] extra)
+    // The executable argv boundary used by every source/exported game launch.
+    internal List<string> GameArguments(string name, string role, bool headless, int port, string? exported = null, params string[] extra)
     {
         bool server = role is "server" or "playing-host";
         bool guest = role == "client";
         if (role is not ("server" or "playing-host" or "client" or "menu" or "solo")) throw new ArgumentException("Unknown game role: " + role);
         var args = new List<string>();
         if (headless) args.Add("--headless");
-        string? engineLogPath = _scope is null ? null : Path.Combine(_scope.EvidenceDirectory, name + "-engine-" + Guid.NewGuid().ToString("N") + ".log");
         if (exported is null) args.AddRange(["--path", GameDirectory]);
         if (!headless)
         {
@@ -210,6 +216,10 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         args.AddRange(["--", "--supervised"]);
         if (role != "menu") args.Add("--" + role);
         if (server || guest) args.AddRange(["--port", port.ToString(CultureInfo.InvariantCulture), server ? "--bind" : "--host", server ? options.Bind : options.Host]);
+        // Owned graphical ENet fixtures use their startup allowance for native
+        // whole-session liveness too. Explicit failure-case bounds still win.
+        if (_scope?.Graphical == true && (server || guest) && !extra.Contains("--connect-timeout-ms"))
+            args.AddRange(["--connect-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture)]);
         if (guest && !extra.Contains("--session-file"))
         {
             string session = _scope is not null ? Path.Combine(_scope.Directory, name + ".json")
@@ -217,20 +227,36 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             args.AddRange(["--session-file", session]);
         }
         args.AddRange(extra);
+        return args;
+    }
+
+    private Child StartGameRole(string name, string role, bool headless, int port, string? exported = null, params string[] extra)
+    {
+        var args = GameArguments(name, role, headless, port, exported, extra);
+        string? engineLogPath = _scope is null ? null : Path.Combine(_scope.EvidenceDirectory, name + "-engine-" + Guid.NewGuid().ToString("N") + ".log");
         var environment = _scope?.EnvironmentFor(name);
+        if (_scope?.Graphical == true) environment!["ODOT_FRAME_EVIDENCE"] = _scope.EvidenceDirectory;
+        if (_scope?.Graphical == true && options.UiCheckpoint == "assets") environment!["ODOT_ASSET_COSTS"] = "1";
+        if (_scope is not null && options.UiCheckpoint == "admission")
+            environment!["ODOT_TIMING_PATH"] = Path.Combine(_scope.EvidenceDirectory, name + "-timing.jsonl");
+        if (_scope is not null && (extra.Contains("--native-pump-control") || extra.Contains("--native-liveness-control")))
+        {
+            environment!["ODOT_PUMP_EVIDENCE"] = _scope.EvidenceDirectory;
+            environment["ODOT_PUMP_PORT"] = _scope.Port().ToString(CultureInfo.InvariantCulture);
+        }
         if (OperatingSystem.IsWindows() && exported is not null)
         {
             environment ??= new Dictionary<string, string?>();
             WindowsStandaloneEnvironment(environment);
         }
-        if (_scope is not null && options.Command is "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows")
+        if (_scope is not null && options.Command is "test-native-pump" or "test-assets" or "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows")
         {
             string marker = Path.Combine(environment!["ODOT_OWNED_DATA"]!, ".verification-owner");
             string token = Guid.NewGuid().ToString("N");
             File.WriteAllText(marker, token);
             environment["ODOT_VERIFICATION_MARKER"] = marker;
             environment["ODOT_VERIFICATION_TOKEN"] = token;
-            if (role != "client") args.AddRange(["--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
+            if (role != "client" && !extra.Contains("--asset-fidelity-probe") && !extra.Contains("--native-pump-control") && !extra.Contains("--native-liveness-control")) args.AddRange(["--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
         }
         if (_scope?.Graphical == true) environment!["ODOT_STEAM_DISABLED"] = "1";
         if (options.Command is "verify-installed-linux" or "verify-installed-windows")

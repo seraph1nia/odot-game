@@ -70,7 +70,6 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private readonly Dictionary<int, MeleeStrike> _strikes = [];
     private int _playbackGeneration;
     private readonly Dictionary<int, string> _stockpileKeys = [];
-    private readonly List<(Node3D Node, Vector3 Rotation)> _windmills = [];
     private readonly List<Node3D> _flags = [];
     private VillageFeedback _effects = null!;
     private int _effectFocus;
@@ -84,8 +83,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     {
         _unitBindings = UnitAssets.Validate(this);
         _effects = new VillageFeedback(); AddChild(_effects);
-        AddChild(new WorldEnvironment { Environment = new Godot.Environment { BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new("a7c4c2"), AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new("f2f0df"), AmbientLightEnergy = 0.2f, TonemapMode = Godot.Environment.ToneMapper.Linear } });
-        AddChild(new DirectionalLight3D { RotationDegrees = new(-55, -25, 0), LightEnergy = 0.35f, ShadowEnabled = true, DirectionalShadowMaxDistance = 65 });
+        AddChild(new WorldEnvironment { Environment = VillageLighting.Environment() });
+        AddChild(VillageLighting.Sun());
         _camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Current = true, Far = 180 };
         AddChild(_camera);
         _navigation = new(_camera);
@@ -146,9 +145,20 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         for (int slot = 0; slot < 9; slot++)
         {
             Vector3 point = Center(_focus) + SlotPosition(slot);
-            if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds) && bounds[slot] is { } box) point = Center(_focus) + box.GetCenter();
-            Vector2 screen = GetViewport().GetFinalTransform() * _camera.UnprojectPosition(point);
-            targets["Plot" + slot] = new { X = screen.X, Y = screen.Y, Visible = Focus() is not null && !_camera.IsPositionBehind(point) && WorldArea().HasPoint(_camera.UnprojectPosition(point)) && !_resources.GetGlobalRect().HasPoint(_camera.UnprojectPosition(point)), Enabled = game.Connected && !application.IsModalOpen };
+            // Quote the exposed roof, not a volume center behind the next
+            // authored building. Picking itself still uses original bounds.
+            if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds) && bounds[slot] is { } box)
+                point = Center(_focus) + new Vector3(box.GetCenter().X, box.End.Y, box.GetCenter().Z);
+            Vector2 position = _camera.UnprojectPosition(point);
+            Vector2 screen = GetViewport().GetFinalTransform() * position;
+            targets["Plot" + slot] = new
+            {
+                X = screen.X,
+                Y = screen.Y,
+                Visible = Focus() is not null && !_camera.IsPositionBehind(point)
+                && WorldArea().HasPoint(position) && !BlocksWorld(position) && Pick(position) == slot,
+                Enabled = game.Connected && !application.IsModalOpen
+            };
         }
         if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) fields["Landscape"] = landscape.Observe(_camera, WorldArea());
         fields["Placements"] = _boards.TryGetValue(_focus, out Node3D? placementBoard) ? new[] { placementBoard.GetNodeOrNull<Node3D>("Buildings"), placementBoard.GetNodeOrNull<Node3D>("Stockpiles") }.OfType<Node3D>().SelectMany(root => root.FindChildren("*", "Node3D", true, false).OfType<Node3D>())
@@ -157,11 +167,16 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                 Vector3 contact = n.GetParent<Node3D>().GlobalTransform * LandscapeAssets.Contact(n) - Center(_focus);
                 Vector3 anchor = n.GlobalPosition - Center(_focus);
                 float support = VillageLayout.Surface(anchor);
-                if (n.Name.ToString().StartsWith("Slot", StringComparison.Ordinal) && Focus()?.Slots[int.Parse(n.Name.ToString()[4..], System.Globalization.CultureInfo.InvariantCulture)].Type is Building.ArrowTower or Building.CatapultTower or Building.ResearchTower && placementBoard.GetNodeOrNull<Node3D>("Buildings/Upgrade" + n.Name.ToString()[4..]) is { } basis && basis.GetMeta("asset").AsString().EndsWith("tower_base_blue.gltf", StringComparison.Ordinal)) support = LandscapeAssets.TowerDeck(basis);
-                return new { Name = n.Name.ToString(), Asset = n.GetMeta("asset").AsString(), X = anchor.X, Y = anchor.Y, Z = anchor.Z, Support = support, Contact = new[] { contact.X, contact.Y, contact.Z } };
+                if (n.Name.ToString().StartsWith("Slot", StringComparison.Ordinal) && Focus()?.Slots[int.Parse(n.Name.ToString()[4..], System.Globalization.CultureInfo.InvariantCulture)].Type is Building.ArrowTower or Building.CatapultTower or Building.ResearchTower && placementBoard.GetNodeOrNull<Node3D>("Buildings/Upgrade" + n.Name.ToString()[4..]) is { } basis && basis.GetMeta("asset").AsString() == AssetCatalog.Plinth) support = LandscapeAssets.TowerDeck(basis);
+                return new { Name = n.Name.ToString(), Asset = n.GetMeta("asset").AsString(), X = anchor.X, Y = anchor.Y, Z = anchor.Z, Support = support, Top = LandscapeAssets.Bounds(n).End.Y, Contact = new[] { contact.X, contact.Y, contact.Z } };
             }).ToArray() : [];
         fields["Camera"] = _navigation.Observe(Center(_focus) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
         fields["Revision"] = _revision;
+        fields["MatchId"] = _matchId;
+        fields["MatchPhase"] = game.State?.Phase ?? Phase.Lobby;
+        fields["Wave"] = game.State?.Wave ?? 0;
+        fields["Paused"] = game.State?.Paused ?? false;
+        fields["TurnSerial"] = game.State?.TurnSerial ?? 0;
         fields["SelectedSlot"] = _slot;
         fields["Models"] = _landscapeAssets.Paths.Count();
         fields["LoadedModels"] = _landscapeAssets.Paths.Order().ToArray();
@@ -199,7 +214,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["PlotHeights"] = Enumerable.Range(0, 9).Select(i => SlotPosition(i).Y).ToArray();
         fields["BuildingVariants"] = _boards.TryGetValue(_focus, out Node3D? variantBoard) ? Enumerable.Range(0, 9)
             .Select(i => variantBoard.HasNode("Buildings/Upgrade" + i) ? 2 : variantBoard.HasNode("Buildings/Slot" + i) ? 1 : 0).ToArray() : [];
-        fields["AmbientAngles"] = _windmills.Where(w => GodotObject.IsInstanceValid(w.Node)).Select(w => w.Node.Rotation.Z).ToArray();
+        fields["AmbientAngles"] = Array.Empty<float>();
     }
     private static Vector3 Center(int id) => new((id - 1) * 40, 0, 0);
     internal void ReplayFocus(int city) => _focus = city;
@@ -211,7 +226,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         {
             foreach (Node3D n in _boards.Values.Concat<Node3D>(_units.Values)) n.QueueFree();
             ClearBars();
-            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _deathCleanups.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _stockpileKeys.Clear(); _windmills.Clear(); _flags.Clear(); _effects.Clear();
+            _boards.Clear(); _landscapes.Clear(); _units.Clear(); _deathCleanups.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _stockpileKeys.Clear(); _flags.Clear(); _effects.Clear();
             CancelGesture(); _inspector.Close();
             _hallDialog.Hide(); _hallSlot = -1; _storedUnit = 0; _hallKey = "";
             _navigation.Reset(); _frameFocus = -1;
@@ -221,8 +236,10 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         {
             _revision = state.Revision;
             if (_focus == 0 || !state.Players.Any(p => p.Id == _focus)) _focus = game.PlayerId;
+            (game as Main)?.Timing?.Record("presentation-world-begin", state);
             UpdateWorld(state);
             _playback.Accept(state, !_wasConnected && game.Connected);
+            (game as Main)?.Timing?.Record("presentation-state-accepted", state, info: new { Tick = _playback.Tick });
         }
         if (!_wasConnected && game.Connected && state is not null) _playback.Accept(state, baseline: true);
         if (_wasConnected != game.Connected) { _wasConnected = game.Connected; _slot = -1; _hover = -1; }
@@ -281,7 +298,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             _upkeepLabel.Text = economy.UpkeepLabel; _upkeepValue.Text = economy.UpkeepValue;
             _balanceLabel.Text = economy.BalanceLabel; _balanceValue.Text = economy.BalanceValue;
             _upkeep.Text = progression!.Food; _reward.Text = progression.Reward;
-            _armyDetails.Text = progression.Army + "\nEnemy allocation:\n" + string.Join("\n", s?.Enemies.Where(u => u.Destination == _focus).Select(u => $"#{u.Id} {u.Type} · {(u.Deployed ? "deployed" : "queued")} · {ProgressionPresentation.StatusText(u.Statuses, s.Tick)}") ?? []);
+            _armyDetails.Text = progression.Army + "\nEnemy allocation:\n" + string.Join("\n", s?.Enemies.Where(u => u.Destination == _focus).Select(u => $"#{u.Id} {AssetCatalog.UnitName(u.Type, u.Faction)} · {(u.Deployed ? "deployed" : "queued")} · {ProgressionPresentation.StatusText(u.Statuses, s.Tick)}") ?? []);
             _detailsDialog.DialogText = "";
             _counters.Text = s is null ? "" : $"Wave {s.Wave}/{s.TotalWaves} · Turn {s.Turn}/3{(s.WaveCatalog.FirstOrDefault(w => w.Number == s.Wave)?.IsBoss == true ? " · BOSS" : "")}";
             string[] phases = ProgressionPresentation.PhaseRows(s);
@@ -324,14 +341,14 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             BuildingDefinition? lumbermill = s?.BuildingCatalog.FirstOrDefault(b => b.Type == Building.Lumbermill);
             _recovery.Visible = _buildActions.Visible && _constructionGroup == "Production" && focus?.Wood == 0 && lumbermill?.RecoveryConstruction is not null;
             ResourceCost recoveryCost = lumbermill?.RecoveryConstruction ?? default;
-            _recovery.Text = $"Lumbermill · gold recovery · {ResourceText(recoveryCost)} · {(lumbermill is null ? "" : ProgressionPresentation.ProducerBenefit(lumbermill))}";
+            _recovery.Text = $"{BuildingName(Building.Lumbermill)} · gold recovery · {ResourceText(recoveryCost)} · {(lumbermill is null ? "" : ProgressionPresentation.ProducerBenefit(lumbermill))}";
             _recovery.Disabled = !edit || !_recovery.Visible || !me!.Resources.TryPay(recoveryCost, out _);
             _recovery.TooltipText = explanation.Length > 0 ? explanation : focus is null ? "" : "Explicit recovery at zero wood.\n" + CostExplanation(recoveryCost, focus.Resources);
             _upgrade.Visible = slot.Type != Building.TownHall;
             _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true) : "")}\n ";
             _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
             UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
-            _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {q.Type} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
+            _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {AssetCatalog.UnitName(q.Type)} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
             if (slot.UpgradeQuote is ResourceCost nextUpgrade && focus is not null) _upgrade.TooltipText += "\n" + CostExplanation(nextUpgrade, focus.Resources);
             _sell.Text = "Sell · " + (slot.Refund == default ? "no refund" : ResourceText(slot.Refund)); _sell.Disabled = !edit || slot.Type == Building.Empty || slot.Type == Building.TownHall && focus!.Soldiers.Any(u => u.Assignment is { Stored: true } a && a.HallSlot == _slot && a.HallGeneration == slot.Generation);
             _sell.TooltipText = "Refund half the building's total paid construction and upgrades. Land, army, health and research remain.";
@@ -347,7 +364,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             foreach ((UnitType type, Button button) in _recruitment)
             {
                 RecruitmentQuote? quote = focus?.RecruitmentQuotes.FirstOrDefault(q => q.Type == type && q.Level == slot.Level);
-                button.Text = $"{type} L{slot.Level}\n ";
+                button.Text = $"{AssetCatalog.UnitName(type)} L{slot.Level}\n ";
                 button.Visible = definition?.Recruits?.Contains(type) == true;
                 button.Disabled = !edit || !button.Visible || quote is null || !me!.Resources.TryPay(quote.Cost, out _)
                     || UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, quote.Profile.Size) is null;
@@ -380,8 +397,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     }
     private static string BuildingGroup(Building type) => type switch
     { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.ResearchTower or Building.TownHall => "Army", Building.ArrowTower or Building.CatapultTower => "Defense", Building.Market => "Trade", _ => "Production" };
-    private static string BuildingName(Building type) => type switch
-    { Building.TownHall => "Town hall", Building.Mine => "Gold mine", Building.MetalMine => "Metal mine", Building.ArcheryRange => "Archery range", Building.ResearchTower => "Research tower", Building.ArrowTower => "Arrow tower", Building.CatapultTower => "Catapult tower", _ => type.ToString() };
+    private static string BuildingName(Building type) => AssetCatalog.BuildingName(type);
     private static string ResourceText(ResourceCost cost) => string.Join(" / ", Enum.GetValues<Game.Core.Resource>().Where(r => cost.Amount(r) > 0).Select(r => $"{cost.Amount(r)} {r}"));
     private static string CostExplanation(ResourceCost cost, ResourceCost stocks) => ProgressionPresentation.CostExplanation(cost, stocks);
     private void UpdateMarkers()
@@ -435,7 +451,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             UpdateStockpiles(board, city);
             UpdateArmyMarkers(board, city, state);
             _landscapes[city.Id].SetPlots(city.Slots);
-            string key = string.Join('|', city.Slots.Select(s => $"{s.Type}:{s.Level}:{s.Purchased}"));
+            string key = string.Join('|', city.Slots.Select(s => $"{s.Type}:{s.Level}:{s.Purchased}:{s.CapacityLevel}:{s.HealingLevel}"));
             if (_boardKeys.GetValueOrDefault(city.Id) != key)
             {
                 Node? old = board.GetNodeOrNull("Buildings"); if (old is not null) { board.RemoveChild(old); old.QueueFree(); }
@@ -449,19 +465,17 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                         if (!slot.Purchased) buildings.AddChild(new Sprite3D { Name = "Locked" + i, Position = SlotPosition(i) + new Vector3(0, .6f, 0), Texture = UiAssets.Icon("Gold"), PixelSize = .025f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Shaded = false });
                         continue;
                     }
-                    string name = slot.Type switch { Building.Mine or Building.MetalMine => "mine", Building.Stonecutter => "blacksmith", Building.Weaver => "lumbermill", Building.TownHall => "home_A", Building.Market => "stage_C", Building.Farm => "windmill", Building.Lumbermill => "lumbermill", Building.ArcheryRange => "archeryrange", Building.Arcanum => "church", Building.ResearchTower => "tower_A", Building.ArrowTower => "tower_B", Building.CatapultTower => "tower_catapult", _ => "barracks" };
-                    string path = slot.Type == Building.Market ? "Medieval/building_stage_C.gltf" : $"Medieval/building_{name}_blue.gltf";
-                    Node3D model = Model(buildings, path, SlotPosition(i), 1.7f);
+                    BuildingVisual visual = AssetCatalog.Building(slot.Type);
+                    Node3D model = Model(buildings, visual.Path, SlotPosition(i), 1.9f);
                     model.Name = $"Slot{i}";
                     Aabb bounds = LandscapeAssets.Bounds(model);
-                    if (slot.Level >= 2)
+                    if (slot.Level >= 2 || slot.Type == Building.TownHall && Math.Max(slot.CapacityLevel, slot.HealingLevel) >= 2)
                     {
-                        string prop = slot.Type switch { Building.Farm => "building_grain", Building.Mine => "building_scaffolding", Building.Lumbermill => "resource_lumber", Building.ArcheryRange => "target", Building.Arcanum => "building_stage_C", Building.ResearchTower => "building_tower_base_blue", Building.Barracks => "weaponrack", _ => "building_tower_base_blue" };
-                        Vector3 position = SlotPosition(i) + new Vector3(0.75f, 0, 0.6f);
-                        float size = 0.7f;
-                        if (slot.Type is Building.ArrowTower or Building.CatapultTower or Building.ResearchTower) { position = SlotPosition(i); size = 1.9f; }
-                        Node3D addition = Model(buildings, $"Medieval/{prop}.gltf", position, size); addition.Name = "Upgrade" + i;
-                        if (slot.Type is Building.ArrowTower or Building.CatapultTower or Building.ResearchTower)
+                        Vector3 position = SlotPosition(i) + new Vector3(.85f, 0, .65f);
+                        float size = .6f;
+                        if (visual.RaisedUpgrade) { position = SlotPosition(i); size = 1.9f; }
+                        Node3D addition = Model(buildings, visual.Upgrade, position, size); addition.Name = "Upgrade" + i;
+                        if (visual.RaisedUpgrade)
                         {
                             model.Position = new Vector3(model.Position.X, LandscapeAssets.TowerDeck(addition), model.Position.Z);
                             bounds = LandscapeAssets.Bounds(model);
@@ -469,13 +483,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                         bounds = bounds.Merge(LandscapeAssets.Bounds(addition));
                     }
                     _buildingBounds[city.Id][i] = bounds;
-                    Label(buildings, SlotPosition(i) + new Vector3(0, 2.15f, 0), slot.Type == Building.TownHall ? "Town hall" : $"{BuildingName(slot.Type)} L{slot.Level}", 20);
-                    if (slot.Type == Building.MetalMine) Model(buildings, "Medieval/rock_single_C.gltf", SlotPosition(i) + new Vector3(.7f, 0, -.5f), .55f);
-                    if (slot.Type == Building.Farm)
-                    {
-                        Node3D fan = model.FindChildren("*fan*", "Node3D", true, false).OfType<Node3D>().Single();
-                        _windmills.Add((fan, fan.Rotation));
-                    }
+                    Label(buildings, new Vector3(SlotPosition(i).X, bounds.End.Y + .28f, SlotPosition(i).Z), slot.Type == Building.TownHall ? "Town hall" : $"{BuildingName(slot.Type)} L{slot.Level}", 20);
                     Node3D flag = Box(buildings, SlotPosition(i) + new Vector3(-0.6f, 1.1f, 0), new(.35f, .2f, .03f), city.Id == game.PlayerId ? "487ecc" : "a67152");
                     _flags.Add(flag);
                 }
@@ -490,7 +498,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         if (_stockpileKeys.GetValueOrDefault(city.Id) == key) return;
         Node? old = board.GetNodeOrNull("Stockpiles"); if (old is not null) { board.RemoveChild(old); old.QueueFree(); }
         var piles = new Node3D { Name = "Stockpiles" }; board.AddChild(piles);
-        foreach (var (name, count, path, row) in new[] { ("Gold", gold, "Resource/Gold_Bars.gltf", 0), ("Food", food, "Medieval/sack.gltf", 1), ("Wood", wood, "Resource/Wood_Log_Stack.gltf", 2) })
+        foreach (var (name, count, path, row) in new[] { ("Gold", gold, AssetCatalog.GoldCargo, 0), ("Food", food, AssetCatalog.Provisions, 1), ("Wood", wood, AssetCatalog.Timber, 2) })
         {
             var resource = new Node3D { Name = name }; piles.AddChild(resource);
             for (int n = 0; n < count; n++) Model(resource, path, VillageLayout.Hex(2, row + 1) + new Vector3((n % 3 - 1) * .48f, 0, (n / 3 - .5f) * .5f), 0.45f);
@@ -514,9 +522,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             _units.Clear(); _deathCleanups.Clear(); ClearBars(); _effects.Clear(); _playbackGeneration = _playback.Generation;
         }
         _playback.Advance(delta, game.Connected);
-        _windmills.RemoveAll(w => !GodotObject.IsInstanceValid(w.Node));
         _flags.RemoveAll(f => !GodotObject.IsInstanceValid(f));
-        foreach (var windmill in _windmills) windmill.Node.Rotation = windmill.Rotation + new Vector3(0, 0, (float)_playback.VisualSeconds * 0.6f);
         foreach (Node3D flag in _flags) flag.Rotation = new(0, (float)Math.Sin(_playback.VisualSeconds * 2 + flag.Position.X) * 0.13f, 0);
         if (_effectFocus != _focus) { _effectFocus = _focus; _effects.Clear(); }
         bool audible = game.Connected && game.State is { Paused: false };

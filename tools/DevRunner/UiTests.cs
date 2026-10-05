@@ -31,6 +31,8 @@ internal sealed record UnitObservation
     public bool Dead { get; init; }
     public bool Visible { get; init; }
     public bool WeaponAttached { get; init; }
+    public bool EquipmentAligned { get; init; }
+    public string EquipmentRotation { get; init; } = "";
     public bool ShotVisible { get; init; }
     public bool AttackActive { get; init; }
     public bool HitActive { get; init; }
@@ -123,8 +125,25 @@ internal sealed record CameraObservation
     public float DirectionY { get; init; }
 }
 internal sealed record DeathCleanupObservation(int Id, long DeathEndTick, double CombatTick, double VisualSeconds);
+internal sealed record RenderCostObservation(long DrawCalls, long Objects, long Primitives, long TextureBytes, long BufferBytes, double Nodes, double Resources,
+    double FramesPerSecond, double ProcessMilliseconds, double PhysicsMilliseconds);
+internal sealed record ProbeCostObservation(double FrameWaitMilliseconds, double ReadbackMilliseconds, double SamplingMilliseconds, double PngMilliseconds, double ObservationMilliseconds)
+{
+    public bool Live { get; init; }
+    public ulong ProcessFrame { get; init; }
+    public double RenderSetupCpuMs { get; init; }
+    public double ViewportCpuMs { get; init; }
+    public double ViewportGpuMs { get; init; }
+}
+internal sealed record RenderGroupObservation(string Group, int Nodes, long Surfaces, long Triangles, long Instances, int Materials);
 internal sealed record UiObservation
 {
+    public bool AuthoredProvenanceBundled { get; init; }
+    public string[] InstalledModels { get; init; } = [];
+    public RenderCostObservation? RenderCosts { get; init; }
+    public ProbeCostObservation? ProbeCosts { get; init; }
+    public RenderGroupObservation[] RenderGroups { get; init; } = [];
+    public Game.OwnedFrameCapture.Receipt? RawCapture { get; init; }
     public Dictionary<int, string> StatusBadges { get; init; } = [];
     public string ResearchText { get; init; } = "";
     public CameraObservation Camera { get; init; } = new();
@@ -185,6 +204,11 @@ internal sealed record UiObservation
     public string[] LockedMarkers { get; init; } = [];
     public string RosterText { get; init; } = "";
     public long Revision { get; init; }
+    public string MatchId { get; init; } = "";
+    public Phase MatchPhase { get; init; }
+    public int Wave { get; init; }
+    public bool Paused { get; init; }
+    public int TurnSerial { get; init; }
     public int SelectedSlot { get; init; }
     public bool Connected { get; init; }
     public bool SettingsOpen { get; init; }
@@ -234,6 +258,15 @@ internal sealed record UiObservation
 
 internal static class UiProtocol
 {
+    public static bool PaidUpkeep(UiObservation frame, MatchSnapshot battle, int player)
+    {
+        BattleUpkeepReceipt? receipt = battle.Players.Single(p => p.Id == player).LastUpkeep;
+        return battle.Phase == Phase.Combat && battle.Paused && receipt?.Wave == battle.Wave
+            && frame.Connected && frame.MatchId == battle.MatchId && frame.Revision == battle.Revision
+            && frame.MatchPhase == battle.Phase && frame.Paused && frame.Wave == battle.Wave && frame.TurnSerial == battle.TurnSerial
+            && frame.ObservedCity == player && frame.CompactUpkeep.SequenceEqual(new[]
+            { $"Paid this battle · W{receipt.Wave}", $"{receipt.Paid} food", "Sat out", receipt.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+    }
     public static DeathCleanupObservation DeathCleanup(UiObservation frame, int id, long deathEndTick, double sinceVisualSeconds)
     {
         DeathCleanupObservation? cleanup = frame.DeathCleanups.SingleOrDefault(sample => sample.Id == id);
@@ -246,14 +279,26 @@ internal static class UiProtocol
         return cleanup;
     }
 
-    public static async Task<UiObservation> Probe(Child client, int timeout, CancellationToken token, string? screenshot = null)
+    public static async Task<UiObservation> Probe(Child client, int timeout, CancellationToken token, string? screenshot = null, bool deferred = false, bool live = false)
     {
         string id = Guid.NewGuid().ToString("N");
-        await client.Send("ui-probe " + id + (screenshot is null ? "" : " " + Convert.ToBase64String(Encoding.UTF8.GetBytes(screenshot))));
+        await client.Send("ui-probe " + id + (screenshot is null ? (live ? " none" : "") : " " + Convert.ToBase64String(Encoding.UTF8.GetBytes(screenshot))) + (live ? (deferred ? " deferred-live" : " live") : deferred ? " deferred" : ""));
         GameEvent response = await client.WaitFor(e => e.Type == "ui" && e.Message!.Contains(id, StringComparison.Ordinal) && JsonSerializer.Deserialize<UiObservation>(e.Message!, WireJson.Options)?.Id == id, "fresh UI response " + id, timeout, token);
         UiObservation value = JsonSerializer.Deserialize<UiObservation>(response.Message!, WireJson.Options)!;
         if (value.Error is not null) throw new InvalidOperationException("UI observation/capture failed: " + value.Error);
         return value;
+    }
+    public static async Task<(UiObservation Frame, double Milliseconds)> Persist(Child client, UiObservation captured, int timeout, CancellationToken token)
+    {
+        var expected = captured.RawCapture ?? throw new InvalidOperationException("Actual acquired raw frame is missing.");
+        await client.Send("ui-persist-frame " + expected.Id);
+        GameEvent response = await client.WaitFor(e => e.Type == "ui-frame-persisted" && e.Message!.Contains(expected.Id, StringComparison.Ordinal), "owned persisted raw frame " + expected.Id, timeout, token);
+        using JsonDocument document = JsonDocument.Parse(response.Message!);
+        var actual = document.RootElement.GetProperty("Receipt").Deserialize<Game.OwnedFrameCapture.Receipt>(WireJson.Options);
+        if (actual != expected || actual!.Id != captured.Id) throw new InvalidOperationException("PNG persistence changed capture identity/pixels/metadata.");
+        UiObservation persisted = captured with { Screenshot = actual.Path };
+        Frame(persisted, actual.Path);
+        return (persisted, document.RootElement.GetProperty("Milliseconds").GetDouble());
     }
     public static UiTarget Target(UiObservation observation, string name)
     {
@@ -291,14 +336,14 @@ internal sealed partial class Runner
         await authority.WaitFor(e => e.Type == "pacing" && e.Message == id + ":" + speed,
             "owned simulation speed " + speed, options.StartupTimeout, token);
     }
-    private async Task<UiObservation> WaitUi(Child client, Func<UiObservation, bool> predicate, string expectation, CancellationToken token, int? timeout = null)
+    private async Task<UiObservation> WaitUi(Child client, Func<UiObservation, bool> predicate, string expectation, CancellationToken token, int? timeout = null, bool live = false)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(timeout ?? options.StartupTimeout);
         try
         {
             while (true)
             {
-                UiObservation observation = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token);
+                UiObservation observation = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: live);
                 if (predicate(observation)) return observation;
             }
         }
@@ -436,11 +481,12 @@ internal sealed partial class Runner
             Require(target.X - target.Width / 2 >= -1 && target.X + target.Width / 2 <= frame.Width + 1 && target.Y - target.Height / 2 >= -1 && target.Y + target.Height / 2 <= frame.Height + 1,
                 "complete control bounds inside viewport: " + name);
     }
-    private async Task Checkpoint(Child client, string name, CancellationToken token, string dataOwner = "ui-client")
+    private async Task Checkpoint(Child client, string name, CancellationToken token, string dataOwner = "ui-client", Action<UiObservation>? validate = null)
     {
         string path = Path.Combine(_scope!.EvidenceDirectory, name + ".png");
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
         UiProtocol.Frame(frame, path);
+        validate?.Invoke(frame);
         MatchSnapshot current = Latest(client);
         CityState? observedCity = current.Players.FirstOrDefault(city => city.Id == frame.ObservedCity);
         if (observedCity is not null && frame.Revision == current.Revision)
@@ -451,7 +497,7 @@ internal sealed partial class Runner
         TrioPresentation(frame);
         Countryside(frame);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.Materials > 0 && frame.MusicLoaded, "rendered UI/models/materials/music loaded on owned X11 display");
-        Require(frame.UnitBindings.Length == 18, "eight faction/role rigs, required clips/hand bindings and ten weapons imported");
+        Require(frame.UnitBindings.Length == Game.AssetCatalog.RequiredPaths.Count() + 8, "all required authored models and eight faction/role rigs, clips and equipment sockets imported");
         Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "actual client uses silent Dummy audio and Mesa software rendering");
         Require(Path.GetFullPath(frame.UserDataPath).StartsWith(Path.Combine(_scope.Directory, dataOwner, "data") + Path.DirectorySeparatorChar, StringComparison.Ordinal), "effective user:// belongs to this client scope");
         await File.WriteAllTextAsync(Path.Combine(_scope.EvidenceDirectory, name + "-observation.json"), JsonSerializer.Serialize(frame, Evidence.JsonOptions), token);
@@ -499,10 +545,10 @@ internal sealed partial class Runner
                 if (!package) { await client.DisposeAsync(); await ArmyUiScenario(token); }
                 break;
             case "combat":
+                if (options.UiCheckpoint == "admission") { await MeleeAdmissionDiagnostic(client, observer, token); break; }
                 if (options.UiCheckpoint == "melee")
                 {
-                    await MeleeArmy(client, observer, token);
-                    await MeleeCheckpoint(client, observer, token);
+                    await CoordinatedMelee(client, observer, token);
                     break;
                 }
                 if (options.UiCheckpoint == "research") { await ResearchCheckpoint(client, observer, token); break; }

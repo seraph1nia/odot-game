@@ -73,11 +73,11 @@ public partial class Tabletop
         foreach (BuildingDefinition definition in Catalogs.Buildings(new()))
         {
             Building type = definition.Type;
-            _construction[type] = Button(_buildActions, type.ToString(), () => ContextAction("build", type));
+            _construction[type] = Button(_buildActions, BuildingName(type), () => ContextAction("build", type));
             _construction[type].Name = type.ToString();
         }
         for (int i = 0; i < 9; i++) { var empty = new Control { CustomMinimumSize = new(0, 32), MouseFilter = Control.MouseFilterEnum.Ignore }; _emptyBuildCells.Add(empty); _buildActions.AddChild(empty); }
-        _recovery = Button(context, "Lumbermill · gold recovery", () => ContextAction("build", Building.Lumbermill, payment: ConstructionPayment.GoldRecovery));
+        _recovery = Button(context, BuildingName(Building.Lumbermill) + " · gold recovery", () => ContextAction("build", Building.Lumbermill, payment: ConstructionPayment.GoldRecovery));
         _recovery.Name = "LumbermillRecovery";
         _mine = _construction[Building.Mine]; _farm = _construction[Building.Farm]; _barracks = _construction[Building.Barracks];
         _buildingActions = new HBoxContainer(); context.AddChild(_buildingActions);
@@ -94,7 +94,7 @@ public partial class Tabletop
         foreach (UnitType type in Enum.GetValues<UnitType>())
         {
             UnitType role = type;
-            _recruitment[type] = Button(recruitment, type.ToString(), () => ContextAction("recruit", soldierType: role));
+            _recruitment[type] = Button(recruitment, AssetCatalog.UnitName(type), () => ContextAction("recruit", soldierType: role));
             _recruitment[type].Name = type switch { UnitType.Swordsman => "Recruit", UnitType.Crossbowman => "RecruitRanged", _ => "Recruit" + type };
         }
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];

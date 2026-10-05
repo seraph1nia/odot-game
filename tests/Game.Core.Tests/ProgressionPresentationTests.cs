@@ -48,7 +48,7 @@ public sealed class ProgressionPresentationTests
         Assert.Contains("Level 4", text);
         Assert.Contains("Damage per attack 19.75", text);
         Assert.Contains("Size 6", text);
-        Assert.Equal("Boss · Skeleton Mage", ProgressionPresentation.UnitName(unit));
+        Assert.Equal("Boss · Horned mage", ProgressionPresentation.UnitName(unit));
         Assert.NotEmpty(ProgressionPresentation.UnitDescription(unit));
     }
 
@@ -114,8 +114,8 @@ public sealed class ProgressionPresentationTests
         Assert.Equal("V", ProgressionPresentation.UnitLabel(veteran with { IsBoss = true, Faction = Faction.Skeletons })); match.Combat.Seed(veteran with { Health = 2100 });
         CityState snapshot = city.Snapshot() with { FoodForecast = new(2, 1, 1, [high], [low]) };
         ProgressionView preview = ProgressionPresentation.Describe(match.Snapshot() with { Phase = Phase.Preparation }, snapshot);
-        Assert.Contains($"#{high} Swordsman L5 · HP 21/133 · damage 33 · size 2 · next: fed", preview.Army);
-        Assert.Contains($"#{low} Swordsman L1", preview.Army); Assert.Contains("next: reserve", preview.Army);
+        Assert.Contains($"#{high} Knight L5 · HP 21/133 · damage 33 · size 2 · next: fed", preview.Army);
+        Assert.Contains($"#{low} Knight L1", preview.Army); Assert.Contains("next: reserve", preview.Army);
         UnitState[] units = snapshot.Soldiers.Select(u => u with { Deployed = false, Hex = u.Hex! with { Lifecycle = u.Id == high ? UnitLifecycle.Queued : UnitLifecycle.Reserve } }).ToArray();
         ProgressionView battle = ProgressionPresentation.Describe(match.Snapshot() with { Phase = Phase.Combat }, snapshot with { Soldiers = units });
         Assert.Contains("fed · capacity queue", battle.Army); Assert.Contains("· reserve", battle.Army); Assert.DoesNotContain("next:", battle.Army);

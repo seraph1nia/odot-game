@@ -54,6 +54,10 @@ public partial class Main : Node, IGameSession
     private ulong _lastBroadcast;
     private VerificationPacing _pacing = new(null, null, null);
     private long _broadcastRevision = -1;
+    internal OwnedTimingTrace? Timing { get; private set; }
+    private EnetGuestPump? _enetPump;
+    private MultiplayerApi SignalApi => _enetPump?.Inner ?? Multiplayer;
+    private void ReleaseGuestPump() { EnetGuestPump? pump = _enetPump; _enetPump = null; pump?.Release(); }
 
     public MatchSnapshot? State { get; private set; }
     public int PlayerId { get; private set; }
@@ -86,6 +90,9 @@ public partial class Main : Node, IGameSession
                 Emit(new("build-info", Message: BuildInfo.Identity?.ToJson() ?? BuildInfo.DisplayVersion));
                 GetTree().Quit();
             }
+            else if (args is ["--supervised", "--asset-fidelity-probe"]) _ = AssetFidelityProbe.Run(this);
+            else if (args is ["--supervised", "--native-pump-control"]) _ = NativePumpControl.Run(this);
+            else if (args is ["--supervised", "--native-liveness-control"]) _ = NativePumpControl.Liveness(this);
             else if (args.Length == 1 && args[0] is "--steam-probe" or "--steam-probe-offline")
                 SteamProbe.Run(this, args[0] == "--steam-probe");
             else if (DisplayServer.GetName() == "headless") Setup(args);
@@ -109,6 +116,21 @@ public partial class Main : Node, IGameSession
         bool replayCounters = false;
         _pacing = new(System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA"),
             System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_MARKER"), System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_TOKEN"));
+        if (System.Environment.GetEnvironmentVariable("ODOT_TIMING_PATH") is { } tracePath)
+        {
+            Timing = new OwnedTimingTrace(tracePath, _pacing.Owned);
+            // Locked SceneTree admits automatic API polling before this signal.
+            // Wrapped ENet guests suppress native work here; their fixed-physics
+            // service is traced separately. This is not a native-poll duration.
+            ulong tracedPhysicsFrame = ulong.MaxValue;
+            GetTree().ProcessFrame += () =>
+            {
+                ulong physicsFrame = Engine.GetPhysicsFrames();
+                if (physicsFrame == tracedPhysicsFrame) return;
+                tracedPhysicsFrame = physicsFrame;
+                Timing?.Record("native-auto-poll-complete", State, info: new { Frame = Engine.GetProcessFrames(), PhysicsFrame = physicsFrame, Owner = _enetPump is null ? "automatic" : "fixed-physics" });
+            };
+        }
         for (int i = 0; i < args.Length; i++)
         {
             string Value() => ++i < args.Length ? args[i] : throw new ArgumentException("Missing argument value.");
@@ -289,12 +311,12 @@ public partial class Main : Node, IGameSession
 
     private void BindSignal(StringName signal, Callable handler)
     {
-        Multiplayer.Connect(signal, handler); _signals.Add((signal, handler));
+        SignalApi.Connect(signal, handler); _signals.Add((signal, handler));
     }
     private void UnbindSignals()
     {
         foreach (var (signal, handler) in _signals)
-            if (Multiplayer.IsConnected(signal, handler)) Multiplayer.Disconnect(signal, handler);
+            if (SignalApi.IsConnected(signal, handler)) SignalApi.Disconnect(signal, handler);
         _signals.Clear();
     }
     private void BindAuthoritySignals()
@@ -363,12 +385,25 @@ public partial class Main : Node, IGameSession
             _session?.Clear(); State = null; PlayerId = 0; _sent.Clear(); Application?.ShowSession();
         }
         SessionGeneration++;
+        ReleaseGuestPump();
         if (_peer is not null) ResetRpcNode(); else UnbindSignals();
         Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); _peer?.Close(); _peer?.Dispose(); _peer = null;
         _attempt = Guid.NewGuid().ToString("N");
         BindClientSignals();
-        _peer = _guestPeerFactory();
-        Multiplayer.MultiplayerPeer = _peer; _finished = false; Status = "Connecting"; Feedback = ""; _started = Time.GetTicksMsec();
+        try
+        {
+            _peer = _guestPeerFactory();
+            Multiplayer.MultiplayerPeer = _peer;
+            // The ordinary root ENet guest alone gets one fixed-physics owner.
+            // Other APIs, authorities, solo/hosts, Steam and unsupported modes
+            // retain their original automatic service and peer implementation.
+            if (_session?.Transport == "enet" && _peer is ENetMultiplayerPeer && Multiplayer is SceneMultiplayer original
+                && GetTree().GetMultiplayer() == original)
+                _enetPump = EnetGuestPump.Attach(this, original, new NodePath(), () => SessionGeneration,
+                    error => FailConnection(Connected ? "server-disconnected" : "connection-failed", error.Message), Timing);
+        }
+        catch { ReleaseGuestPump(); _peer?.Close(); throw; }
+        _finished = false; Status = "Connecting"; Feedback = ""; _started = Time.GetTicksMsec();
         Emit(new("connecting", Message: _session?.Transport == "steam" ? "Connecting to invited host." : $"{_host}:{_port}"));
     }
 
@@ -422,19 +457,23 @@ public partial class Main : Node, IGameSession
     private void Acknowledged(string json, string state)
     {
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
+        Timing?.Record("ack-rpc-receive", State, OwnedTimingTrace.Digest(state));
         MatchSnapshot? received = SnapshotPayload.Decode(state);
+        Timing?.Record("ack-decode-complete", received, OwnedTimingTrace.Digest(state));
         if (received is null || State is null || received.MatchId != State.MatchId) return;
         // Snapshots on channel 1 may overtake a channel 0 acknowledgment. Keep the
         // latest state while still delivering the result for this running match.
         if (received.Revision >= State.Revision) SetState(received);
         CommandResult result = JsonSerializer.Deserialize<CommandResult>(json, WireJson.Options)!;
         Feedback = result.Message; QueueCue(result);
+        Timing?.Record("ack-delivered", State, info: new { result.Sequence, result.Accepted });
         Emit(new("ack", Multiplayer.GetUniqueId(), State, result.Message, PlayerId, result));
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable, TransferChannel = 1)]
     private void Snapshot(string json)
     {
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
+        Timing?.Record("snapshot-rpc-receive", State, OwnedTimingTrace.Digest(json));
         if (AcceptState(json) && (_automated || _supervised)) Emit(new("snapshot", Multiplayer.GetUniqueId(), State, PlayerId: PlayerId));
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -447,6 +486,7 @@ public partial class Main : Node, IGameSession
     private bool AcceptState(string json)
     {
         MatchSnapshot? state = SnapshotPayload.Decode(json);
+        Timing?.Record("snapshot-decode-complete", state, OwnedTimingTrace.Digest(json));
         if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
         SetState(state); return true;
     }
@@ -454,6 +494,7 @@ public partial class Main : Node, IGameSession
     {
         if (State?.MatchId != state?.MatchId) _actionCues.Clear(state?.MatchId ?? "");
         State = state;
+        Timing?.Record("state-applied", state);
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
@@ -510,7 +551,13 @@ public partial class Main : Node, IGameSession
         if (!force && _authority.Phase == Phase.Combat && !_authority.Paused && now - _lastBroadcast < 50) return;
         MatchSnapshot state = _authority.Snapshot();
         _lastBroadcast = now; _broadcastRevision = state.Revision; SetState(state);
-        if (_peer is not null && Multiplayer.GetPeers().Length != 0) Rpc(MethodName.Snapshot, SnapshotPayload.Encode(state));
+        if (_peer is not null && Multiplayer.GetPeers().Length != 0)
+        {
+            Timing?.Record("authority-encode-begin", state);
+            string payload = SnapshotPayload.Encode(state);
+            Timing?.Record("authority-publish", state, OwnedTimingTrace.Digest(payload));
+            Rpc(MethodName.Snapshot, payload);
+        }
         if (Connected && (_automated || _supervised)) Emit(new("snapshot", 1, State, PlayerId: PlayerId));
     }
 
@@ -533,7 +580,8 @@ public partial class Main : Node, IGameSession
                 case "checkpoint" when _supervised && _pacing.Owned:
                     PublishState(force: true); Emit(new("checkpoint", State: State, Message: parts[1])); break;
                 case "ui" or "ui-probe" when _supervised && Application is not null:
-                    _ = ProbeUi(parts.Length > 1 ? parts[1] : Guid.NewGuid().ToString("N"), parts.Length > 2 ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[2])) : null); break;
+                    _ = ProbeUi(parts.Length > 1 ? parts[1] : Guid.NewGuid().ToString("N"), parts.Length > 2 && parts[2] != "none" ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[2])) : null, parts.Length == 4 && parts[3] is "deferred" or "deferred-live", parts.Length == 4 && parts[3] is "live" or "deferred-live"); break;
+                case "ui-persist-frame": PersistUiFrame(parts[1]); break;
                 case "ui-steam-friends": ProbeSteamFriends(parts[1]); break;
                 case "ui-confirm-join": ProbeJoinConfirmation(parts[1]); break;
                 case "key" when _supervised && Application is not null:
@@ -607,11 +655,16 @@ public partial class Main : Node, IGameSession
     // Decisions still arrive through actual UI input; this creates no Steam operation.
     private void RequireOwnedUiWorker()
     {
+        RequireOwnedDisplay();
+        if (_role is not (SessionRole.Solo or SessionRole.PlayingHost)) throw new ArgumentException("Probe requires an owned offline UI worker.");
+    }
+    private void RequireOwnedDisplay()
+    {
         string? runtime = System.Environment.GetEnvironmentVariable("ODOT_UI_RUNTIME");
         string? worker = System.Environment.GetEnvironmentVariable("ODOT_UI_WORKER");
         string? authority = System.Environment.GetEnvironmentVariable("XAUTHORITY");
         string? display = System.Environment.GetEnvironmentVariable("DISPLAY");
-        if (!_supervised || Application is null || _role is not (SessionRole.Solo or SessionRole.PlayingHost)
+        if (!_supervised || Application is null
             || System.Environment.GetEnvironmentVariable("ODOT_STEAM_DISABLED") != "1" || DisplayServer.GetName() != "X11"
             || string.IsNullOrEmpty(worker) || runtime is null || !System.IO.File.Exists(System.IO.Path.Combine(runtime, "worker-token"))
             || System.IO.File.ReadAllText(System.IO.Path.Combine(runtime, "worker-token")) != worker
@@ -621,6 +674,32 @@ public partial class Main : Node, IGameSession
             throw new ArgumentException("Probe requires an owned offline UI worker.");
     }
 
+    private void RequireOwnedFrameWorker(string? path)
+    {
+        RequireOwnedDisplay();
+        string? root = System.Environment.GetEnvironmentVariable("ODOT_FRAME_EVIDENCE");
+        if (!_pacing.Owned || _role is not (SessionRole.Guest or SessionRole.Solo or SessionRole.PlayingHost) || root is null
+            || path is not null && (!System.IO.Path.GetFullPath(path).StartsWith(System.IO.Path.GetFullPath(root) + System.IO.Path.DirectorySeparatorChar, StringComparison.Ordinal) || System.IO.Path.GetExtension(path) != ".png"))
+            throw new ArgumentException("Raw captures require this worker's owned evidence path and verification marker.");
+    }
+    private void PersistUiFrame(string id)
+    {
+        try
+        {
+            RequireOwnedFrameWorker(null);
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var receipt = _rawFrames.Persist(id, (frame, pixels) =>
+            {
+                using Image image = Image.CreateFromData(frame.Width, frame.Height, false, Image.Format.Rgba8, pixels);
+                if (image.SavePng(frame.Path) != Error.Ok) throw new InvalidOperationException("Deferred frame PNG persistence failed.");
+                using Image decoded = Image.LoadFromFile(frame.Path);
+                if (decoded.IsEmpty() || decoded.GetWidth() != frame.Width || decoded.GetHeight() != frame.Height) throw new InvalidOperationException("Deferred PNG is missing/corrupt.");
+                decoded.Convert(Image.Format.Rgba8); return decoded.GetData();
+            });
+            Emit(new("ui-frame-persisted", Message: JsonSerializer.Serialize(new { Receipt = receipt, Milliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds }, WireJson.Options)));
+        }
+        catch (Exception error) { Emit(new("error", Message: "Deferred frame persistence: " + error.Message)); }
+    }
     private void ProbeSteamFriends(string mode)
     {
         RequireOwnedUiWorker();
@@ -657,6 +736,7 @@ public partial class Main : Node, IGameSession
         _finished = true; Connected = false; Status = type == "connection-failed" ? "Connection failed" : "Disconnected"; Feedback = message;
         Emit(new(type, Message: message));
         SessionGeneration++;
+        ReleaseGuestPump();
         ResetRpcNode(); Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); _peer?.Close();
         if (_automated) GetTree().Quit(type == "connection-failed" ? 1 : 0);
     }
@@ -664,6 +744,7 @@ public partial class Main : Node, IGameSession
     private void EndSession()
     {
         SessionGeneration++;
+        ReleaseGuestPump();
         _afterDrain = null;
         MultiplayerPeer? peer = _peer;
         bool drain = _role == SessionRole.PlayingHost && _authority is not null && peer is not null && Multiplayer.GetPeers().Length != 0;
@@ -763,36 +844,75 @@ public partial class Main : Node, IGameSession
         if (progress.Cycles < 2) Emit(new("error", Message: "Audio mixer did not drain within the shutdown deadline."));
         GetTree().Quit(progress.Cycles >= 2 ? 0 : 1);
     }
-    private async Task ProbeUi(string id, string? screenshot)
+    private readonly OwnedFrameCapture _rawFrames = new();
+    private async Task ProbeUi(string id, string? screenshot, bool deferred = false, bool live = false)
     {
         try
         {
-            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Timing?.Record("observation-admitted", State, info: new { Id = id, Live = live });
+            if (deferred || live) RequireOwnedFrameWorker(screenshot);
+            if (Application is not null && System.Environment.GetEnvironmentVariable("ODOT_ASSET_COSTS") == "1")
+            {
+                RequireOwnedUiWorker();
+                RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
+            }
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (!live)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+            // Ordered live read-only requests arrive in _PhysicsProcess. Child visual
+            // processing and the actual current draw finish before FramePostDraw.
+            // Input/layout probes retain their two-future-frame settling barrier.
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            double frameWait = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            double readback = 0, sampling = 0, png = 0;
             if (Application is null || _exiting)
                 throw new InvalidOperationException("The application is closing.");
-            int colors = 0;
+            int colors = 0, rawWidth = 0, rawHeight = 0;
+            byte[]? raw = null;
             if (screenshot is not null)
             {
+                long stamp = System.Diagnostics.Stopwatch.GetTimestamp();
                 using ViewportTexture texture = GetViewport().GetTexture();
                 using Image image = texture.GetImage();
+                readback = System.Diagnostics.Stopwatch.GetElapsedTime(stamp).TotalMilliseconds;
+                stamp = System.Diagnostics.Stopwatch.GetTimestamp();
                 var samples = new HashSet<string>();
                 // Include text and narrow geometry even when a modal covers most scenery.
                 for (int y = 0; y < image.GetHeight(); y += Math.Max(1, image.GetHeight() / 80))
                     for (int x = 0; x < image.GetWidth(); x += Math.Max(1, image.GetWidth() / 80)) samples.Add(image.GetPixel(x, y).ToHtml());
                 colors = samples.Count;
-                Error result = image.SavePng(screenshot);
+                sampling = System.Diagnostics.Stopwatch.GetElapsedTime(stamp).TotalMilliseconds;
+                stamp = System.Diagnostics.Stopwatch.GetTimestamp();
+                Error result = Error.Ok;
+                if (deferred)
+                {
+                    if (image.GetFormat() != Image.Format.Rgba8 || image.HasMipmaps()) throw new InvalidOperationException("Raw viewport capture requires actual unmipped RGBA8 pixels.");
+                    rawWidth = image.GetWidth(); rawHeight = image.GetHeight(); raw = image.GetData();
+                }
+                else result = image.SavePng(screenshot);
+                png = System.Diagnostics.Stopwatch.GetElapsedTime(stamp).TotalMilliseconds;
                 if (result != Error.Ok) throw new InvalidOperationException($"Frame capture failed: {result}");
             }
-            Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(Application.ObserveUi(id, screenshot, colors), WireJson.Options));
+            long observing = System.Diagnostics.Stopwatch.GetTimestamp();
+            Dictionary<string, object?> fields = Application.ObserveUi(id, deferred ? null : screenshot, colors);
+            double observation = System.Diagnostics.Stopwatch.GetElapsedTime(observing).TotalMilliseconds;
+            fields["ProbeCosts"] = new { FrameWaitMilliseconds = frameWait, ReadbackMilliseconds = readback, SamplingMilliseconds = sampling, PngMilliseconds = png, ObservationMilliseconds = observation, Live = live, ProcessFrame = Engine.GetProcessFrames(), RenderSetupCpuMs = RenderingServer.GetFrameSetupTimeCpu(), ViewportCpuMs = RenderingServer.ViewportGetMeasuredRenderTimeCpu(GetViewport().GetViewportRid()), ViewportGpuMs = RenderingServer.ViewportGetMeasuredRenderTimeGpu(GetViewport().GetViewportRid()) };
+            Timing?.Record("rendered-observation", State, info: new { Id = id, PresentedTick = fields.GetValueOrDefault("CombatTick"), Frame = Engine.GetProcessFrames(), Live = live });
+            if (raw is not null) fields["RawCapture"] = _rawFrames.Acquire(id, screenshot!, rawWidth, rawHeight, raw, JsonSerializer.Serialize(fields, WireJson.Options));
+            Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(fields, WireJson.Options));
         }
         catch (Exception error) { Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(new { Id = id, Error = error.Message }, WireJson.Options)); }
     }
     public override void _ExitTree()
     {
+        ReleaseGuestPump();
+        Timing?.Dispose();
         if (!_resettingRpcNode)
         {
+            _rawFrames.Clear();
             UnbindSignals(); _authority?.End(); _peer?.Close(); _peer?.Dispose(); _drainingPeer?.Close(); _drainingPeer?.Dispose(); _steam?.Dispose(); _steam = null;
         }
     }

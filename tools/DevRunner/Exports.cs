@@ -142,6 +142,7 @@ internal sealed partial class Runner
         await BuildAndImport();
         await SteamExtensionProbe(exported: false, offline: true);
         await BuildIdentityProbe(null);
+        await AssetFidelity();
         using var admission = new ScenarioAdmission(options.Jobs, options.UiJobs);
         try
         {

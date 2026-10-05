@@ -1,5 +1,19 @@
 # Cooperative POC verification
 
+## Authored 3D migration, 2026-10-05
+
+The [migration report](authored-migration.md#retained-acceptance-evidence) owns
+before/after CI outcomes, source/package costs, retained failures and follow-up
+decisions. Its complete migration pass precedes review commit `8eeabc9`; it is not
+full acceptance of that commit's changed inputs. [Current casualty admission](current-casualty-admission.md#status)
+owns the freshness correction's focused evidence and remaining acceptance status.
+[ENet guest cadence](enet-guest-cadence.md#early-observer-and-exact-paused-images)
+owns the separate four-view melee proof, which ordinary full-CI combat does not replace.
+
+These owned Linux software-rendered results retain their stated platform,
+physical-input, listening and Steam limitations; no speculative source-project
+optimization or additional feature is implied.
+
 ## Settlement-command architecture hardening, 2026-10-04
 
 Behavior-preserving request construction, internal city-edit dispatch and scoped
@@ -2443,3 +2457,126 @@ The first affected combat run (`logs/20261003-221231-11b531a4/`) reached the fre
 **Full before/after CI passed 292.32s / 342.11s**, `logs/20261003-185828-ba485153/` and `logs/20261003-223504-02c3e88e/ci-summary.json`; consoles `logs/army-balance/{before-ci,after-ci-second}.log`. After CI restores locked, verifies formatting/build/import, executes **481 gameplay / 172 runner** tests (cheap suite **38.47s**), all six network scenarios (shared admission elapsed **120.79s**) and all five source UI scenarios (shared admission elapsed **287.49s**), then sequential client/server exports **8.92s/3.87s**, headless package smoke **1.30s** and graphical packed smoke **12.05s** (**15.35s** with display ownership). Source case times: economy **165.28s**, reconnect **41.95s**, settings **27.26s**, launcher **80.65s**, combat **91.40s**; individual cases overlap and admitted suite elapsed includes budget waits, not just network execution. Owned cancellation/peer/display cleanup completes before scopes are released. Final source army and packed PNGs were inspected. No publish/upload/release occurs.
 
 Only three ordinarily paid replay/pause-terminal hashes changed, causally from bounded purchased allied setup and explicit roster/protocol state; the two isolated numerical combat hashes are byte-exact. Protocol is **11**, combat rules remain **5**, and tool/NuGet locks plus asset provenance are unchanged. All rendering uses owned Linux X11/software OpenGL/Dummy audio; native compositor/GPU performance, physical input, listening quality, native Windows packaging and paired Steam are outside this record. Price calibration establishes paid options and challenging controls, not a universal balance guarantee. Final documentation/spec sync needs consistency checks, not another unchanged full export run.
+
+### 2026-10-05 CI upkeep receipt and native counterfactual correction
+
+Hosted source run `37339665585`, job `111863206002`, failed the economy
+current-wave compact upkeep wait after 415.53s. The retained console establishes
+the failed wait, not the exact final graphical/authority state; the run exposes
+no downloadable artifacts. The driver nevertheless had a reproducible receipt
+window defect: it synchronized the graphical client after final Ready while the
+battle kept advancing. Once that wave ends, waiting longer cannot restore its
+current-battle label. Cheap executable regression coverage advances an ordinary
+paid match past battle completion, then contrasts ordinary pause retaining the
+actual receipt through 10,000 attempted ticks and ordinary resume progressing
+without a second payment. Negative controls reject wrong session, revision,
+phase, pause state, wave, turn, city, connection and any of the four HUD values.
+
+The existing headless observer now pauses immediately after its accepted final
+Ready, before graphical synchronization. Both command receipts must remain in
+Combat/W3 in the same session/turn; the fresh rendered HUD must match the frozen
+revision, city and complete actual upkeep. Then the observer resumes and the
+existing clear, shortage and reconnect assertions continue. No gameplay rules,
+assets, simulation speeds, production transport or timeout constants changed.
+The selected economy command used `--timeout-ms 900000` (the existing CI budget)
+instead of the standalone 300000ms invocation default: retained constrained
+runs exhausted 300s, and this complete CI economy worker took 300.60s. The finite
+Start/probe allowance remains 60000ms in these invocations; native modes remain
+20s each and the native diagnostic remains 60s overall. Ordinary public/dev,
+Steam and explicit-short launch policies are unchanged.
+
+The previously malformed native liveness control now flushes only the guest's
+pending retry before withholding; authority admission and guest delivery cannot
+occur before the schedule. A fixed diagnostic seed gives every arm identical
+baseline snapshot bytes. The serviced authority proves disconnect; only after
+guest service resumes are retained deliveries checked, without assuming queued
+UDP records must disappear or requiring an unserviced owner's timeout event.
+`mise run test-native-pump --scenario peer-liveness --startup-timeout-ms 60000`
+passed all five arms, `logs/20261005-170818-1ffdffc8/`: old
+`SetTimeout(32,5000,10000)` disconnected at 5645.44ms during 15s withholding;
+fixture `SetTimeout(32,30000,60000)` survived the same schedule, conserved the
+pending retry and accepted the next pause. Both no-stall arms conserved delivery;
+explicit `SetTimeout(32,500,1000)` disconnected at 1504.14ms during 2.5s withholding.
+Actual admission/receipt session, sequence, revision, event cursor, service counts
+and teardown are retained. This proves whole-session owned-fixture native
+liveness alignment, **not** the hosted stall duration or receive-service root
+cause. The original native conservation/reconnect/pause/cancellation-drain
+control also passed, `logs/20261005-172418-06430830/`, without another poll owner.
+The earlier failed control and all unreached-arm records remain historical
+failures, not retroactive passes.
+
+All 795 cheap tests passed (500 gameplay/295 runner). Selected economy passed
+281.56s, `logs/20261005-170859-693ab9c6/`. Complete local
+`mise run ci --startup-timeout-ms 60000` then passed **546.39s**,
+`logs/20261005-171424-d97ea622/ci-summary.json`, console
+`logs/ci-receipt-full.log`: locked restore/format/build/import/static fidelity,
+all cheap partitions, all six network cases, all five source UI cases, sequential
+client/server exports, headless package smoke and graphical package smoke.
+Its `economy-worker/economy/upkeep-command-receipts.json` records session
+`75ea7d5fa1c148c9bbbd6a8402dcef52`, Ready sequence35/revision968/tick872 and
+pause sequence36/revision973/tick876; `upkeep-frame.json` is the same frozen
+revision/W3/turn15/city1 and displays `7 food` with zero sit-outs. Awaited owned
+cleanup passed. No other implementation inputs changed after this full pass.
+This is locally verified repair evidence, not exact-final-head hosted readiness:
+the outer pipeline still owns publication and all hosted source/Linux/Windows
+package/required checks for PR #8. Software-rendered silent Linux checks do not
+establish native GPU/compositor performance, listening quality or paired Steam.
+
+## Deterministic network recovery opening, 2026-10-05
+
+Hosted head `5dcc148c5f8c4f43e18c5ad21c34f308b7d4dd82`, run
+`37348523905` / source job `111893175861`, failed on B's `buy-plot 7`:
+`Only living cities can act during building.` This is not timeout exhaustion.
+The retained hosted console lacks session/revision/city-liveness payloads;
+GitHub reported zero run artifacts, and the named operator metadata file was
+not present in this worktree. The exact hosted combat seed therefore remains
+unknown. The unchanged local selected case passed at a different random seed,
+`logs/20261005-173614-297a4b67/`; it did not disprove the hosted failure.
+
+`NetworkOpeningTests` executes the same ordinary paid opening. Seed `96`
+reproduces a team clear to Building/W2 at tick853 with A living and B eliminated;
+B's plot purchase receives the exact hosted refusal without any state mutation.
+The fixture previously selected an OS-random combat seed but required B's
+subsequent paid construction, typed recruitment and recovery. Its dedicated
+server now uses seed `16366921918512773030`, recovered from the prior complete
+`logs/20261005-171424-d97ea622/` pass, including owned bind retries. First and
+second clears explicitly require both cities living. Cheap coverage retains the
+negative seed, checks both fixed-seed cities live and verifies actual plot and
+building payment. Production matches still use their ordinary seed policy.
+
+The first fixed-seed slice exposed a separate exact-retry measurement race:
+`logs/20261005-174111-d9e4f665/`. B's home purchase at revision440/tick388 had one
+remaining body; pause at revision444/tick391 followed ordinary final-body cleanup
+and veteran home restoration. Placement/action state changed, not stocks or
+health. `RecruitAll` now awaits same-match, non-older, body-free state before
+investment, at the shared boundary for both `Advance` passes and the Steam
+opening caller. It does not mask placement, weaken exact city comparisons or
+change cleanup timing. The executable regression checks ordinary restoration
+preserves stocks, identities, wounds and assignments, then verifies a settled
+purchase remains exact through delayed pause. Steam paired execution was not
+repeated; its opening has no post-clear bodies and passes this barrier immediately.
+
+Final selected `authority-resume-victory` passed **32.09s**,
+`logs/20261005-174345-40c16bf6/`; its whole-scenario recovery, retry, research and
+refusal assertions remain. All three new cheap cases passed. Complete local
+`mise run ci --startup-timeout-ms 60000` passed **539.80s**, evidence
+`logs/20261005-174440-1deb528f/ci-summary.json`, console
+`logs/ci-network-full.log`: all **798** cheap tests (500 gameplay/298 runner),
+six network scenarios, five source UI cases, formatting/build/import/static
+fidelity, sequential Linux client/server exports and both package smokes.
+The complete run's network recovery case passed **29.58s**. Its economy proof
+retains session `d0cd737691dd48fb936f5e5a2fddbee2`, Ready sequence35/revision968/
+tick872, Pause sequence36/revision973/tick876, and the fresh same-session frozen
+revision973/W3/turn15/city1 HUD displaying `7 food` paid and zero sit-outs.
+Current repair hashes are recorded in `logs/ci-network-verified-inputs.json`.
+All historical failures remain retained, including the initial bounded seed diagnostic that
+found no counterexample in seeds0..63; the expanded diagnostic found seed96.
+
+No timeout values changed in this repair, and no numerical gameplay, speed,
+assets, wire protocol, production transport or poll ownership changed. Prior
+native five-arm and conservation proofs are reused: all their recorded
+implementation hashes still match `logs/ci-receipt-verified-inputs.json`.
+The prior 546.39s complete pass is the before baseline, not new hosted evidence.
+This final local pass does not establish exact-final-head hosted readiness;
+publication and all hosted source/Linux/Windows package/required checks remain
+owned by the outer executor. PR #8 is not claimed ready to merge.

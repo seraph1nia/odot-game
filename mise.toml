@@ -114,6 +114,18 @@ run = ["dotnet restore Odot.slnx --locked-mode", "dotnet build Odot.slnx --no-re
 description = "Verify C# formatting without modifying source"
 run = ["dotnet restore Odot.slnx --locked-mode", "dotnet format Odot.slnx --verify-no-changes --no-restore"]
 
+[tasks.test-assets]
+description = "Verify authored static rendering buffers and corruption regressions in one owned headless engine"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-assets"
+raw_args = true
+
+[tasks.test-native-pump]
+description = "Bounded owned native reliable peer/pump conservation control; no graphical game acceptance"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-native-pump"
+raw_args = true
+
 [tasks.test-network]
 description = "Verify real server/client processes without a display"
 depends = ["runner"]

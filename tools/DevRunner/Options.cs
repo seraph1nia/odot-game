@@ -58,7 +58,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--work-counters" when command is "profile-presentation" or "_ui-worker": profileWorkCounters = true; break;
                 case "--ui-checkpoint" when command is "test-ui" or "_ui-worker":
                 case "--checkpoint" when command is "test-ui" or "_ui-worker": checkpoint = Value(); break;
-                case "--evidence-directory" when command == "_ui-worker": evidence = Value(); break;
+                case "--evidence-directory" when command is "_ui-worker" or "inspect-admission-timing": evidence = Value(); break;
                 case "--worker-token" when command == "_ui-worker": workerToken = Value(); break;
                 case "--production" when command is "export-client" or "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight" or "assemble-release-assets": production = true; break;
                 case "--steam-app-id" when command is "export-client" or "package-linux" or "package-windows" or "verify-installed-linux" or "verify-installed-windows" or "release-preflight" or "assemble-release-assets": steamAppId = uint.Parse(Value(), CultureInfo.InvariantCulture); break;
@@ -85,11 +85,11 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
-            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : [];
+            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
-        if (checkpoint is not null && !(scenario == "combat" && checkpoint is "melee" or "research" || scenario == "economy" && checkpoint == "army"))
-            throw new ArgumentException("--checkpoint melee|research belongs to --scenario combat; army belongs to --scenario economy.");
+        if (checkpoint is not null && !(scenario == "combat" && checkpoint is "melee" or "research" or "admission" || scenario == "economy" && checkpoint == "army" || scenario == "launcher" && checkpoint == "assets"))
+            throw new ArgumentException("--checkpoint melee|research|admission belongs to --scenario combat; army belongs to --scenario economy; assets belongs to --scenario launcher.");
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
         if (args.Contains("--jobs") && command is not ("test-network" or "test-ui" or "ci" or "ci-source")) throw new ArgumentException("--jobs belongs to network/UI/source verification.");

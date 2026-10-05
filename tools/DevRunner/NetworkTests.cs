@@ -12,8 +12,10 @@ internal sealed partial class Runner
     private async Task<GameEvent> Action(Child child, string command, CancellationToken token, bool accepted = true)
     {
         long previous = child.History().Where(e => e.Type == "ack").Select(e => e.Result!.Sequence).DefaultIfEmpty().Max();
+        if (command is "ready" or "pause" or "resume") _timing?.Record("driver-request", Latest(child), info: new { Child = child.Name, Command = command, AfterSequence = previous });
         await child.Send(command);
         GameEvent result = await child.WaitFor(e => e.Type == "ack" && e.Result!.Sequence > previous, command, options.StartupTimeout, token);
+        if (command is "ready" or "pause" or "resume") _timing?.Record("driver-ack", result.State, info: new { Child = child.Name, Command = command, result.Result!.Sequence, result.Result.Accepted });
         Require(result.Result!.Accepted == accepted, $"{child.Name}: {command}: {result.Message}");
         return result;
     }
@@ -21,6 +23,11 @@ internal sealed partial class Runner
         => State(await child.WaitFor(e => e.State is not null && predicate(e.State), expectation, options.Timeout, token));
     private async Task RecruitAll(Child child, CancellationToken token)
     {
+        // A clear enters Building before the last bodies release their reservations.
+        // Let ordinary cleanup restore homes before exact economic retry measurements.
+        MatchSnapshot entry = Latest(child);
+        await Observe(child, s => s.MatchId == entry.MatchId && s.Revision >= entry.Revision && s.DyingBodies.Length == 0,
+            "post-clear home restoration before investment", token);
         for (int actions = 0; actions < 100; actions++)
         {
             MatchSnapshot state = Latest(child);
@@ -75,8 +82,8 @@ internal sealed partial class Runner
         foreach (Child child in clients) await Observe(child, s => s.Revision >= target.Revision && s.TurnSerial >= target.TurnSerial
             && (s.Phase == target.Phase || target.Phase == Phase.Preparation && s.TurnSerial > target.TurnSerial && s.Wave >= target.Wave), "resolved ready check", token);
     }
-    // Relative cooldown displays can age during legitimate post-clear cleanup
-    // before pause. Absolute recovery identity and every economic field remain.
+    // Relative cooldown displays can age before pause. Absolute recovery
+    // identity, placement and every economic field remain.
     private static string EconomicCity(CityState city) => JsonSerializer.Serialize(city with
     { DefenderCooldown = 0, Soldiers = city.Soldiers.Select(unit => unit with { Cooldown = 0 }).ToArray() }, WireJson.Options);
     private static string Gameplay(MatchSnapshot s) => JsonSerializer.Serialize(s with { Revision = 0, Players = s.Players.Select(p => p with { Connected = false, Ready = false }).ToArray() }, WireJson.Options);
@@ -113,9 +120,13 @@ internal sealed partial class Runner
         }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new TimeoutException($"Network suite exceeded {options.Timeout} ms; children were cleaned up."); }
     }
+    // Retained complete paid/recovery/research pass: logs/20261005-171424-d97ea622.
+    // Random combat can clear the team wave while eliminating the city needed below.
+    internal const ulong AuthorityResumeVictorySeed = 16366921918512773030UL;
     private async Task AuthorityResumeVictory(int port, CancellationToken token)
     {
-        var started = await StartServer("test-server", port, token, options.Port is null);
+        var started = await StartServer("test-server", port, token, options.Port is null,
+            extra: ["--combat-seed", AuthorityResumeVictorySeed.ToString(System.Globalization.CultureInfo.InvariantCulture)]);
         await using var server = started.Server; port = started.Port;
         await using var a = StartGame("test-a", false, true, port, null, "--automated");
         GameEvent ca = await a.WaitFor(e => e.Type == "connected", "A connected", options.StartupTimeout, token);
@@ -144,7 +155,7 @@ internal sealed partial class Runner
             await late.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("locked"), "late join refusal", options.StartupTimeout, token);
         await Advance([a, b], token); await Advance([a, b], token); await Advance([a, b], token);
         MatchSnapshot firstClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 2, "paid first-wave defense", token);
-        Require(firstClear.Phase == Phase.Building, "ordinary equipment and upkeep clear wave one");
+        Require(firstClear.Phase == Phase.Building && firstClear.Players.All(p => !p.Eliminated), "ordinary equipment and upkeep clear wave one with both cities living");
         await Observe(b, s => s.Phase == Phase.Building && s.Wave == 2, "B first clear", token);
         await Action(b, "buy-plot 7", token);
         await Action(b, "build 7 archeryrange", token);
@@ -188,7 +199,7 @@ internal sealed partial class Runner
         await Observe(a, s => s.Paused && s.Revision >= paused.Revision && s.Tick == frozen.Tick, "paused revisions remain visible", token);
         await Action(a, "resume", token);
         MatchSnapshot secondClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 3, "ordinary early clear after peer recovery", token);
-        Require(secondClear.Phase == Phase.Building, "ordinary cooperative equipment survives recovery and wave two");
+        Require(secondClear.Phase == Phase.Building && secondClear.Players.All(p => !p.Eliminated), "ordinary cooperative equipment survives recovery and wave two with both cities living");
         await Observe(resumed, s => s.Revision >= secondClear.Revision && s.Phase == Phase.Building, "shared early result", token);
         await using var researched = await TransportedResearch(a, resumed, server, port, bPath, token);
         await Action(a, "stale-ready", token, false);

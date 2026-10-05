@@ -15,26 +15,38 @@ internal sealed partial class VillageLandscape : Node3D
     private Vector3[] _renderedCells = [];
     private string[] _coreTerrain = [];
     private readonly Node3D _bridge;
-    private readonly Dictionary<string, Transform3D> _meshTransforms = [];
+    private readonly Dictionary<string, (Vector3 Left, Vector3 Right)> _waterEdges = [];
     private (int Left, int Right, int Back, int Front)? _range;
 
     internal VillageLandscape(Node3D parent, LandscapeAssets assets)
     {
         _assets = assets; Name = "Scenery"; parent.AddChild(this);
-        _static.Add(assets.Place(this, "Medieval/building_home_A_blue.gltf", Home, 1.8f));
-        _static.Add(assets.Place(this, "Medieval/building_tower_A_blue.gltf", Defender, 1.4f));
-        foreach (var (name, column, row, size) in new[]
+        _static.Add(assets.Place(this, AssetCatalog.Home, Home, 2.3f));
+        _static.Add(assets.Place(this, AssetCatalog.Defender, Defender, 1.7f));
+        foreach (var (path, column, row, size) in new[]
         {
-            ("hills_A_trees", -3, -4, 2.6f), ("hills_A_trees", -3, -1, 2.6f),
-            ("hills_A_trees", -3, 2, 2.6f), ("hills_A_trees", -3, 4, 2.6f),
-            ("trees_A_small", 2, -4, 2.0f), ("trees_A_small", 2, -1, 2.0f), ("trees_A_small", -2, 5, 2.0f),
-            ("rock_single_C", -2, -3, .6f), ("rock_single_C", 2, -3, .6f),
-            ("rock_single_C", 2, 4, .6f), ("rock_single_C", -2, 1, .6f),
-            ("hill_single_A", 2, 5, 1.6f), ("mountain_A", -3, 5, 2.7f), ("mountain_B", -3, -5, 2.7f),
-            ("barrel", 1, 1, .45f), ("sack", 2, 0, .35f)
-        }) _static.Add(assets.Place(this, $"Medieval/{name}.gltf", VillageLayout.Hex(column, row), size));
-        // Bridge includes submerged legs; preserve its authored terrain-relative origin.
-        _bridge = assets.Native(this, "Medieval/building_bridge_A.gltf", VillageLayout.Hex(3, 1) + new Vector3(0, .4f, 0), VillageLayout.TerrainScale, 90);
+            ("environment/components/forest_spiral_tree.glb", -3, -4, 2.4f),
+            ("environment/components/forest_spiral_tree.glb", -3, -1, 2.2f),
+            ("environment/components/forest_spiral_tree.glb", -3, 2, 2.1f),
+            ("environment/components/forest_spiral_tree.glb", -3, 4, 2.4f),
+            ("props/kit_pine.glb", 2, -4, 1.8f), ("props/kit_pine.glb", 2, -1, 1.8f),
+            ("environment/components/forest_boulder.glb", -2, -3, .65f),
+            ("environment/components/forest_boulder.glb", 2, -3, .65f),
+            ("environment/components/forest_boulder.glb", 2, 4, .7f),
+            ("environment/components/forest_boulder.glb", -2, 1, .6f),
+            ("environment/components/forest_boulder.glb", -3, 6, 1.8f),
+            ("environment/components/forest_boulder.glb", -3, -5, 1.8f),
+            ("environment/components/forest_fern.glb", -3, 1, .75f),
+            ("environment/components/forest_mushroom_small.glb", -2, 4, .55f),
+            ("environment/components/forest_leaf_clump.glb", -2, -4, .7f),
+            ("environment/components/forest_moss.glb", 2, 0, .65f),
+            ("environment/components/forest_lantern_post.glb", -2, 6, 1.1f),
+            ("props/kit_barrel.glb", 1, 1, .45f), (AssetCatalog.Provisions, 2, 0, .35f)
+        }) _static.Add(assets.Place(this, path, VillageLayout.Hex(column, row), size));
+        // This complete authored stream/bridge cell replaces, not overlays, one
+        // stream instance. Preserve bank zero and intentionally submerged supports.
+        _bridge = assets.Native(this, AssetCatalog.Bridge, VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow), VillageLayout.TerrainScale, 90);
+        _waterEdges[AssetCatalog.Bridge] = WaterEdges(_bridge);
         for (int slot = 0; slot < 9; slot++) PlotOutline(slot);
     }
     private void PlotOutline(int slot)
@@ -95,25 +107,28 @@ internal sealed partial class VillageLandscape : Node3D
             var cell = new Node3D { Position = VillageLayout.Hex(column, row) }; this.AddChild(cell); _tiles[(column, row)] = cell;
             // Fixed coordinate pattern; no tall props in the playable region or its foreground sightlines.
             if ((column <= -5 || row <= -7 && column >= 5) && Math.Abs(column * 17 + row * 31) % 7 == 0)
-                _assets.Place(cell, "Medieval/trees_A_small.gltf", Vector3.Zero, 1.5f);
+                _assets.Place(cell, "props/kit_pine.glb", Vector3.Zero, 1.5f);
             else if ((column <= -5 || column >= 5 || row <= -7 || row >= 7) && Math.Abs(column * 13 + row * 23) % 19 == 0)
-                _assets.Place(cell, "Medieval/rock_single_C.gltf", Vector3.Zero, .5f);
+                _assets.Place(cell, "environment/components/forest_boulder.glb", Vector3.Zero, .5f);
         }
         RebuildTerrain();
     }
     private void RebuildTerrain()
     {
-        foreach (var group in _tiles.Keys.GroupBy(k => (Kind: k.Column == 3 ? "hex_river_B" : k.Column == -4 && k.Row is >= 2 and <= 4 ? "hex_grass_sloped_low" : "hex_grass", X: (int)Math.Floor(k.Column / 8.0), Z: (int)Math.Floor(k.Row / 8.0))))
+        foreach (var group in _tiles.Keys.Where(k => k != (VillageLayout.BridgeColumn, VillageLayout.RiverRow))
+            .GroupBy(k => (Kind: k.Row == VillageLayout.RiverRow ? AssetCatalog.Stream : AssetCatalog.Meadow, X: (int)Math.Floor(k.Column / 8.0), Z: (int)Math.Floor(k.Row / 8.0))))
         {
             if (!_terrain.TryGetValue(group.Key, out MultiMeshInstance3D? batch))
             {
                 if (!_meshes.TryGetValue(group.Key.Kind, out Mesh? imported))
                 {
-                    Node3D template = _assets.Native(this, $"Medieval/{group.Key.Kind}.gltf", Vector3.Zero, 1);
-                    template.Visible = false;
-                    MeshInstance3D mesh = template is MeshInstance3D direct ? direct : template.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>().Single();
-                    _meshTransforms[group.Key.Kind] = template.GlobalTransform.AffineInverse() * mesh.GlobalTransform;
-                    _meshes[group.Key.Kind] = imported = mesh.Mesh;
+                    _meshes[group.Key.Kind] = imported = _assets.Terrain(group.Key.Kind);
+                    if (group.Key.Kind == AssetCatalog.Stream)
+                    {
+                        Node3D template = _assets.Native(this, group.Key.Kind, Vector3.Zero, 1);
+                        _waterEdges[group.Key.Kind] = WaterEdges(template);
+                        this.RemoveChild(template); template.Free();
+                    }
                 }
                 batch = new MultiMeshInstance3D { Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = imported }, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
                 AddChild(batch); _terrain[group.Key] = batch;
@@ -123,17 +138,30 @@ internal sealed partial class VillageLandscape : Node3D
             for (int i = 0; i < keys.Length; i++)
             {
                 var (column, row) = keys[i];
-                float rotation = column == 3 ? (Math.Abs(row) % 2 == 1 ? 60 : 240) : group.Key.Kind == "hex_grass_sloped_low" ? 180 : 0;
-                var transform = new Transform3D(new Basis(Vector3.Up, Mathf.DegToRad(rotation)).Scaled(Vector3.One * VillageLayout.TerrainScale), VillageLayout.Hex(column, row));
-                batch.Multimesh.SetInstanceTransform(i, transform * _meshTransforms[group.Key.Kind]);
+                // Hexagonal symmetry permits six orientations without changing
+                // coverage or the anchor lattice; it breaks repeated meadow UVs.
+                float yaw = Mathf.Pi / 2 + (group.Key.Kind == AssetCatalog.Meadow ? Mathf.PosMod(column * 17 + row * 31, 6) * Mathf.Pi / 3 : 0);
+                var transform = new Transform3D(new Basis(Vector3.Up, yaw).Scaled(Vector3.One * VillageLayout.TerrainScale), VillageLayout.Hex(column, row));
+                batch.Multimesh.SetInstanceTransform(i, transform);
             }
         }
         // Capture installed batch transforms only when geometry changes, keeping fresh probes cheap.
-        _renderedCells = _terrain.Values.SelectMany(n => Enumerable.Range(0, n.Multimesh.InstanceCount).Select(i => n.Multimesh.GetInstanceTransform(i).Origin)).ToArray();
+        _renderedCells = _terrain.Values.SelectMany(n => Enumerable.Range(0, n.Multimesh.InstanceCount).Select(i => n.Multimesh.GetInstanceTransform(i).Origin)).Append(_bridge.Position).ToArray();
         _coreTerrain = _terrain.SelectMany(p => Enumerable.Range(0, p.Value.Multimesh.InstanceCount).Select(i => (p.Key.Kind, Transform: p.Value.Multimesh.GetInstanceTransform(i))))
             .Where(p => Math.Abs(p.Transform.Origin.X) <= 10.5f && Math.Abs(p.Transform.Origin.Z) <= 13.1f)
             .Select(p => FormattableString.Invariant($"{p.Kind}:{p.Transform.Origin.X:F3}:{p.Transform.Origin.Y:F3}:{p.Transform.Origin.Z:F3}:{p.Transform.Basis.X.X:F3}:{p.Transform.Basis.X.Z:F3}"))
             .Order(StringComparer.Ordinal).ToArray();
+    }
+    private static (Vector3 Left, Vector3 Right) WaterEdges(Node3D model)
+    {
+        // The composed bridge copies the component as .001; Godot also
+        // normalizes imported node names. Require its unique continuous-water
+        // mesh, not the separate waterfall/foam decoration.
+        MeshInstance3D water = model.FindChildren("Continuous*river*water*", "MeshInstance3D", true, false).OfType<MeshInstance3D>().Single();
+        Transform3D relative = model.GlobalTransform.AffineInverse() * water.GlobalTransform;
+        Aabb box = relative * water.Mesh.GetAabb();
+        Vector3 center = box.GetCenter();
+        return (new(center.X, box.End.Y, box.Position.Z), new(center.X, box.End.Y, box.End.Z));
     }
     internal object Observe(Camera3D camera, Rect2 area)
     {
@@ -142,6 +170,15 @@ internal sealed partial class VillageLandscape : Node3D
         {
             Tiles = cells.Length,
             TerrainBatches = _terrain.Count,
+            TerrainSurfaces = _meshes.Values.Sum(m => m.GetSurfaceCount()),
+            TerrainBounds = _meshes.Select(p => new { Asset = p.Key, Min = new[] { p.Value.GetAabb().Position.X, p.Value.GetAabb().Position.Y, p.Value.GetAabb().Position.Z }, Max = new[] { p.Value.GetAabb().End.X, p.Value.GetAabb().End.Y, p.Value.GetAabb().End.Z } }).ToArray(),
+            River = _terrain.Where(p => p.Key.Kind == AssetCatalog.Stream)
+                .SelectMany(p => Enumerable.Range(0, p.Value.Multimesh.InstanceCount).Select(i => (Asset: p.Key.Kind, Transform: p.Value.Multimesh.GetInstanceTransform(i))))
+                .Append((Asset: AssetCatalog.Bridge, Transform: _bridge.Transform)).Select(p =>
+                {
+                    var edge = _waterEdges[p.Asset]; Vector3 a = p.Transform * edge.Left, b = p.Transform * edge.Right;
+                    return new { Asset = p.Asset, Start = new[] { a.X, a.Y, a.Z }, End = new[] { b.X, b.Y, b.Z } };
+                }).ToArray(),
             CoreTerrain = _coreTerrain,
             Bridge = FormattableString.Invariant($"{_bridge.Position.X:F3}:{_bridge.Position.Y:F3}:{_bridge.Position.Z:F3}:{_bridge.Scale.X:F3}:{_bridge.Rotation.Y:F3}"),
             Plots = GetChildren().OfType<MeshInstance3D>().Count(n => n.Name.ToString().StartsWith("Plot", StringComparison.Ordinal)),
