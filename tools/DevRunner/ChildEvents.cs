@@ -12,6 +12,7 @@ internal sealed class ChildEvents
     private long _order;
     public int DroppedStates { get; private set; }
     public long LastTick { get; private set; }
+    public MatchSnapshot? LatestState => _states.Count == 0 ? null : _states[^1].Event.State;
     public GameEvent? RecentUi { get; private set; }
     public string? Failure { get; private set; }
 

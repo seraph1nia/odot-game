@@ -8,7 +8,7 @@ namespace DevRunner;
 internal sealed partial class Runner
 {
     private readonly HashSet<string> _retriedEconomicActions = [];
-    private static MatchSnapshot Latest(Child child) => State(child.History().Last(e => e.State is not null));
+    private static MatchSnapshot Latest(Child child) => child.LatestState ?? throw new InvalidOperationException($"{child.Name}: no delivered state.");
     private async Task<GameEvent> Action(Child child, string command, CancellationToken token, bool accepted = true)
     {
         long previous = child.History().Where(e => e.Type == "ack").Select(e => e.Result!.Sequence).DefaultIfEmpty().Max();
@@ -25,6 +25,10 @@ internal sealed partial class Runner
     // ordinary Observe intentionally permits retained historical barriers.
     internal Task<MatchSnapshot> ObserveCurrent(Child child, Func<MatchSnapshot, bool> predicate, string expectation, CancellationToken token)
         => Observe(child, s => ReferenceEquals(s, Latest(child)) && predicate(s), expectation, token);
+    private Task<(GameEvent Receipt, int TargetId)> PauseBurn(Child child, int? city, CancellationToken token)
+        => BurnAdmission.Pause(Latest(child), city, AckSequence(child), () => Latest(child),
+            async (floor, cancellation) => { await ObserveCurrent(child, s => s.Revision > floor, "fresh current burn admission revision", cancellation); },
+            (command, cancellation) => Action(child, command, cancellation), token);
     private async Task RecruitAll(Child child, CancellationToken token)
     {
         // A clear enters Building before the last bodies release their reservations.
