@@ -225,6 +225,9 @@ internal sealed partial class Runner
         await UnitInspection(client, "combat-unit-inspection-resized", token);
         await Checkpoint(client, "combat-resized", token);
         await OpenUnitInspector(client, token);
+        // Validate clip provenance while the authority is still frozen. Cold asset
+        // I/O must not consume the fresh-body window after the resume below.
+        _ = CasualtyClips.Value;
         long priorPause = AckSequence(client);
         long casualtyAfter = Latest(observer).Tick;
         using var casualtyDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
