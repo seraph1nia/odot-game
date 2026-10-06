@@ -169,7 +169,9 @@ internal sealed partial class Runner
             UiObservation moved = await WaitUi(client, p =>
             {
                 if (!shortCheck) recoveryObservation.Observe(p, Latest(client), "early-live:locomotion");
-                return p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation);
+                bool accepted = p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation);
+                if (!shortCheck) poseDiagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
+                return accepted;
             }, "moving skeleton changes position and pose", token);
             Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
             // Observe recovery while this ordinary mixed-army battle is live, not
@@ -180,7 +182,9 @@ internal sealed partial class Runner
                 swordPose = await WaitUi(client, p =>
                 {
                     recoveryObservation.Observe(p, Latest(client), "early-live:attack");
-                    return p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
+                    bool accepted = p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
+                    poseDiagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
+                    return accepted;
                 }, "rendered sword attack before inspection", token);
             }
             if (shortCheck) await Action(observer, "pause", token);

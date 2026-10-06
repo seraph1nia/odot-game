@@ -32,6 +32,7 @@ internal sealed class CombatPoseDiagnostic
     public CombatPoseWitness? LastObservation { get; private set; }
     public int Polls { get; private set; }
     public CombatPoseWitness? FirstRecoveryCandidate { get; private set; }
+    public CombatRecoveryTrace EarlyRecoveryTrace { get; } = new();
 
     public void RecoveryCandidate(CombatPoseWitness witness)
     {
@@ -90,6 +91,7 @@ internal sealed class CombatPoseDiagnostic
                 MissingProvenance = _first.GetValueOrDefault(name) is null ? "No retained witness (absent or over 8 KiB); do not infer an actor or frame." : null
             }),
             FirstRecoveryCandidate,
+            EarlyRecoveryTrace,
             RecoveryPrevious = _recoveryPrevious,
             RecoveryCurrent = _first.GetValueOrDefault("recovery"),
             Limitations = "First witnesses among retained entry frames and actual ordered early-live/late-loop responses only; entry-frame received metadata unavailable. Received state is latest arrival at callback, not applied/presented telemetry. No historical reconstruction or new PNG."
