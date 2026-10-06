@@ -98,6 +98,95 @@ public sealed class BurnAdmissionTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OrdinaryPhaseAndTurnAdvanceRejectsQuotedPauseWhileSameSessionFrozenReceiptCaptures(bool advanceBeforeRequest)
+    {
+        using var match = new Match(combatSeed: Runner.AuthorityResumeVictorySeed);
+        match.Join(); match.Join();
+        void Act(int player, string action, TechnologyId technology = TechnologyId.None)
+            => Assert.True(match.Apply(player, Command.FromSnapshot(match.Snapshot(), match.Revision + 1,
+                action, player, technology: technology)).Accepted);
+        Act(1, "start");
+        // Earn research, pay for the army and reach a live burn through ordinary waves.
+        for (int steps = 0; steps < 30000 && match.Wave <= 10 && match.Phase is not (Phase.Victory or Phase.Defeat); steps++)
+        {
+            if (match.Phase == Phase.Combat)
+            {
+                if (match.Enemies.Any(u => BurnAdmission.Active(match.Snapshot(), u))) break;
+                match.Step(); continue;
+            }
+            foreach (City city in match.Players.Values.Where(c => !c.Ready && !c.Eliminated))
+            {
+                for (int actions = 0; actions < 100; actions++)
+                {
+                    MatchSnapshot state = match.Snapshot();
+                    EconomyAction? action = CampaignStrategy.ResearchWitness(state, city.Id);
+                    if (action is null) break;
+                    Assert.True(match.Apply(city.Id, action.Command(state, city.Id, match.Revision + 1)).Accepted);
+                }
+                foreach (TechnologyId id in new[] { TechnologyId.MagicFoundation, TechnologyId.Fire })
+                    if (match.Economy.Research.Eligibility(city.Research, id).Available && city.Soldiers.Any(u => u.Type == UnitType.Mage))
+                        Act(city.Id, "research-tech", id);
+                Act(city.Id, "ready");
+            }
+            if (match.Phase == Phase.Preparation && match.Players.Values.All(c => c.Ready)) match.Step();
+        }
+        MatchSnapshot origin = match.Snapshot(), current = origin;
+        Assert.Equal(Phase.Combat, origin.Phase);
+        UnitState target = origin.Enemies.First(u => BurnAdmission.Active(origin, u));
+        long sequence = origin.Revision + 1;
+        Command request = Command.FromSnapshot(origin, sequence, "pause", 1);
+        GameEvent? receipt = null;
+        var commands = new List<string>();
+        var floors = new List<long>();
+        Task<(GameEvent Receipt, int TargetId)> admission = BurnAdmission.Pause(origin, null, sequence - 1,
+            () => current, (floor, _) => { floors.Add(floor); throw new InvalidOperationException("No rearm is eligible in this control."); },
+            (command, cancellation) =>
+            {
+                cancellation.ThrowIfCancellationRequested(); commands.Add(command);
+                Assert.Equal("pause", command);
+                if (advanceBeforeRequest)
+                {
+                    for (int ticks = 0; ticks < 6000 && match.Phase == Phase.Combat; ticks++) match.Step();
+                    Assert.Equal(Phase.Building, match.Phase);
+                    Assert.Equal(origin.TurnSerial + 1, match.TurnSerial);
+                }
+                MatchSnapshot before = match.Snapshot();
+                CommandResult result = match.Apply(1, request);
+                current = match.Snapshot();
+                if (advanceBeforeRequest)
+                {
+                    Assert.False(result.Accepted);
+                    Assert.Equal("Stale match, phase or turn.", result.Message);
+                    Assert.Equal(before.Revision, current.Revision); Assert.Equal(before.Tick, current.Tick);
+                    Assert.False(current.Paused);
+                }
+                receipt = new("ack", State: current, Result: result);
+                return Task.FromResult(receipt);
+            }, CancellationToken.None);
+        if (advanceBeforeRequest)
+        {
+            InvalidOperationException refusal = await Assert.ThrowsAsync<InvalidOperationException>(() => admission);
+            Assert.Equal("Research burn admission requires a readable newly accepted ordinary command receipt.", refusal.Message);
+        }
+        else
+        {
+            var captured = await admission;
+            Assert.Same(receipt, captured.Receipt);
+            Assert.True(captured.Receipt.Result!.Accepted); Assert.Equal(sequence, captured.Receipt.Result.Sequence);
+            Assert.Equal(target.Id, captured.TargetId);
+            Assert.Equal(origin.MatchId, current.MatchId); Assert.Equal(origin.TurnSerial, current.TurnSerial);
+            Assert.Equal(origin.Phase, current.Phase); Assert.True(current.Paused);
+            Assert.Equal(target.Statuses.Burn, current.Enemies.Single(u => u.Id == captured.TargetId).Statuses.Burn);
+            for (int ticks = 0; ticks < 120; ticks++) match.Step();
+            Assert.Equal(current.Tick, match.Tick); Assert.Equal(current.Revision, match.Revision);
+        }
+        Assert.Equal(OnePause, commands);
+        Assert.Empty(floors); // Rejection must not capture, resume an unowned pause or rearm a new session.
+    }
+
+    [Theory]
     [InlineData("rejected")]
     [InlineData("unreadable")]
     [InlineData("sequence")]

@@ -28,8 +28,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Verify formatting, build, rules, network and source UI
-        # Cold hosted-runner imports can exceed the local 15-second startup default.
-        run: mise run ci-source --startup-timeout-ms 60000
+        # Cold imports need startup headroom; serialize owned graphics, not coverage.
+        run: mise run ci-source --startup-timeout-ms 60000 --ui-jobs 1
   linux-package:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

@@ -2580,3 +2580,71 @@ The prior 546.39s complete pass is the before baseline, not new hosted evidence.
 This final local pass does not establish exact-final-head hosted readiness;
 publication and all hosted source/Linux/Windows package/required checks remain
 owned by the outer executor. PR #8 is not claimed ready to merge.
+
+## Research fixture and hosted graphical admission finalization, 2026-10-06
+
+PR #9's published head `1e1b79a80d2ce76b8725e334adf449f09785281d`
+failed hosted source run `37389015488`, job `112029377239`, when an ordinary
+research pause was refused with `Stale match, phase or turn.` The retained
+current-observation and frozen-receipt boundaries correctly refuse capture when
+the witness no longer belongs to the current combat/session. They are not
+relaxed to make this check pass.
+
+The narrow setup correction recruits affordable Mages before optional Swordsman
+refills in `CampaignStrategy.ResearchWitness`. Its only process callers are
+`TransportedResearch` and `ResearchCheckpoint`; public gameplay and the separate
+`CampaignStrategy.Next` frontline profiling policy are unchanged. Desired count
+limits, prices, normal commands, configured seeds, natural waves, assets and game
+rules remain unchanged. **Paid command order, first-fit home placement, combat
+dynamics and witness timing/wave change**: the constrained candidate captured a
+burn at wave six rather than the previous wave-eight six-tick window. Whole
+fixture input/outcome digests and realized counts are not claimed identical.
+This is verification setup, not an additional game/FPS optimization.
+
+The preserved two-file patch hashes to
+`bee201ca35e6b5547d0abf822084ccdcb3986927a837b12bd3851b46c8da8602`.
+`logs/ci-stale-pause/red-tests.log` records two executable recruitment-order
+failures against the old policy (expected Mage, actual Swordsman), for seeds one
+and `16366921918512773030`; `green-tests.log` records all seven ResearchWitness
+controls passing. The completed candidate full local CI is reused, not rerun:
+`logs/ci-stale-pause/after-ci.log` and
+`logs/20261006-000924-9a5a958d/ci-summary.json` finalize at 00:18:16Z, after the
+previous agent cut, with **532.22s, 504 gameplay and 348 runner tests**, all six
+network and five source UI scenarios, authored fidelity, sequential Linux
+client/server exports and headless/graphical package smokes passing. The exact
+fixture patch and other production inputs remain unchanged during finalization;
+its tool versions are .NET 10.0.401 and Godot 4.7.2 .NET. This evidence is local
+candidate coverage, not hosted final-head readiness or inherited new-head package
+success.
+
+`BurnAdmissionTests` now adds a cheap executable pair using the actual paid
+research opening and natural combat. The timely ordinary pause returns the exact
+accepted receipt/sequence and observed target with the same complete burn record;
+ordinary steps cannot advance its frozen tick/revision. Delaying that quoted
+request until a natural clear advances phase and turn produces the actual stale
+refusal, without a pause or state mutation, and admission throws without capture,
+resume or rearm. Existing target/effect substitution, current ownership,
+three-attempt rearm and cancellation controls remain in force. Production's
+ordinary action wrapper rejects a refused command even before receipt admission.
+No predictive model, production capture API or timeout increase is introduced.
+
+The hosted source invocation alone now adds supported `--ui-jobs 1`, retaining
+default `--jobs 2`, all five UI and six network cases and existing 120s research,
+150s army and 900s CI bounds. Scheduler/default semantics and Linux/Windows
+package commands are unchanged. `AdmissionTests` executes the command's option
+contract; the existing scheduler control verifies the shared total budget and
+single graphical slot with awaited cleanup. Normalized workflow meaning was
+checked against the prior configuration: only the source command's graphical cap
+changes; all other jobs, steps, triggers, permissions and deadlines are identical.
+Finalization evidence under `logs/ci-fixture-finalization/` records locked restore,
+zero-warning solution build, formatting and **80 affected cheap controls passing**,
+plus `workflow-semantics.json`. No new full game/export run was launched.
+
+The earlier constrained two-CPU/UI-two source attempt remains **failed** at army
+cancellation (`candidate-source-two-cpus.log`), not green and not an established
+assertion failure, OOM or performance regression. The earlier replacement-server
+native crash remains unresolved historical evidence. The prior local UI-one pass
+and this candidate UI-two pass have backend/load confounds; serial hosted UI is
+not a proven cure. All required source/Linux/Windows and other required hosted
+checks must complete on the exact corrected published head. The outer executor
+owns that publication/validation; PR #9 is not yet claimed ready to merge.

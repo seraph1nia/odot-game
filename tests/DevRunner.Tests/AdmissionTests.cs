@@ -61,6 +61,19 @@ public sealed class AdmissionTests
     public void InvalidAdmissionAndPacingOptionsFail(string command, string option, string value)
         => Assert.Throws<ArgumentException>(() => Options.Parse([command, option, value]));
     [Fact]
+    public void HostedSourceGraphicalCapKeepsTotalBudgetFullCoverageAndFixedBounds()
+    {
+        Options source = Options.Parse(["ci-source", "--startup-timeout-ms", "60000", "--ui-jobs", "1"]);
+        Assert.Equal("ci-source", source.Command);
+        Assert.Equal(2, source.Jobs); Assert.Equal(1, source.UiJobs);
+        Assert.Null(source.Scenario); Assert.Null(source.UiCheckpoint);
+        Assert.Equal(60000, source.StartupTimeout); Assert.Equal(900000, source.Timeout);
+        Assert.Equal(4, source.SimulationSpeed);
+        Assert.Equal(2, Options.Parse(["ci-source"]).UiJobs);
+        Assert.Equal(2, Options.Parse(["ci"]).UiJobs);
+    }
+
+    [Fact]
     public void SerialOverridesAndPackageTimeoutRemainAvailable()
     {
         Assert.Equal(2, Options.Parse(["test-ui"]).Jobs);
