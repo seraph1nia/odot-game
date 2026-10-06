@@ -6,6 +6,9 @@ namespace DevRunner.Tests;
 
 public sealed class CasualtyAdmissionTests
 {
+    private static readonly string[] IdentityCallsites = ["loop-entry", "accepted-receipt", "after-owned-resume", "frozen-current"];
+    private static readonly string[] IdentityFaults = ["match", "configuration", "phase", "turn", "wave"];
+    private static readonly string[] OwnPauseAndResume = ["pause", "resume"];
     private static readonly string[] OnePause = ["pause"];
     private static readonly string[] RearmedPause = ["pause", "resume", "pause"];
     private static readonly string[] CappedPauses = ["pause", "resume", "pause", "resume", "pause", "resume"];
@@ -200,7 +203,8 @@ public sealed class CasualtyAdmissionTests
             _ => receipt with { State = receipt.State! with { Paused = false } }
         };
         driver.Receipts.Enqueue(receipt);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => driver.Run());
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => driver.Run());
+        Assert.Equal(fault is "match" or "turn" or "terminal", error.Data[CasualtyAdmission.IdentityEvidenceKey] is CasualtyIdentityRejection);
         Assert.Equal(OnePause, driver.Commands);
     }
 
@@ -268,6 +272,88 @@ public sealed class CasualtyAdmissionTests
         };
         await Assert.ThrowsAsync<InvalidOperationException>(() => driver.Run());
         Assert.Equal(OnePause, driver.Commands);
+    }
+
+    public static IEnumerable<object[]> IdentityFailures() =>
+        from callsite in IdentityCallsites
+        from fault in IdentityFaults
+        select new object[] { callsite, fault };
+
+    private static MatchSnapshot ChangeIdentity(MatchSnapshot state, string fault) => fault switch
+    {
+        "match" => state with { MatchId = "replacement" },
+        "configuration" => state with { ConfigurationFingerprint = new(1, 2, 3, 4) },
+        "phase" => state with { Phase = Phase.Building },
+        "turn" => state with { TurnSerial = state.TurnSerial + 1 },
+        "wave" => state with { Wave = state.Wave + 1 },
+        _ => throw new ArgumentException("Unknown fault.", nameof(fault))
+    };
+
+    [Theory]
+    [MemberData(nameof(IdentityFailures))]
+    public async Task IdentityRejectionReportsExactDisjunctAndCallsiteWithoutChangingCommandOwnership(string callsite, string fault)
+    {
+        var driver = new Driver();
+        MatchSnapshot origin = driver.Current;
+        driver.Arrivals.Enqueue(callsite == "loop-entry" ? ChangeIdentity(Eligible(), fault) : Eligible());
+        MatchSnapshot pause = callsite == "after-owned-resume" ? Ineligible(Eligible(922, 827, true)) : Eligible(922, 827, true);
+        driver.Receipts.Enqueue(Ack(callsite == "accepted-receipt" ? ChangeIdentity(pause, fault) : pause));
+        driver.Receipts.Enqueue(Ack(pause with { Revision = 923, Paused = false }, 12));
+        driver.AfterCommand = (command, receipt) =>
+        {
+            if (callsite == "frozen-current" && command == "pause" || callsite == "after-owned-resume" && command == "resume")
+                driver.Current = ChangeIdentity(receipt.State!, fault);
+            return receipt;
+        };
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => driver.Run());
+        Assert.Equal("Casualty admission lost its current combat/session identity.", error.Message);
+        var rejection = Assert.IsType<CasualtyIdentityRejection>(error.Data[CasualtyAdmission.IdentityEvidenceKey]);
+        Assert.Equal(callsite, rejection.Callsite);
+        Assert.Equal(new CasualtyIdentityDisjuncts(fault == "match", fault == "configuration", fault == "phase", fault == "turn", fault == "wave"), rejection.Failed);
+        Assert.Equal(CasualtyIdentityState.From(callsite == "frozen-current" ? pause : origin), rejection.Origin);
+        Assert.Equal(CasualtyIdentityState.From(driver.Current), rejection.Current);
+        Assert.Same(driver.Current, error.Data[CasualtyAdmission.IdentityStateKey]);
+        Assert.True(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(rejection).Length < 8192);
+        if (callsite == "loop-entry")
+        {
+            Assert.Empty(driver.Commands);
+            Assert.Null(rejection.ReceiptType);
+            Assert.Null(rejection.ReceiptSequence);
+            Assert.Null(rejection.ReceiptAccepted);
+        }
+        else
+        {
+            Assert.Equal(callsite == "after-owned-resume" ? OwnPauseAndResume : OnePause, driver.Commands);
+            Assert.Equal("ack", rejection.ReceiptType);
+            Assert.Equal(callsite == "after-owned-resume" ? 12 : 11, rejection.ReceiptSequence);
+            Assert.True(rejection.ReceiptAccepted);
+            Assert.Equal(0, rejection.ReceiptPeerId);
+            Assert.Equal(0, rejection.ReceiptPlayerId);
+        }
+    }
+
+    [Fact]
+    public async Task RejectionReportsAllChangedFieldsWithoutCallingPhaseChangeASessionMismatch()
+    {
+        var driver = new Driver();
+        MatchSnapshot changed = Eligible() with { MatchId = "replacement", ConfigurationFingerprint = new(1, 2, 3, 4), Phase = Phase.Defeat, TurnSerial = 13, Wave = 4 };
+        driver.Arrivals.Enqueue(changed);
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => driver.Run());
+        var rejection = Assert.IsType<CasualtyIdentityRejection>(error.Data[CasualtyAdmission.IdentityEvidenceKey]);
+        Assert.Equal(new CasualtyIdentityDisjuncts(true, true, true, true, true), rejection.Failed);
+        Assert.Equal(Phase.Defeat, rejection.Current.Phase);
+        Assert.Empty(driver.Commands);
+    }
+
+    [Fact]
+    public void CityAndActorChangesAreNotIdentityDisjunctsButFrozenOwnershipStillApplies()
+    {
+        MatchSnapshot receipt = Eligible(paused: true);
+        MatchSnapshot current = receipt with { Enemies = [receipt.Enemies[0] with { Destination = 2, Health = 600 }], DyingBodies = [] };
+        CasualtyAdmission.Frozen(receipt, current);
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => CasualtyAdmission.Frozen(receipt, current with { Tick = current.Tick + 1 }));
+        Assert.Equal("Casualty pause no longer belongs to the accepted frozen receipt.", error.Message);
+        Assert.Null(error.Data[CasualtyAdmission.IdentityEvidenceKey]);
     }
 
     private static UiObservation Frame() => new()

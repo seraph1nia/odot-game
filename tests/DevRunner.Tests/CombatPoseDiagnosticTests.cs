@@ -166,6 +166,121 @@ public sealed class CombatPoseDiagnosticTests
         finally { Directory.Delete(root, true); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ActualCheckpointEarlyCancellationStagesDefaultCombatOnlyAndPreservesCancellation(bool shortCheck)
+    {
+        string root = Fixture();
+        try
+        {
+            var evidence = new Evidence(root);
+            await using var scope = new ScenarioScope("combat", evidence, runtimeRoot: root);
+            string shell = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+            string[] shellArgs = OperatingSystem.IsWindows() ? ["/c", "more > nul"] : ["-c", "while IFS= read -r command; do :; done"];
+            Child Own(string name) => scope.Own(new Child(name, shell, shellArgs,
+                scope.Directory, evidenceDirectory: scope.EvidenceDirectory));
+            _ = Own("ui-server");
+            Child client = Own("ui-client"), observer = Own("ui-observer");
+            var runner = new Runner(Options.Parse(["_ui-worker", "--scenario", "combat"]), CancellationToken.None, evidence, scope, root);
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            // Execute the real orchestration boundary with owned shell peers, no engine/display and no timeout wait.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runner.CombatCheckpoint(client, observer, cancelled.Token, shortCheck));
+            string bundle = Path.Combine(scope.EvidenceDirectory, "pose-failure");
+            if (shortCheck)
+            {
+                Assert.False(Directory.Exists(bundle));
+                return;
+            }
+            using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "manifest.json")));
+            JsonElement[] files = manifest.RootElement.GetProperty("Files").EnumerateArray().ToArray();
+            Assert.Equal(23, files.Length);
+            Assert.Equal(5, files.Count(file => file.GetProperty("Status").GetString() == "retained"));
+            using JsonDocument proof = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "combat-pose-proof.json")));
+            Assert.Equal("default-combat-failed;pose-loop-unexecuted", proof.RootElement.GetProperty("Result").GetString());
+            Assert.Equal(JsonValueKind.Null, proof.RootElement.GetProperty("Entry").ValueKind);
+            Assert.Equal(JsonValueKind.Null, proof.RootElement.GetProperty("RecoveryCurrent").ValueKind);
+            Assert.False(proof.RootElement.GetProperty("Exit").GetProperty("Recovery").GetBoolean());
+            using JsonDocument admission = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "combat-casualty-admission.json")));
+            Assert.Equal(JsonValueKind.Null, admission.RootElement.GetProperty("AfterTick").ValueKind);
+            Assert.Empty(admission.RootElement.GetProperty("Events").EnumerateArray());
+            foreach (string name in new[] { "ui-client", "ui-observer", "ui-server" })
+            {
+                using JsonDocument state = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, name + ".states.json")));
+                Assert.True(state.RootElement.TryGetProperty("States", out _));
+                Assert.True(state.RootElement.TryGetProperty("RecentUi", out _));
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public void EarlyAdmissionFailureBundleRetainsLivePairRejectionAndStateWithoutInventingLaterMilestones()
+    {
+        string root = Fixture();
+        try
+        {
+            using var authority = new AuthoritySession(AuthorityPolicy.Solo);
+            MatchSnapshot origin = authority.Snapshot() with { MatchId = "synthetic-match", Phase = Phase.Combat, Tick = 120, Revision = 10, Paused = true };
+            MatchSnapshot current = origin with { Phase = Phase.Building, Tick = 151, Revision = 41 };
+            var diagnostic = new CombatPoseDiagnostic();
+            var recovery = new CombatRecoveryObservation(diagnostic);
+            UnitObservation actor = Actor() with
+            {
+                Health = 1000,
+                MaximumHealth = 1000,
+                ImpactTick = 110,
+                AttackSequence = 1,
+                Hex = new(7, 1, Faction.Adventurers, UnitLifecycle.Alive, new(1, 1), UnitActionKind.Recovery, ActionSequence: 1)
+            };
+            UiObservation first = Frame("early-first") with { MatchPhase = Phase.Combat, Connected = true, Units = [actor] };
+            UiObservation second = first with { Id = "early-second", CombatTick = 138, Revision = 28 };
+            Assert.False(recovery.Observe(first, origin, "early-live:locomotion"));
+            Assert.True(recovery.Observe(second, origin with { Tick = 138, Revision = 28 }, "early-live:attack"));
+            // Subsequent paused observations must not replace the current rendered live pair.
+            Assert.True(recovery.Observe(second with { Id = "paused", Paused = true }, origin, "control"));
+            InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => CasualtyAdmission.Frozen(origin, current));
+            File.WriteAllText(Path.Combine(root, "combat-pose-proof.json"),
+                diagnostic.Finish(new(false, false, false, false, false, recovery.Proven, false), "default-combat-failed;pose-loop-unexecuted"));
+            File.WriteAllText(Path.Combine(root, "combat-casualty-admission.json"), JsonSerializer.Serialize(new
+            {
+                Events = new object[] { new { Stage = "origin", State = origin },
+                    new { Stage = "identity-rejection", Failure = failure.Data[CasualtyAdmission.IdentityEvidenceKey], State = failure.Data[CasualtyAdmission.IdentityStateKey] } }
+            }));
+            foreach (string name in new[] { "client", "observer", "authority" })
+                File.WriteAllText(Path.Combine(root, name + ".states.json"), JsonSerializer.Serialize(new { States = new[] { origin, current }, RecentUi = new[] { first, second } }));
+            Collect(root);
+            string bundle = Path.Combine(root, "pose-failure");
+            using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "manifest.json")));
+            JsonElement[] files = manifest.RootElement.GetProperty("Files").EnumerateArray().ToArray();
+            Assert.Equal(23, files.Length);
+            Assert.Equal(5, files.Count(file => file.GetProperty("Status").GetString() == "retained"));
+            Assert.All(files.Where(file => file.GetProperty("Status").GetString() != "retained"), file => Assert.Equal("missing-file", file.GetProperty("Status").GetString()));
+            using JsonDocument proof = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "combat-pose-proof.json")));
+            Assert.Equal(JsonValueKind.Null, proof.RootElement.GetProperty("Entry").ValueKind);
+            Assert.True(proof.RootElement.GetProperty("Exit").GetProperty("Recovery").GetBoolean());
+            Assert.Equal("early-first", proof.RootElement.GetProperty("RecoveryPrevious").GetProperty("ResponseId").GetString());
+            JsonElement witness = proof.RootElement.GetProperty("RecoveryCurrent");
+            Assert.Equal("early-second", witness.GetProperty("ResponseId").GetString());
+            Assert.Equal(138, witness.GetProperty("Tick").GetDouble());
+            Assert.False(witness.GetProperty("Paused").GetBoolean());
+            Assert.Equal(150, witness.GetProperty("Actor").GetProperty("ReadyTick").GetInt64());
+            Assert.Equal(2, witness.GetProperty("Actor").GetProperty("X").GetDouble());
+            Assert.Equal(5, witness.GetProperty("Actor").GetProperty("Z").GetDouble());
+            using JsonDocument admission = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "combat-casualty-admission.json")));
+            JsonElement rejection = admission.RootElement.GetProperty("Events")[1].GetProperty("Failure");
+            Assert.Equal("frozen-current", rejection.GetProperty("Callsite").GetString());
+            Assert.True(rejection.GetProperty("Failed").GetProperty("CombatPhase").GetBoolean());
+            Assert.False(rejection.GetProperty("Failed").GetProperty("MatchId").GetBoolean());
+            Assert.Equal(151, rejection.GetProperty("Current").GetProperty("Tick").GetInt64());
+            using JsonDocument state = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "ui-observer.states.json")));
+            Assert.Equal(41, state.RootElement.GetProperty("States")[1].GetProperty("Revision").GetInt64());
+            Assert.Equal("early-second", state.RootElement.GetProperty("RecentUi")[1].GetProperty("Id").GetString());
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [Fact]
     public void FailureBundleEnforcesAggregateBudget()
     {
