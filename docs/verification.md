@@ -2648,3 +2648,37 @@ and this candidate UI-two pass have backend/load confounds; serial hosted UI is
 not a proven cure. All required source/Linux/Windows and other required hosted
 checks must complete on the exact corrected published head. The outer executor
 owns that publication/validation; PR #9 is not yet claimed ready to merge.
+
+## Hosted army wall-clock allowance correction, 2026-10-06
+
+Hosted source run `37394971214`, job `112048648887`, at head
+`04d440a00cf25beeec293187fcbca89db5c63c0c` failed despite serial UI admission.
+The retained failure report records army entry at `00:45:37.996267Z` and the last
+of three exact production-recovery assertions at **149.302s**, only **698ms**
+before its 150s boundary (`00:48:07.996267Z`). Cancellation then cleaned up the
+owned worker with exit **130**. The final Pick/OpenTownHall/UpgradeHallCapacity
+input, independent-track assertion, fourth `army-paid-recovery` PNG, Close and
+clean exit were not completed; three earlier frames are not passing coverage.
+This is progressing ordinary input interrupted by a nested runner timer, not an
+established gameplay/CPU regression or an assertion failure. Serial scheduling
+alone was therefore insufficient to establish hosted completion.
+
+The authorized correction changes only `ArmyUiScenario`'s existing linked
+wall-clock allowance from **150s to 300s**, shared by standalone
+`economy --checkpoint army` and the complete economy route after cooperative
+peer retirement. The parent token can still cancel it earlier. Research stays
+**120s**, outer worker/source CI **900s**, and provider job limits are unchanged.
+All three recovery iterations, exact tick/effect/death/retry/receipt assertions,
+ordinary game clock, assets, cleanup and all five UI/six network cases remain
+required. The allowance is not a game speed, FPS, receipt-freshness or measured
+CPU-performance guarantee and does not revise historical performance/fidelity
+claims. Original failed logs remain failure evidence, not superseded passes.
+
+Unchanged numerical/fidelity/receipt/phase-setup baseline evidence above is
+reused; no redundant complete local source/export run is required for this
+wall-time-only edit. New-head hosted source, Linux/Windows packages and every
+required check remain outstanding until the outer executor obtains them. The
+fourth fresh recovery capture and all remaining cases must actually finish; this
+change does not waive the failed source check. Any 300s cancellation, assertion
+failure or outer-limit exhaustion must be reported with the earliest failure,
+remaining work and exact timer, not followed by another allowance increase.
