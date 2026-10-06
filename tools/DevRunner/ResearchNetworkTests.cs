@@ -18,8 +18,8 @@ internal sealed partial class Runner
             if (state.Phase is Phase.Victory or Phase.Defeat || state.Wave > 10) throw new InvalidOperationException("Research transport opening exceeded wave ten or ended without a status witness.");
             if (state.Phase == Phase.Combat)
             {
-                MatchSnapshot settled = await Observe(a, s => s.Revision >= state.Revision && (s.Phase != Phase.Combat || s.Enemies.Any(u => u.Statuses.Burn is not null)), "shared clear or real burn", token);
-                if (settled.Enemies.Any(u => u.Statuses.Burn is not null)) break;
+                MatchSnapshot settled = await ObserveCurrent(a, s => s.Revision >= state.Revision && (s.Phase != Phase.Combat || s.Enemies.Any(u => BurnAdmission.Active(s, u))), "shared clear or real burn", token);
+                if (settled.Enemies.Any(u => BurnAdmission.Active(settled, u))) break;
                 await Observe(b, s => s.Revision >= settled.Revision && s.Phase == settled.Phase, "ordinary research stage agreement", token); continue;
             }
             foreach (Child child in new[] { a, b })
@@ -45,8 +45,10 @@ internal sealed partial class Runner
             foreach (Child child in new[] { a, b })
                 await Observe(child, s => ResearchReadyBarrier.Resolved(state, barrier, s), "research stage actually resolves after readiness/cleanup", token);
         }
-        MatchSnapshot frozen = State(await Action(a, "pause", token));
-        MatchSnapshot seen = await Observe(b, s => s.Paused && s.Tick == frozen.Tick, "same paused active status tick", token);
+        var capture = await PauseBurn(a, null, token);
+        MatchSnapshot frozen = State(capture.Receipt);
+        MatchSnapshot seen = await ObserveCurrent(b, s => s.MatchId == frozen.MatchId && s.Revision >= frozen.Revision && s.Paused && s.Tick == frozen.Tick,
+            "same current paused active status receipt", token);
         Require(frozen.Enemies.Any(u => u.Statuses.Burn is not null), "paused authority retains active captured burn deadlines");
         Require(Gameplay(frozen) == Gameplay(seen), "peers agree on complete research and captured status deadlines");
         Require(frozen.Players.Single(p => p.Id == a.PlayerId).Research.Has(TechnologyId.Fire)

@@ -35,6 +35,52 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
         Assert.Contains(match.Players[1].Soldiers, u => u.Type == UnitType.Mage && u.Capabilities.BurnPercent == 20);
         Assert.False(match.Economy.Research.Eligibility(match.Players[1].Research, TechnologyId.Frost).Available);
     }
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(16366921918512773030UL)]
+    public void ResearchInvestmentFieldsAffordableSupportBeforeOptionalMelee(ulong seed)
+    {
+        using var match = new Match(combatSeed: seed); match.Join(); match.Join();
+        Assert.True(VillageStrategyTests.Act(match, 1, "start").Accepted);
+        int competingRecruitments = 0;
+        bool burn = false;
+        for (int steps = 0; steps < 30000 && match.Phase is not (Phase.Victory or Phase.Defeat) && match.Wave <= 10 && !burn; steps++)
+        {
+            if (match.Phase == Phase.Combat)
+            {
+                match.Step(); burn = match.Enemies.Any(u => u.Health > 0 && u.Statuses.Burn is { } status && status.ExpiresTick > match.Tick); continue;
+            }
+            foreach (City city in match.Players.Values.Where(c => !c.Ready && !c.Eliminated))
+            {
+                for (int actions = 0; actions < 100; actions++)
+                {
+                    MatchSnapshot state = match.Snapshot(); CityState quote = state.Players.Single(c => c.Id == city.Id);
+                    EconomyAction? action = CampaignStrategy.ResearchWitness(state, city.Id);
+                    if (action is null) break;
+                    RecruitmentQuote mage = quote.RecruitmentQuotes.Single(q => q.Type == UnitType.Mage && q.Level == 1);
+                    if (action.Action == "recruit" && quote.Soldiers.Count(u => u.Type == UnitType.Mage) < 2
+                        && quote.Slots.Any(s => s.Type == Building.Arcanum) && quote.Resources.TryPay(mage.Cost, out _)
+                        && quote.Food >= (quote.FoodForecast?.Demand ?? 0) + mage.Upkeep)
+                    {
+                        competingRecruitments++;
+                        Assert.Equal(UnitType.Mage, action.Unit);
+                        int prior = quote.Soldiers.Length;
+                        Assert.True(match.Apply(city.Id, action.Command(state, city.Id)).Accepted);
+                        Assert.Equal(UnitType.Mage, city.Soldiers[prior].Type);
+                    }
+                    else Assert.True(match.Apply(city.Id, action.Command(state, city.Id)).Accepted);
+                }
+                foreach (TechnologyId id in new[] { TechnologyId.MagicFoundation, TechnologyId.Fire })
+                    if (match.Economy.Research.Eligibility(city.Research, id).Available && city.Soldiers.Any(u => u.Type == UnitType.Mage))
+                        Assert.True(match.Apply(city.Id, Command.FromSnapshot(match.Snapshot(), match.Revision + 1,
+                            "research-tech", city.Id, technology: id)).Accepted);
+                Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
+            }
+            if (match.Phase == Phase.Preparation && match.Players.Values.All(c => c.Ready)) match.Step();
+        }
+        Assert.True(competingRecruitments > 0, "Opening must exercise affordable support competing with a melee refill.");
+        Assert.True(burn, $"No live burn by W{match.Wave}, {match.Phase}");
+    }
     [Fact]
     public void CurrentStatusesBaselinePauseAndDetachWithoutReplay()
     {

@@ -197,6 +197,7 @@ internal sealed class Child : IAsyncDisposable
         catch { DumpEvidence("Failed wait: " + expectation); throw; }
     }
 
+    public MatchSnapshot? LatestState { get { lock (_gate) return _events.LatestState; } }
     public GameEvent[] History() { lock (_gate) return _events.History(); }
     public string Tail() { lock (_gate) return string.Join(Environment.NewLine, _tail); }
 

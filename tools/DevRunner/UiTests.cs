@@ -318,6 +318,7 @@ internal sealed partial class Runner
     private static readonly string[] EconomyResourceLabels = ["Gold", "Food", "Wood", "Stone", "Metal", "Cloth"];
     private static string UiRisk(string name) => name switch
     {
+        "authored-scale" => "Selected authored settlement/combat diagnostic at 16/64/256 pressure recipes and zoom1/3; 600 frames, owned display, no default-suite expansion or graphical campaign",
         "combat-playback" => "Selected fixed-input runtime measurement of normal playback/views; owned 600-frame replay, no default-suite or large graphical fight",
         "combat" => "Direct committed walking with intentional transit overlap, bounded pose/facing blends and non-beam linked melee intent/strike/impact. The selectable melee gate adds at most twelve fresh progression observations/four PNGs in the same paid setup, peers and display (measured 4-6s); cheap timing tests and paused endpoints cannot prove actual advancing imported bones or rendered geometry. No additional scenario or graphical campaign. Paused focus away/return, current bones and inspection, camera/health-bar projection, rig/action/tower/effect/audio/casualty cleanup using the existing owned peers/display. Adds ordinary earned research through at most wave ten: actual global Fire purchase, permanent Frost lock and current paused burn badge/inspection. Research is separately selectable with 120s setup/30s feature bounds; default reuses the existing match, 300s total. Cheap tests cannot sample rendered controls, bones, pools or voices; no branch matrix or full graphical campaign.",
         "economy" => "Income/upkeep, explicit zero-wood recovery, build/upgrade/sale capacity, both-size inspector bounds and paused transport refresh. One bounded additional ordinary clear and two productions fund a real shortage sale; no extra peers or display. Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
@@ -542,7 +543,11 @@ internal sealed partial class Runner
                     await EconomyDetails(client, observer, token);
                 }
                 await Checkpoint(client, package ? "packed-building" : "economy-building", token);
-                if (!package) { await client.DisposeAsync(); await ArmyUiScenario(token); }
+                if (!package)
+                {
+                    await _scope!.CompleteGames(token);
+                    await ArmyUiScenario(token);
+                }
                 break;
             case "combat":
                 if (options.UiCheckpoint == "admission") { await MeleeAdmissionDiagnostic(client, observer, token); break; }

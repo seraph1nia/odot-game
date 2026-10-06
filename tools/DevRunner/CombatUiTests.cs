@@ -140,239 +140,319 @@ internal sealed partial class Runner
         await Click(client, "City" + client.PlayerId, token);
     }
 
-    private async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
+    internal static bool CombatSwordObservation(UiObservation frame, MatchSnapshot received,
+        CombatRecoveryObservation recoveryObservation, CombatPoseDiagnostic diagnostic)
     {
-        await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
-        // The source tower capture leaves combat paused. Sample its retained
-        // route before resuming; pacing/probe round trips must not consume it.
-        UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk" && u.WalkingBlend > 0), "actual walking pose", token);
-        HealthBars(moving);
-        Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
-        UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk" && u.WalkingBlend > 0);
-        Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "walking model follows a declared direct timed step with endpoint reservations");
-        if (!shortCheck)
-        {
-            Require(Latest(client).Paused && moving.PhaseText.Contains("PAUSED", StringComparison.Ordinal),
-                "first locomotion witness retains the tower capture pause");
-            MatchSnapshot towerResume = State(await Action(observer, "resume", token));
-            await Observe(client, s => !s.Paused && s.Revision >= towerResume.Revision, "combat resumes after tower capture", token);
-        }
-        UiObservation moved = await WaitUi(client, p => p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation), "moving skeleton changes position and pose", token);
-        Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
-        UiObservation swordPose = shortCheck ? moved : await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive), "rendered sword attack before inspection", token);
-        if (shortCheck) await Action(observer, "pause", token);
-        else await ClickAck(client, "Pause", token, swordPose);
-        await Checkpoint(client, shortCheck ? "packed-locomotion" : "combat-locomotion", token);
-        await UnitInspection(client, shortCheck ? "packed-unit-inspection" : "combat-unit-inspection", token);
-        if (shortCheck)
-        {
-            UiObservation packedWindow = await UiProtocol.Probe(client, options.StartupTimeout, token);
-            NativeWindowClose.Resize(client, options, packedWindow.NativeWindow, 1280, 720);
-            await WaitUi(client, p => p.Width == 1280 && p.Height == 720, "owned packed window resized to supported 1280x720", token);
-            await UnitInspection(client, "packed-unit-inspection-resized", token);
-            async Task<MatchSnapshot> PausePackedEvent(Func<MatchSnapshot, bool> predicate, string expectation)
-            {
-                await Observe(observer, predicate, expectation, token);
-                return State(await Action(observer, "pause", token));
-            }
-            long shootingAfter = Latest(observer).Tick;
-            Task<MatchSnapshot> packedShotPause = PausePackedEvent(s => s.Tick > shootingAfter && s.CombatEvents.Any(e => e.Tick > shootingAfter && e.Type == CombatEventType.Impact && e.Unit?.Type == UnitType.Crossbowman), "packed authoritative Crossbowman shot");
-            await ClickAck(client, "Pause", token);
-            MatchSnapshot packedShot = await packedShotPause;
-            await Observe(client, s => s.Paused && s.Tick == packedShot.Tick, "packed shot pause barrier", token);
-            await WaitUi(client, p => p.Units.Any(u => u.Type == UnitType.Crossbowman && u.ShotVisible), "packed shooting effect", token, 60000);
-            await Checkpoint(client, "packed-shooting", token);
-            Task<MatchSnapshot> packedDeathPause = PausePackedEvent(s => s.Tick > packedShot.Tick && s.DyingBodies.Any(u => u.Hex!.DeathStartTick > packedShot.Tick), "packed authoritative casualty");
-            await ClickAck(client, "Pause", token);
-            MatchSnapshot packedCasualty = await packedDeathPause;
-            await Observe(client, s => s.Paused && s.Tick == packedCasualty.Tick, "packed death pause barrier", token);
-            UiObservation packedDeath = await WaitUi(client, p => p.Units.Any(u => u.Dead), "packed current death mapping", token);
-            RenderedContact(packedDeath);
-            Require(packedDeath.Units.All(u => u.Hex is not null) && packedDeath.Units.Where(u => u.Dead).All(u => u.Hex!.Lifecycle == UnitLifecycle.Dying && u.Hex.DeathEndTick > u.Hex.DeathStartTick), "exported models preserve typed shared-hex actions and death intervals");
-            await Checkpoint(client, "packed-death", token); return;
-        }
-        UiObservation frozen = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal), "posed pause", token);
-        // Two fresh probes separated by an authority barrier; no arbitrary sleep.
-        await Action(observer, "unknown", token, false);
-        UiObservation still = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        Require(frozen.VisualSeconds == still.VisualSeconds && frozen.CombatTick == still.CombatTick &&
-            JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(still.Units) && JsonSerializer.Serialize(frozen.Strikes) == JsonSerializer.Serialize(still.Strikes) && JsonSerializer.Serialize(frozen.HealthBars) == JsonSerializer.Serialize(still.HealthBars) && frozen.Effects.Voices == 0 && still.Effects.Voices == 0 && frozen.Effects.Positions.SequenceEqual(still.Effects.Positions) && frozen.AmbientAngles.SequenceEqual(still.AmbientAngles), "pause freezes positions, skeleton poses, shots, strike connections and death clocks");
-        await Checkpoint(client, "combat-paused", token);
-        // Two input actions in the existing paused battle catch stale hidden rig
-        // poses and historical cue replay without another expensive battle.
-        await Click(client, "NextCity", token);
-        await WaitUi(client, p => p.ObservedCity != frozen.ObservedCity, "hide paused combat city", token);
-        await Click(client, "PreviousCity", token);
-        UiObservation returned = await WaitUi(client, p => p.ObservedCity == frozen.ObservedCity, "return to paused combat city", token);
-        Require(returned.VisualSeconds == frozen.VisualSeconds && returned.CombatTick == frozen.CombatTick
-            && returned.Effects.CueCount == frozen.Effects.CueCount && returned.Effects.Voices == 0
-            && returned.Units.Where(u => u.Visible).Select(u => u.Id).Order().SequenceEqual(frozen.Units.Where(u => u.Visible).Select(u => u.Id).Order())
-            && returned.Units.Where(u => u.Visible).All(u => frozen.Units.Any(old => old.Id == u.Id && old.Clip == u.Clip
-                && old.PoseSeconds == u.PoseSeconds && old.X == u.X && old.Z == u.Z && old.BoneRotation == u.BoneRotation)),
-            "focus return seeks current paused visible pose without historical audio or attacks");
-        // The briefly visible other city's rigs have now been sought too. Use
-        // this settled observation for the later all-rig resize comparison.
-        frozen = returned;
-        await CameraFrozenBars(client, token);
-        await Click(client, "Settings", token);
-        await WaitUi(client, p => p.SettingsOpen, "settings open over paused battle", token);
-        UiObservation resized = await ResizeTo1280(client, token);
-        HealthBars(resized);
-        Require(resized.VisualSeconds == frozen.VisualSeconds && JsonSerializer.Serialize(resized.Units) == JsonSerializer.Serialize(frozen.Units)
-            && resized.HealthBars.Any(b => b.Visible && b.X != frozen.HealthBars.Single(old => old.Id == b.Id).X), "resizing reprojects health bars while authoritative health and paused unit poses stay frozen");
-        await Click(client, "CloseSettings", token);
-        await WaitUi(client, p => !p.SettingsOpen, "return to paused battle after resizing", token);
-        await UnitInspection(client, "combat-unit-inspection-resized", token);
-        await Checkpoint(client, "combat-resized", token);
-        await OpenUnitInspector(client, token);
-        // Validate clip provenance while the authority is still frozen. Cold asset
-        // I/O must not consume the fresh-body window after the resume below.
-        _ = CasualtyClips.Value;
-        long priorPause = AckSequence(client);
-        long casualtyAfter = Latest(observer).Tick;
-        using var casualtyDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        casualtyDeadline.CancelAfter(options.Timeout);
+        recoveryObservation.Observe(frame, received, "early-live:attack");
+        bool currentSwordAttack = frame.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
+        bool accepted = currentSwordAttack && recoveryObservation.Proven;
+        diagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
+        return accepted;
+    }
+
+    internal async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
+    {
+        var poseDiagnostic = new CombatPoseDiagnostic();
+        var recoveryObservation = new CombatRecoveryObservation(poseDiagnostic);
+        Func<CombatPoseFlags> diagnosticFlags = () => new(false, false, false, false, false, recoveryObservation.Proven, false);
         var casualtyTrace = new List<object>();
-        async Task<GameEvent> CasualtyAction(string command, CancellationToken cancellation)
-        {
-            MatchSnapshot quote = Latest(observer);
-            casualtyTrace.Add(new { Stage = "request", Command = command, State = quote });
-            Require(command != "pause" || !quote.Paused, "casualty driver never initiates an already-owned pause");
-            GameEvent receipt = await Action(observer, command, cancellation);
-            casualtyTrace.Add(new { Stage = "receipt", Command = command, Receipt = receipt });
-            return receipt;
-        }
-        Task<MatchSnapshot> casualtyPause = CasualtyAdmission.Pause(Latest(observer), client.PlayerId, casualtyAfter, AckSequence(observer),
-            () => Latest(observer),
-            async (floor, cancellation) =>
-            {
-                await observer.WaitFor(e => e.State is { } state && state.Revision > floor,
-                    "new current casualty admission revision", options.Timeout, cancellation);
-                casualtyTrace.Add(new { Stage = "current", Floor = floor, State = Latest(observer) });
-            }, CasualtyAction, casualtyDeadline.Token);
-        MatchSnapshot retainedDeath;
+        long? admissionAfter = null;
+        void WriteCasualtyTrace() => File.WriteAllText(Path.Combine(_scope!.EvidenceDirectory, "combat-casualty-admission.json"),
+            JsonSerializer.Serialize(new { City = client.PlayerId, AfterTick = admissionAfter, Attempts = CasualtyAdmission.MaximumAttempts, Events = casualtyTrace }, Evidence.JsonOptions));
         try
         {
-            await ClickAck(client, "Pause", token);
-            UiObservation outsidePause = await UiProtocol.Probe(client, options.StartupTimeout, token);
-            Require(outsidePause.InspectedUnit is null && AckSequence(client) == priorPause + 1, "outside Pause dismisses inspection and executes once");
-            retainedDeath = await casualtyPause;
-        }
-        finally
-        {
-            await casualtyDeadline.CancelAsync();
-            try { await casualtyPause; } catch when (casualtyDeadline.IsCancellationRequested) { }
-            await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-casualty-admission.json"),
-                JsonSerializer.Serialize(new { City = client.PlayerId, AfterTick = casualtyAfter, Attempts = CasualtyAdmission.MaximumAttempts, Events = casualtyTrace }, Evidence.JsonOptions));
-        }
-        await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-casualty-pause.json"),
-            JsonSerializer.Serialize(retainedDeath, Evidence.JsonOptions), token);
-        int dead = EligibleCasualties(retainedDeath, client.PlayerId, casualtyAfter)
-            .MaxBy(u => u.Hex!.DeathStartTick)!.Id;
-        await Action(client, "unknown", token, false);
-        UiObservation casualty = await WaitUi(client, p => p.CombatTick == retainedDeath.Tick && p.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
-            && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && FreshDeathPose(u.PoseSeconds)), "same paused authoritative casualty rendered freshly", token);
-        CasualtyAdmission.Frame(retainedDeath, Latest(client), casualty, client.PlayerId, casualtyAfter, dead);
-        Require(!casualty.HealthBars.Any(b => b.Id == dead), "death immediately removes overhead bar");
-        Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");
-        Require(retainedDeath.DyingBodies.Any(u => u.Id == dead), "authoritative casualty pause retains the sampled death");
-        UiObservation deathPaused = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal) && p.Units.Any(u => u.Id == dead && u.Dead), "paused death remains", token);
-        await Action(observer, "unknown", token, false);
-        UiObservation deathStill = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        Require(deathStill.VisualSeconds == deathPaused.VisualSeconds && JsonSerializer.Serialize(deathPaused.Units) == JsonSerializer.Serialize(deathStill.Units) && JsonSerializer.Serialize(deathPaused.HealthBars) == JsonSerializer.Serialize(deathStill.HealthBars), "death pose and cleanup freeze on shared pause");
-        await Checkpoint(client, "combat-casualty", token, validate: frame =>
-            CasualtyAdmission.Frame(retainedDeath, Latest(client), frame, client.PlayerId, casualtyAfter, dead));
-        // Select from the frozen current battle, not a low-health target that can
-        // die between the live probe and native click. Resume through the ordinary
-        // observer command so the already-tested outside Pause click does not dismiss it.
-        UiObservation liveTarget = await WaitUi(client, p => p.Units.Any(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth), "currently damaged opponent for live inspection", token);
-        UnitObservation damagedUnit = liveTarget.Units.Where(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth).OrderBy(u => u.Health).ThenBy(u => u.Id).First();
-        await ClickPoint(client, liveTarget.Targets["Unit" + damagedUnit.Id]);
-        UiObservation liveInspection = await WaitUi(client, p => p.InspectedUnit?.Id == damagedUnit.Id, "live damaged-unit inspector opens", token);
-        InspectorObservation liveUnit = liveInspection.InspectedUnit!;
-        await Action(observer, "resume", token);
-        await Action(client, "unknown", token, false);
-        Require(!Latest(client).Paused, "live inspection resumes without dismissal");
-        long deathEnd = deathPaused.Units.Single(u => u.Id == dead).Hex!.DeathEndTick;
-        UiObservation cleaned = await WaitUi(client, p =>
-        {
-            bool present = p.Units.Any(u => u.Id == dead);
-            Require(present == (p.CombatTick < deathEnd), "death model lifetime agrees with the declared tick boundary");
-            return !present;
-        }, "declared death cleanup", token);
-        MatchSnapshot deathReleased = await Observe(observer, s => s.Tick >= deathEnd && s.DyingBodies.All(u => u.Id != dead), "authoritative death reservation release", token);
-        CombatContact(deathReleased);
-        DeathCleanupObservation cleanup = UiProtocol.DeathCleanup(cleaned, dead, deathEnd, casualty.VisualSeconds);
-        Require(cleanup.VisualSeconds - casualty.VisualSeconds <= 2, "death view frees within two unpaused seconds");
-        await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-death-cleanup.json"),
-            JsonSerializer.Serialize(new
+            await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
+            // The source tower capture leaves combat paused. Sample its retained
+            // route before resuming; pacing/probe round trips must not consume it.
+            UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk" && u.WalkingBlend > 0), "actual walking pose", token);
+            HealthBars(moving);
+            Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
+            UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk" && u.WalkingBlend > 0);
+            Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "walking model follows a declared direct timed step with endpoint reservations");
+            if (!shortCheck)
             {
-                Unit = dead,
-                PausedVisualSeconds = casualty.VisualSeconds,
-                Removal = cleanup,
-                ProbeTick = cleaned.CombatTick,
-                ProbeVisualSeconds = cleaned.VisualSeconds
-            }, Evidence.JsonOptions), token);
-        bool inspectionChanged = false;
-        // Retain actual frames already witnessed during movement, pause and
-        // casualty capture while observing live inspection and recovery.
-        UnitObservation[] witnessed = new[] { moving, moved, swordPose, frozen, casualty, deathPaused, deathStill, cleaned }
-            .SelectMany(p => p.Units).Where(u => u.Visible).ToArray();
-        bool sword = witnessed.Any(u => AuthoredAttack(u, UnitType.Swordsman));
-        bool shot = witnessed.Any(u => AuthoredAttack(u, UnitType.Mage));
-        bool hit = witnessed.Any(u => u.Clip == "hit" && u.HitActive);
-        bool axe = witnessed.Any(u => AuthoredAttack(u, UnitType.Berserker));
-        bool damagedBar = frozen.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = false;
-        var priorRecovery = new Dictionary<int, UnitObservation>();
-        await WaitUi(client, p =>
-        {
-            RenderedContact(p); HealthBars(p);
-            UnitState? observed = CombatPlayback.All(Latest(client)).FirstOrDefault(unit => unit.Id == liveUnit.Id);
-            if (p.InspectedUnit is { } inspected && inspected.Id == liveUnit.Id)
-            {
-                inspectionChanged |= inspected.Health != liveUnit.Health;
-                if (p.Revision == Latest(client).Revision && observed is not null)
-                    Require(inspected.Health == observed.Health && inspected.MaximumHealth == observed.Profile.Health && inspected.Damage == observed.Profile.Damage, "live inspector follows authoritative damage and resolved stats");
+                Require(Latest(client).Paused && moving.PhaseText.Contains("PAUSED", StringComparison.Ordinal),
+                    "first locomotion witness retains the tower capture pause");
+                MatchSnapshot towerResume = State(await Action(observer, "resume", token));
+                await Observe(client, s => !s.Paused && s.Revision >= towerResume.Revision, "combat resumes after tower capture", token);
             }
-            else if (observed is null || observed.Health <= 0) { Require(p.InspectedUnit is null, "selected casualty removes its inspection panel"); inspectionChanged = true; }
-            damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
-            foreach (UnitObservation unit in p.Units.Where(u => !u.Dead && u.Hex?.Action == UnitActionKind.Recovery))
+            UiObservation moved = await WaitUi(client, p =>
             {
-                if (priorRecovery.TryGetValue(unit.Id, out UnitObservation? previous) && previous.ReadyTick == unit.ReadyTick)
+                if (!shortCheck) recoveryObservation.Observe(p, Latest(client), "early-live:locomotion");
+                bool accepted = p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation);
+                if (!shortCheck) poseDiagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
+                return accepted;
+            }, "moving skeleton changes position and pose", token, live: !shortCheck);
+            Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
+            // Observe recovery while this ordinary mixed-army battle is live, not
+            // after slow paused focus/resize/casualty work has consumed its window.
+            UiObservation swordPose = moved;
+            if (!shortCheck)
+            {
+                swordPose = await WaitUi(client, p => CombatSwordObservation(p, Latest(client), recoveryObservation, poseDiagnostic),
+                    "rendered sword attack before inspection", token, live: true);
+            }
+            if (shortCheck) await Action(observer, "pause", token);
+            else await ClickAck(client, "Pause", token, swordPose);
+            await Checkpoint(client, shortCheck ? "packed-locomotion" : "combat-locomotion", token);
+            await UnitInspection(client, shortCheck ? "packed-unit-inspection" : "combat-unit-inspection", token);
+            if (shortCheck)
+            {
+                UiObservation packedWindow = await UiProtocol.Probe(client, options.StartupTimeout, token);
+                NativeWindowClose.Resize(client, options, packedWindow.NativeWindow, 1280, 720);
+                await WaitUi(client, p => p.Width == 1280 && p.Height == 720, "owned packed window resized to supported 1280x720", token);
+                await UnitInspection(client, "packed-unit-inspection-resized", token);
+                async Task<MatchSnapshot> PausePackedEvent(Func<MatchSnapshot, bool> predicate, string expectation)
                 {
-                    if (unit.X != previous.X || unit.Z != previous.Z) throw new InvalidOperationException("Recovery moved away from its declared hex anchor.");
-                    recovery = true;
+                    await Observe(observer, predicate, expectation, token);
+                    return State(await Action(observer, "pause", token));
                 }
-                priorRecovery[unit.Id] = unit;
+                long shootingAfter = Latest(observer).Tick;
+                Task<MatchSnapshot> packedShotPause = PausePackedEvent(s => s.Tick > shootingAfter && s.CombatEvents.Any(e => e.Tick > shootingAfter && e.Type == CombatEventType.Impact && e.Unit?.Type == UnitType.Crossbowman), "packed authoritative Crossbowman shot");
+                await ClickAck(client, "Pause", token);
+                MatchSnapshot packedShot = await packedShotPause;
+                await Observe(client, s => s.Paused && s.Tick == packedShot.Tick, "packed shot pause barrier", token);
+                await WaitUi(client, p => p.Units.Any(u => u.Type == UnitType.Crossbowman && u.ShotVisible), "packed shooting effect", token, 60000);
+                await Checkpoint(client, "packed-shooting", token);
+                Task<MatchSnapshot> packedDeathPause = PausePackedEvent(s => s.Tick > packedShot.Tick && s.DyingBodies.Any(u => u.Hex!.DeathStartTick > packedShot.Tick), "packed authoritative casualty");
+                await ClickAck(client, "Pause", token);
+                MatchSnapshot packedCasualty = await packedDeathPause;
+                await Observe(client, s => s.Paused && s.Tick == packedCasualty.Tick, "packed death pause barrier", token);
+                UiObservation packedDeath = await WaitUi(client, p => p.Units.Any(u => u.Dead), "packed current death mapping", token);
+                RenderedContact(packedDeath);
+                Require(packedDeath.Units.All(u => u.Hex is not null) && packedDeath.Units.Where(u => u.Dead).All(u => u.Hex!.Lifecycle == UnitLifecycle.Dying && u.Hex.DeathEndTick > u.Hex.DeathStartTick), "exported models preserve typed shared-hex actions and death intervals");
+                await Checkpoint(client, "packed-death", token); return;
             }
-            foreach (UnitObservation ranged in p.Units.Where(u => u.Type == UnitType.Crossbowman))
-                if (ranged.ShotCount > ranged.AttackSequence) throw new InvalidOperationException("Repeated snapshots duplicated a shot.");
-            foreach (UnitObservation unit in p.Units.Where(u => u.Visible))
+            UiObservation frozen = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal), "posed pause", token);
+            // Keep the immutable live pair in memory until this existing confirmed pause.
+            // Moving diagnostic I/O out of the live window removes an unmeasured confound, not a proved casualty cause.
+            File.WriteAllText(Path.Combine(_scope!.EvidenceDirectory, "combat-pose-proof.json"),
+                poseDiagnostic.Finish(diagnosticFlags(), "early-live-retained;remaining-proofs-pending"));
+            // Two fresh probes separated by an authority barrier; no arbitrary sleep.
+            await Action(observer, "unknown", token, false);
+            UiObservation still = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            Require(frozen.VisualSeconds == still.VisualSeconds && frozen.CombatTick == still.CombatTick &&
+                JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(still.Units) && JsonSerializer.Serialize(frozen.Strikes) == JsonSerializer.Serialize(still.Strikes) && JsonSerializer.Serialize(frozen.HealthBars) == JsonSerializer.Serialize(still.HealthBars) && frozen.Effects.Voices == 0 && still.Effects.Voices == 0 && frozen.Effects.Positions.SequenceEqual(still.Effects.Positions) && frozen.AmbientAngles.SequenceEqual(still.AmbientAngles), "pause freezes positions, skeleton poses, shots, strike connections and death clocks");
+            await Checkpoint(client, "combat-paused", token);
+            // Two input actions in the existing paused battle catch stale hidden rig
+            // poses and historical cue replay without another expensive battle.
+            await Click(client, "NextCity", token);
+            await WaitUi(client, p => p.ObservedCity != frozen.ObservedCity, "hide paused combat city", token);
+            await Click(client, "PreviousCity", token);
+            UiObservation returned = await WaitUi(client, p => p.ObservedCity == frozen.ObservedCity, "return to paused combat city", token);
+            Require(returned.VisualSeconds == frozen.VisualSeconds && returned.CombatTick == frozen.CombatTick
+                && returned.Effects.CueCount == frozen.Effects.CueCount && returned.Effects.Voices == 0
+                && returned.Units.Where(u => u.Visible).Select(u => u.Id).Order().SequenceEqual(frozen.Units.Where(u => u.Visible).Select(u => u.Id).Order())
+                && returned.Units.Where(u => u.Visible).All(u => frozen.Units.Any(old => old.Id == u.Id && old.Clip == u.Clip
+                    && old.PoseSeconds == u.PoseSeconds && old.X == u.X && old.Z == u.Z && old.BoneRotation == u.BoneRotation)),
+                "focus return seeks current paused visible pose without historical audio or attacks");
+            // The briefly visible other city's rigs have now been sought too. Use
+            // this settled observation for the later all-rig resize comparison.
+            frozen = returned;
+            await CameraFrozenBars(client, token);
+            await Click(client, "Settings", token);
+            await WaitUi(client, p => p.SettingsOpen, "settings open over paused battle", token);
+            UiObservation resized = await ResizeTo1280(client, token);
+            HealthBars(resized);
+            Require(resized.VisualSeconds == frozen.VisualSeconds && JsonSerializer.Serialize(resized.Units) == JsonSerializer.Serialize(frozen.Units)
+                && resized.HealthBars.Any(b => b.Visible && b.X != frozen.HealthBars.Single(old => old.Id == b.Id).X), "resizing reprojects health bars while authoritative health and paused unit poses stay frozen");
+            await Click(client, "CloseSettings", token);
+            await WaitUi(client, p => !p.SettingsOpen, "return to paused battle after resizing", token);
+            await UnitInspection(client, "combat-unit-inspection-resized", token);
+            await Checkpoint(client, "combat-resized", token);
+            await OpenUnitInspector(client, token);
+            // Validate clip provenance while the authority is still frozen. Cold asset
+            // I/O must not consume the fresh-body window after the resume below.
+            _ = CasualtyClips.Value;
+            long priorPause = AckSequence(client);
+            long casualtyAfter = Latest(observer).Tick;
+            using var casualtyDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+            casualtyDeadline.CancelAfter(options.Timeout);
+            admissionAfter = casualtyAfter;
+            MatchSnapshot casualtyOrigin = Latest(observer);
+            casualtyTrace.Add(new { Stage = "origin", State = casualtyOrigin });
+            async Task<GameEvent> CasualtyAction(string command, CancellationToken cancellation)
             {
-                if (unit.Clip == "hit" && !unit.HitActive) throw new InvalidOperationException("Declared hit has no active animation layer.");
-                if (unit.Clip == "attack" && !unit.AttackActive)
-                    throw new InvalidOperationException("Declared attack has no active animation one-shot.");
+                MatchSnapshot quote = Latest(observer);
+                casualtyTrace.Add(new { Stage = "request", Command = command, State = quote });
+                Require(command != "pause" || !quote.Paused, "casualty driver never initiates an already-owned pause");
+                GameEvent receipt = await Action(observer, command, cancellation);
+                casualtyTrace.Add(new { Stage = "receipt", Command = command, Receipt = receipt });
+                return receipt;
             }
-            sword |= p.Units.Any(u => AuthoredAttack(u, UnitType.Swordsman));
-            shot |= p.Units.Any(u => AuthoredAttack(u, UnitType.Mage));
-            axe |= p.Units.Any(u => AuthoredAttack(u, UnitType.Berserker));
-            hit |= p.Units.Any(u => u.Visible && u.Clip == "hit");
-            return sword && shot && hit && axe && damagedBar && recovery && inspectionChanged;
-        }, "sword/axe, Mage cast, hit and recovery poses", token, 60000);
-        Require(inspectionChanged, "live inspection updates damage or closes on its casualty");
-        Require(sword && shot && hit && axe && casualty.Effects.Active <= 64 && casualty.Effects.Voices <= 8, "rendered sword/axe/cast/hit states and bounded effects sampled from live nodes");
-        Require(damagedBar, "authoritative damage visibly reduces a living health bar");
-        await ResearchCheckpoint(client, observer, token);
-        await CameraZoom(client, token);
-        await Click(client, "ReturnToMenu", token);
-        await Click(client, "ConfirmReturn", token);
-        await WaitUi(client, p => p.Screen == "menu", "combat return cleanup", token);
-        await Click(client, "Singleplayer", token);
-        UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal)
-            && p.HudHeight >= 179 && p.HudHeight <= 190 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
-        RequireOverview(fresh);
-        Require(fresh.Units.Length == 0 && fresh.DeathCleanups.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
-            "fresh match clears living/dead views, cleanup witnesses, events and old authority identity");
-        await Checkpoint(client, "combat-fresh-session", token);
+            Task<MatchSnapshot> casualtyPause = CasualtyAdmission.Pause(casualtyOrigin, client.PlayerId, casualtyAfter, AckSequence(observer),
+                () => Latest(observer),
+                async (floor, cancellation) =>
+                {
+                    await observer.WaitFor(e => e.State is { } state && state.Revision > floor,
+                        "new current casualty admission revision", options.Timeout, cancellation);
+                    casualtyTrace.Add(new { Stage = "current", Floor = floor, State = Latest(observer) });
+                }, CasualtyAction, casualtyDeadline.Token);
+            MatchSnapshot retainedDeath;
+            try
+            {
+                await ClickAck(client, "Pause", token);
+                UiObservation outsidePause = await UiProtocol.Probe(client, options.StartupTimeout, token);
+                Require(outsidePause.InspectedUnit is null && AckSequence(client) == priorPause + 1, "outside Pause dismisses inspection and executes once");
+                retainedDeath = await casualtyPause;
+            }
+            finally
+            {
+                await casualtyDeadline.CancelAsync();
+                try { await casualtyPause; } catch when (casualtyDeadline.IsCancellationRequested) { }
+            }
+            await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-casualty-pause.json"),
+                JsonSerializer.Serialize(retainedDeath, Evidence.JsonOptions), token);
+            int dead = EligibleCasualties(retainedDeath, client.PlayerId, casualtyAfter)
+                .MaxBy(u => u.Hex!.DeathStartTick)!.Id;
+            casualtyTrace.Add(new { Stage = "selected-body", Unit = dead, State = retainedDeath });
+            WriteCasualtyTrace();
+            await Action(client, "unknown", token, false);
+            UiObservation casualty = await WaitUi(client, p => p.CombatTick == retainedDeath.Tick && p.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
+                && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && FreshDeathPose(u.PoseSeconds)), "same paused authoritative casualty rendered freshly", token);
+            CasualtyAdmission.Frame(retainedDeath, Latest(client), casualty, client.PlayerId, casualtyAfter, dead);
+            Require(!casualty.HealthBars.Any(b => b.Id == dead), "death immediately removes overhead bar");
+            Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");
+            Require(retainedDeath.DyingBodies.Any(u => u.Id == dead), "authoritative casualty pause retains the sampled death");
+            UiObservation deathPaused = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal) && p.Units.Any(u => u.Id == dead && u.Dead), "paused death remains", token);
+            await Action(observer, "unknown", token, false);
+            UiObservation deathStill = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            Require(deathStill.VisualSeconds == deathPaused.VisualSeconds && JsonSerializer.Serialize(deathPaused.Units) == JsonSerializer.Serialize(deathStill.Units) && JsonSerializer.Serialize(deathPaused.HealthBars) == JsonSerializer.Serialize(deathStill.HealthBars), "death pose and cleanup freeze on shared pause");
+            await Checkpoint(client, "combat-casualty", token, validate: frame =>
+                CasualtyAdmission.Frame(retainedDeath, Latest(client), frame, client.PlayerId, casualtyAfter, dead));
+            // Select from the frozen current battle, not a low-health target that can
+            // die between the live probe and native click. Resume through the ordinary
+            // observer command so the already-tested outside Pause click does not dismiss it.
+            UiObservation liveTarget = await WaitUi(client, p => p.Units.Any(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth), "currently damaged opponent for live inspection", token);
+            UnitObservation damagedUnit = liveTarget.Units.Where(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth).OrderBy(u => u.Health).ThenBy(u => u.Id).First();
+            await ClickPoint(client, liveTarget.Targets["Unit" + damagedUnit.Id]);
+            UiObservation liveInspection = await WaitUi(client, p => p.InspectedUnit?.Id == damagedUnit.Id, "live damaged-unit inspector opens", token);
+            InspectorObservation liveUnit = liveInspection.InspectedUnit!;
+            await Action(observer, "resume", token);
+            await Action(client, "unknown", token, false);
+            Require(!Latest(client).Paused, "live inspection resumes without dismissal");
+            long deathEnd = deathPaused.Units.Single(u => u.Id == dead).Hex!.DeathEndTick;
+            UiObservation cleaned = await WaitUi(client, p =>
+            {
+                bool present = p.Units.Any(u => u.Id == dead);
+                Require(present == (p.CombatTick < deathEnd), "death model lifetime agrees with the declared tick boundary");
+                return !present;
+            }, "declared death cleanup", token);
+            MatchSnapshot deathReleased = await Observe(observer, s => s.Tick >= deathEnd && s.DyingBodies.All(u => u.Id != dead), "authoritative death reservation release", token);
+            CombatContact(deathReleased);
+            DeathCleanupObservation cleanup = UiProtocol.DeathCleanup(cleaned, dead, deathEnd, casualty.VisualSeconds);
+            Require(cleanup.VisualSeconds - casualty.VisualSeconds <= 2, "death view frees within two unpaused seconds");
+            await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "combat-death-cleanup.json"),
+                JsonSerializer.Serialize(new
+                {
+                    Unit = dead,
+                    PausedVisualSeconds = casualty.VisualSeconds,
+                    Removal = cleanup,
+                    ProbeTick = cleaned.CombatTick,
+                    ProbeVisualSeconds = cleaned.VisualSeconds
+                }, Evidence.JsonOptions), token);
+            bool inspectionChanged = false;
+            // Retain actual frames already witnessed during movement, pause and
+            // casualty capture while observing live inspection and recovery.
+            UiObservation[] retainedFrames = [moving, moved, swordPose, frozen, casualty, deathPaused, deathStill, cleaned];
+            UnitObservation[] witnessed = retainedFrames.SelectMany(p => p.Units).Where(u => u.Visible).ToArray();
+            bool sword = witnessed.Any(u => AuthoredAttack(u, UnitType.Swordsman));
+            bool shot = witnessed.Any(u => AuthoredAttack(u, UnitType.Mage));
+            bool hit = witnessed.Any(u => u.Clip == "hit" && u.HitActive);
+            bool axe = witnessed.Any(u => AuthoredAttack(u, UnitType.Berserker));
+            bool damagedBar = frozen.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = recoveryObservation.Proven;
+            CombatPoseFlags Flags() => new(sword, shot, axe, hit, damagedBar, recovery, inspectionChanged);
+            diagnosticFlags = Flags;
+            void AttackWitness(string flag, UiObservation frame, UnitType type, string source, MatchSnapshot? received = null)
+                => poseDiagnostic.First(flag, frame.Units.FirstOrDefault(u => AuthoredAttack(u, type)) is { } unit
+                    ? CombatPoseDiagnostic.Witness(frame, unit, source, received) : null);
+            foreach (UiObservation frame in retainedFrames)
+            {
+                AttackWitness("sword", frame, UnitType.Swordsman, "retained-entry-frame");
+                AttackWitness("Mage", frame, UnitType.Mage, "retained-entry-frame");
+                AttackWitness("axe", frame, UnitType.Berserker, "retained-entry-frame");
+                if (frame.Units.FirstOrDefault(u => u.Visible && u.Clip == "hit" && u.HitActive) is { } unit)
+                    poseDiagnostic.First("hit", CombatPoseDiagnostic.Witness(frame, unit, "retained-entry-frame"));
+            }
+            if (frozen.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } entryBar)
+                poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(frozen,
+                    frozen.Units.FirstOrDefault(u => u.Id == entryBar.Id), "retained-entry-frame"));
+            poseDiagnostic.Begin(Flags());
+            await WaitUi(client, p =>
+                {
+                    MatchSnapshot received = Latest(client);
+                    poseDiagnostic.Poll(p, received);
+                    RenderedContact(p); HealthBars(p);
+                    UnitState? observed = CombatPlayback.All(Latest(client)).FirstOrDefault(unit => unit.Id == liveUnit.Id);
+                    if (p.InspectedUnit is { } inspected && inspected.Id == liveUnit.Id)
+                    {
+                        inspectionChanged |= inspected.Health != liveUnit.Health;
+                        if (p.Revision == Latest(client).Revision && observed is not null)
+                            Require(inspected.Health == observed.Health && inspected.MaximumHealth == observed.Profile.Health && inspected.Damage == observed.Profile.Damage, "live inspector follows authoritative damage and resolved stats");
+                    }
+                    else if (observed is null || observed.Health <= 0) { Require(p.InspectedUnit is null, "selected casualty removes its inspection panel"); inspectionChanged = true; }
+                    if (inspectionChanged)
+                        poseDiagnostic.First("inspectionChanged", CombatPoseDiagnostic.Witness(p,
+                            p.Units.FirstOrDefault(u => u.Id == liveUnit.Id), "current-poll:inspection-target-" + liveUnit.Id, received));
+                    damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
+                    if (p.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } bar)
+                        poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(p,
+                            p.Units.FirstOrDefault(u => u.Id == bar.Id), "current-poll", received));
+                    recovery = recoveryObservation.Observe(p, received, "current-poll");
+                    foreach (UnitObservation ranged in p.Units.Where(u => u.Type == UnitType.Crossbowman))
+                        if (ranged.ShotCount > ranged.AttackSequence) throw new InvalidOperationException("Repeated snapshots duplicated a shot.");
+                    foreach (UnitObservation unit in p.Units.Where(u => u.Visible))
+                    {
+                        if (unit.Clip == "hit" && !unit.HitActive) throw new InvalidOperationException("Declared hit has no active animation layer.");
+                        if (unit.Clip == "attack" && !unit.AttackActive)
+                            throw new InvalidOperationException("Declared attack has no active animation one-shot.");
+                    }
+                    sword |= p.Units.Any(u => AuthoredAttack(u, UnitType.Swordsman));
+                    shot |= p.Units.Any(u => AuthoredAttack(u, UnitType.Mage));
+                    axe |= p.Units.Any(u => AuthoredAttack(u, UnitType.Berserker));
+                    hit |= p.Units.Any(u => u.Visible && u.Clip == "hit");
+                    AttackWitness("sword", p, UnitType.Swordsman, "current-poll", received);
+                    AttackWitness("Mage", p, UnitType.Mage, "current-poll", received);
+                    AttackWitness("axe", p, UnitType.Berserker, "current-poll", received);
+                    if (p.Units.FirstOrDefault(u => u.Visible && u.Clip == "hit") is { } hitUnit)
+                        poseDiagnostic.First("hit", CombatPoseDiagnostic.Witness(p, hitUnit, "current-poll", received));
+                    return sword && shot && hit && axe && damagedBar && recovery && inspectionChanged;
+                }, "sword/axe, Mage cast, hit and recovery poses", token, 60000);
+            File.WriteAllText(Path.Combine(_scope!.EvidenceDirectory, "combat-pose-proof.json"),
+                poseDiagnostic.Finish(Flags(), "passed"));
+            Require(inspectionChanged, "live inspection updates damage or closes on its casualty");
+            Require(sword && shot && hit && axe && casualty.Effects.Active <= 64 && casualty.Effects.Voices <= 8, "rendered sword/axe/cast/hit states and bounded effects sampled from live nodes");
+            Require(damagedBar, "authoritative damage visibly reduces a living health bar");
+            await ResearchCheckpoint(client, observer, token);
+            await CameraZoom(client, token);
+            await Click(client, "ReturnToMenu", token);
+            await Click(client, "ConfirmReturn", token);
+            await WaitUi(client, p => p.Screen == "menu", "combat return cleanup", token);
+            await Click(client, "Singleplayer", token);
+            UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal)
+                && p.HudHeight >= 179 && p.HudHeight <= 190 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
+            RequireOverview(fresh);
+            Require(fresh.Units.Length == 0 && fresh.DeathCleanups.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
+                "fresh match clears living/dead views, cleanup witnesses, events and old authority identity");
+            await Checkpoint(client, "combat-fresh-session", token);
+        }
+        catch (Exception error) when (!shortCheck)
+        {
+            // Terminal default-combat boundary: no extra input, capture, waiter or live serialization.
+            // Includes failures before admission and before the later pose-loop finally.
+            if (error.Data[CasualtyAdmission.IdentityEvidenceKey] is CasualtyIdentityRejection rejection)
+                casualtyTrace.Add(new { Stage = "identity-rejection", Failure = rejection, State = error.Data[CasualtyAdmission.IdentityStateKey] });
+            File.WriteAllText(Path.Combine(_scope!.EvidenceDirectory, "combat-pose-proof.json"),
+                poseDiagnostic.Finish(diagnosticFlags(), poseDiagnostic.Entry is null
+                    ? "default-combat-failed;pose-loop-unexecuted" : "default-combat-failed"));
+            WriteCasualtyTrace();
+            client.DumpEvidence("Default combat failed");
+            observer.DumpEvidence("Default combat failed");
+            Child authority = _scope.Children.Last(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal) && !c.ExpectedFailure);
+            authority.DumpEvidence("Default combat failed");
+            CombatFailureEvidence.Collect(_scope.EvidenceDirectory, client.LogPath + ".states.json",
+                observer.LogPath + ".states.json", authority.LogPath + ".states.json");
+            throw;
+        }
     }
 }

@@ -1,5 +1,9 @@
 # Simulation and calculation scaling review
 
+For the later authored-scene loop and its matched allocation/frame evidence, see
+[authored-era performance](authored-performance.md). Historical measurements below
+retain their original input and renderer scopes.
+
 The review separates authority work, public snapshot/codec work, client presentation
 and verification overhead. A faster test suite does not establish a faster game.
 Source findings below describe the instrumented, unoptimized baseline; the selected

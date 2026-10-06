@@ -177,7 +177,9 @@ internal static class CampaignStrategy
             int target = type == Building.Barracks ? Math.Min(3, 1 + (state.Wave + 1) / 3) : 2;
             if (city.Slots[slot].Level < target && city.Slots[slot].UpgradeQuote is { } quote && Affordable(quote)) return new("upgrade", slot);
         }
-        foreach (UnitType role in new[] { UnitType.Swordsman, UnitType.Mage })
+        // The research witness needs support in the first available homes;
+        // optional melee refills must not push it behind the whole frontline.
+        foreach (UnitType role in new[] { UnitType.Mage, UnitType.Swordsman })
         {
             int target = role == UnitType.Mage ? 2 : state.Wave == 1 ? 6 : 12;
             if (city.Soldiers.Count(u => u.Type == role) >= target) continue;

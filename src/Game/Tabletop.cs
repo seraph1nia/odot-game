@@ -219,8 +219,21 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private static Vector3 Center(int id) => new((id - 1) * 40, 0, 0);
     internal void ReplayFocus(int city) => _focus = city;
     private static Vector3 SlotPosition(int slot) => VillageLayout.Slot(slot);
+    internal Dictionary<string, double>? ReplayCosts { get; set; }
+    private long ReplayMark(string phase, long start)
+    {
+        if (ReplayCosts is null) return 0;
+        ReplayCosts[phase] = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        return System.Diagnostics.Stopwatch.GetTimestamp();
+    }
+    internal void ReplayZoom(float zoom)
+    {
+        if (_navigation.Zoom == zoom) return;
+        _navigation.ZoomAt(WorldArea().GetCenter(), zoom > _navigation.Zoom, Math.Abs(Mathf.Log(zoom / _navigation.Zoom) / Mathf.Log(1.12f)));
+    }
     public override void _Process(double delta)
     {
+        long mark = ReplayCosts is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
         MatchSnapshot? state = game.State;
         if (state is not null && state.MatchId != _matchId)
         {
@@ -243,19 +256,26 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         }
         if (!_wasConnected && game.Connected && state is not null) _playback.Accept(state, baseline: true);
         if (_wasConnected != game.Connected) { _wasConnected = game.Connected; _slot = -1; _hover = -1; }
+        mark = ReplayMark("WorldAcceptance", mark);
         if (Focus() is not { Slots.Length: 9 }) _slot = -1;
         string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{game.CanStart}:{game.CanInvite}:{_focus}:{_slot}:{game.PlayerId}:{game.HostPlayerId}:{_constructionGroup}";
         if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
+        mark = ReplayMark("Hud", mark);
         UpdateUnits(delta);
+        mark = ReplayMark("Units", mark);
         FrameCamera();
         _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
+        mark = ReplayMark("Camera", mark);
         if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) landscape.Cover(_camera, WorldArea(), TabletopCamera.Travel);
+        mark = ReplayMark("Landscape", mark);
         UpdateHealthBars();
         UpdateInspector();
         _homeHealth.Sample(Focus(), game.State?.Rules.CityHealth ?? 100, Center(_focus) + VillageLandscape.Home + new Vector3(0, 2.7f, 0), _camera, WorldArea());
+        mark = ReplayMark("Overlays", mark);
         Vector2 mouse = GetViewport().GetMousePosition();
         int hover = game.Connected && !BlocksWorld(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
         if (hover != _hover) { _hover = hover; UpdateMarkers(); }
+        ReplayMark("HoverPicking", mark);
     }
     private void UpdateUi()
     {

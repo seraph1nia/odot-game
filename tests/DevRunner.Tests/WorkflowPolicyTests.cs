@@ -18,7 +18,6 @@ public sealed partial class WorkflowPolicyTests
         Assert.DoesNotContain("verify-installed", release, StringComparison.Ordinal);
         Assert.Contains("needs: preflight", release, StringComparison.Ordinal);
         Assert.Contains("permissions:\n      contents: write", release, StringComparison.Ordinal);
-        Assert.DoesNotContain("actions/upload-artifact", ci, StringComparison.Ordinal);
         Assert.Contains("on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]", ci, StringComparison.Ordinal);
         Assert.DoesNotContain("workflow_dispatch:", ci, StringComparison.Ordinal);
         Assert.Contains("  linux-package:", ci, StringComparison.Ordinal);

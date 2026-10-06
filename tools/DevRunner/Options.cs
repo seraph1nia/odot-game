@@ -85,7 +85,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
-            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback"] : command == "profile-presentation" ? ["combat-playback"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : [];
+            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback", "authored-scale"] : command == "profile-presentation" ? ["combat-playback", "authored-scale"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
         if (checkpoint is not null && !(scenario == "combat" && checkpoint is "melee" or "research" or "admission" || scenario == "economy" && checkpoint == "army" || scenario == "launcher" && checkpoint == "assets"))
@@ -97,7 +97,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (args.Contains("--ui-jobs") && command is not ("ci" or "ci-source")) throw new ArgumentException("--ui-jobs belongs to CI source verification.");
         if (profileIterations is < 1 or > 10 || profileFrames != 600 || profileConfiguration != "Debug")
             throw new ArgumentException("Presentation profiles require 1..10 iterations, exactly 600 frames and the locked Debug build.");
-        if (command == "profile-presentation" && scenario != "combat-playback") throw new ArgumentException("Select --scenario combat-playback.");
+        if (command == "profile-presentation" && scenario is not ("combat-playback" or "authored-scale")) throw new ArgumentException("Select --scenario combat-playback|authored-scale.");
         if (simulationSpeed is < 1 or > 8) throw new ArgumentException("--simulation-speed must be 1..8.");
         if ((args.Contains("--simulation-speed") || trace) && command is not ("test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package"))
             throw new ArgumentException("Simulation pacing/trace belongs to owned verification.");

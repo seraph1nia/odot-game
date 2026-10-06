@@ -32,8 +32,8 @@ internal sealed partial class Runner
         var serial = new Runner(options with { SimulationSpeed = 1 }, total.Token, _evidence, root: _root);
         for (int iteration = 0; iteration <= options.ProfileIterations; iteration++)
         {
-            string name = "combat-playback-" + (iteration == 0 ? "warmup" : "iteration-" + iteration);
-            await serial.UiDisplay("combat-playback", total.Token, name);
+            string name = options.Scenario + "-" + (iteration == 0 ? "warmup" : "iteration-" + iteration);
+            await serial.UiDisplay(options.Scenario!, total.Token, name);
         }
     }
     private SortedDictionary<string, string> PresentationSourceInputs()
@@ -53,7 +53,7 @@ internal sealed partial class Runner
     private async Task PresentationProfileScenario(CancellationToken token)
     {
         if (_scope is null || !_scope.Graphical) throw new InvalidOperationException("Presentation profiling requires an owned display and storage.");
-        CombatReplayInput input = CombatReplayFixture.Generate();
+        CombatReplayInput input = options.Scenario == "authored-scale" ? CombatReplayFixture.GenerateAuthored() : CombatReplayFixture.Generate();
         string inputPath = Path.Combine(_scope.EvidenceDirectory, "replay-input.json");
         string outputPath = Path.Combine(_scope.EvidenceDirectory, "profile.json");
         await File.WriteAllTextAsync(inputPath, JsonSerializer.Serialize(input, WireJson.Options), token);
