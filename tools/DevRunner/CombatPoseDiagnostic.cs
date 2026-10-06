@@ -21,6 +21,7 @@ internal sealed record CombatPoseWitness(string ResponseId, string Source, strin
     public bool Paused { get; init; }
     public int Wave { get; init; }
     public int PlaybackGeneration { get; init; }
+    public ProbeCostObservation? ProbeCosts { get; init; }
 }
 
 internal sealed class CombatPoseDiagnostic
@@ -51,7 +52,7 @@ internal sealed class CombatPoseDiagnostic
                 FrozenTick = actor.Hex?.FrozenTick
             },
             received?.Tick, received?.Revision, received?.MatchId, frame.InspectedUnit?.Id, frame.InspectedUnit?.Health)
-        { Phase = frame.MatchPhase, Paused = frame.Paused, Wave = frame.Wave, PlaybackGeneration = frame.PlaybackGeneration };
+        { Phase = frame.MatchPhase, Paused = frame.Paused, Wave = frame.Wave, PlaybackGeneration = frame.PlaybackGeneration, ProbeCosts = frame.ProbeCosts };
 
     private static bool Fits(CombatPoseWitness witness) => JsonSerializer.SerializeToUtf8Bytes(witness).Length <= 8192;
 

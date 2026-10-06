@@ -140,6 +140,16 @@ internal sealed partial class Runner
         await Click(client, "City" + client.PlayerId, token);
     }
 
+    internal static bool CombatSwordObservation(UiObservation frame, MatchSnapshot received,
+        CombatRecoveryObservation recoveryObservation, CombatPoseDiagnostic diagnostic)
+    {
+        recoveryObservation.Observe(frame, received, "early-live:attack");
+        bool currentSwordAttack = frame.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
+        bool accepted = currentSwordAttack && recoveryObservation.Proven;
+        diagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
+        return accepted;
+    }
+
     internal async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
     {
         var poseDiagnostic = new CombatPoseDiagnostic();
@@ -172,20 +182,15 @@ internal sealed partial class Runner
                 bool accepted = p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation);
                 if (!shortCheck) poseDiagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
                 return accepted;
-            }, "moving skeleton changes position and pose", token);
+            }, "moving skeleton changes position and pose", token, live: !shortCheck);
             Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
             // Observe recovery while this ordinary mixed-army battle is live, not
             // after slow paused focus/resize/casualty work has consumed its window.
             UiObservation swordPose = moved;
             if (!shortCheck)
             {
-                swordPose = await WaitUi(client, p =>
-                {
-                    recoveryObservation.Observe(p, Latest(client), "early-live:attack");
-                    bool accepted = p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
-                    poseDiagnostic.EarlyRecoveryTrace.PredicateResult(accepted);
-                    return accepted;
-                }, "rendered sword attack before inspection", token);
+                swordPose = await WaitUi(client, p => CombatSwordObservation(p, Latest(client), recoveryObservation, poseDiagnostic),
+                    "rendered sword attack before inspection", token, live: true);
             }
             if (shortCheck) await Action(observer, "pause", token);
             else await ClickAck(client, "Pause", token, swordPose);

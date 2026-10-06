@@ -123,14 +123,94 @@ public sealed class CombatRecoveryObservationTests
         yield return next with { CombatTick = 995 };
     }
 
+    [Fact]
+    public void SwordOwnerDoesNotCloseAtExpired738To790AndContinuesToCurrentPair()
+    {
+        var diagnostic = new CombatPoseDiagnostic();
+        var collector = new CombatRecoveryObservation(diagnostic);
+        UnitObservation mage = Actor with
+        {
+            Id = 31,
+            Type = UnitType.Mage,
+            ImpactTick = 714,
+            ReadyTick = 780,
+            AttackSequence = 1,
+            X = 3,
+            Z = -.55f,
+            Hex = Actor.Hex! with { Id = 31, ActionSequence = 1 }
+        };
+        UiObservation first = WithActor(Frame("76ba7409b925414cb930c41673751507", 738, 830), mage);
+        Assert.False(collector.Observe(first, Received, "early-live:locomotion"));
+        diagnostic.EarlyRecoveryTrace.PredicateResult(true);
+        UnitObservation nextMage = mage with
+        {
+            ImpactTick = 804,
+            ReadyTick = 870,
+            AttackSequence = 2,
+            Hex = mage.Hex! with { Action = UnitActionKind.Windup, ActionSequence = 2 }
+        };
+        UiObservation swordOnly = Frame("a7c10ba666064610a1056288299d43f6", 790, 882) with
+        {
+            Units = [nextMage, Actor with { Hex = Actor.Hex! with { Action = UnitActionKind.Windup }, ImpactTick = 804 }]
+        };
+        // Matched old gate succeeds, but no prior action window survives this sample.
+        bool oldSwordOnlyGate = swordOnly.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
+        Assert.True(oldSwordOnlyGate);
+        Assert.False(Runner.CombatSwordObservation(swordOnly, Received, collector, diagnostic));
+        Assert.False(collector.Proven);
+        Assert.True(diagnostic.EarlyRecoveryTrace.Callbacks[1].PreviousCandidates[0].WindowExpiredAtCallback);
+        UiObservation current = Frame("next-action-first", 824, 917);
+        Assert.False(Runner.CombatSwordObservation(current, Received, collector, diagnostic));
+        UiObservation newest = Frame("next-action-second", 825, 918);
+        Assert.True(Runner.CombatSwordObservation(newest, Received, collector, diagnostic));
+        Assert.Equal(new bool?[] { true, false, false, true }, diagnostic.EarlyRecoveryTrace.Callbacks.Select(c => c.WaitPredicateAccepted));
+        using JsonDocument proof = JsonDocument.Parse(diagnostic.Finish(new(false, false, false, false, false, collector.Proven, false), "control"));
+        Assert.Equal(current.Id, proof.RootElement.GetProperty("RecoveryPrevious").GetProperty("ResponseId").GetString());
+        Assert.Equal(newest.Id, proof.RootElement.GetProperty("RecoveryCurrent").GetProperty("ResponseId").GetString());
+    }
+
+    [Fact]
+    public void Preserved714To740MagePairStillRequiresCurrentSwordAndKeepsActualWitnesses()
+    {
+        var diagnostic = new CombatPoseDiagnostic();
+        var collector = new CombatRecoveryObservation(diagnostic);
+        UnitObservation mage = Actor with
+        {
+            Id = 31,
+            Type = UnitType.Mage,
+            ImpactTick = 714,
+            ReadyTick = 780,
+            AttackSequence = 1,
+            X = 3,
+            Z = -.55f,
+            Hex = Actor.Hex! with { Id = 31, ActionSequence = 1 }
+        };
+        UiObservation first = WithActor(Frame("valid-first", 714, 806), mage) with { ProbeCosts = new(1, 0, 0, 0, 2) { Live = true, ProcessFrame = 100 } };
+        UiObservation second = WithActor(Frame("valid-second", 740, 832), mage) with { ProbeCosts = new(2, 0, 0, 0, 3) { Live = true, ProcessFrame = 101 } };
+        Assert.False(Runner.CombatSwordObservation(first, Received, collector, diagnostic));
+        Assert.False(Runner.CombatSwordObservation(second, Received, collector, diagnostic));
+        Assert.True(collector.Proven);
+        UiObservation sword = Frame("current-sword", 741, 833) with { Units = [mage, Actor] };
+        Assert.True(Runner.CombatSwordObservation(sword, Received, collector, diagnostic));
+        Assert.False(Runner.CombatSwordObservation(sword with { Id = "hidden-sword", CombatTick = 742, Revision = 834, Units = [Actor with { Visible = false }] }, Received, collector, diagnostic));
+        Assert.False(Runner.CombatSwordObservation(sword with { Id = "hit-only", CombatTick = 743, Revision = 835, Units = [Actor with { Clip = "hit", HitActive = true }] }, Received, collector, diagnostic));
+        Assert.False(Runner.CombatSwordObservation(sword with { Id = "inactive-sword", CombatTick = 744, Revision = 836, Units = [Actor with { Clip = "walk", AttackActive = false }] }, Received, collector, diagnostic));
+        using JsonDocument proof = JsonDocument.Parse(diagnostic.Finish(new(false, false, false, false, false, collector.Proven, false), "control"));
+        Assert.Equal(first.Id, proof.RootElement.GetProperty("RecoveryPrevious").GetProperty("ResponseId").GetString());
+        Assert.Equal(second.Id, proof.RootElement.GetProperty("RecoveryCurrent").GetProperty("ResponseId").GetString());
+        Assert.Equal(first.ProbeCosts, proof.RootElement.GetProperty("RecoveryPrevious").GetProperty("ProbeCosts").Deserialize<ProbeCostObservation>());
+        Assert.Equal(second.ProbeCosts, proof.RootElement.GetProperty("RecoveryCurrent").GetProperty("ProbeCosts").Deserialize<ProbeCostObservation>());
+    }
+
     [Theory]
     [MemberData(nameof(IneligibleSecond))]
     public void InvalidPairCannotProveRecovery(int index)
     {
         UiObservation second = IneligibleFrames().ElementAt(index);
-        var collector = new CombatRecoveryObservation(new());
-        Assert.False(collector.Observe(Frame("first"), Received, "early-live"));
-        Assert.False(collector.Observe(second, Received, "early-live"));
+        var diagnostic = new CombatPoseDiagnostic();
+        var collector = new CombatRecoveryObservation(diagnostic);
+        Assert.False(Runner.CombatSwordObservation(Frame("first"), Received, collector, diagnostic));
+        Assert.False(Runner.CombatSwordObservation(second, Received, collector, diagnostic));
         Assert.False(collector.Proven);
     }
 
@@ -163,10 +243,11 @@ public sealed class CombatRecoveryObservationTests
     [InlineData(0, .1f)]
     public void BothPositionAxesAndDirectionsMustRemainAnchored(float dx, float dz)
     {
-        var collector = new CombatRecoveryObservation(new());
-        collector.Observe(Frame("first"), Received, "early-live");
+        var diagnostic = new CombatPoseDiagnostic();
+        var collector = new CombatRecoveryObservation(diagnostic);
+        Runner.CombatSwordObservation(Frame("first"), Received, collector, diagnostic);
         var second = WithActor(Frame("second", 825, 918), Actor with { X = Actor.X + dx, Z = Actor.Z + dz });
-        Assert.Throws<InvalidOperationException>(() => collector.Observe(second, Received, "early-live"));
+        Assert.Throws<InvalidOperationException>(() => Runner.CombatSwordObservation(second, Received, collector, diagnostic));
         Assert.False(collector.Proven);
     }
 
@@ -175,9 +256,10 @@ public sealed class CombatRecoveryObservationTests
     [InlineData("hit")]
     public void AnimationLayerGuardsStillFail(string clip)
     {
-        var collector = new CombatRecoveryObservation(new());
+        var diagnostic = new CombatPoseDiagnostic();
+        var collector = new CombatRecoveryObservation(diagnostic);
         var frame = WithActor(Frame("bad-layer"), Actor with { Clip = clip, AttackActive = false, HitActive = false });
-        Assert.Throws<InvalidOperationException>(() => collector.Observe(frame, Received, "early-live"));
+        Assert.Throws<InvalidOperationException>(() => Runner.CombatSwordObservation(frame, Received, collector, diagnostic));
     }
 
     [Fact]
