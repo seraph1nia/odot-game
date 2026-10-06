@@ -316,49 +316,99 @@ internal sealed partial class Runner
         bool inspectionChanged = false;
         // Retain actual frames already witnessed during movement, pause and
         // casualty capture while observing live inspection and recovery.
-        UnitObservation[] witnessed = new[] { moving, moved, swordPose, frozen, casualty, deathPaused, deathStill, cleaned }
-            .SelectMany(p => p.Units).Where(u => u.Visible).ToArray();
+        UiObservation[] retainedFrames = [moving, moved, swordPose, frozen, casualty, deathPaused, deathStill, cleaned];
+        UnitObservation[] witnessed = retainedFrames.SelectMany(p => p.Units).Where(u => u.Visible).ToArray();
         bool sword = witnessed.Any(u => AuthoredAttack(u, UnitType.Swordsman));
         bool shot = witnessed.Any(u => AuthoredAttack(u, UnitType.Mage));
         bool hit = witnessed.Any(u => u.Clip == "hit" && u.HitActive);
         bool axe = witnessed.Any(u => AuthoredAttack(u, UnitType.Berserker));
         bool damagedBar = frozen.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = false;
-        var priorRecovery = new Dictionary<int, UnitObservation>();
-        await WaitUi(client, p =>
+        var priorRecovery = new Dictionary<int, (UnitObservation Unit, CombatPoseWitness Witness)>();
+        var poseDiagnostic = new CombatPoseDiagnostic();
+        CombatPoseFlags Flags() => new(sword, shot, axe, hit, damagedBar, recovery, inspectionChanged);
+        void AttackWitness(string flag, UiObservation frame, UnitType type, string source, MatchSnapshot? received = null)
+            => poseDiagnostic.First(flag, frame.Units.FirstOrDefault(u => AuthoredAttack(u, type)) is { } unit
+                ? CombatPoseDiagnostic.Witness(frame, unit, source, received) : null);
+        foreach (UiObservation frame in retainedFrames)
         {
-            RenderedContact(p); HealthBars(p);
-            UnitState? observed = CombatPlayback.All(Latest(client)).FirstOrDefault(unit => unit.Id == liveUnit.Id);
-            if (p.InspectedUnit is { } inspected && inspected.Id == liveUnit.Id)
+            AttackWitness("sword", frame, UnitType.Swordsman, "retained-entry-frame");
+            AttackWitness("Mage", frame, UnitType.Mage, "retained-entry-frame");
+            AttackWitness("axe", frame, UnitType.Berserker, "retained-entry-frame");
+            if (frame.Units.FirstOrDefault(u => u.Visible && u.Clip == "hit" && u.HitActive) is { } unit)
+                poseDiagnostic.First("hit", CombatPoseDiagnostic.Witness(frame, unit, "retained-entry-frame"));
+        }
+        if (frozen.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } entryBar)
+            poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(frozen,
+                frozen.Units.FirstOrDefault(u => u.Id == entryBar.Id), "retained-entry-frame"));
+        poseDiagnostic.Begin(Flags());
+        bool posePassed = false;
+        try
+        {
+            await WaitUi(client, p =>
             {
-                inspectionChanged |= inspected.Health != liveUnit.Health;
-                if (p.Revision == Latest(client).Revision && observed is not null)
-                    Require(inspected.Health == observed.Health && inspected.MaximumHealth == observed.Profile.Health && inspected.Damage == observed.Profile.Damage, "live inspector follows authoritative damage and resolved stats");
-            }
-            else if (observed is null || observed.Health <= 0) { Require(p.InspectedUnit is null, "selected casualty removes its inspection panel"); inspectionChanged = true; }
-            damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
-            foreach (UnitObservation unit in p.Units.Where(u => !u.Dead && u.Hex?.Action == UnitActionKind.Recovery))
-            {
-                if (priorRecovery.TryGetValue(unit.Id, out UnitObservation? previous) && previous.ReadyTick == unit.ReadyTick)
+                MatchSnapshot received = Latest(client);
+                poseDiagnostic.Poll(p, received);
+                RenderedContact(p); HealthBars(p);
+                UnitState? observed = CombatPlayback.All(Latest(client)).FirstOrDefault(unit => unit.Id == liveUnit.Id);
+                if (p.InspectedUnit is { } inspected && inspected.Id == liveUnit.Id)
                 {
-                    if (unit.X != previous.X || unit.Z != previous.Z) throw new InvalidOperationException("Recovery moved away from its declared hex anchor.");
-                    recovery = true;
+                    inspectionChanged |= inspected.Health != liveUnit.Health;
+                    if (p.Revision == Latest(client).Revision && observed is not null)
+                        Require(inspected.Health == observed.Health && inspected.MaximumHealth == observed.Profile.Health && inspected.Damage == observed.Profile.Damage, "live inspector follows authoritative damage and resolved stats");
                 }
-                priorRecovery[unit.Id] = unit;
-            }
-            foreach (UnitObservation ranged in p.Units.Where(u => u.Type == UnitType.Crossbowman))
-                if (ranged.ShotCount > ranged.AttackSequence) throw new InvalidOperationException("Repeated snapshots duplicated a shot.");
-            foreach (UnitObservation unit in p.Units.Where(u => u.Visible))
+                else if (observed is null || observed.Health <= 0) { Require(p.InspectedUnit is null, "selected casualty removes its inspection panel"); inspectionChanged = true; }
+                if (inspectionChanged)
+                    poseDiagnostic.First("inspectionChanged", CombatPoseDiagnostic.Witness(p,
+                        p.Units.FirstOrDefault(u => u.Id == liveUnit.Id), "current-poll:inspection-target-" + liveUnit.Id, received));
+                damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
+                if (p.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } bar)
+                    poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(p,
+                        p.Units.FirstOrDefault(u => u.Id == bar.Id), "current-poll", received));
+                foreach (UnitObservation unit in p.Units.Where(u => !u.Dead && u.Hex?.Action == UnitActionKind.Recovery))
+                {
+                    if (priorRecovery.TryGetValue(unit.Id, out var previous) && previous.Unit.ReadyTick == unit.ReadyTick)
+                    {
+                        if (unit.X != previous.Unit.X || unit.Z != previous.Unit.Z) throw new InvalidOperationException("Recovery moved away from its declared hex anchor.");
+                        recovery = true;
+                        poseDiagnostic.Recovery(previous.Witness, CombatPoseDiagnostic.Witness(p, unit, "current-poll", received));
+                    }
+                    priorRecovery[unit.Id] = (unit, CombatPoseDiagnostic.Witness(p, unit, "current-poll", received));
+                }
+                foreach (UnitObservation ranged in p.Units.Where(u => u.Type == UnitType.Crossbowman))
+                    if (ranged.ShotCount > ranged.AttackSequence) throw new InvalidOperationException("Repeated snapshots duplicated a shot.");
+                foreach (UnitObservation unit in p.Units.Where(u => u.Visible))
+                {
+                    if (unit.Clip == "hit" && !unit.HitActive) throw new InvalidOperationException("Declared hit has no active animation layer.");
+                    if (unit.Clip == "attack" && !unit.AttackActive)
+                        throw new InvalidOperationException("Declared attack has no active animation one-shot.");
+                }
+                sword |= p.Units.Any(u => AuthoredAttack(u, UnitType.Swordsman));
+                shot |= p.Units.Any(u => AuthoredAttack(u, UnitType.Mage));
+                axe |= p.Units.Any(u => AuthoredAttack(u, UnitType.Berserker));
+                hit |= p.Units.Any(u => u.Visible && u.Clip == "hit");
+                AttackWitness("sword", p, UnitType.Swordsman, "current-poll", received);
+                AttackWitness("Mage", p, UnitType.Mage, "current-poll", received);
+                AttackWitness("axe", p, UnitType.Berserker, "current-poll", received);
+                if (p.Units.FirstOrDefault(u => u.Visible && u.Clip == "hit") is { } hitUnit)
+                    poseDiagnostic.First("hit", CombatPoseDiagnostic.Witness(p, hitUnit, "current-poll", received));
+                return sword && shot && hit && axe && damagedBar && recovery && inspectionChanged;
+            }, "sword/axe, Mage cast, hit and recovery poses", token, 60000);
+            posePassed = true;
+        }
+        finally
+        {
+            File.WriteAllText(Path.Combine(_scope!.EvidenceDirectory, "combat-pose-proof.json"),
+                poseDiagnostic.Finish(Flags(), posePassed ? "passed" : "failed-or-cancelled"));
+            if (!posePassed)
             {
-                if (unit.Clip == "hit" && !unit.HitActive) throw new InvalidOperationException("Declared hit has no active animation layer.");
-                if (unit.Clip == "attack" && !unit.AttackActive)
-                    throw new InvalidOperationException("Declared attack has no active animation one-shot.");
+                client.DumpEvidence("Default combat pose proof failed");
+                observer.DumpEvidence("Default combat pose proof failed");
+                Child authority = _scope.Children.Last(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal) && !c.ExpectedFailure);
+                authority.DumpEvidence("Default combat pose proof failed");
+                CombatFailureEvidence.Collect(_scope.EvidenceDirectory, client.LogPath + ".states.json",
+                    observer.LogPath + ".states.json", authority.LogPath + ".states.json");
             }
-            sword |= p.Units.Any(u => AuthoredAttack(u, UnitType.Swordsman));
-            shot |= p.Units.Any(u => AuthoredAttack(u, UnitType.Mage));
-            axe |= p.Units.Any(u => AuthoredAttack(u, UnitType.Berserker));
-            hit |= p.Units.Any(u => u.Visible && u.Clip == "hit");
-            return sword && shot && hit && axe && damagedBar && recovery && inspectionChanged;
-        }, "sword/axe, Mage cast, hit and recovery poses", token, 60000);
+        }
         Require(inspectionChanged, "live inspection updates damage or closes on its casualty");
         Require(sword && shot && hit && axe && casualty.Effects.Active <= 64 && casualty.Effects.Voices <= 8, "rendered sword/axe/cast/hit states and bounded effects sampled from live nodes");
         Require(damagedBar, "authoritative damage visibly reduces a living health bar");
