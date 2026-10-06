@@ -142,6 +142,8 @@ internal sealed partial class Runner
 
     private async Task CombatCheckpoint(Child client, Child observer, CancellationToken token, bool shortCheck = false)
     {
+        var poseDiagnostic = new CombatPoseDiagnostic();
+        var recoveryObservation = new CombatRecoveryObservation(poseDiagnostic);
         await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         // The source tower capture leaves combat paused. Sample its retained
         // route before resuming; pacing/probe round trips must not consume it.
@@ -157,9 +159,36 @@ internal sealed partial class Runner
             MatchSnapshot towerResume = State(await Action(observer, "resume", token));
             await Observe(client, s => !s.Paused && s.Revision >= towerResume.Revision, "combat resumes after tower capture", token);
         }
-        UiObservation moved = await WaitUi(client, p => p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation), "moving skeleton changes position and pose", token);
+        UiObservation moved = await WaitUi(client, p =>
+        {
+            if (!shortCheck) recoveryObservation.Observe(p, Latest(client), "early-live:locomotion");
+            return p.Units.Any(u => u.Id == first.Id && (u.X != first.X || u.Z != first.Z) && u.BoneRotation != first.BoneRotation);
+        }, "moving skeleton changes position and pose", token);
         Require(moved.Units.All(u => u.WeaponAttached && !u.InteractionEnabled), "units bind real skeleton weapons without gameplay interaction");
-        UiObservation swordPose = shortCheck ? moved : await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive), "rendered sword attack before inspection", token);
+        // Observe recovery while this ordinary mixed-army battle is live, not
+        // after slow paused focus/resize/casualty work has consumed its window.
+        UiObservation swordPose = moved;
+        if (!shortCheck)
+        {
+            bool earlyWindowCompleted = false;
+            try
+            {
+                swordPose = await WaitUi(client, p =>
+                {
+                    recoveryObservation.Observe(p, Latest(client), "early-live:attack");
+                    return p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "attack" && u.AttackActive);
+                }, "rendered sword attack before inspection", token);
+                earlyWindowCompleted = true;
+            }
+            finally
+            {
+                // Retain pair/candidate custody even if later inspection fails.
+                // The other six proofs are not evaluated at this boundary.
+                File.WriteAllText(Path.Combine(_scope!.EvidenceDirectory, "combat-pose-proof.json"),
+                    poseDiagnostic.Finish(new(false, false, false, false, false, recoveryObservation.Proven, false),
+                        earlyWindowCompleted ? "early-live-retained;remaining-proofs-pending" : "early-live-failed-or-cancelled;remaining-proofs-unexecuted"));
+            }
+        }
         if (shortCheck) await Action(observer, "pause", token);
         else await ClickAck(client, "Pause", token, swordPose);
         await Checkpoint(client, shortCheck ? "packed-locomotion" : "combat-locomotion", token);
@@ -322,9 +351,7 @@ internal sealed partial class Runner
         bool shot = witnessed.Any(u => AuthoredAttack(u, UnitType.Mage));
         bool hit = witnessed.Any(u => u.Clip == "hit" && u.HitActive);
         bool axe = witnessed.Any(u => AuthoredAttack(u, UnitType.Berserker));
-        bool damagedBar = frozen.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = false;
-        var priorRecovery = new Dictionary<int, (UnitObservation Unit, CombatPoseWitness Witness)>();
-        var poseDiagnostic = new CombatPoseDiagnostic();
+        bool damagedBar = frozen.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = recoveryObservation.Proven;
         CombatPoseFlags Flags() => new(sword, shot, axe, hit, damagedBar, recovery, inspectionChanged);
         void AttackWitness(string flag, UiObservation frame, UnitType type, string source, MatchSnapshot? received = null)
             => poseDiagnostic.First(flag, frame.Units.FirstOrDefault(u => AuthoredAttack(u, type)) is { } unit
@@ -364,16 +391,7 @@ internal sealed partial class Runner
                 if (p.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } bar)
                     poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(p,
                         p.Units.FirstOrDefault(u => u.Id == bar.Id), "current-poll", received));
-                foreach (UnitObservation unit in p.Units.Where(u => !u.Dead && u.Hex?.Action == UnitActionKind.Recovery))
-                {
-                    if (priorRecovery.TryGetValue(unit.Id, out var previous) && previous.Unit.ReadyTick == unit.ReadyTick)
-                    {
-                        if (unit.X != previous.Unit.X || unit.Z != previous.Unit.Z) throw new InvalidOperationException("Recovery moved away from its declared hex anchor.");
-                        recovery = true;
-                        poseDiagnostic.Recovery(previous.Witness, CombatPoseDiagnostic.Witness(p, unit, "current-poll", received));
-                    }
-                    priorRecovery[unit.Id] = (unit, CombatPoseDiagnostic.Witness(p, unit, "current-poll", received));
-                }
+                recovery = recoveryObservation.Observe(p, received, "current-poll");
                 foreach (UnitObservation ranged in p.Units.Where(u => u.Type == UnitType.Crossbowman))
                     if (ranged.ShotCount > ranged.AttackSequence) throw new InvalidOperationException("Repeated snapshots duplicated a shot.");
                 foreach (UnitObservation unit in p.Units.Where(u => u.Visible))
