@@ -1,5 +1,36 @@
 # Cooperative POC verification
 
+## Fixed-position settlement beautification, 2026-10-07
+
+The [change verification record](../openspec/changes/beautify-settlement-world/verification.md)
+owns the fixed-position scope, retained failures, independent protected-boundary
+proofs, matched before/after costs and current live capture inventory. No plot or
+building center/scale, tower/projectile origin, battle presentation, camera/light,
+core/save/protocol, immutable asset or dependency/tool lock changed.
+
+Full changed-source `mise run ci --ui-jobs 1` passed **840.52s**:
+`logs/20261007-014218-72209b36/ci-summary.json`, **504 gameplay / 519 runner**,
+zero failures/skips, six network scenarios, five source UI scenarios, authored
+fidelity, sequential client/server exports and headless/graphical package smoke.
+All 51 current PNGs have matching observations; supported-size camera, growth,
+all-nine-roof picking, paid economy/army, tower seating, combat and persistence
+assertions remain intact. All 26 declared owned runtime directories and six
+private-display workers were absent after exit 0. No deadline increased.
+
+A separate normal scripted diagnostic passed excluded warmup plus measured 600
+frames, all 12 original view/zoom blocks with 40 settled samples each. Four finite
+independent native/glyph bindings admit only proved unchanged original non-defense
+roof-family samples; other protected RGBA/state remains exact. Actual unit,
+terrain, new occluder and shadow counterfactuals were rejected and restored.
+Raw after totals include separately recorded exact/native verification; they are
+not peak memory or steady scenery allocation costs. Added authored scenery has
+measured draw/primitive/node costs, not a zero-cost or native-GPU/FPS claim.
+
+Prior startup, native crash, incomplete proof and missing-receipt producers remain
+failed/partial and unexplained where stated. The local CI/measurement/live passes
+do not claim the still-pending no-mistakes/current-HEAD PR gate, other platforms,
+physical input/listening, native compositor/GPU or paired Steam acceptance.
+
 ## Authored 3D migration, 2026-10-05
 
 The [migration report](authored-migration.md#retained-acceptance-evidence) owns

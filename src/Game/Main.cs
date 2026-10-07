@@ -112,7 +112,7 @@ public partial class Main : Node, IGameSession
         SessionRole role = OS.HasFeature("dedicated_server") ? SessionRole.Dedicated : SessionRole.None;
         bool roleSet = false;
         int simulationSpeed = 1;
-        string? replayInput = null, replayOutput = null;
+        string? replayInput = null, replayOutput = null, replayBaseline = null, pixelOwnership = null, boundaryEvidence = null;
         bool replayCounters = false;
         _pacing = new(System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA"),
             System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_MARKER"), System.Environment.GetEnvironmentVariable("ODOT_VERIFICATION_TOKEN"));
@@ -155,6 +155,9 @@ public partial class Main : Node, IGameSession
                 case "--supervised": _supervised = true; break;
                 case "--profile-replay-input": replayInput = Value(); break;
                 case "--profile-replay-output": replayOutput = Value(); break;
+                case "--profile-replay-baseline": replayBaseline = Value(); break;
+                case "--pixel-ownership-request": pixelOwnership = Value(); break;
+                case "--profile-boundary-evidence": boundaryEvidence = Value(); break;
                 case "--profile-work-counters": replayCounters = true; break;
                 // Steam's own launch arguments are consumed by the application platform owner.
                 case "+connect_lobby": _ = Value(); break;
@@ -185,11 +188,11 @@ public partial class Main : Node, IGameSession
             case SessionRole.Guest: StartEnetGuest(); break;
             default: Application?.ShowMenu(); Emit(new("menu", Message: "Start screen")); break;
         }
-        if (replayInput is not null || replayOutput is not null || replayCounters)
+        if (replayInput is not null || replayOutput is not null || replayCounters || replayBaseline is not null || pixelOwnership is not null || boundaryEvidence is not null)
         {
             RequireOwnedUiWorker();
             if (replayInput is null || replayOutput is null) throw new ArgumentException("Replay needs owned input and output paths.");
-            var replay = new PresentationReplay(Application!, replayInput, replayOutput, replayCounters, RequestExit);
+            var replay = new PresentationReplay(Application!, replayInput, replayOutput, replayCounters, RequestExit, replayBaseline, pixelOwnership, boundaryEvidence);
             AddChild(replay); SetProcess(false);
         }
         if (_automated || _supervised)

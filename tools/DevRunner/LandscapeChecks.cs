@@ -4,6 +4,8 @@ internal sealed record AssetPlacementObservation
 {
     public string Asset { get; init; } = "";
     public string Name { get; init; } = "";
+    public string Pocket { get; init; } = "";
+    public float[] ProjectedBounds { get; init; } = [];
     public float X { get; init; }
     public float Y { get; init; }
     public float Z { get; init; }
@@ -14,6 +16,7 @@ internal sealed record AssetPlacementObservation
 }
 
 internal sealed record TerrainBoundsObservation(string Asset, float[] Min, float[] Max);
+internal sealed record WalkObservation(string Name, int Planks, int Foundations, float Thickness, float[] Start, float[] End, float[][] Centers, float[][] Footprints, float[] Supports);
 internal sealed record RiverObservation(string Asset, float[] Start, float[] End);
 internal sealed record LandscapeObservation
 {
@@ -22,6 +25,8 @@ internal sealed record LandscapeObservation
     public int TerrainSurfaces { get; init; }
     public TerrainBoundsObservation[] TerrainBounds { get; init; } = [];
     public RiverObservation[] River { get; init; } = [];
+    public WalkObservation[] Paths { get; init; } = [];
+    public float[][] BridgeLandings { get; init; } = [];
     public int Plots { get; init; }
     public string Bridge { get; init; } = "";
     public string[] CoreTerrain { get; init; } = [];
@@ -67,6 +72,41 @@ internal static class LandscapeChecks
             && Math.Abs(b.Min[2] + 2.2083647f) < .01 && Math.Abs(b.Max[2] - 2.2083647f) < .01
             && Math.Abs(b.Max[1]) < .002 && Math.Abs(b.Min[1] + .36f) < .002);
 
+    internal static bool WalksJoined(LandscapeObservation scene)
+    {
+        static bool Point(float[] p) => p.Length == 3 && p.All(float.IsFinite);
+        static float Distance(float[] a, float[] b) => MathF.Sqrt(MathF.Pow(a[0] - b[0], 2) + MathF.Pow(a[2] - b[2], 2));
+        if (scene.Paths.Length != 6 || scene.BridgeLandings.Length != 2 || !scene.BridgeLandings.All(Point)) return false;
+        foreach (WalkObservation path in scene.Paths)
+        {
+            if (!Point(path.Start) || !Point(path.End) || path.Thickness is < .1f or > .15f
+                || path.Foundations < 1 || path.Planks < path.Foundations || path.Centers.Length != path.Planks || !path.Centers.All(Point)
+                || path.Footprints.Length != path.Planks || path.Footprints.Any(p => p.Length != 4 || !p.All(float.IsFinite) || p[0] >= p[2] || p[1] >= p[3])) return false;
+            if (path.Supports.Length != path.Planks || path.Supports.Any(s => !float.IsFinite(s))
+                || path.Centers.Where((c, i) => Math.Abs(c[1] - path.Supports[i] - (i < path.Foundations ? 0 : path.Thickness)) > .002f).Any()) return false;
+            if (path.Centers.Take(path.Foundations).Zip(path.Centers.Take(path.Foundations).Skip(1)).Any(p => Distance(p.First, p.Second) > .18f || Math.Abs(p.First[1] - p.Second[1]) > .22f)) return false;
+            // The largest physical building/raised upgrade is still 1.9 wide.
+            // Check installed plank bounds against every fixed plot's structure
+            // envelope, rather than assuming a center-only cosmetic line is safe.
+            for (int slot = 0; slot < 9; slot++)
+            {
+                int row = slot / 3 + 2; float x = (slot % 3 - 1) * 3 + row % 2 * 1.5f, z = row * 2.598076f;
+                if (path.Footprints.Any(p => p[0] < x + .95f && p[2] > x - .95f && p[1] < z + .95f && p[3] > z - .95f)) return false;
+            }
+        }
+        if (scene.Paths.Take(5).Zip(scene.Paths.Take(5).Skip(1)).Any(p => Distance(p.First.End, p.Second.Start) > .06f)) return false;
+        foreach (var (path, landing, endpoint) in new[] { (scene.Paths[4], scene.BridgeLandings[0], scene.Paths[4].End), (scene.Paths[5], scene.BridgeLandings[1], scene.Paths[5].Start) })
+        {
+            if (Distance(endpoint, landing) > .06f) return false;
+            float top = path.Centers.Where(c => Distance(c, endpoint) < .15f).Select(c => c[1] + path.Thickness).DefaultIfEmpty(float.NaN).Max();
+            if (!float.IsFinite(top) || Math.Abs(top - landing[1]) > .06f) return false;
+        }
+        return true;
+    }
+    internal static bool SceneryClear(LandscapeObservation scene, IEnumerable<UiTarget> plots) => scene.Static.Any(p => p.Pocket.Length > 0)
+        && scene.Static.Where(p => p.Pocket.Length > 0).All(p => p.Z >= 7 && p.ProjectedBounds.Length == 4 && p.ProjectedBounds.All(float.IsFinite)
+            && plots.All(t => t.X < p.ProjectedBounds[0] || t.X > p.ProjectedBounds[2] || t.Y < p.ProjectedBounds[1] || t.Y > p.ProjectedBounds[3]));
+
     internal static bool SameStartingArea(LandscapeObservation a, LandscapeObservation b) => a.Static.Length > 0
         && a.Plots == 9 && b.Plots == 9 && a.Bridge.Length > 0 && a.Bridge == b.Bridge
         && a.CoreTerrain.Length > 0 && a.CoreTerrain.SequenceEqual(b.CoreTerrain)
@@ -84,6 +124,8 @@ internal sealed partial class Runner
         Require(frame.Landscape.Static.Length >= 16, "shared starting structures and decorations instantiated");
         Require(LandscapeChecks.AuthoredTerrain(frame.Landscape), "actual imported terrain bounds match the common hex footprint and ground surface");
         Require(LandscapeChecks.JoinedRiver(frame.Landscape), "actual authored stream and single bridge water edges join without gaps or double cells");
+        Require(LandscapeChecks.WalksJoined(frame.Landscape), "installed village-edge walk connects to actual bridge deck ends without occupying any fixed building envelope");
+        Require(LandscapeChecks.SceneryClear(frame.Landscape, frame.Targets.Where(p => p.Key.StartsWith("Plot", StringComparison.Ordinal) && p.Value.Visible).Select(p => p.Value)), "new clustered scenery leaves actual projected plot selection points unobscured");
         Require(frame.Landscape.Static.All(asset => LandscapeChecks.Contact(asset, LandscapeChecks.TerrainHeight(asset))), "starting assets meet supporting hex surfaces");
         AssetPlacementObservation home = frame.Landscape.Static.Single(p => p.Asset == Game.AssetCatalog.Home);
         AssetPlacementObservation defender = frame.Landscape.Static.Single(p => p.Asset == Game.AssetCatalog.Defender);

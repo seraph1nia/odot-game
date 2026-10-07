@@ -28,6 +28,22 @@ public sealed class PresentationProfileOptionsTests
         Assert.All(first.Frames.Where(f => f.View!.StartsWith("combat", StringComparison.Ordinal) && f.Snapshot is not null),
             frame => Assert.Contains(frame.Snapshot!.Players.SelectMany(c => c.Soldiers).Concat(frame.Snapshot.Enemies), u => u.Deployed));
     }
+    [Fact]
+    public void FamilyEvidenceRequiresOriginalBaselineAndNeverOwnershipReconstruction()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "odot-profile-options-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string evidence = Path.Combine(directory, "evidence.json"); File.WriteAllText(evidence, "{}");
+        try
+        {
+            string[] selected = ["profile-presentation", "--scenario", "authored-scale", "--iterations", "1"];
+            Assert.Throws<ArgumentException>(() => Options.Parse([.. selected, "--boundary-evidence", evidence]));
+            Assert.Throws<ArgumentException>(() => Options.Parse([.. selected, "--baseline", directory, "--boundary-evidence", evidence, "--pixel-ownership-request", evidence]));
+            Options parsed = Options.Parse([.. selected, "--baseline", directory, "--boundary-evidence", evidence]);
+            Assert.Equal(evidence, parsed.BoundaryEvidence); Assert.Equal(600, parsed.ProfileFrames); Assert.Equal(600000, parsed.Timeout); Assert.Equal(15000, parsed.StartupTimeout);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
     [Theory]
     [InlineData("--frames", "601")]
     [InlineData("--iterations", "0")]

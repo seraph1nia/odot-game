@@ -1,5 +1,24 @@
 # Authored-era performance loop
 
+## Later fixed-position scenery cost, 2026-10-07
+
+The [beautification verification record](../openspec/changes/beautify-settlement-world/verification.md#complete-matched-renderresource-measurement)
+records a separate matched normal warmup + measured 600-frame before/after pair
+on the landed optimized base, same script/backend/resolution and all 12 views.
+It changes only settlement surroundings, not the numerical optimization below.
+Scenery has a measured cost: settlement16/zoom1 median draw calls 9175→10253,
+primitives 585926→659810, nodes 10770→13132; texture bytes unchanged. The full
+paired resource table remains in the ignored run summary.
+
+Exact protected-boundary/native attestation work is **additional verification**,
+recorded separately from update samples and included in the unmodified raw after
+elapsed/cumulative-allocation totals. Last capture/verification stays outside
+those original aggregates. Do not reinterpret these totals as peak memory,
+steady added-scenery allocation, causal FPS or native-GPU performance. Independent
+native/glyph proofs cover only the finite unchanged non-defense roof family at
+the four separately bound affected views; all other protected state/RGBA remains
+exact. These proofs do not replace current live UI or the full CI recorded there.
+
 ## Scope and decision
 
 Landed input: `f37830a` (authored migration). Original GLBs/maps, provenance,

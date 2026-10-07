@@ -16,6 +16,8 @@ internal sealed partial class VillageLandscape : Node3D
     private string[] _coreTerrain = [];
     private readonly Node3D _bridge;
     private readonly Dictionary<string, (Vector3 Left, Vector3 Right)> _waterEdges = [];
+    private readonly List<(string Name, MultiMeshInstance3D Batch)> _paths = [];
+    private float[][] _bridgeLandings = [];
     private (int Left, int Right, int Back, int Front)? _range;
 
     internal VillageLandscape(Node3D parent, LandscapeAssets assets)
@@ -48,6 +50,131 @@ internal sealed partial class VillageLandscape : Node3D
         _bridge = assets.Native(this, AssetCatalog.Bridge, VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow), VillageLayout.TerrainScale, 90);
         _waterEdges[AssetCatalog.Bridge] = WaterEdges(_bridge);
         for (int slot = 0; slot < 9; slot++) PlotOutline(slot);
+        ComposeVillage();
+    }
+    private void ComposeVillage()
+    {
+        // The authority approach, old props, structures and plot centers remain
+        // untouched. These pockets frame the village from its wooded sides/bank;
+        // no new tall canopy or shadow can enter the battle's projected band.
+        foreach (var (pocket, column, row, tree) in new[]
+        {
+            ("West grove", -4, 4, true), ("West grove", -4, 6, true),
+            ("Mushroom hollow", -3, 3, false), ("Mushroom hollow", -3, 4, false),
+            ("East grove", 4, 4, true), ("East grove", 4, 6, true),
+            ("Bank garden", -1, 6, false), ("Bank garden", 0, 7, false)
+        })
+        {
+            Vector3 anchor = VillageLayout.Hex(column, row);
+            if (tree)
+            {
+                Decoration(pocket, "environment/components/forest_spiral_tree.glb", anchor + new Vector3(-.25f, 0, .15f), 2.8f);
+                Decoration(pocket, "props/kit_pine.glb", anchor + new Vector3(1.1f, 0, .55f), 1.65f);
+                Decoration(pocket, "environment/components/forest_fern.glb", anchor + new Vector3(.65f, 0, -.55f), .65f);
+            }
+            else
+            {
+                Decoration(pocket, "environment/components/forest_mushroom_small.glb", anchor + new Vector3(-.5f, 0, .2f), pocket == "Mushroom hollow" ? 1.3f : .8f);
+                Decoration(pocket, "environment/components/forest_mushroom_small.glb", anchor + new Vector3(.45f, 0, -.3f), pocket == "Mushroom hollow" ? .8f : .5f);
+                Decoration(pocket, "environment/components/forest_fern.glb", anchor + new Vector3(.7f, 0, .55f), .55f);
+            }
+            Decoration(pocket, "environment/components/forest_moss.glb", anchor + new Vector3(-.65f, 0, -.65f), .7f);
+            Decoration(pocket, "environment/components/forest_leaf_clump.glb", anchor + new Vector3(.1f, 0, .7f), .5f);
+        }
+        Decoration("Bridge clearing", "environment/components/forest_lantern_post.glb", VillageLayout.Hex(2, 6), 1.1f);
+        Decoration("Bridge clearing", "environment/components/forest_boulder.glb", VillageLayout.Hex(2, 7) + new Vector3(.5f, 0, .25f), .65f);
+
+        // A timber village-edge walk, not a painted combat road. Ordinary imported
+        // plank buffers/materials are reused in six short batches. Consolidation
+        // is fidelity-checked, unlike the rejected global static flattening.
+        Node3D template = _assets.Place(this, AssetCatalog.Timber, Vector3.Zero, 1.1f);
+        ArrayMesh mesh;
+        try { mesh = StaticGeometry.Consolidate(StaticGeometry.Capture(template)); }
+        finally { RemoveChild(template); template.Free(); }
+        _bridgeLandings = DeckLandings();
+        Vector3[] north = [new(-6, 0, VillageLayout.RowStep * 2), new(-6, 0, VillageLayout.RowStep * 3),
+            new(-6.7f, 0, VillageLayout.RowStep * 4), new(-6, 0, 11.95f), new(4.5f, 0, 11.95f), new(4.5f, 0, 12.15f)];
+        for (int i = 1; i < north.Length; i++) Path("Village walk " + i, mesh, north[i - 1], north[i]);
+        Path("South bank walk", mesh, new(4.5f, 0, 13.83f), new(4.5f, 0, VillageLayout.RowStep * 6));
+    }
+    private void Decoration(string pocket, string path, Vector3 point, float size)
+    {
+        // Offsets are local grouping, never an elevation guess or map mutation.
+        point.Y = VillageLayout.Surface(point);
+        Node3D node = _assets.Place(this, path, point, size);
+        node.SetMeta("pocket", pocket);
+        foreach (GeometryInstance3D geometry in node.FindChildren("*", "GeometryInstance3D", true, false).OfType<GeometryInstance3D>())
+            geometry.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        foreach (Light3D light in node.FindChildren("*", "Light3D", true, false).OfType<Light3D>()) light.Visible = false;
+        _static.Add(node);
+    }
+    private void Path(string name, Mesh mesh, Vector3 start, Vector3 end)
+    {
+        Vector3 tangent = (end - start).Normalized();
+        float span = mesh.GetAabb().Size.X;
+        int count = (int)Math.Ceiling(start.DistanceTo(end) / (span * .985f));
+        var transforms = new List<Transform3D>();
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 point = start.Lerp(end, (i + .5f) / count);
+            point.Y = WalkSurface(point);
+            var transform = new Transform3D(new Basis(tangent, Vector3.Up, tangent.Cross(Vector3.Up)), point);
+            transforms.Add(transform);
+        }
+        // The authored bridge has a raised deck. A second grounded course on
+        // its lower bank makes an honest timber step, not a floating connector.
+        foreach (Transform3D foundation in transforms.ToArray())
+            if (foundation.Origin.Y < 0)
+                transforms.Add(foundation.Translated(new(0, mesh.GetAabb().Size.Y, 0)));
+        var batch = new MultiMeshInstance3D
+        {
+            Name = name.Replace(' ', '_'),
+            Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = transforms.Count },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+        };
+        AddChild(batch); _paths.Add((name, batch)); batch.SetMeta("foundation_count", count);
+        for (int i = 0; i < transforms.Count; i++) batch.Multimesh.SetInstanceTransform(i, transforms[i]);
+    }
+    private static float WalkSurface(Vector3 point)
+    {
+        // Unlike the ordinary center-anchored props, a walk crosses hex edges.
+        // Resolve the actual supporting hex footprint at the stepped banks;
+        // do not change the shared combat/structure surface mapping.
+        int nearestRow = (int)Math.Round(point.Z / VillageLayout.RowStep);
+        float height = float.NegativeInfinity;
+        for (int row = nearestRow - 1; row <= nearestRow + 1; row++)
+        {
+            int nearestColumn = (int)Math.Round((point.X - Math.Abs(row) % 2 * VillageLayout.HalfWidth) / (VillageLayout.HalfWidth * 2));
+            for (int column = nearestColumn - 1; column <= nearestColumn + 1; column++)
+            {
+                Vector3 local = point - VillageLayout.Hex(column, row);
+                if (Math.Abs(local.X) <= VillageLayout.HalfWidth + .001f && Math.Abs(local.Z) <= VillageLayout.Radius - Math.Abs(local.X) / Mathf.Sqrt(3) + .001f)
+                    height = Math.Max(height, VillageLayout.Height(column, row));
+            }
+        }
+        if (!float.IsFinite(height)) throw new InvalidOperationException("Walk lost its supporting hex.");
+        return height;
+    }
+    private float[][] DeckLandings()
+    {
+        var points = new List<Vector3>();
+        foreach (MeshInstance3D plank in _bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
+            .Where(n => n.Name.ToString().Contains("bridge", StringComparison.OrdinalIgnoreCase) && n.Name.ToString().Contains("plank", StringComparison.OrdinalIgnoreCase)))
+            for (int surface = 0; surface < plank.Mesh.GetSurfaceCount(); surface++)
+                points.AddRange(plank.Mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(p => ToLocal(plank.GlobalTransform * p)));
+        if (points.Count == 0) throw new InvalidOperationException("Missing authored bridge deck geometry.");
+        return new[] { points.Min(p => p.Z), points.Max(p => p.Z) }.Select(z =>
+        {
+            Vector3[] edge = points.Where(p => Math.Abs(p.Z - z) < .001f).ToArray();
+            return new[] { (edge.Min(p => p.X) + edge.Max(p => p.X)) / 2, edge.Max(p => p.Y), z };
+        }).ToArray();
+    }
+    private float[] ProjectedBounds(Node3D node, Camera3D camera)
+    {
+        Aabb box = LandscapeAssets.Bounds(node);
+        Transform2D screen = GetViewport().GetFinalTransform();
+        Vector2[] corners = Enumerable.Range(0, 8).Select(i => screen * camera.UnprojectPosition(ToGlobal(box.GetEndpoint(i)))).ToArray();
+        return [corners.Min(p => p.X), corners.Min(p => p.Y), corners.Max(p => p.X), corners.Max(p => p.Y)];
     }
     private void PlotOutline(int slot)
     {
@@ -152,6 +279,8 @@ internal sealed partial class VillageLandscape : Node3D
             .Select(p => FormattableString.Invariant($"{p.Kind}:{p.Transform.Origin.X:F3}:{p.Transform.Origin.Y:F3}:{p.Transform.Origin.Z:F3}:{p.Transform.Basis.X.X:F3}:{p.Transform.Basis.X.Z:F3}"))
             .Order(StringComparer.Ordinal).ToArray();
     }
+    // Read-only native ownership seam for the owned fixed-view counterfactual.
+    internal IEnumerable<MultiMeshInstance3D> NativeGrassOwners() => _terrain.Where(p => p.Key.Kind == AssetCatalog.Meadow).Select(p => p.Value);
     private static (Vector3 Left, Vector3 Right) WaterEdges(Node3D model)
     {
         // The composed bridge copies the component as .001; Godot also
@@ -180,6 +309,26 @@ internal sealed partial class VillageLandscape : Node3D
                     return new { Asset = p.Asset, Start = new[] { a.X, a.Y, a.Z }, End = new[] { b.X, b.Y, b.Z } };
                 }).ToArray(),
             CoreTerrain = _coreTerrain,
+            BridgeLandings = _bridgeLandings,
+            Paths = _paths.Select(p =>
+            {
+                MultiMesh instances = p.Batch.Multimesh; Aabb box = instances.Mesh.GetAabb();
+                Vector3 a = instances.GetInstanceTransform(0) * new Vector3(box.Position.X, 0, 0);
+                int foundations = p.Batch.GetMeta("foundation_count").AsInt32();
+                Vector3 b = instances.GetInstanceTransform(foundations - 1) * new Vector3(box.End.X, 0, 0);
+                return new
+                {
+                    p.Name,
+                    Planks = instances.InstanceCount,
+                    Foundations = foundations,
+                    Thickness = box.Size.Y,
+                    Start = new[] { a.X, a.Y, a.Z },
+                    End = new[] { b.X, b.Y, b.Z },
+                    Centers = Enumerable.Range(0, instances.InstanceCount).Select(i => { Vector3 v = instances.GetInstanceTransform(i).Origin; return new[] { v.X, v.Y, v.Z }; }).ToArray(),
+                    Supports = Enumerable.Range(0, instances.InstanceCount).Select(i => WalkSurface(instances.GetInstanceTransform(i).Origin)).ToArray(),
+                    Footprints = Enumerable.Range(0, instances.InstanceCount).Select(i => { Aabb b = instances.GetInstanceTransform(i) * box; return new[] { b.Position.X, b.Position.Z, b.End.X, b.End.Z }; }).ToArray()
+                };
+            }).ToArray(),
             Bridge = FormattableString.Invariant($"{_bridge.Position.X:F3}:{_bridge.Position.Y:F3}:{_bridge.Position.Z:F3}:{_bridge.Scale.X:F3}:{_bridge.Rotation.Y:F3}"),
             Plots = GetChildren().OfType<MeshInstance3D>().Count(n => n.Name.ToString().StartsWith("Plot", StringComparison.Ordinal)),
             MinX = cells.Min(p => p.X),
@@ -190,6 +339,8 @@ internal sealed partial class VillageLandscape : Node3D
             Static = _static.Select(n => new
             {
                 Asset = n.GetMeta("asset").AsString(),
+                Pocket = n.HasMeta("pocket") ? n.GetMeta("pocket").AsString() : "",
+                ProjectedBounds = n.HasMeta("pocket") ? ProjectedBounds(n, camera) : [],
                 X = n.Position.X,
                 Y = n.Position.Y,
                 Scale = n.GetChild<Node3D>(0).Scale.X,
