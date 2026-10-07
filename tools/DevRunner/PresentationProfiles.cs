@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Game.Core;
 
 namespace DevRunner;
@@ -10,6 +11,34 @@ internal sealed partial class Runner
     {
         using var total = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         total.CancelAfter(TimeSpan.FromSeconds(600 * (options.ProfileIterations + 1)));
+        await WritePresentationIdentity(total.Token);
+        var serial = new Runner(options with { SimulationSpeed = 1 }, total.Token, _evidence, root: _root);
+        if (options.PixelOwnershipRequest is not null)
+        {
+            await serial.UiDisplay("authored-scale", total.Token, "six-pixel-ownership");
+            await WritePresentationIdentity(total.Token, completed: true);
+            return;
+        }
+        for (int iteration = 0; iteration <= options.ProfileIterations; iteration++)
+        {
+            string name = options.Scenario + "-" + (iteration == 0 ? "warmup" : "iteration-" + iteration);
+            await serial.UiDisplay(options.Scenario!, total.Token, name);
+        }
+    }
+    internal async Task WritePresentationIdentity(CancellationToken token, bool completed = false)
+    {
+        JsonNode? request = options.PixelOwnershipRequest is null ? null : JsonNode.Parse(await File.ReadAllTextAsync(options.PixelOwnershipRequest, token));
+        int? targetFrame = options.PixelOwnershipRequest is null ? null : request?["TargetFrame"]?.GetValue<int>() ?? 299;
+        bool remainingViews = request?["RemainingViews"]?.GetValue<bool>() == true;
+        int requestedFrames = targetFrame is null || remainingViews ? options.ProfileFrames : targetFrame.Value + 1;
+        int? executedFrames = null;
+        if (completed && targetFrame is not null)
+        {
+            string receiptPath = Path.Combine(_evidence.Directory, "six-pixel-ownership-worker", "authored-scale", "profile.json" + (remainingViews ? "" : ".prefix.json"));
+            using JsonDocument receipt = JsonDocument.Parse(await File.ReadAllTextAsync(receiptPath, token));
+            executedFrames = receipt.RootElement.GetProperty("Frames").GetInt32();
+            if (executedFrames != requestedFrames) throw new InvalidDataException("Investigation receipt does not cover the requested scripted frames.");
+        }
         await File.WriteAllTextAsync(Path.Combine(_evidence.Directory, "profile-identity.json"), JsonSerializer.Serialize(new
         {
             Schema = "odot-presentation-run-v1",
@@ -20,6 +49,10 @@ internal sealed partial class Runner
             options.ProfileBaseline,
             options.PixelOwnershipRequest,
             options.BoundaryEvidence,
+            TargetFrame = targetFrame,
+            RemainingViews = remainingViews,
+            RequestedScriptedFrames = requestedFrames,
+            ExecutedScriptedFrames = executedFrames,
             Mode = options.PixelOwnershipRequest is null ? "600-frame measurement" : "bounded native investigation; request defines authorized samples; not acceptance",
             WarmupExecutions = options.PixelOwnershipRequest is null ? 1 : 0,
             Concurrency = 1,
@@ -31,19 +64,9 @@ internal sealed partial class Runner
             Os = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
             LogicalProcessors = Environment.ProcessorCount,
             Inputs = PresentationSourceInputs(),
-            Coverage = options.PixelOwnershipRequest is null ? "selected diagnostic replay; not default UI or native GPU performance" : "fixed frame299 investigation only; no full600-frame coverage"
-        }, WireJson.Options), total.Token);
-        var serial = new Runner(options with { SimulationSpeed = 1 }, total.Token, _evidence, root: _root);
-        if (options.PixelOwnershipRequest is not null)
-        {
-            await serial.UiDisplay("authored-scale", total.Token, "six-pixel-ownership");
-            return;
-        }
-        for (int iteration = 0; iteration <= options.ProfileIterations; iteration++)
-        {
-            string name = options.Scenario + "-" + (iteration == 0 ? "warmup" : "iteration-" + iteration);
-            await serial.UiDisplay(options.Scenario!, total.Token, name);
-        }
+            Coverage = targetFrame is null ? "selected diagnostic replay; not default UI or native GPU performance"
+                : $"{(executedFrames is null ? "requested" : "executed")} ordinary rendered frames0..{requestedFrames - 1} ({requestedFrames} scripted frames); {(executedFrames is null ? "execution unconfirmed; " : "")}investigation only; not complete replay acceptance"
+        }, WireJson.Options), token);
     }
     private SortedDictionary<string, string> PresentationSourceInputs()
     {

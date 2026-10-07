@@ -16,6 +16,12 @@ final-head receipts**. Their source inventories must not be rewritten or relabel
 The active no-mistakes pipeline owns fresh validation of changed source/evidence
 bindings and the final current-HEAD checks; that acceptance is pending here.
 
+New investigation identities record `TargetFrame`, `RemainingViews` and
+`RequestedScriptedFrames`. They report execution as unconfirmed until the owned
+worker succeeds and its prefix/full-script receipt confirms the requested frame
+count; only then is `ExecutedScriptedFrames` emitted. A 600-frame investigation
+is still not complete replay acceptance. Historical identity files are unchanged.
+
 ## Scope
 
 Base `0ce098de4f35982e30a2e7638c0b8107d06102c6`; branch `fm/odot-world-beautification`.
