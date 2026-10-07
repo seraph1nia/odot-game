@@ -38,6 +38,17 @@ internal static class PixelGlyphCompletion
             ApproximateCameraDepth = -camera.GlobalBasis.Z.Dot(label.GlobalPosition - camera.GlobalPosition)
         };
     }
+    internal static void RequireDuplicateProperties(Label3D original, Label3D copy)
+    {
+        // Local transform/name differ because the copy lives directly in the owned world.
+        foreach (Godot.Collections.Dictionary property in original.GetPropertyList())
+        {
+            string name = property["name"].AsString();
+            if ((property["usage"].AsInt32() & (int)PropertyUsageFlags.Storage) == 0
+                || name is "transform" or "position" or "rotation" or "rotation_degrees" or "quaternion" or "basis" or "scale" or "name" or "owner") continue;
+            if (!original.Get(name).Equals(copy.Get(name))) throw new InvalidDataException("Native glyph duplicate property differs: " + name);
+        }
+    }
     internal static void RequireMineTitle(Label3D[] labels)
     {
         if (labels.Length != 1) throw new InvalidDataException("Frame399 requires exactly its recorded unique mine title; no candidate may be dropped.");
@@ -144,15 +155,8 @@ internal static class PixelGlyphCompletion
             JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(Describe(scene, camera, copy), Game.Core.WireJson.Options))!;
             expected.AsObject().Remove("Node"); actual.AsObject().Remove("Node");
             // Native duplication must retain every stored glyph property, not just
-            // the descriptor subset used by roof admission. Local transform/name
-            // differ because the copy lives directly in the owned world.
-            foreach (Godot.Collections.Dictionary property in original.GetPropertyList())
-            {
-                string name = property["name"].AsString();
-                if ((property["usage"].AsInt32() & (int)PropertyUsageFlags.Storage) == 0
-                    || name is "transform" or "position" or "rotation" or "rotation_degrees" or "quaternion" or "basis" or "scale" or "name" or "owner") continue;
-                if (!original.Get(name).Equals(copy.Get(name))) throw new InvalidDataException("Native glyph duplicate property differs: " + name);
-            }
+            // the descriptor subset used by roof admission.
+            RequireDuplicateProperties(original, copy);
             if (!JsonNode.DeepEquals(expected, actual) || copy.Font != original.Font
                 || copy.MaterialOverride != original.MaterialOverride || copy.MaterialOverlay != original.MaterialOverlay)
                 throw new InvalidDataException("Native glyph duplicate descriptor/resources differ from the untouched original.");
