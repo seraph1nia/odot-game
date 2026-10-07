@@ -5,9 +5,10 @@
 The [change verification record](../openspec/changes/beautify-settlement-world/verification.md)
 owns the fixed-position scope, retained failures, protected-boundary proofs,
 matched costs and live capture inventories. Its
-[current-head acceptance section](../openspec/changes/beautify-settlement-world/verification.md#current-head-local-acceptance)
-distinguishes post-review CI/native/glyph receipts from historical implementation
-passes and the remaining publication/PR gate. See
+[historical local acceptance section](../openspec/changes/beautify-settlement-world/verification.md#historical-local-acceptance-at-53779df)
+binds earlier post-review CI/native/glyph receipts to their tested source head;
+its [accepted finishing scope](../openspec/changes/beautify-settlement-world/verification.md#accepted-finishing-scope-after-coderabbit-followup)
+owns validation requirements after the later followup. See
 [authored diagnostics](authored-performance.md#protected-boundary-and-native-investigation-modes)
 for the retained comparison and investigation command contracts.
 

@@ -5,9 +5,11 @@
 The [beautification verification record](../openspec/changes/beautify-settlement-world/verification.md#complete-matched-renderresource-measurement)
 owns the later scenery measurements and their verification-cost accounting;
 these are separate from the numerical optimization below. Its
-[current-head acceptance section](../openspec/changes/beautify-settlement-world/verification.md#current-head-local-acceptance)
-owns post-review source-bound receipts and retained failures, without relabeling
-the historical measurements as final-head evidence.
+[historical local acceptance section](../openspec/changes/beautify-settlement-world/verification.md#historical-local-acceptance-at-53779df)
+owns earlier post-review source-bound receipts and retained failures; the
+[accepted finishing scope](../openspec/changes/beautify-settlement-world/verification.md#accepted-finishing-scope-after-coderabbit-followup)
+owns requirements after the later followup, without relabeling historical
+measurements as final-head evidence.
 
 ## Scope and decision
 
@@ -104,8 +106,11 @@ The authored-scale command also supports two distinct owned diagnostic modes:
   native/glyph witnesses to their finite frame/view/zoom identities. Evidence
   hashes and current source/buffer/camera/pose/physical-state guards must match;
   unavailable or stale inputs fail rather than generating a replacement before.
-  Warmup and measured executions still run the full script. Extra exact/native
-  verification is recorded in `BoundaryValidation` and included in raw elapsed/
+  Warmup and measured executions run the full script with the same manifest;
+  request `GlyphCompletion`/`BoundaryControls` flags do not dispatch producers in
+  this comparison mode. Fresh native attestation checks the retained glyph witness
+  against current labels. Extra exact/native verification is recorded in
+  `BoundaryValidation` and included in raw elapsed/
   cumulative allocations, except the final capture/proof outside those aggregates.
 - Add `--pixel-ownership-request REQUEST.json` for one ordinary rendered-prefix
   investigation without warmup; it cannot be combined with either comparison

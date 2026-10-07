@@ -5,8 +5,8 @@ using Godot;
 
 namespace Game;
 
-// One retained six-pixel investigation, not an object-id renderer, classifier
-// waiver or acceptance check. Unknown render contributions remain ambiguous.
+// Finite retained frame/sample investigations, not an object-id renderer,
+// classifier waiver or acceptance check. Unknown contributions remain ambiguous.
 internal static class PixelOwnershipDiagnostic
 {
     private sealed record Hit(string Node, string Asset, string Owner, bool NewDecoration, int Surface, int Triangle,

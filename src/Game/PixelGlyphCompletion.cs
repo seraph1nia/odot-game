@@ -5,7 +5,7 @@ using Godot;
 
 namespace Game;
 
-// Fixed six-pixel follow-up only. Native duplicates share the original glyph
+// Frame-bound glyph follow-up only. Native duplicates share the original glyph
 // resources in an empty owned target; main-scene labels are never moved.
 internal static class PixelGlyphCompletion
 {

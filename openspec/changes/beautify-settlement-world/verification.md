@@ -1,4 +1,4 @@
-# Verification record — current-head local acceptance; publication pending
+# Verification record — finishing scope; historical local acceptance
 
 ## Review removals and evidence binding
 
@@ -13,8 +13,10 @@ remain. Scenery, gameplay, assets and historical private/raw evidence are unchan
 The implementation CI, live captures, measurements and native receipts in the
 historical sections below predate these source removals. They remain evidence for
 their recorded inputs, **not final-head receipts**. Their source inventories must
-not be rewritten or relabeled. Post-review validation is recorded separately in
-[current-head local acceptance](#current-head-local-acceptance).
+not be rewritten or relabeled. Earlier post-review validation is recorded separately in
+[historical local acceptance](#historical-local-acceptance-at-53779df). The
+[accepted finishing scope](#accepted-finishing-scope-after-coderabbit-followup)
+owns the requirements after the later CodeRabbit followup and dispatch removal.
 
 [Authored diagnostic modes](../../../docs/authored-performance.md#protected-boundary-and-native-investigation-modes)
 own the command and emitted investigation-coverage contracts. Historical identity
@@ -165,8 +167,8 @@ Firstmate task data. Historical failures are neither deleted nor upgraded.
 MAIN059/060 retire the extra measured-frame399 native counterfactual campaign
 and extra599 rendering campaign from finishing acceptance. The optional ordinary
 replay dispatch, warmup request rewriting and their exclusive integration fixtures
-are removed; ordinary warmup and measurement now consume the same retained
-four-view manifest. Original native-control producer/receipt guards, native glyph
+are removed; the [ordinary comparison contract](../../../docs/authored-performance.md#protected-boundary-and-native-investigation-modes)
+owns the resulting command behavior. Original native-control producer/receipt guards, native glyph
 property-fidelity regressions, strict zero599 consumer and exact projection
 arithmetic remain intact. No meaningful-pixel threshold, mask, pose or restoration
 guard is relaxed.
@@ -190,9 +192,9 @@ the outer executor owns remaining full validation, publication and PR gates.
 The earlier acceptance below is historical and bound to its explicitly named
 source head, not the followup source after dispatch removal.
 
-## Current-head local acceptance
+## Historical local acceptance at 53779df
 
-The active no-mistakes Test phase completed local acceptance at
+The earlier no-mistakes Test phase completed local acceptance at
 `53779df5889a2d4148ee12fbfb12f5b3c9ed32af`, after the authorized removals and
 investigation-identity correction. This section summarizes the raw receipts under
 private evidence root
@@ -259,9 +261,11 @@ or paired Steam qualification.
 
 ## Remaining delivery boundary
 
-Local acceptance above is bound to the tested source head, not a claim that
-publication, a review-ready PR or remote current-HEAD CI has completed. Those
-remaining no-mistakes phases belong to the outer executor. Documentation-only
+Historical local acceptance above is bound to its tested source head, not the
+later followup source. The [accepted finishing scope](#accepted-finishing-scope-after-coderabbit-followup)
+owns current-source validation requirements; it does not claim that publication,
+a review-ready PR or remote current-HEAD CI has completed. Those remaining
+validation and delivery phases belong to the outer executor. Documentation-only
 finalization does not relabel historical receipts as new-head executions.
 No version bump, merge, release, upload or deployment. Linux owned X11/software
 rendering/silent audio-state checks do not qualify nativeGPU/compositor, physical
