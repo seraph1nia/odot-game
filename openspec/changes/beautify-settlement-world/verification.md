@@ -160,6 +160,36 @@ documentation-only finalization; it does not validate the later review removals.
 source/measurement receipts and inventories remain ignored/private and copied to
 Firstmate task data. Historical failures are neither deleted nor upgraded.
 
+## Accepted finishing scope after CodeRabbit followup
+
+MAIN059/060 retire the extra measured-frame399 native counterfactual campaign
+and extra599 rendering campaign from finishing acceptance. The optional ordinary
+replay dispatch, warmup request rewriting and their exclusive integration fixtures
+are removed; ordinary warmup and measurement now consume the same retained
+four-view manifest. Original native-control producer/receipt guards, native glyph
+property-fidelity regressions, strict zero599 consumer and exact projection
+arithmetic remain intact. No meaningful-pixel threshold, mask, pose or restoration
+guard is relaxed.
+
+The retained `c5ecc6ed0794dc07b2310c6b90d8f96fb5ba45e3` extra campaign
+**failed**, not passed: its unit mutation changed 25 pixels (22 protected, three
+outside; 16 protected pixels became magenta), below the unchanged 100-pixel guard.
+Its receipt remains `Complete=false`, with only the positive result; exact observed
+fields are not restored-native-raster proof, and no restored-unit PNG exists.
+Terrain/occluder/shadow completion and extra599 controls remain deferred/outside
+finishing scope. Historical failures and artifacts are preserved.
+
+Finishing acceptance still requires focused executable CodeRabbit/native-fidelity
+regressions, current-source ordinary full regression and required green remote CI,
+and one matched normal authored-scale comparison against the retained original
+before directory: excluded warmup600, measured600, all12 fixed-input views,
+24 exact protected comparisons and eight ordinary native attestations. No old
+receipt is a final-source receipt. Phase-local targeted checks are partial coverage;
+the outer executor owns remaining full validation, publication and PR gates.
+
+The earlier acceptance below is historical and bound to its explicitly named
+source head, not the followup source after dispatch removal.
+
 ## Current-head local acceptance
 
 The active no-mistakes Test phase completed local acceptance at
