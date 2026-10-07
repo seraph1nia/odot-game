@@ -82,6 +82,39 @@ internal sealed partial class Runner
             inputs[file] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(_root, file))));
         return inputs;
     }
+    internal static string PresentationOwnershipWitness(string outputPath, JsonNode request, CombatReplayInput input)
+    {
+        if (File.Exists(outputPath + ".ownership.json")) return outputPath + ".ownership.json";
+        const string missing = "Missing or inconsistent six-pixel ownership witness.";
+        if (request["TargetFrame"]?.GetValue<int>() != 599 || request["RemainingViews"]?.GetValue<bool>() != true
+            || request["RestorationUnion"]?.GetValue<bool>() == true || request["BoundaryControls"]?.GetValue<bool>() == true)
+            throw new InvalidOperationException(missing);
+        foreach (string suffix in new[] { "", ".png", ".observation.json", ".remaining-proof.json", ".remaining-differences.json" })
+            if (!File.Exists(outputPath + suffix)) throw new InvalidOperationException(missing);
+        JsonNode result = JsonNode.Parse(File.ReadAllText(outputPath))!;
+        JsonNode observation = JsonNode.Parse(File.ReadAllText(outputPath + ".observation.json"))!;
+        JsonNode proof = JsonNode.Parse(File.ReadAllText(outputPath + ".remaining-proof.json"))!;
+        JsonNode differences = JsonNode.Parse(File.ReadAllText(outputPath + ".remaining-differences.json"))!;
+        if (result["Schema"]?.GetValue<string>() != "odot-presentation-profile-v1" || result["Frames"]?.GetValue<int>() != 600
+            || result["InputDigest"]?.GetValue<string>() != input.Digest || observation["InputDigest"]?.GetValue<string>() != input.Digest
+            || observation["Frame"]?.GetValue<int>() != 599 || proof["Frame"]?.GetValue<int>() != 599 || differences["Frame"]?.GetValue<int>() != 599
+            || proof["View"]?.GetValue<string>() != input.Frames[599].View || differences["View"]?.GetValue<string>() != input.Frames[599].View
+            || proof["ChangedProtectedPixels"]?.GetValue<int>() != 0 || proof["ProtectedPixels"]?.GetValue<int>() is not > 0
+            || proof["Result"]?.GetValue<string>() != "exact unchanged; no exclusion"
+            || differences["Pixels"] is not JsonArray { Count: 0 } || differences["Differences"] is not JsonArray { Count: 0 })
+            throw new InvalidOperationException(missing);
+        return outputPath + ".remaining-proof.json";
+    }
+    internal static void RequireFreshOwnershipOutput(string outputPath)
+    {
+        if (Directory.EnumerateFiles(Path.GetDirectoryName(outputPath)!, Path.GetFileName(outputPath) + "*").Any())
+            throw new InvalidOperationException("Ownership investigation output is not fresh.");
+    }
+    internal void RequireUnchangedOwnershipInputs(string requestPath, string requestJson, IReadOnlyDictionary<string, string> sourceInputs)
+    {
+        if (File.ReadAllText(requestPath) != requestJson || !JsonNode.DeepEquals(JsonSerializer.SerializeToNode(sourceInputs), JsonSerializer.SerializeToNode(PresentationSourceInputs())))
+            throw new InvalidOperationException("Ownership investigation request/source inputs changed during execution.");
+    }
     private async Task PresentationProfileScenario(CancellationToken token)
     {
         if (_scope is null || !_scope.Graphical) throw new InvalidOperationException("Presentation profiling requires an owned display and storage.");
@@ -94,13 +127,22 @@ internal sealed partial class Runner
         if (options.ProfileBaseline is not null) extra.AddRange(["--profile-replay-baseline", options.ProfileBaseline]);
         if (options.BoundaryEvidence is not null) extra.AddRange(["--profile-boundary-evidence", options.BoundaryEvidence]);
         if (options.PixelOwnershipRequest is not null) extra.AddRange(["--pixel-ownership-request", options.PixelOwnershipRequest]);
+        string? ownershipRequest = null;
+        IReadOnlyDictionary<string, string>? ownershipSources = null;
+        if (options.PixelOwnershipRequest is not null)
+        {
+            RequireFreshOwnershipOutput(outputPath);
+            ownershipRequest = await File.ReadAllTextAsync(options.PixelOwnershipRequest, token);
+            ownershipSources = PresentationSourceInputs();
+        }
         Child game = StartGameRole("presentation-replay", "solo", false, 0, extra: extra.ToArray());
         int code = await game.WaitExit(token);
         if (code != 0 || game.HasEngineErrors) throw new InvalidOperationException($"Presentation replay failed ({code}).\n{game.Tail()}");
         if (options.PixelOwnershipRequest is not null)
         {
-            if (!File.Exists(outputPath + ".ownership.json")) throw new InvalidOperationException("Missing six-pixel ownership witness.");
-            Console.WriteLine("Native ownership inspection only; no replay measurement or acceptance: " + outputPath + ".ownership.json");
+            RequireUnchangedOwnershipInputs(options.PixelOwnershipRequest, ownershipRequest!, ownershipSources!);
+            string witness = PresentationOwnershipWitness(outputPath, JsonNode.Parse(ownershipRequest!)!, input);
+            Console.WriteLine("Native ownership inspection only; no replay measurement or acceptance: " + witness);
             return;
         }
         using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(outputPath, token));

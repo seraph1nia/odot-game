@@ -38,11 +38,11 @@ public static class LandscapeBoundaryProof
         if (!JsonNode.DeepEquals(BattleProps(a), BattleProps(b))) throw new InvalidDataException("Battle scenery changed.");
         if (width <= 0 || height <= 0 || beforePixels.Length != checked(width * height * 4) || afterPixels.Length != beforePixels.Length)
             throw new InvalidDataException("Boundary needs matching complete RGBA frames.");
-        JsonNode camera = b["Camera"]!;
+        var camera = new ProtectedProjection(b["Camera"]!, height);
         int protectedPixels = 0;
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
         {
-            if (!ProtectedPixel(camera, height, x, y)) continue;
+            if (!camera.Contains(x, y)) continue;
             protectedPixels++;
             int offset = (y * width + x) * 4;
             if (!beforePixels.Slice(offset, 4).SequenceEqual(afterPixels.Slice(offset, 4)) && roofEvidence?.Allows(before, after, width, height, x, y) != true)
@@ -58,24 +58,39 @@ public static class LandscapeBoundaryProof
         _ = Verify(before, after, width, height, beforePixels, beforePixels);
         if (afterPixels.Length != beforePixels.Length) throw new InvalidDataException("Mismatched native RGBA frame.");
         var changed = new List<int[]>();
+        var camera = new ProtectedProjection(after["Fields"]!["Camera"]!, height);
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
-            if (ProtectedPixel(after["Fields"]!["Camera"]!, height, x, y) && !beforePixels.Slice((y * width + x) * 4, 4).SequenceEqual(afterPixels.Slice((y * width + x) * 4, 4)))
+            if (camera.Contains(x, y) && !beforePixels.Slice((y * width + x) * 4, 4).SequenceEqual(afterPixels.Slice((y * width + x) * 4, 4)))
                 changed.Add([x, y]);
         return changed.ToArray();
     }
-    public static bool ProtectedPixel(JsonNode camera, int height, int x, int y)
+    public static bool ProtectedPixel(JsonNode camera, int height, int x, int y) => new ProtectedProjection(camera, height).Contains(x, y);
+
+    // Cache parsed floats/trigonometry, NOT a rounded float size/height scale.
+    // The pixel arithmetic keeps the original double multiply/divide order.
+    internal readonly struct ProtectedProjection
     {
-        float size = camera["Size"]!.GetValue<float>();
-        float pitch = -camera["Rotation"]![0]!.GetValue<float>(), yaw = camera["Rotation"]![1]!.GetValue<float>();
-        if (!float.IsFinite(size) || size <= 0 || pitch is <= 0 or >= 1.5f) throw new InvalidDataException("Invalid controlled camera.");
-        double right = (x + .5 - camera["ReferenceX"]!.GetValue<float>()) * size / height;
-        double up = -(y + .5 - camera["ReferenceY"]!.GetValue<float>()) * size / height;
-        // Invert the unchanged orthographic projection relative to its quoted
-        // city-local ground reference (2,0,-3). Heads project behind their feet.
-        double groundX = 2 + Math.Cos(yaw) * right - Math.Sin(yaw) * up / Math.Sin(pitch);
-        double groundZ = -3 - Math.Sin(yaw) * right - Math.Cos(yaw) * up / Math.Sin(pitch);
-        // Entire approach, home/defender and surrounding old battle scenery;
-        // extra rear depth includes projected heads, not only ground centers.
-        return groundX is >= -14 and <= 14 && groundZ is >= -22 and <= 4.34;
+        private readonly float size, referenceX, referenceY;
+        private readonly int height;
+        private readonly double cosYaw, sinYaw, sinPitch;
+        internal ProtectedProjection(JsonNode camera, int height)
+        {
+            size = camera["Size"]!.GetValue<float>();
+            float pitch = -camera["Rotation"]![0]!.GetValue<float>(), yaw = camera["Rotation"]![1]!.GetValue<float>();
+            if (!float.IsFinite(size) || size <= 0 || pitch is <= 0 or >= 1.5f) throw new InvalidDataException("Invalid controlled camera.");
+            referenceX = camera["ReferenceX"]!.GetValue<float>(); referenceY = camera["ReferenceY"]!.GetValue<float>();
+            this.height = height;
+            cosYaw = Math.Cos(yaw); sinYaw = Math.Sin(yaw); sinPitch = Math.Sin(pitch);
+        }
+        internal bool Contains(int x, int y)
+        {
+            double right = (x + .5 - referenceX) * size / height;
+            double up = -(y + .5 - referenceY) * size / height;
+            // Unchanged city-local ground reference (2,0,-3), with rear depth
+            // for projected heads and all old battle scenery, not just feet.
+            double groundX = 2 + cosYaw * right - sinYaw * up / sinPitch;
+            double groundZ = -3 - sinYaw * right - cosYaw * up / sinPitch;
+            return groundX is >= -14 and <= 14 && groundZ is >= -22 and <= 4.34;
+        }
     }
 }

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Godot;
 
@@ -6,7 +5,7 @@ namespace Game;
 
 // Four owned captured counterfactuals in the same frozen view. No synthetic
 // pixels, production asset mutations, alternate light rig or timeout changes.
-internal static class NativeBoundaryControls
+internal static partial class NativeBoundaryControls
 {
     internal static async Task Run(Tabletop scene, string requestPath, string currentJson, string output)
     {
@@ -35,8 +34,9 @@ internal static class NativeBoundaryControls
                 install();
                 using Image changed = await Capture(name);
                 byte[] pixels = changed.GetData(); int changedProtected = 0;
+                var projection = new LandscapeBoundaryProof.ProtectedProjection(current["Fields"]!["Camera"]!, height);
                 for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
-                    if (LandscapeBoundaryProof.ProtectedPixel(current["Fields"]!["Camera"]!, height, x, y)
+                    if (projection.Contains(x, y)
                         && !pixels.AsSpan((y * width + x) * 4, 4).SequenceEqual(fixedPixels.AsSpan((y * width + x) * 4, 4))) changedProtected++;
                 if (changedProtected < 100) throw new InvalidDataException("Native counterfactual failed to affect a meaningful protected raster: " + name);
                 string? rejection = null;
@@ -49,6 +49,8 @@ internal static class NativeBoundaryControls
             using Image restored = await Capture(name + "-restored");
             LandscapeBoundaryProof.Verify(before, current, width, height, beforePixels, restored.GetData(), evidence);
         }
+        bool exact = false;
+        Exception? firstException = null;
         try
         {
             UnitView unit = scene.FindChildren("*", "Node3D", true, false).OfType<UnitView>().First(u => u.IsVisibleInTree());
@@ -80,20 +82,15 @@ internal static class NativeBoundaryControls
                 { scene.AddChild(caster); caster.GlobalPosition = receiver + sun.GlobalBasis.Z * (2 / sun.GlobalBasis.Z.Y); },
                 () => { if (caster.GetParent() is not null) scene.RemoveChild(caster); caster.Free(); });
         }
+        catch (Exception e) { firstException = e; throw; }
         finally
         {
-            var fields = new Dictionary<string, object?>(); var targets = new Dictionary<string, object>(); scene.AppendUiObservation(fields, targets);
-            JsonNode restored = JsonNode.Parse(JsonSerializer.Serialize(new { InputDigest = current["InputDigest"]!.GetValue<string>(), Frame = 299, Fields = fields }, Game.Core.WireJson.Options))!;
-            bool exact = JsonNode.DeepEquals(current, restored);
-            File.WriteAllText(output + ".controls.json", JsonSerializer.Serialize(new
+            exact = FinishRestoration(current, () =>
             {
-                Schema = "owned-native-boundary-controls-v1",
-                Results = results,
-                ExactObservedRestoration = exact,
-                Method = "same frozen frame299/camera/light; actual material overrides, new visible occluder and shadow-only native caster; every mutation restored before next capture",
-                Complete = results.Count == 5 && exact
-            }, Game.Core.WireJson.Options));
+                var fields = new Dictionary<string, object?>(); var targets = new Dictionary<string, object>(); scene.AppendUiObservation(fields, targets);
+                return fields;
+            }, results, output, firstException, e => GD.PrintErr("Native restoration receipt failed after control failure: " + e));
         }
-        if (results.Count != 5) throw new InvalidDataException("Native boundary controls incomplete.");
+        RequireComplete(results.Count, exact);
     }
 }
