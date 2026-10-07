@@ -30,10 +30,9 @@ public sealed class CanonicalBoundaryCaptureTests
         Assert.Equal(1, events.Count(e => e.StartsWith("controls", StringComparison.Ordinal)));
     }
     [Theory]
-    [InlineData(299, 299)]
     [InlineData(399, 299)]
-    [InlineData(499, 399)]
-    [InlineData(599, 599)]
+    [InlineData(399, 499)]
+    [InlineData(399, 599)]
     public async Task OtherOrStaleBindingsCannotInvokeProducers(int frame, int target)
     {
         bool compared = false, produced = false;
@@ -78,6 +77,125 @@ public sealed class CanonicalBoundaryCaptureTests
             () => { produced = true; return Task.CompletedTask; }, () => { produced = true; return Task.CompletedTask; });
         Assert.True(compared);
         Assert.False(produced);
+    }
+    [Theory]
+    [InlineData(299)]
+    [InlineData(499)]
+    [InlineData(599)]
+    public async Task Non399BoundFlagsRemainInertAfterOrdinaryComparison(int frame)
+    {
+        var events = new List<string>();
+        await CanonicalBoundaryCapture.Run(frame, Request(frame), () => events.Add("compare"),
+            () => { events.Add("glyph"); return Task.CompletedTask; }, () => { events.Add("controls"); return Task.CompletedTask; });
+        events.Add("resume");
+        Assert.Equal(new[] { "compare", "resume" }, events);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FourRetainedBindingsKeepLaterFlagsInertAndDisableOnlySelected399ForWarmup(bool select399)
+    {
+        using Stream fixture = typeof(CanonicalBoundaryCaptureTests).Assembly.GetManifestResourceStream("DevRunner.Tests.Fixtures.canonical-four-view-selection.json")!;
+        JsonNode model = JsonNode.Parse(fixture)!;
+        string directory = Path.Combine(Path.GetTempPath(), "canonical-four-bindings-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var manifest = new JsonObject { ["Schema"] = model["Schema"]!.DeepClone(), ["Bindings"] = new JsonArray() };
+            var originalRequests = new Dictionary<int, byte[]>();
+            foreach (JsonNode? row in model["Bindings"]!.AsArray())
+            {
+                int frame = row!["Frame"]!.GetValue<int>();
+                JsonNode request = row["Request"]!.DeepClone();
+                if (frame == 399 && select399)
+                {
+                    request["GlyphCompletion"] = true;
+                    request["BoundaryControls"] = true;
+                }
+                string requestPath = Path.Combine(directory, frame + ".json");
+                File.WriteAllText(requestPath, request.ToJsonString());
+                originalRequests[frame] = File.ReadAllBytes(requestPath);
+                manifest["Bindings"]!.AsArray().Add(new JsonObject
+                {
+                    ["Frame"] = frame, ["View"] = row["View"]!.DeepClone(), ["Zoom"] = row["Zoom"]!.DeepClone(), ["Request"] = requestPath
+                });
+            }
+            string manifestPath = Path.Combine(directory, "manifest.json");
+            File.WriteAllText(manifestPath, manifest.ToJsonString());
+            byte[] originalManifest = File.ReadAllBytes(manifestPath);
+            string warmupPath = Runner.WarmupBoundaryEvidence(manifestPath, directory)!;
+            Assert.Equal(select399, warmupPath != manifestPath);
+            JsonNode warmup = JsonNode.Parse(File.ReadAllText(warmupPath))!;
+            var events = new List<string>();
+            foreach ((string phase, JsonNode bindings) in new[] { ("warmup", warmup), ("measured", (JsonNode)manifest) })
+                foreach (JsonNode? row in bindings["Bindings"]!.AsArray())
+                {
+                    int frame = row!["Frame"]!.GetValue<int>();
+                    string path = NonDefenseRoofEvidence.BoundRequest(bindings, frame, row["View"]!.GetValue<string>(), 3)!;
+                    JsonNode request = JsonNode.Parse(File.ReadAllText(path))!;
+                    JsonNode expected = JsonNode.Parse(originalRequests[frame])!;
+                    if (phase == "warmup" && frame == 399 && select399)
+                    {
+                        expected.AsObject().Remove("GlyphCompletion");
+                        expected.AsObject().Remove("BoundaryControls");
+                    }
+                    else Assert.Equal(Path.Combine(directory, frame + ".json"), path);
+                    Assert.True(JsonNode.DeepEquals(expected, request));
+                    await CanonicalBoundaryCapture.Run(frame, request, () => events.Add(phase + "compare" + frame),
+                        () => { events.Add(phase + "glyph" + frame); return Task.CompletedTask; },
+                        () => { events.Add(phase + "controls" + frame); return Task.CompletedTask; });
+                    events.Add(phase + "resume" + frame);
+                }
+            var expectedEvents = new List<string>();
+            foreach (string phase in new[] { "warmup", "measured" })
+                foreach (int frame in new[] { 299, 399, 499, 599 })
+                {
+                    expectedEvents.Add(phase + "compare" + frame);
+                    if (select399 && phase == "measured" && frame == 399)
+                    {
+                        expectedEvents.Add(phase + "glyph399");
+                        expectedEvents.Add(phase + "controls399");
+                    }
+                    expectedEvents.Add(phase + "resume" + frame);
+                }
+            Assert.Equal(expectedEvents, events);
+            Assert.Equal(originalManifest, File.ReadAllBytes(manifestPath));
+            foreach ((int frame, byte[] bytes) in originalRequests) Assert.Equal(bytes, File.ReadAllBytes(Path.Combine(directory, frame + ".json")));
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+    [Theory]
+    [InlineData("{\"GlyphCompletion\":true}")]
+    [InlineData("{\"TargetFrame\":299,\"GlyphCompletion\":true}")]
+    [InlineData("{\"TargetFrame\":499,\"GlyphCompletion\":true}")]
+    [InlineData("{\"TargetFrame\":599,\"BoundaryControls\":true}")]
+    [InlineData("{\"TargetFrame\":\"399\",\"GlyphCompletion\":true}")]
+    [InlineData("{\"TargetFrame\":399,\"GlyphCompletion\":\"true\"}")]
+    public async Task Invalid399SelectionRefusesWarmupOutputAndMeasuredProducers(string requestJson)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "canonical-invalid-binding-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            using Stream fixture = typeof(CanonicalBoundaryCaptureTests).Assembly.GetManifestResourceStream("DevRunner.Tests.Fixtures.canonical-four-view-selection.json")!;
+            JsonNode manifest = JsonNode.Parse(fixture)!;
+            string selectedPath = Path.Combine(directory, "399.json");
+            File.WriteAllText(selectedPath, requestJson);
+            foreach (JsonNode? binding in manifest["Bindings"]!.AsArray())
+                binding!["Request"] = binding["Frame"]!.GetValue<int>() == 399 ? selectedPath : Path.Combine(directory, binding["Frame"] + ".json");
+            string manifestPath = Path.Combine(directory, "manifest.json");
+            File.WriteAllText(manifestPath, manifest.ToJsonString());
+            Assert.NotNull(Record.Exception(() => Runner.WarmupBoundaryEvidence(manifestPath, directory)));
+            Assert.False(File.Exists(Path.Combine(directory, "warmup-frame399-request.json")));
+            Assert.False(File.Exists(Path.Combine(directory, "warmup-boundary-evidence.json")));
+            bool compared = false, produced = false;
+            Assert.NotNull(await Record.ExceptionAsync(() => CanonicalBoundaryCapture.Run(399, JsonNode.Parse(requestJson),
+                () => compared = true, () => { produced = true; return Task.CompletedTask; }, () => { produced = true; return Task.CompletedTask; })));
+            Assert.True(compared);
+            Assert.False(produced);
+            Assert.Equal(requestJson, File.ReadAllText(selectedPath));
+        }
+        finally { Directory.Delete(directory, recursive: true); }
     }
     [Fact]
     public async Task WarmupUsesSameProofInputsWithoutProducerFlagsAndMeasuredStillProduces()
