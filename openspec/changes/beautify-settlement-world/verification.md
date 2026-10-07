@@ -1,4 +1,4 @@
-# Verification record — historical implementation acceptance; current-head gates pending
+# Verification record — current-head local acceptance; publication pending
 
 ## Review removals and evidence binding
 
@@ -10,17 +10,15 @@ Native boundary/glyph/control acceptance, actual Godot admission receipts and th
 original ordered short-circuit admission predicate, digest and serializer/options
 remain. Scenery, gameplay, assets and historical private/raw evidence are unchanged.
 
-The CI, live captures, measurements and native receipts below predate these source
-removals. They remain historical evidence for their recorded inputs, **not
-final-head receipts**. Their source inventories must not be rewritten or relabeled.
-The active no-mistakes pipeline owns fresh validation of changed source/evidence
-bindings and the final current-HEAD checks; that acceptance is pending here.
+The implementation CI, live captures, measurements and native receipts in the
+historical sections below predate these source removals. They remain evidence for
+their recorded inputs, **not final-head receipts**. Their source inventories must
+not be rewritten or relabeled. Post-review validation is recorded separately in
+[current-head local acceptance](#current-head-local-acceptance).
 
-New investigation identities record `TargetFrame`, `RemainingViews` and
-`RequestedScriptedFrames`. They report execution as unconfirmed until the owned
-worker succeeds and its prefix/full-script receipt confirms the requested frame
-count; only then is `ExecutedScriptedFrames` emitted. A 600-frame investigation
-is still not complete replay acceptance. Historical identity files are unchanged.
+[Authored diagnostic modes](../../../docs/authored-performance.md#protected-boundary-and-native-investigation-modes)
+own the command and emitted investigation-coverage contracts. Historical identity
+files are unchanged.
 
 ## Scope
 
@@ -57,7 +55,7 @@ under `logs/beautification-baseline/`. No tolerance, mask shrink, pixel ignoreli
 pose overwrite, GPU flush, runtime/JIT change or global nondeterminism waiver was
 used. Failure reports are distinct from later successful producers.
 
-## Independently bounded boundary proof
+## Historical independently bounded boundary proof
 
 `LandscapeBoundaryProof` checks identical input/camera/physical placements/terrain,
 current unit poses/equipment/effects and exact protected RGBA. Only ephemeral
@@ -98,6 +96,8 @@ loaded-image proof. Earlier startup/missing receipts remain failed/unexplained.
 
 ## Complete matched render/resource measurement
 
+These are historical implementation measurements, not post-review head receipts.
+
 Before: `20261006-194251-7252e3c9`; after: `20261007-013049-be02cc47`.
 Each has one excluded warmup and one measured600-frame script, all12 original
 view/zoom blocks and40 settled samples/block,1100×820,Debug,llvmpipeLLVM23.1.1,
@@ -137,7 +137,7 @@ exports; headless package smoke; Steam-extension smoke and graphical package smo
 Source UI economy303.95s,reconnect73.19s,settings49.99s,launcher152.66s,combat165.03s.
 All original startup/scenario/supervision deadlines remain unchanged.
 
-The **51 current PNGs have51 matching observations**, inventoried with dimensions
+The **51 implementation PNGs have51 matching observations**, inventoried with dimensions
 and SHA256 in `logs/beautification-baseline/current-live-capture-inventory.json`.
 These are real input/state/pose captures, not replay frames relabeled as live:
 
@@ -160,11 +160,79 @@ documentation-only finalization; it does not validate the later review removals.
 source/measurement receipts and inventories remain ignored/private and copied to
 Firstmate task data. Historical failures are neither deleted nor upgraded.
 
+## Current-head local acceptance
+
+The active no-mistakes Test phase completed local acceptance at
+`53779df5889a2d4148ee12fbfb12f5b3c9ed32af`, after the authorized removals and
+investigation-identity correction. This section summarizes the raw receipts under
+private evidence root
+`/home/bart/.no-mistakes/evidence/01M4AFVCCG3TG34EMZKNAW3W0B/`;
+`completed-testing-record.md` and `completed-current-head-acceptance.json` index
+those receipts. The documentation pass did not rerun behavioral checks.
+
+- `mise run ci --ui-jobs 1` passed **846.61s**, exit0, full required set:
+  `current-ci/ci-summary.json`. **504 gameplay / 526 runner** checks had zero
+  failures/skips; authored fidelity, all six network scenarios, all five live
+  source UI scenarios, sequential client/server exports, headless package smoke,
+  offline source/exported Steam-extension checks and graphical package smoke
+  passed. `current-live-capture-inventory.json` inventories 51 fresh PNG/observation
+  pairs; `current-ci-cleanup.json` records all 26 runtime directories and six
+  graphical workers absent. Startup15s, worker900s, army300s, research120s and the
+  other original limits remained unchanged.
+- Ordinary after-only rendered diagnostics passed **278.98s**, exit0:
+  `current-normal-after/profile-presentation-summary.json`. One excluded warmup
+  and one measured600-frame script covered all12 view/zoom blocks with40 settled
+  samples/block. This was rendering/admission evidence only, not boundary proof.
+- The missing original inputs were subsequently located through
+  `retained-beautification-inputs.md`. Original-before captures/observations/
+  identities and historical native/glyph witnesses were byte-preserved;
+  `retained-beautification-inputs/transport-requests/four-view-boundary-evidence.json`
+  relocates filesystem locators only, not identity/hash/frame/view/source/coverage
+  data. The ordinary `--baseline … --boundary-evidence …` after/proof command
+  passed **297.98s**, exit0:
+  `current-protected-boundary/profile-presentation-summary.json`. Excluded warmup
+  and measured600-frame executions produced **24 protected-boundary receipts and
+  8 fresh native/glyph attestations**, independently bound to299/399/499/599.
+  No original-before or unaffected negative-control campaign was repeated.
+- The corrected599 ordinary `--pixel-ownership-request …` investigation passed
+  **150.62s**, exit0:
+  `current-frame599-restoration/profile-presentation-summary.json`. Actual ordered
+  replay admission and canonical used bytes, current/restored native stacks,
+  physical state, glyph identities and exact restoration passed. It verified
+  **761759 protected pixels**, admitting four changed proved-family pixels only.
+  Its six-point query union had zero original glyph coverage at each sample and
+  5×5 neighborhood; the two genuine labels painted3369/3413 pixels elsewhere.
+  Completed emitted identity confirmed target599 and600 executed scripted frames,
+  explicitly as an investigation, not complete replay acceptance.
+
+`current-proof-source-binding.json` reports no source drift from the proof
+identity; the Test phase also reconciled the retained same-head CI binding.
+`current-proof-cleanup.json` records all eight runtime directories and three
+workers from the two new proof commands absent. Raw receipts retain their original
+embedded generated paths; copying evidence did not rewrite their provenance.
+
+Failures remain distinct: the selected economy300000ms timeout and first Test
+agent30-minute cutoff/exit143 are not retroactively passed. An initial ordinary
+boundary producer exited Godot134 after writing12 warmup boundary receipts and
+four attestations (`current-boundary-record.json`); its measured iteration never
+started, and its cause remains unestablished. Those successful subproofs are
+partial evidence from a **failed producer**, not the later complete verdict.
+Earlier input-unavailable reports and historical499-to599 restoration failure
+remain retained; subsequent discovery/success does not rewrite them. Focused69-test
+and launcher successes remain partial evidence. No guard, source, runtime,
+serializer, option or deadline was changed to obtain the completed receipts.
+
+Actual loaded Game/Core locations remain empty: MVIDs are available, loaded-image
+file hashes explicitly unavailable. Local acceptance does not establish an exact
+coplanar winner or native GPU/compositor, physical input/listening, other-platform
+or paired Steam qualification.
+
 ## Remaining delivery boundary
 
-Planning/spec/docs consistency and commit-complete Firstmate handoff precede
-mandatory no-mistakes review/fixes/publication and a separate review-ready PR with
-green current-HEAD checks. This record does not claim that pending PR/NM gate.
+Local acceptance above is bound to the tested source head, not a claim that
+publication, a review-ready PR or remote current-HEAD CI has completed. Those
+remaining no-mistakes phases belong to the outer executor. Documentation-only
+finalization does not relabel historical receipts as new-head executions.
 No version bump, merge, release, upload or deployment. Linux owned X11/software
 rendering/silent audio-state checks do not qualify nativeGPU/compositor, physical
 input/listening, other platforms or paired Steam accounts/machines.

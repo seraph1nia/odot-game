@@ -3,25 +3,11 @@
 ## Later fixed-position scenery cost, 2026-10-07
 
 The [beautification verification record](../openspec/changes/beautify-settlement-world/verification.md#complete-matched-renderresource-measurement)
-records a separate matched normal warmup + measured 600-frame before/after pair
-on the landed optimized base, same script/backend/resolution and all 12 views.
-It changes only settlement surroundings, not the numerical optimization below.
-Scenery has a measured cost: settlement16/zoom1 median draw calls 9175→10253,
-primitives 585926→659810, nodes 10770→13132; texture bytes unchanged. The full
-paired resource table remains in the ignored run summary.
-
-Exact protected-boundary/native attestation work is **additional verification**,
-recorded separately from update samples and included in the unmodified raw after
-elapsed/cumulative-allocation totals. Last capture/verification stays outside
-those original aggregates. Do not reinterpret these totals as peak memory,
-steady added-scenery allocation, causal FPS or native-GPU performance. Independent
-native/glyph proofs cover only the finite unchanged non-defense roof family at
-the four separately bound affected views; all other protected state/RGBA remains
-exact. These proofs do not replace live UI or the full CI recorded there.
-The recorded beautification measurements, proofs and CI predate the authorized
-review removal of fast-reconstruction/context and standalone consumer-loading
-diagnostics. They remain historical input-bound evidence, not final-head receipts;
-fresh changed-source/evidence-binding validation is pending in the active pipeline.
+owns the later scenery measurements and their verification-cost accounting;
+these are separate from the numerical optimization below. Its
+[current-head acceptance section](../openspec/changes/beautify-settlement-world/verification.md#current-head-local-acceptance)
+owns post-review source-bound receipts and retained failures, without relabeling
+the historical measurements as final-head evidence.
 
 ## Scope and decision
 
@@ -107,6 +93,33 @@ mistakes that cheap tests cannot measure, costs approximately 2.5 minutes per wo
 and does not expand default CI into a graphical population matrix. Twelve fresh
 rendered views and current pose/camera/placement observations are retained per
 worker; no earlier image stands in for a later frame.
+
+## Protected-boundary and native investigation modes
+
+The authored-scale command also supports two distinct owned diagnostic modes:
+
+- Add `--baseline PATH` to compare every fresh capture with the matching retained
+  measured capture directory containing `profile.json`, PNGs and observations.
+  Add `--boundary-evidence REQUEST.json` only with that baseline to bind retained
+  native/glyph witnesses to their finite frame/view/zoom identities. Evidence
+  hashes and current source/buffer/camera/pose/physical-state guards must match;
+  unavailable or stale inputs fail rather than generating a replacement before.
+  Warmup and measured executions still run the full script. Extra exact/native
+  verification is recorded in `BoundaryValidation` and included in raw elapsed/
+  cumulative allocations, except the final capture/proof outside those aggregates.
+- Add `--pixel-ownership-request REQUEST.json` for one ordinary rendered-prefix
+  investigation without warmup; it cannot be combined with either comparison
+  option. `TargetFrame` defaults to 299 and permits only 299/399/499/599.
+  `RemainingViews` permits full-script continuation only for 499/599 and is
+  required for 599. The retained request defines authorized samples and optional
+  native glyph/control work; this is not a general renderer classification mode.
+
+`profile-identity.json` records `TargetFrame`, `RemainingViews` and
+`RequestedScriptedFrames` for investigations. Execution is unconfirmed until the
+owned worker succeeds and the prefix/full-script receipt matches the requested
+count; only then is `ExecutedScriptedFrames` emitted. Even a 600-frame investigation
+is not complete replay acceptance. These modes do not replace live gameplay/UI
+or full CI, establish an exact coplanar tile winner, or qualify native GPU performance.
 
 ## Numerical before/after (accepted round)
 

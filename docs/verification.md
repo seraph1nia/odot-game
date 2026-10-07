@@ -3,40 +3,13 @@
 ## Fixed-position settlement beautification, 2026-10-07
 
 The [change verification record](../openspec/changes/beautify-settlement-world/verification.md)
-owns the fixed-position scope, retained failures, independent protected-boundary
-proofs, matched before/after costs and current live capture inventory. No plot or
-building center/scale, tower/projectile origin, battle presentation, camera/light,
-core/save/protocol, immutable asset or dependency/tool lock changed.
-
-The historical implementation-source `mise run ci --ui-jobs 1` passed **840.52s**:
-`logs/20261007-014218-72209b36/ci-summary.json`, **504 gameplay / 519 runner**,
-zero failures/skips, six network scenarios, five source UI scenarios, authored
-fidelity, sequential client/server exports and headless/graphical package smoke.
-All 51 current PNGs have matching observations; supported-size camera, growth,
-all-nine-roof picking, paid economy/army, tower seating, combat and persistence
-assertions remain intact. All 26 declared owned runtime directories and six
-private-display workers were absent after exit 0. No deadline increased.
-
-A separate normal scripted diagnostic passed excluded warmup plus measured 600
-frames, all 12 original view/zoom blocks with 40 settled samples each. Four finite
-independent native/glyph bindings admit only proved unchanged original non-defense
-roof-family samples; other protected RGBA/state remains exact. Actual unit,
-terrain, new occluder and shadow counterfactuals were rejected and restored.
-Raw after totals include separately recorded exact/native verification; they are
-not peak memory or steady scenery allocation costs. Added authored scenery has
-measured draw/primitive/node costs, not a zero-cost or native-GPU/FPS claim.
-
-Authorized review removals retired the paired fast-reconstruction/context campaign
-and standalone consumer-loading diagnosis/guard mode. Ordinary rendered-prefix
-native/glyph/control acceptance and actual Godot admission receipts remain. The
-recorded passes predate these source removals: source inventories and raw evidence
-remain historical, not final-head receipts. Fresh changed-source/evidence-binding
-validation belongs to the active no-mistakes pipeline and is pending.
-
-Prior startup, native crash, incomplete proof and missing-receipt producers remain
-failed/partial and unexplained where stated. The local CI/measurement/live passes
-do not claim the still-pending no-mistakes/current-HEAD PR gate, other platforms,
-physical input/listening, native compositor/GPU or paired Steam acceptance.
+owns the fixed-position scope, retained failures, protected-boundary proofs,
+matched costs and live capture inventories. Its
+[current-head acceptance section](../openspec/changes/beautify-settlement-world/verification.md#current-head-local-acceptance)
+distinguishes post-review CI/native/glyph receipts from historical implementation
+passes and the remaining publication/PR gate. See
+[authored diagnostics](authored-performance.md#protected-boundary-and-native-investigation-modes)
+for the retained comparison and investigation command contracts.
 
 ## Authored 3D migration, 2026-10-05
 
