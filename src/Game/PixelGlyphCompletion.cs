@@ -5,8 +5,8 @@ using Godot;
 
 namespace Game;
 
-// Fixed six-pixel follow-up only. Original Label3D nodes/fonts/shaders are used
-// unchanged in an empty transparent owned target, then restored in finally.
+// Fixed six-pixel follow-up only. Native duplicates share the original glyph
+// resources in an empty owned target; main-scene labels are never moved.
 internal static class PixelGlyphCompletion
 {
     internal static object Describe(Tabletop scene, Camera3D camera, Label3D label)
@@ -103,6 +103,8 @@ internal static class PixelGlyphCompletion
             label.Visible
         }).ToArray();
         Viewport source = scene.GetViewport();
+        using Image frozen = source.GetTexture().GetImage(); frozen.Convert(Image.Format.Rgba8);
+        byte[] frozenPixels = frozen.GetData();
         var target = new SubViewport
         {
             Name = "OwnedSixPixelGlyphTarget",
@@ -131,6 +133,36 @@ internal static class PixelGlyphCompletion
         };
         target.AddChild(camera);
         var captures = new List<object>(); byte[]? empty = null;
+        var rendered = new List<Label3D>();
+        Label3D CopyLabel(int index)
+        {
+            Label3D original = labels[index];
+            var copy = (Label3D)original.Duplicate(0);
+            target.AddChild(copy); rendered.Add(copy);
+            copy.GlobalTransform = saved[index].Global;
+            JsonNode expected = JsonNode.Parse(JsonSerializer.Serialize(Describe(scene, originalCamera, original), Game.Core.WireJson.Options))!;
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(Describe(scene, camera, copy), Game.Core.WireJson.Options))!;
+            expected.AsObject().Remove("Node"); actual.AsObject().Remove("Node");
+            // Native duplication must retain every stored glyph property, not just
+            // the descriptor subset used by roof admission. Local transform/name
+            // differ because the copy lives directly in the owned world.
+            foreach (Godot.Collections.Dictionary property in original.GetPropertyList())
+            {
+                string name = property["name"].AsString();
+                if ((property["usage"].AsInt32() & (int)PropertyUsageFlags.Storage) == 0
+                    || name is "transform" or "position" or "rotation" or "rotation_degrees" or "quaternion" or "basis" or "scale" or "name" or "owner") continue;
+                if (!original.Get(name).Equals(copy.Get(name))) throw new InvalidDataException("Native glyph duplicate property differs: " + name);
+            }
+            if (!JsonNode.DeepEquals(expected, actual) || copy.Font != original.Font
+                || copy.MaterialOverride != original.MaterialOverride || copy.MaterialOverlay != original.MaterialOverlay)
+                throw new InvalidDataException("Native glyph duplicate descriptor/resources differ from the untouched original.");
+            return copy;
+        }
+        void ClearCopies()
+        {
+            foreach (Label3D copy in rendered) { target.RemoveChild(copy); copy.Free(); }
+            rendered.Clear();
+        }
         bool cameraExact = false;
         async Task Capture(string name)
         {
@@ -156,6 +188,7 @@ internal static class PixelGlyphCompletion
             captures.Add(new
             {
                 Name = name,
+                RenderedLabels = rendered.Select(copy => Describe(scene, camera, copy)).ToArray(),
                 Width = image.GetWidth(),
                 Height = image.GetHeight(),
                 AlphaPixels = alphaPixels,
@@ -176,25 +209,19 @@ internal static class PixelGlyphCompletion
             await Capture("empty");
             for (int i = 0; i < labels.Length; i++)
             {
-                Label3D label = labels[i]; label.Reparent(target, keepGlobalTransform: true); label.GlobalTransform = saved[i].Global;
+                CopyLabel(i);
                 await Capture("label" + i);
-                label.Reparent(saved[i].Parent, keepGlobalTransform: true); label.Transform = saved[i].Local;
-                saved[i].Parent.MoveChild(label, saved[i].Index);
+                ClearCopies();
             }
             if (targetFrame == 299)
             {
-                for (int i = 0; i < labels.Length; i++) { labels[i].Reparent(target, keepGlobalTransform: true); labels[i].GlobalTransform = saved[i].Global; }
+                for (int i = 0; i < labels.Length; i++) CopyLabel(i);
                 await Capture("both");
             }
         }
         finally
         {
-            foreach (var item in saved)
-            {
-                if (item.Label.GetParent() != item.Parent) item.Label.Reparent(item.Parent, keepGlobalTransform: true);
-                item.Label.Transform = item.Local; item.Label.Visible = item.Visible;
-                item.Parent.MoveChild(item.Label, item.Index);
-            }
+            ClearCopies();
             scene.RemoveChild(target); target.Free();
             restored = saved.All(s => s.Label.GetParent() == s.Parent && s.Label.Transform == s.Local && s.Label.GlobalTransform == s.Global && s.Label.Visible == s.Visible && s.Label.Name == s.Name && s.Label.GetIndex() == s.Index);
         }
@@ -203,8 +230,12 @@ internal static class PixelGlyphCompletion
         var fields = new Dictionary<string, object?>(); var uiTargets = new Dictionary<string, object>(); scene.AppendUiObservation(fields, uiTargets);
         string current = JsonSerializer.Serialize(new { InputDigest = witness["InputDigest"]!.GetValue<string>(), Frame = targetFrame, Fields = fields }, Game.Core.WireJson.Options);
         File.WriteAllText(outputPrefix + ".restored-observation.json", current);
-        bool controlsRestored = JsonNode.DeepEquals(JsonNode.Parse(frozenObservation), JsonNode.Parse(current));
-        using Image full = source.GetTexture().GetImage();
+        bool controlsRestored = JsonNode.DeepEquals(JsonNode.Parse(frozenObservation), JsonNode.Parse(current))
+            && JsonNode.DeepEquals(descriptions, JsonSerializer.SerializeToNode(labels.Select(label => remaining
+                ? (object)DescribeMapped(scene, originalCamera, label) : Describe(scene, originalCamera, label)).ToArray(), Game.Core.WireJson.Options));
+        using Image full = source.GetTexture().GetImage(); full.Convert(Image.Format.Rgba8);
+        bool rasterExact = full.GetWidth() == frozen.GetWidth() && full.GetHeight() == frozen.GetHeight()
+            && full.GetData().AsSpan().SequenceEqual(frozenPixels);
         if (full.SavePng(outputPrefix + ".restored.png") != Error.Ok) throw new IOException("Restored view persistence failed.");
         File.WriteAllText(outputPrefix + ".glyphs.json", JsonSerializer.Serialize(new
         {
@@ -215,7 +246,7 @@ internal static class PixelGlyphCompletion
             MineTitleIdentity = targetFrame == 399 ? "Slot2/mine-title" : null,
             RoleIdentities = roles,
             Captures = captures,
-            Restored = restored,
+            Restored = restored && rasterExact,
             NodeRestoration = saved.Select(s => new
             {
                 OriginalName = s.Name.ToString(),
@@ -228,9 +259,9 @@ internal static class PixelGlyphCompletion
             }).ToArray(),
             CameraExact = cameraExact,
             ControlsRestored = controlsRestored,
-            Method = "original native Label3D nodes, unchanged fonts/materials/flags/global transforms, same camera/projection/resolution; only temporary reparenting into empty transparent owned world",
+            Method = "native Label3D duplicates (RenderedLabels identify actual captured nodes), identical stored glyph properties and shared original fonts/materials, exact global descriptors and camera/projection/resolution; original main-scene labels untouched; main raster exact: " + rasterExact,
             Limits = "glyph-only native raster coverage (including outlines) without roof depth occlusion; depth-tested labels can contribute only if covered and closer than the opaque roof; no mask correction or acceptance"
         }, Game.Core.WireJson.Options));
-        if (!restored || !controlsRestored) throw new InvalidDataException("Glyph isolation did not restore exact node/control state.");
+        if (!restored || !controlsRestored || !rasterExact) throw new InvalidDataException("Glyph isolation did not preserve exact original node/control/native raster state.");
     }
 }
