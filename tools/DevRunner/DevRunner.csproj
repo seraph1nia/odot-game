@@ -13,6 +13,7 @@
     <Compile Include="../../src/Game/OwnedFrameCapture.cs" Link="OwnedFrameCapture.cs" />
     <Compile Include="../../src/Game/LandscapeBoundaryProof.cs" Link="LandscapeBoundaryProof.cs" />
     <Compile Include="../../src/Game/NativeBoundaryControls.Receipt.cs" Link="NativeBoundaryControls.Receipt.cs" />
+    <Compile Include="../../src/Game/CanonicalBoundaryCapture.cs" Link="CanonicalBoundaryCapture.cs" />
     <Compile Include="../../src/Game/NonDefenseRoofEvidence.cs" Link="NonDefenseRoofEvidence.cs" />
     <Compile Include="../../src/Game/OwnedTimingTrace.cs" Link="OwnedTimingTrace.cs" />
     <Compile Include="../../src/Game/GuestPollOwnership.cs" Link="GuestPollOwnership.cs" />

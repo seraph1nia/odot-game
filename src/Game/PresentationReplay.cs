@@ -347,35 +347,58 @@ internal sealed partial class PresentationReplay : Node
                 before.Convert(Image.Format.Rgba8); image.Convert(Image.Format.Rgba8);
                 long validationStart = Stopwatch.GetTimestamp(), validationBytes = GC.GetTotalAllocatedBytes(precise: true);
                 NonDefenseRoofEvidence? proof = null;
+                string? request = null;
                 if (_boundaryEvidence is not null)
                 {
                     var manifest = System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(_boundaryEvidence))!;
                     var frame = _input.Frames[_index - 1];
-                    string? request = manifest["Bindings"] is not null ? NonDefenseRoofEvidence.BoundRequest(manifest, frame.Index, frame.View, (int)frame.Zoom)
+                    request = manifest["Bindings"] is not null ? NonDefenseRoofEvidence.BoundRequest(manifest, frame.Index, frame.View, (int)frame.Zoom)
                         : frame.Index == 299 ? _boundaryEvidence : null;
                     if (request is not null) proof = NativeRoofAttestation.Build(_tabletop, request, observation, image, path + ".roof-evidence");
                 }
-                int pixels = LandscapeBoundaryProof.Verify(System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(beforePath + ".observation.json"))!,
-                    System.Text.Json.Nodes.JsonNode.Parse(observation)!, image.GetWidth(), image.GetHeight(), before.GetData(), image.GetData(), proof);
-                var validation = new
+                void Compare()
                 {
-                    Frame = _index - 1,
-                    Milliseconds = Stopwatch.GetElapsedTime(validationStart).TotalMilliseconds,
-                    AllocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - validationBytes,
-                    Scope = "extra exact boundary/native attestation work included in aggregate elapsed/cumulative allocations, not presentation update samples or peak memory"
-                };
-                _boundaryValidation.Add(validation);
-                System.IO.File.WriteAllText(path + ".boundary.json", JsonSerializer.Serialize(new
+                    int pixels = LandscapeBoundaryProof.Verify(System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(beforePath + ".observation.json"))!,
+                        System.Text.Json.Nodes.JsonNode.Parse(observation)!, image.GetWidth(), image.GetHeight(), before.GetData(), image.GetData(), proof);
+                    var validation = new
+                    {
+                        Frame = _index - 1,
+                        Milliseconds = Stopwatch.GetElapsedTime(validationStart).TotalMilliseconds,
+                        AllocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - validationBytes,
+                        Scope = "extra exact boundary/native attestation work included in aggregate elapsed/cumulative allocations, not presentation update samples or peak memory"
+                    };
+                    _boundaryValidation.Add(validation);
+                    System.IO.File.WriteAllText(path + ".boundary.json", JsonSerializer.Serialize(new
+                    {
+                        InputDigest = _input.Digest,
+                        Frame = _index - 1,
+                        Baseline = beforePath,
+                        ProtectedPixels = pixels,
+                        Verification = validation,
+                        AggregateIncludesVerification = _index != 600,
+                        Result = "unchanged",
+                        Scope = "fixed-input diagnostic battle pixels/poses/structures/terrain; separate live acceptance required; final599capture/proof outside raw aggregate just as original finalcapture was"
+                    }, WireJson.Options));
+                }
+                long producerStart = 0;
+                try
                 {
-                    InputDigest = _input.Digest,
-                    Frame = _index - 1,
-                    Baseline = beforePath,
-                    ProtectedPixels = pixels,
-                    Verification = validation,
-                    AggregateIncludesVerification = _index != 600,
-                    Result = "unchanged",
-                    Scope = "fixed-input diagnostic battle pixels/poses/structures/terrain; separate live acceptance required; final599capture/proof outside raw aggregate just as original finalcapture was"
-                }, WireJson.Options));
+                    await CanonicalBoundaryCapture.Run(_index - 1, request is null ? null : JsonNode.Parse(System.IO.File.ReadAllText(request)), Compare,
+                        async () =>
+                        {
+                            producerStart = Stopwatch.GetTimestamp();
+                            await PixelGlyphCompletion.Run(_tabletop, path + ".roof-evidence.current-native.json", path + ".glyph-completion", observation);
+                        },
+                        async () =>
+                        {
+                            if (producerStart == 0) producerStart = Stopwatch.GetTimestamp();
+                            await NativeBoundaryControls.Run(_tabletop, request!, observation, path + ".boundary-controls");
+                        });
+                }
+                finally
+                {
+                    if (producerStart != 0) GD.Print($"Canonical frame{_index - 1} producer overhead: {Stopwatch.GetElapsedTime(producerStart).TotalMilliseconds} ms; separate from update samples, included in raw aggregate; not a resource improvement.");
+                }
             }
         }
     }

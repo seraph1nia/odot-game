@@ -19,11 +19,41 @@ internal sealed partial class Runner
             await WritePresentationIdentity(total.Token, completed: true);
             return;
         }
+        string? warmupEvidence = WarmupBoundaryEvidence(options.BoundaryEvidence, _evidence.Directory);
         for (int iteration = 0; iteration <= options.ProfileIterations; iteration++)
         {
             string name = options.Scenario + "-" + (iteration == 0 ? "warmup" : "iteration-" + iteration);
-            await serial.UiDisplay(options.Scenario!, total.Token, name);
+            var execution = iteration == 0 ? new Runner(options with { SimulationSpeed = 1, BoundaryEvidence = warmupEvidence }, total.Token, _evidence, root: _root) : serial;
+            await execution.UiDisplay(options.Scenario!, total.Token, name);
         }
+    }
+    internal static string? WarmupBoundaryEvidence(string? manifestPath, string directory)
+    {
+        if (manifestPath is null) return null;
+        JsonNode manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!;
+        if (manifest["Bindings"] is null) return manifestPath;
+        string? selected = Game.NonDefenseRoofEvidence.BoundRequest(manifest, 399, "combat-64", 3);
+        JsonNode? selectedRequest = null;
+        JsonNode? selectedBinding = null;
+        foreach (JsonNode? binding in manifest["Bindings"]!.AsArray())
+        {
+            string path = binding!["Request"]!.GetValue<string>();
+            JsonNode request = JsonNode.Parse(File.ReadAllText(path))!;
+            if (request["GlyphCompletion"]?.GetValue<bool>() != true && request["BoundaryControls"]?.GetValue<bool>() != true) continue;
+            if (path != selected || request["TargetFrame"]?.GetValue<int>() != 399)
+                throw new InvalidDataException("Canonical producers require the independently bound frame399 request.");
+            selectedRequest = request;
+            selectedBinding = binding;
+        }
+        if (selectedRequest is null) return manifestPath;
+        selectedRequest.AsObject().Remove("GlyphCompletion");
+        selectedRequest.AsObject().Remove("BoundaryControls");
+        string warmupRequest = Path.Combine(directory, "warmup-frame399-request.json");
+        File.WriteAllText(warmupRequest, selectedRequest.ToJsonString(WireJson.Options));
+        selectedBinding!["Request"] = warmupRequest;
+        string warmupManifest = Path.Combine(directory, "warmup-boundary-evidence.json");
+        File.WriteAllText(warmupManifest, manifest.ToJsonString(WireJson.Options));
+        return warmupManifest;
     }
     internal async Task WritePresentationIdentity(CancellationToken token, bool completed = false)
     {
