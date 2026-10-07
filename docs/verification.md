@@ -8,7 +8,7 @@ proofs, matched before/after costs and current live capture inventory. No plot o
 building center/scale, tower/projectile origin, battle presentation, camera/light,
 core/save/protocol, immutable asset or dependency/tool lock changed.
 
-Full changed-source `mise run ci --ui-jobs 1` passed **840.52s**:
+The historical implementation-source `mise run ci --ui-jobs 1` passed **840.52s**:
 `logs/20261007-014218-72209b36/ci-summary.json`, **504 gameplay / 519 runner**,
 zero failures/skips, six network scenarios, five source UI scenarios, authored
 fidelity, sequential client/server exports and headless/graphical package smoke.
@@ -25,6 +25,13 @@ terrain, new occluder and shadow counterfactuals were rejected and restored.
 Raw after totals include separately recorded exact/native verification; they are
 not peak memory or steady scenery allocation costs. Added authored scenery has
 measured draw/primitive/node costs, not a zero-cost or native-GPU/FPS claim.
+
+Authorized review removals retired the paired fast-reconstruction/context campaign
+and standalone consumer-loading diagnosis/guard mode. Ordinary rendered-prefix
+native/glyph/control acceptance and actual Godot admission receipts remain. The
+recorded passes predate these source removals: source inventories and raw evidence
+remain historical, not final-head receipts. Fresh changed-source/evidence-binding
+validation belongs to the active no-mistakes pipeline and is pending.
 
 Prior startup, native crash, incomplete proof and missing-receipt producers remain
 failed/partial and unexplained where stated. The local CI/measurement/live passes

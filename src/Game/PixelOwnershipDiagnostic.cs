@@ -22,14 +22,12 @@ internal static class PixelOwnershipDiagnostic
         JsonNode after = JsonNode.Parse(File.ReadAllText(request["AfterObservation"]!.GetValue<string>()))!;
         JsonNode current = JsonNode.Parse(currentJson)!;
         int[][] pixels = request["Pixels"]!.AsArray().Select(p => p!.AsArray().Select(n => n!.GetValue<int>()).ToArray()).ToArray();
-        bool history = request["HistoryControl"]?.GetValue<bool>() == true;
         int targetFrame = request["TargetFrame"]?.GetValue<int>() ?? 299;
-        bool bounded = history ? pixels.Length == 1 && pixels[0].SequenceEqual(new[] { 20, 299 })
-            : targetFrame == 499 ? pixels.Select(p => string.Join(",", p)).Order().SequenceEqual(Frame499Points.Order())
+        bool bounded = targetFrame == 499 ? pixels.Select(p => string.Join(",", p)).Order().SequenceEqual(Frame499Points.Order())
             : targetFrame == 599 ? pixels.Length is > 0 and <= 64 && pixels.All(p => p.Length == 2 && p[0] >= 2 && p[0] < image.GetWidth() - 2 && p[1] >= 2 && p[1] < image.GetHeight() - 2
                 && LandscapeBoundaryProof.ProtectedPixel(current["Fields"]!["Camera"]!, image.GetHeight(), p[0], p[1]))
             : pixels.Length == 6 && !pixels.Any(p => p.Length != 2 || p[0] is < 138 or > 157 || p[1] is < 570 or > 574);
-        if (!bounded || targetFrame is not (299 or 399 or 499 or 599) || history && targetFrame != 299
+        if (!bounded || targetFrame is not (299 or 399 or 499 or 599)
             || before["Frame"]!.GetValue<int>() != targetFrame || after["Frame"]!.GetValue<int>() != targetFrame || current["Frame"]!.GetValue<int>() != targetFrame)
             throw new InvalidDataException("Ownership is bounded to the independently authorized retained frame/sample binding.");
         var mismatches = new List<string>();
@@ -186,10 +184,9 @@ internal static class PixelOwnershipDiagnostic
         beforeImage.Convert(Image.Format.Rgba8); afterImage.Convert(Image.Format.Rgba8);
         byte[] beforeRgba = beforeImage.GetData(), afterRgba = afterImage.GetData();
         byte[] Color(byte[] data, int[] p) => data.AsSpan((p[1] * image.GetWidth() + p[0]) * 4, 4).ToArray();
-        if (history) SaveHistoryContext(scene, camera, hits[0].Select(h => h.Node).Distinct(StringComparer.Ordinal).ToArray(), output + ".context.json");
         File.WriteAllText(output, JsonSerializer.Serialize(new
         {
-            Schema = history ? "one-pixel-history-ownership-v1" : "six-pixel-native-ownership-v1",
+            Schema = "six-pixel-native-ownership-v1",
             Frame = targetFrame,
             InputDigest = current["InputDigest"]!.GetValue<string>(),
             Controls = "retained before/after and restored native pose/camera/placement/terrain fields exact; native automatic counters normalized only",
@@ -213,73 +210,6 @@ internal static class PixelOwnershipDiagnostic
                 AfterCandidates = hits[i].OrderBy(h => h.Depth).Take(12).ToArray(),
                 Unknown = unknown.Where(u => u.Pixels.Contains(i)).ToArray()
             }).ToArray()
-        }, Game.Core.WireJson.Options));
-    }
-    private static void SaveHistoryContext(Tabletop scene, Camera3D camera, string[] hitNodes, string output)
-    {
-        static float[] V(Vector3 v) => [v.X, v.Y, v.Z];
-        static object T(Transform3D t) => new { Origin = V(t.Origin), X = V(t.Basis.X), Y = V(t.Basis.Y), Z = V(t.Basis.Z) };
-        static string Hash(object data) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(data, Game.Core.WireJson.Options)));
-        Viewport viewport = scene.GetViewport();
-        var skeletons = scene.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Where(s => s.IsVisibleInTree()).Select(s =>
-            new
-            {
-                Node = scene.GetPathTo(s).ToString(),
-                Global = T(s.GlobalTransform),
-                Bones = Enumerable.Range(0, s.GetBoneCount())
-                .Select(b => new { Name = s.GetBoneName(b).ToString(), Parent = s.GetBoneParent(b), Pose = T(s.GetBoneGlobalPose(b)), Rest = T(s.GetBoneRest(b)) }).ToArray()
-            }).ToArray();
-        var surfaces = hitNodes.Select(n => scene.GetNodeOrNull<MeshInstance3D>(n)).Where(m => m?.Mesh is not null).Select(m => new
-        {
-            Node = scene.GetPathTo(m!).ToString(),
-            Global = T(m!.GlobalTransform),
-            MeshPath = m.Mesh.ResourcePath,
-            MeshClass = m.Mesh.GetClass(),
-            SkinBinds = m.Skin is null ? null : Enumerable.Range(0, m.Skin.GetBindCount()).Select(i => new { Bone = m.Skin.GetBindBone(i), Name = m.Skin.GetBindName(i).ToString(), Pose = T(m.Skin.GetBindPose(i)) }).ToArray(),
-            Surfaces = Enumerable.Range(0, m.Mesh.GetSurfaceCount()).Select(i =>
-            {
-                Godot.Collections.Array arrays = m.Mesh.SurfaceGetArrays(i);
-                BaseMaterial3D? material = m.GetActiveMaterial(i) as BaseMaterial3D;
-                Texture2D? texture = material?.AlbedoTexture;
-                using Image? textureImage = texture?.GetImage();
-                return new
-                {
-                    Surface = i,
-                    BufferHash = Hash(Enumerable.Range(0, arrays.Count).Select(a => new { Index = a, Type = arrays[a].VariantType.ToString(), Data = arrays[a].ToString() })),
-                    Material = material?.ResourceName.ToString(),
-                    MaterialPath = material?.ResourcePath,
-                    Albedo = material?.AlbedoColor.ToHtml(),
-                    TexturePath = texture?.ResourcePath,
-                    TextureSize = texture is null ? null : new[] { texture.GetWidth(), texture.GetHeight() },
-                    TextureDataHash = textureImage is null ? null : Convert.ToHexString(SHA256.HashData(textureImage.GetData()))
-                };
-            }).ToArray()
-        }).ToArray();
-        File.WriteAllText(output, JsonSerializer.Serialize(new
-        {
-            Schema = "frame299-native-history-context-v1",
-            Camera = T(camera.GlobalTransform),
-            camera.Size,
-            camera.Near,
-            camera.Far,
-            Projection = camera.Projection.ToString(),
-            KeepAspect = camera.KeepAspect.ToString(),
-            camera.HOffset,
-            camera.VOffset,
-            camera.CullMask,
-            Viewport = new { Rect = viewport.GetVisibleRect().ToString(), viewport.TransparentBg, Msaa = viewport.Msaa3D.ToString(), AA = viewport.ScreenSpaceAA.ToString(), viewport.UseTaa, viewport.UseDebanding },
-            Renderer = RenderingServer.GetVideoAdapterName(),
-            GodotVersion = Engine.GetVersionInfo().ToString(),
-            Skeletons = skeletons,
-            HitSurfaces = surfaces,
-            Resources = new
-            {
-                Nodes = Performance.GetMonitor(Performance.Monitor.ObjectNodeCount),
-                Count = Performance.GetMonitor(Performance.Monitor.ObjectResourceCount),
-                TextureBytes = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TextureMemUsed),
-                BufferBytes = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.BufferMemUsed)
-            },
-            Limits = "native CPU bones/binds/mesh/material/texture context; no original or current GPU skin-buffer/depth/object-id readback; resource counts are context, not ownership proof"
         }, Game.Core.WireJson.Options));
     }
 }

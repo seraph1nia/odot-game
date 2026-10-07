@@ -17,7 +17,11 @@ those original aggregates. Do not reinterpret these totals as peak memory,
 steady added-scenery allocation, causal FPS or native-GPU performance. Independent
 native/glyph proofs cover only the finite unchanged non-defense roof family at
 the four separately bound affected views; all other protected state/RGBA remains
-exact. These proofs do not replace current live UI or the full CI recorded there.
+exact. These proofs do not replace live UI or the full CI recorded there.
+The recorded beautification measurements, proofs and CI predate the authorized
+review removal of fast-reconstruction/context and standalone consumer-loading
+diagnostics. They remain historical input-bound evidence, not final-head receipts;
+fresh changed-source/evidence-binding validation is pending in the active pipeline.
 
 ## Scope and decision
 

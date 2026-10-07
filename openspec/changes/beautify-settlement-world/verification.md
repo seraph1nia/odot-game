@@ -1,4 +1,20 @@
-# Verification record — implementation accepted locally; review/publication pending
+# Verification record — historical implementation acceptance; current-head gates pending
+
+## Review removals and evidence binding
+
+The authorized review fix removes the task-added paired `HistoryControl`
+fast-reconstruction/context campaign and standalone `AdmissionDiagnosis` /
+`PredicateGuards` consumer-loading mode. Ownership investigations now always use
+ordinary rendered prefixes, including separately bound frames299/399/499/599.
+Native boundary/glyph/control acceptance, actual Godot admission receipts and the
+original ordered short-circuit admission predicate, digest and serializer/options
+remain. Scenery, gameplay, assets and historical private/raw evidence are unchanged.
+
+The CI, live captures, measurements and native receipts below predate these source
+removals. They remain historical evidence for their recorded inputs, **not
+final-head receipts**. Their source inventories must not be rewritten or relabeled.
+The active no-mistakes pipeline owns fresh validation of changed source/evidence
+bindings and the final current-HEAD checks; that acceptance is pending here.
 
 ## Scope
 
@@ -105,7 +121,7 @@ software render-monitor CPU154.8075→164.3440ms. Added scenery has a real cost.
 One software-rendered iteration is not a statistical/native-GPU/FPS/compositor
 benchmark. Cumulative allocations and monitored resource counts are not peaks.
 
-## Genuine current live acceptance and final CI
+## Historical live acceptance and implementation CI
 
 `mise run ci --ui-jobs 1` passed **840.52s**,exit0:
 `logs/20261007-014218-72209b36/ci-summary.json`, full required set.
@@ -133,8 +149,8 @@ These are real input/state/pose captures, not replay frames relabeled as live:
 Representative early/grown/moved-roof/battle PNGs inspected; paths visibly meet the
 bridge/bank, pockets frame negative space and unchanged plots remain pickable.
 Cleanup reconciliation found all26 declared runtime directories and6 display
-worker PIDs absent: `current-ci-cleanup.json`. This complete CI is reused, not
-rerun for documentation-only finalization. Nonsecret logs, observations, captures,
+worker PIDs absent: `current-ci-cleanup.json`. This complete CI was reused for the original
+documentation-only finalization; it does not validate the later review removals. Nonsecret logs, observations, captures,
 source/measurement receipts and inventories remain ignored/private and copied to
 Firstmate task data. Historical failures are neither deleted nor upgraded.
 

@@ -36,7 +36,6 @@ internal sealed partial class PresentationReplay : Node
     private readonly string? _boundaryEvidence;
     private readonly List<object> _boundaryValidation = [];
     private readonly string? _ownership;
-    private readonly bool _normalHistoryPrefix;
     private readonly int _ownershipFrame = 299;
     private readonly bool _remainingViews;
     private readonly ReplaySession _session = new();
@@ -76,10 +75,9 @@ internal sealed partial class PresentationReplay : Node
             throw new InvalidDataException("Native family evidence requires an ordinary matching baseline comparison.");
         _boundaryEvidence = boundaryEvidence;
         _ownership = ownership;
-        _normalHistoryPrefix = ownership is not null && System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(ownership))!["NormalPrefix"]?.GetValue<bool>() == true;
         if (ownership is not null) _ownershipFrame = System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(ownership))!["TargetFrame"]?.GetValue<int>() ?? 299;
         _remainingViews = ownership is not null && JsonNode.Parse(System.IO.File.ReadAllText(ownership))!["RemainingViews"]?.GetValue<bool>() == true;
-        if (_ownershipFrame is not (299 or 399 or 499 or 599) || _ownershipFrame != 299 && !_normalHistoryPrefix || _remainingViews && (_ownershipFrame is not (499 or 599) || !_normalHistoryPrefix)
+        if (_ownershipFrame is not (299 or 399 or 499 or 599) || _remainingViews && _ownershipFrame is not (499 or 599)
             || _ownershipFrame == 599 && !_remainingViews)
             throw new InvalidDataException("Ownership target requires its authorized ordinary rendered prefix; remaining views are only499+599.");
         _baseline = baseline;
@@ -193,40 +191,8 @@ internal sealed partial class PresentationReplay : Node
     }
     public override void _Ready()
     {
-        if (_ownership is not null && !_normalHistoryPrefix) { SetProcess(false); Callable.From(InspectOwnership).CallDeferred(); return; }
         if (_tabletop.ReplayCosts is not null)
             RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
-    }
-    private async void InspectOwnership()
-    {
-        try
-        {
-            // Settle the ordinary owned window/UI, then restore the retained
-            // managed presentation timeline without rendering a sweep.
-            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-            for (int i = 0; i <= 299; i++)
-            {
-                PresentationReplayFrame frame = _input.Frames[i];
-                if (frame.Snapshot is { } state) _session.State = state;
-                _tabletop.ReplayFocus(frame.Focus); _tabletop._Process(frame.Delta); _tabletop.ReplayZoom(frame.Zoom);
-            }
-            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-            var fields = new Dictionary<string, object?>(); var targets = new Dictionary<string, object>();
-            _tabletop.AppendUiObservation(fields, targets);
-            string current = JsonSerializer.Serialize(new { InputDigest = _input.Digest, Frame = 299, Fields = fields }, WireJson.Options);
-            System.IO.File.WriteAllText(_output + ".ownership-observation.json", current);
-            using Image image = GetViewport().GetTexture().GetImage();
-            if (image.SavePng(_output + ".ownership.png") != Error.Ok) throw new IOException("Ownership view capture failed.");
-            PixelOwnershipDiagnostic.Inspect(_tabletop, _ownership!, current, image, _output + ".ownership.json");
-            if (System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(_ownership!))!["GlyphCompletion"]?.GetValue<bool>() == true)
-                await PixelGlyphCompletion.Run(_tabletop, _output + ".ownership.json", _output + ".glyph-completion", current);
-            if (System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(_ownership!))!["BoundaryControls"]?.GetValue<bool>() == true)
-                throw new InvalidDataException("Fast reconstruction is not native pixel-control admission; use the ordinary rendered prefix.");
-            _exit();
-        }
-        catch (Exception e) { GD.PrintErr(e); GetTree().Quit(1); }
     }
     public override void _Process(double delta)
     {
@@ -333,7 +299,7 @@ internal sealed partial class PresentationReplay : Node
                 await InspectRemainingView(path, 499);
                 SetProcess(true); return;
             }
-            if (_normalHistoryPrefix && _index == _ownershipFrame + 1)
+            if (_ownership is not null && _index == _ownershipFrame + 1)
             {
                 // Ordinary _Process/render/capture barriers through the target,
                 // never a managed-only restoration or a full600-frame run.
