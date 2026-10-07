@@ -6,7 +6,12 @@ namespace Game;
 // The captured-control receipt/completion contract is executable without an engine.
 internal static partial class NativeBoundaryControls
 {
-    internal static bool WriteRestorationReceipt(JsonNode current, object fields, IReadOnlyList<object> results, string output)
+    internal static void CompleteControl(ICollection<object> results, object result, Action verifyRestoration)
+    {
+        verifyRestoration();
+        results.Add(result);
+    }
+    internal static bool WriteRestorationReceipt(JsonNode current, object fields, IReadOnlyList<object> results, string output, Exception? firstException)
     {
         JsonNode restored = JsonNode.Parse(JsonSerializer.Serialize(new { InputDigest = current["InputDigest"]!.GetValue<string>(), Frame = current["Frame"]!.GetValue<int>(), Fields = fields }, Core.WireJson.Options))!;
         bool exact = JsonNode.DeepEquals(current, restored);
@@ -16,13 +21,13 @@ internal static partial class NativeBoundaryControls
             Results = results,
             ExactObservedRestoration = exact,
             Method = $"same frozen frame{current["Frame"]!.GetValue<int>()}/camera/light; actual material overrides, new visible occluder and shadow-only native caster; every mutation restored before next capture",
-            Complete = results.Count == 5 && exact
+            Complete = results.Count == 5 && exact && firstException is null
         }, Core.WireJson.Options));
         return exact;
     }
     internal static bool FinishRestoration(JsonNode current, Func<object> observe, IReadOnlyList<object> results, string output, Exception? firstException, Action<Exception> reportReceiptFailure)
     {
-        try { return WriteRestorationReceipt(current, observe(), results, output); }
+        try { return WriteRestorationReceipt(current, observe(), results, output, firstException); }
         catch (Exception e) when (firstException is not null)
         {
             // A failed final observation/receipt must not replace the original

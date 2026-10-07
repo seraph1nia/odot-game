@@ -29,6 +29,7 @@ internal static partial class NativeBoundaryControls
         byte[] fixedPixels = baseline.GetData();
         async Task Reject(string name, Action install, Action restore)
         {
+            object result;
             try
             {
                 install();
@@ -43,11 +44,11 @@ internal static partial class NativeBoundaryControls
                 try { LandscapeBoundaryProof.Verify(before, current, width, height, beforePixels, pixels, evidence); }
                 catch (InvalidDataException e) { rejection = e.Message; }
                 if (rejection is null) throw new InvalidDataException("Native mutation was not rejected: " + name);
-                results.Add(new { Name = name, Result = "rejected", ChangedProtectedPixels = changedProtected, Reason = rejection });
+                result = new { Name = name, Result = "rejected", ChangedProtectedPixels = changedProtected, Reason = rejection };
             }
             finally { restore(); }
             using Image restored = await Capture(name + "-restored");
-            LandscapeBoundaryProof.Verify(before, current, width, height, beforePixels, restored.GetData(), evidence);
+            CompleteControl(results, result, () => LandscapeBoundaryProof.Verify(before, current, width, height, beforePixels, restored.GetData(), evidence));
         }
         bool exact = false;
         Exception? firstException = null;
