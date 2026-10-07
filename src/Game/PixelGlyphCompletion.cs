@@ -46,7 +46,14 @@ internal static class PixelGlyphCompletion
             string name = property["name"].AsString();
             if ((property["usage"].AsInt32() & (int)PropertyUsageFlags.Storage) == 0
                 || name is "transform" or "position" or "rotation" or "rotation_degrees" or "quaternion" or "basis" or "scale" or "name" or "owner") continue;
-            if (!original.Get(name).Equals(copy.Get(name))) throw new InvalidDataException("Native glyph duplicate property differs: " + name);
+            using Variant expected = original.Get(name);
+            using Variant actual = copy.Get(name);
+            // Variant.Equals compares managed wrappers, not their native values.
+            // Untyped Array.Contains uses native exact value equality; keep the
+            // type guard so String/StringName coercion cannot admit a mismatch.
+            if (expected.VariantType != actual.VariantType) throw new InvalidDataException("Native glyph duplicate property differs: " + name);
+            using var value = new Godot.Collections.Array { expected };
+            if (!value.Contains(actual)) throw new InvalidDataException("Native glyph duplicate property differs: " + name);
         }
     }
     internal static void RequireMineTitle(Label3D[] labels)
