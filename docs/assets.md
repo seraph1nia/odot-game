@@ -2,8 +2,8 @@
 
 ## Migration status
 
-The distribution contains **44 byte-identical authored GLBs** (63,548,504 bytes)
-and **270 byte-identical extracted PNG maps** (25,167,952 bytes). All 71 legacy
+The distribution contains **44 byte-identical authored GLBs** (63,051,556 bytes)
+and **268 byte-identical extracted PNG maps** (24,904,582 bytes). All 71 legacy
 active/dormant models and their 166 buffer/atlas/import supports are removed;
 historical notices and the old manifest remain attributable, outside runtime 3D.
 Actual imported rigs, populated village, roster, combat/death/pause/reconnect and
@@ -18,7 +18,7 @@ integration correction; neither rejected optimization candidate ships.
 
 Selected GLBs under `src/Game/Assets/Authored/` are copied byte-for-byte from
 https://github.com/seraph1nia/odot-game-assets.git at
-`a640d721065233dfbf488747694cd95110d4a907`. Their `manifest.json` records exact
+`ddd1ef1a35bd8db5bf3d1a405672d254aff68174`. Their `manifest.json` records exact
 source-relative export paths, SHA-256, byte counts and embedded dependencies.
 `NOTICE.md` records owner permission exactly: **the repo is my own work, so yes,
 use it**. This is not an invented open-source license or permission to copy
@@ -28,6 +28,60 @@ UI/audio retain their independent notices. The user separately approved
 continued existing third-party UI use with the exact words **yes, 3rd party ui is
 fine too**. This is user approval, not independent verification of creator-granted
 redistribution rights or a new license; no UI/audio replacement is included.
+
+## Landed quality refresh
+
+The [landed asset upgrade](https://github.com/seraph1nia/odot-game-assets/pull/2)
+changes 11 of the 44 exports already used by the game. The remaining 33 match
+that revision without copying new bytes. No unused catalog models are added.
+The existing [manifest](../src/Game/Assets/Authored/manifest.json) is the
+source-to-destination ID/path/SHA-256 inventory: each ID is its `path` without
+`.glb`, `sourcePath` is relative to the pinned source repository, and the game
+destination is `src/Game/Assets/Authored/<path>`.
+
+| Changed game-used IDs | Export refinements |
+| --- | --- |
+| `buildings/archery_range`, `buildings/town_hall` | Taller archery lookout and better-separated hall wings; quieter, length-aligned timber grain |
+| `buildings/metal_mine`, `buildings/research_tower`, `buildings/weaver` | Timber cleanup; Weaver's intended blue/cream canopy restored by the source exporter |
+| `characters/knight`, `characters/evil_ranged_unit` | Shorter/broader Knight plume, compact hood, neck accent and equipped crossbow bolt feathers |
+| `characters/evil_berserker_unit`, `characters/evil_mage_unit`, `characters/evil_melee_unit` | Effective authored equipment/body material colors restored |
+| `environment/hex_woodland_bridge` | Contact-facing foam crescents propagated into the existing bridge tile |
+
+All 268 retained PNGs are unchanged embedded-image bytes. Two scratch-only
+`painted_stone_dark_color` extractions (Archery range and Town hall) and their
+import sidecars are removed because the new GLBs no longer use them. No new
+texture dependencies, source re-exports or loader changes are needed. Existing
+resource paths/UIDs, placements, runtime scale policy, tower/projectile origins,
+rig/clip/socket interfaces, picking/collisions, camera/lighting and numerical,
+save/session/network identities remain unchanged. Appearance is intentionally
+updated; prior-art pixel equality is not an acceptance requirement.
+
+### Refresh verification (2026-10-08)
+
+Full local `mise run ci` passed before (765.19s,
+`logs/20261008-182545-562fda95/ci-summary.json`) and after (594.35s,
+`logs/20261008-184851-b91dcdb3/ci-summary.json`). The final gate includes 504
+core and 573 runner tests, actual authored-static fidelity, six network cases,
+five source UI slices, ordered Linux client/server exports and headless/graphical
+package smoke. Post-import hashes still match all 44 pinned source GLBs and all
+268 embedded map extractions; existing compatibility assertions were not weakened.
+
+Normal settlement `economy-materials-market-land.png` and
+`army-expansion-retirement.png`, and combat `combat-camera-paused.png`,
+`combat-unit-inspection.png` and `research-current-burn.png` were inspected in
+that final run's economy/combat evidence directories. The hall wings, taller
+archery lookout, colored timber/roofs and equipped faction models load without
+observed missing textures, new placement clipping or broken attachments.
+Small plume/feather/grain/foam details remain subtle at normal overview scale;
+this is representative game-view inspection, not whole-catalog art acceptance
+or native GPU/compositor/performance proof.
+
+Two earlier after-gates remain failed evidence: stale generated editor UIDs for
+the removed maps stopped import (`logs/20261008-184158-dff1189e`), then reconnect's
+paid setup lost its observer city (`logs/20261008-184423-3546fd00`). Stale caches
+were retained outside the import root; the unchanged reconnect slice passed
+in 79.19s (`logs/20261008-184658-21b13756`) before the final full pass. No gameplay,
+fixture, importer or assertion changes were made to obtain that pass.
 
 ## Names versus authoritative identities
 
