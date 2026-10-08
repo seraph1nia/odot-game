@@ -2,9 +2,10 @@
 
 ## Migration status
 
-The distribution contains **44 byte-identical authored GLBs** (63,051,556 bytes)
-and **268 byte-identical extracted PNG maps** (24,904,582 bytes). All 71 legacy
-active/dormant models and their 166 buffer/atlas/import supports are removed;
+The distribution contains byte-identical authored GLBs and extracted PNG maps;
+the [manifest](../src/Game/Assets/Authored/manifest.json) owns the current inventory
+and per-file byte counts. All 71 legacy active/dormant models and their 166
+buffer/atlas/import supports are removed;
 historical notices and the old manifest remain attributable, outside runtime 3D.
 Actual imported rigs, populated village, roster, combat/death/pause/reconnect and
 four required near/far images have retained owned evidence. Acceptance outcomes
@@ -17,8 +18,8 @@ integration correction; neither rejected optimization candidate ships.
 ## Source and permission
 
 Selected GLBs under `src/Game/Assets/Authored/` are copied byte-for-byte from
-https://github.com/seraph1nia/odot-game-assets.git at
-`ddd1ef1a35bd8db5bf3d1a405672d254aff68174`. Their `manifest.json` records exact
+https://github.com/seraph1nia/odot-game-assets.git at the revision pinned in the
+[manifest](../src/Game/Assets/Authored/manifest.json). It records exact
 source-relative export paths, SHA-256, byte counts and embedded dependencies.
 `NOTICE.md` records owner permission exactly: **the repo is my own work, so yes,
 use it**. This is not an invented open-source license or permission to copy

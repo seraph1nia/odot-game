@@ -2,9 +2,12 @@
 
 ## Current scope and outcome
 
-Steering 012 authorizes game-side optimization only. Source exports remain byte-identical at
-`a640d721065233dfbf488747694cd95110d4a907`; the source checkout is clean and read-only.
-No GLB, texture, rig, clip, socket, numerical rule, frozen reference or license was changed.
+Steering 012 authorized game-side optimization only. This investigation measured
+byte-identical source exports at `a640d721065233dfbf488747694cd95110d4a907`;
+the source checkout was clean and read-only. The later
+[landed quality refresh](assets.md#landed-quality-refresh) is outside these measurements.
+No GLB, texture, rig, clip, socket, numerical rule, frozen reference or license was changed
+by this investigation.
 Earlier suggestions to optimize the separate asset project are superseded, not authorized work.
 
 Buildings do **not** change authoritative walking: it still lasts 30 ticks / 0.5 simulation

@@ -2,14 +2,17 @@
 
 ## Delivered integration
 
-The Common Watch now uses only selected game-ready exports from
+The initial migration used only selected game-ready exports from
 `odot-game-assets` revision `a640d721065233dfbf488747694cd95110d4a907` for bundled
-3D content. [Provenance and substitutions](assets.md) distinguish presentation
+3D content. The measurements and assessments below describe that migration,
+not the later [landed quality refresh](assets.md#landed-quality-refresh).
+[Provenance and substitutions](assets.md) distinguish presentation
 names from unchanged canonical selectors/enums/save/protocol identities. Exact
 owner approval is recorded, not invented licensing. Source/editable/reference
 content was neither modified nor copied; existing UI/audio and notices remain.
 
-- 44 byte-identical GLBs: **63,548,504 bytes**; 270 byte-identical extracted maps:
+- Initial migration inventory: 44 byte-identical GLBs: **63,548,504 bytes**;
+  270 byte-identical extracted maps:
   **25,167,952 bytes**. Total copied model/map data: **88,716,456 bytes**, versus
   **37,159,085 bytes** for legacy model/buffer/map content. These are source bytes,
   not installed-package or resident-memory estimates.

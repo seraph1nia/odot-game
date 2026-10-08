@@ -4,9 +4,8 @@ These selected game-ready GLBs are copied byte-for-byte from the owner's
 `odot-game-assets` repository:
 
 - Source: https://github.com/seraph1nia/odot-game-assets.git
-- Revision: `ddd1ef1a35bd8db5bf3d1a405672d254aff68174`
-- Source-relative export paths, exact SHA-256 hashes, byte counts and embedded
-  dependency summaries: [`manifest.json`](manifest.json).
+- Pinned revision, source-relative export paths, exact SHA-256 hashes, byte counts
+  and embedded dependency summaries: [`manifest.json`](manifest.json).
 - Owner's permission for this requested game migration, verbatim:
   **the repo is my own work, so yes, use it**
 
