@@ -44,7 +44,9 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     PrivateDisplay.CheckPrerequisites();
                     if (options.Scenario != "exported-package") await Prepare(); else CheckPackages();
                     await UiTests(options.Scenario); break;
-                case "profile-presentation": PrivateDisplay.CheckPrerequisites(); await Prepare(); await PresentationProfiles(); break;
+                case "profile-presentation":
+                    PrivateDisplay.CheckPrerequisites(); await Prepare();
+                    await PresentationProfiles(); break;
                 case "_ui-worker": await UiWorker(); break;
                 case "prepare-templates": await PrepareTemplates(); break;
                 case "export-client":

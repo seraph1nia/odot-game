@@ -1,5 +1,16 @@
 # Authored-era performance loop
 
+## Later fixed-position scenery cost, 2026-10-07
+
+The [beautification verification record](../openspec/changes/beautify-settlement-world/verification.md#complete-matched-renderresource-measurement)
+owns the later scenery measurements and their verification-cost accounting;
+these are separate from the numerical optimization below. Its
+[historical local acceptance section](../openspec/changes/beautify-settlement-world/verification.md#historical-local-acceptance-at-53779df)
+owns earlier post-review source-bound receipts and retained failures; the
+[accepted finishing scope](../openspec/changes/beautify-settlement-world/verification.md#accepted-finishing-scope-after-coderabbit-followup)
+owns requirements after the later followup, without relabeling historical
+measurements as final-head evidence.
+
 ## Scope and decision
 
 Landed input: `f37830a` (authored migration). Original GLBs/maps, provenance,
@@ -84,6 +95,36 @@ mistakes that cheap tests cannot measure, costs approximately 2.5 minutes per wo
 and does not expand default CI into a graphical population matrix. Twelve fresh
 rendered views and current pose/camera/placement observations are retained per
 worker; no earlier image stands in for a later frame.
+
+## Protected-boundary and native investigation modes
+
+The authored-scale command also supports two distinct owned diagnostic modes:
+
+- Add `--baseline PATH` to compare every fresh capture with the matching retained
+  measured capture directory containing `profile.json`, PNGs and observations.
+  Add `--boundary-evidence REQUEST.json` only with that baseline to bind retained
+  native/glyph witnesses to their finite frame/view/zoom identities. Evidence
+  hashes and current source/buffer/camera/pose/physical-state guards must match;
+  unavailable or stale inputs fail rather than generating a replacement before.
+  Warmup and measured executions run the full script with the same manifest;
+  request `GlyphCompletion`/`BoundaryControls` flags do not dispatch producers in
+  this comparison mode. Fresh native attestation checks the retained glyph witness
+  against current labels. Extra exact/native verification is recorded in
+  `BoundaryValidation` and included in raw elapsed/
+  cumulative allocations, except the final capture/proof outside those aggregates.
+- Add `--pixel-ownership-request REQUEST.json` for one ordinary rendered-prefix
+  investigation without warmup; it cannot be combined with either comparison
+  option. `TargetFrame` defaults to 299 and permits only 299/399/499/599.
+  `RemainingViews` permits full-script continuation only for 499/599 and is
+  required for 599. The retained request defines authorized samples and optional
+  native glyph/control work; this is not a general renderer classification mode.
+
+`profile-identity.json` records `TargetFrame`, `RemainingViews` and
+`RequestedScriptedFrames` for investigations. Execution is unconfirmed until the
+owned worker succeeds and the prefix/full-script receipt matches the requested
+count; only then is `ExecutedScriptedFrames` emitted. Even a 600-frame investigation
+is not complete replay acceptance. These modes do not replace live gameplay/UI
+or full CI, establish an exact coplanar tile winner, or qualify native GPU performance.
 
 ## Numerical before/after (accepted round)
 

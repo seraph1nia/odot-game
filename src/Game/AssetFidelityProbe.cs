@@ -21,6 +21,7 @@ internal static class AssetFidelityProbe
     }
     private static void RunGeometry(Node owner)
     {
+        RunGlyphDuplicateRegression();
         var reports = new List<object>();
         foreach (string path in AssetCatalog.RequiredPaths.Where(p => !p.StartsWith("characters/", StringComparison.Ordinal)))
         {
@@ -148,6 +149,85 @@ internal static class AssetFidelityProbe
         object framePersistence = FramePersistenceProof.Run();
         Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence }, WireJson.Options)));
         owner.GetTree().Quit();
+    }
+    private static void RunGlyphDuplicateRegression()
+    {
+        foreach (string description in new[] { "", "Native nonempty glyph description" })
+        {
+            var parent = new Node3D();
+            using var material = new StandardMaterial3D();
+            using var changedMaterial = new StandardMaterial3D();
+            var original = new Label3D
+            {
+                Name = "OriginalGlyphFixture",
+                Text = "Metal mine L1",
+                EditorDescription = description,
+                Font = ThemeDB.FallbackFont,
+                MaterialOverride = material,
+                Position = new Vector3(1, 2, 3)
+            };
+            // Metadata is a stored Variant property, allowing a real type mismatch
+            // without a typed Label3D setter coercing the test input back to String.
+            original.SetMeta("glyph_fidelity_type", 1);
+            parent.AddChild(original);
+            Transform3D transform = original.Transform;
+            var copy = (Label3D)original.Duplicate(0);
+            try
+            {
+                void Observe(string name, string stage)
+                {
+                    using Variant expected = original.Get(name);
+                    using Variant actual = copy.Get(name);
+                    GD.Print("Native glyph duplicate " + name + " " + stage + ": " + JsonSerializer.Serialize(new
+                    {
+                        OriginalType = expected.VariantType.ToString(),
+                        OriginalValue = GD.VarToStr(expected),
+                        CopyType = actual.VariantType.ToString(),
+                        CopyValue = GD.VarToStr(actual),
+                        OriginalPixelSizeBits = BitConverter.SingleToInt32Bits(original.PixelSize),
+                        CopyPixelSizeBits = BitConverter.SingleToInt32Bits(copy.PixelSize)
+                    }, WireJson.Options));
+                }
+                void RequireOriginalUntouched()
+                {
+                    using Variant metadata = original.GetMeta("glyph_fidelity_type");
+                    if (original.GetParent() != parent || original.GetIndex() != 0 || original.Name != "OriginalGlyphFixture"
+                        || original.Transform != transform || !original.Visible || original.Text != "Metal mine L1"
+                        || original.EditorDescription != description || original.Font != ThemeDB.FallbackFont
+                        || original.MaterialOverride != material || original.MaterialOverlay is not null
+                        || metadata.VariantType != Variant.Type.Int || metadata.AsInt64() != 1)
+                        throw new InvalidOperationException("Native glyph duplicate regression changed the original.");
+                }
+                Observe("editor_description", "faithful duplicate");
+                RequireOriginalUntouched();
+                PixelGlyphCompletion.RequireDuplicateProperties(original, copy);
+                GD.Print("PASS: native faithful duplicate, including " + JsonSerializer.Serialize(description) + " String");
+                void Reject(string name, Action mutate, Action restore)
+                {
+                    string? rejection = null;
+                    try
+                    {
+                        mutate();
+                        Observe(name, "actual mismatch");
+                        try { PixelGlyphCompletion.RequireDuplicateProperties(original, copy); }
+                        catch (InvalidDataException error) { rejection = error.Message; }
+                    }
+                    finally { restore(); }
+                    if (rejection != "Native glyph duplicate property differs: " + name)
+                        throw new InvalidOperationException("Native glyph duplicate regression did not reject its actual changed property: " + name);
+                    RequireOriginalUntouched();
+                    PixelGlyphCompletion.RequireDuplicateProperties(original, copy);
+                    GD.Print("PASS: rejected " + name + "; exact duplicate restored and original untouched");
+                }
+                Reject("editor_description", () => copy.EditorDescription = "different", () => copy.EditorDescription = original.EditorDescription);
+                Reject("text", () => copy.Text = "different glyphs", () => copy.Text = original.Text);
+                Reject("metadata/glyph_fidelity_type", () => copy.SetMeta("glyph_fidelity_type", 1.0), () => copy.SetMeta("glyph_fidelity_type", 1));
+                Reject("pixel_size", () => copy.PixelSize = MathF.BitIncrement(original.PixelSize), () => copy.PixelSize = original.PixelSize);
+                Reject("material_override", () => copy.MaterialOverride = changedMaterial, () => copy.MaterialOverride = material);
+                GD.Print("PASS: native glyph duplicate stored-property fidelity, original immutability and real property/resource mismatch rejection");
+            }
+            finally { copy.Free(); parent.Free(); }
+        }
     }
     private static Node3D Fixture()
     {

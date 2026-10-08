@@ -117,6 +117,9 @@ internal sealed partial class Runner
         {
             args.AddRange(["--frames", "600", "--configuration", "Debug"]);
             if (options.ProfileWorkCounters) args.Add("--work-counters");
+            if (options.ProfileBaseline is not null) args.AddRange(["--baseline", options.ProfileBaseline]);
+            if (options.BoundaryEvidence is not null) args.AddRange(["--boundary-evidence", options.BoundaryEvidence]);
+            if (options.PixelOwnershipRequest is not null) args.AddRange(["--pixel-ownership-request", options.PixelOwnershipRequest]);
         }
         if (options.UiCheckpoint is not null) args.AddRange(["--checkpoint", options.UiCheckpoint]);
         if (options.InstalledClient is not null) args.AddRange(["--installed-client", options.InstalledClient]);
