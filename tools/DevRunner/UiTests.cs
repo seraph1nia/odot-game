@@ -184,6 +184,7 @@ internal sealed record UiObservation
     public bool DetailsOpen { get; init; }
     public ArmyState? ArmyHomes { get; init; }
     public string[] HomeMarkers { get; init; } = [];
+    public string[] WorldLabels { get; init; } = [];
     public bool TownHallOpen { get; init; }
     public string TownHallText { get; init; } = "";
     public int SelectedStoredUnit { get; init; }
