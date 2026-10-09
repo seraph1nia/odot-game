@@ -5,7 +5,8 @@
 The initial migration used only selected game-ready exports from
 `odot-game-assets` revision `a640d721065233dfbf488747694cd95110d4a907` for bundled
 3D content. The measurements and assessments below describe that migration,
-not the later [landed quality refresh](assets.md#landed-quality-refresh).
+not the later [landed quality refresh](assets.md#landed-quality-refresh) or
+[detailed-ground integration](detailed-ground.md).
 [Provenance and substitutions](assets.md) distinguish presentation
 names from unchanged canonical selectors/enums/save/protocol identities. Exact
 owner approval is recorded, not invented licensing. Source/editable/reference
@@ -20,7 +21,8 @@ content was neither modified nor copied; existing UI/audio and notices remain.
   export content. Historical notices and `docs/asset-history/kaykit-manifest.json`
   remain. Distribution checks reject missing/unregistered/legacy 3D and packed
   `.import`/`.remap` discrepancies; no fallback exists. Shared source/packed path
-  projection accepts only those mapping suffixes and still requires the exact44 models.
+  projection accepts only those mapping suffixes and requires the exact inventory
+  owned by the [manifest](../src/Game/Assets/Authored/manifest.json).
 - All eight actual skinned/equipped 19-bone rigs use imported idle/walk/run/attack/
   hit/death clips. Authored frame13 attack peaks map to unchanged authority impact;
   root horizontal suppression, death precedence, event/attachment identity remain.
