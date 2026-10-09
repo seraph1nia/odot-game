@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/seraph1nia/odot-game-assets.git",
-  "revision": "ddd1ef1a35bd8db5bf3d1a405672d254aff68174",
+  "revision": "ae7f76a28f7bdd8471aeacb8bb40596aec758bfe",
   "permission": "the repo is my own work, so yes, use it",
   "permissionScope": "Required authored game-ready exports and embedded maps for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
   "files": [
@@ -365,6 +365,123 @@
       "bytes": 1038932,
       "embeddedImages": 11,
       "materials": 5,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_ground_dirt.glb",
+      "sourcePath": "exports/environment/hex_ground_dirt.glb",
+      "sha256": "20ead297b5bbba3479b53ca368d01db2640069c1bfec9bc75e6cc61331bca0cc",
+      "bytes": 1612600,
+      "embeddedImages": 6,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_ground_grass.glb",
+      "sourcePath": "exports/environment/hex_ground_grass.glb",
+      "sha256": "9c7471348e259532581eaa0fa622a06ce841fd06dbd5e4da40b52564bb2aacbd",
+      "bytes": 2080444,
+      "embeddedImages": 6,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter.glb",
+      "sourcePath": "exports/environment/hex_ground_leaf_litter.glb",
+      "sha256": "4bfced1231c0473a0065dc091924dfa30eed76301a712b21af4e185a98f68002",
+      "bytes": 2067076,
+      "embeddedImages": 6,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_ground_moss.glb",
+      "sourcePath": "exports/environment/hex_ground_moss.glb",
+      "sha256": "917cea9eb3459e7e0251e0b1a072bdbc427a821c4b33253ffe0e9fbeebc1667f",
+      "bytes": 2014732,
+      "embeddedImages": 6,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_ground_pine_duff.glb",
+      "sourcePath": "exports/environment/hex_ground_pine_duff.glb",
+      "sha256": "8bb3a275d60aae5b8ceae7770c1351517032f6926bc71975aa190fb34c83772f",
+      "bytes": 1775728,
+      "embeddedImages": 6,
+      "materials": 2,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_path_end.glb",
+      "sourcePath": "exports/environment/hex_path_end.glb",
+      "sha256": "b7d73c60dfbee7e15a01223f7f273265cf70e13b3638310f33bddee869ae120d",
+      "bytes": 266256,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_path_straight.glb",
+      "sourcePath": "exports/environment/hex_path_straight.glb",
+      "sha256": "c05ae793721d9f5869aa0811d0d4b4e28971e76dc6ac2d340a3cf940efe29e6c",
+      "bytes": 262148,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_path_turn_120.glb",
+      "sourcePath": "exports/environment/hex_path_turn_120.glb",
+      "sha256": "48627064b06c6a9550305ce314bd41a3c05eef6d1bec69332c2ca57fb943afb4",
+      "bytes": 271212,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_path_turn_60.glb",
+      "sourcePath": "exports/environment/hex_path_turn_60.glb",
+      "sha256": "e1cea1e54a6dbd2703b1b7a29a1936594ec018dab449e43d522273ace5eb2cfa",
+      "bytes": 271208,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_river_overlay_end.glb",
+      "sourcePath": "exports/environment/hex_river_overlay_end.glb",
+      "sha256": "9b3c0c5defc7b64eca1d750b8a164b5f6e406cd48b2dbbf128dcfbeb9932a41b",
+      "bytes": 105976,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_river_overlay_straight.glb",
+      "sourcePath": "exports/environment/hex_river_overlay_straight.glb",
+      "sha256": "1885f50d832c4ffbc74acdad66dee5b04906da8f3021c3a3cb2d2f2ccfe774aa",
+      "bytes": 100580,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_120.glb",
+      "sourcePath": "exports/environment/hex_river_overlay_turn_120.glb",
+      "sha256": "65f5a183bd30ad014f3d807551b06d6cf2596e0e2d5bde1f797f1661c5f69ee1",
+      "bytes": 109884,
+      "embeddedImages": 3,
+      "materials": 1,
+      "animationNames": []
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_60.glb",
+      "sourcePath": "exports/environment/hex_river_overlay_turn_60.glb",
+      "sha256": "22622e359d0a5ed9757aee96f35b9f49e21a768ae0294d5a804d34e3082fcfbf",
+      "bytes": 109880,
+      "embeddedImages": 3,
+      "materials": 1,
       "animationNames": []
     },
     {
@@ -2005,6 +2122,384 @@
       "imageName": "painted_wood_roughness",
       "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
       "bytes": 22819
+    },
+    {
+      "path": "environment/hex_ground_dirt_ground_dirt_base_color.png",
+      "parent": "environment/hex_ground_dirt.glb",
+      "imageName": "ground_dirt_base_color",
+      "sha256": "78cf3f124861150971b8dc14c1c7448c3f8b5c50b004071f08f33c63a897cea2",
+      "bytes": 531948
+    },
+    {
+      "path": "environment/hex_ground_dirt_ground_dirt_normal.png",
+      "parent": "environment/hex_ground_dirt.glb",
+      "imageName": "ground_dirt_normal",
+      "sha256": "3c6a887cc4f642a5a118bf0e7956d151300fc3018052f88a6c9289cd3334fab1",
+      "bytes": 468500
+    },
+    {
+      "path": "environment/hex_ground_dirt_ground_dirt_roughness.png",
+      "parent": "environment/hex_ground_dirt.glb",
+      "imageName": "ground_dirt_roughness",
+      "sha256": "5c58babb3be02e67f93df04a3ed00104781000721103ccb0919d69442b6c9f74",
+      "bytes": 224503
+    },
+    {
+      "path": "environment/hex_ground_dirt_ground_foundation_base_color.png",
+      "parent": "environment/hex_ground_dirt.glb",
+      "imageName": "ground_foundation_base_color",
+      "sha256": "6ad17f2decce1dd6b36e6b81e9f880cad768f46ecf03915403aa606c4cf70fff",
+      "bytes": 215441
+    },
+    {
+      "path": "environment/hex_ground_dirt_ground_foundation_normal.png",
+      "parent": "environment/hex_ground_dirt.glb",
+      "imageName": "ground_foundation_normal",
+      "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+      "bytes": 161311
+    },
+    {
+      "path": "environment/hex_ground_dirt_ground_foundation_roughness.png",
+      "parent": "environment/hex_ground_dirt.glb",
+      "imageName": "ground_foundation_roughness",
+      "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+      "bytes": 4589
+    },
+    {
+      "path": "environment/hex_ground_grass_ground_foundation_base_color.png",
+      "parent": "environment/hex_ground_grass.glb",
+      "imageName": "ground_foundation_base_color",
+      "sha256": "6ad17f2decce1dd6b36e6b81e9f880cad768f46ecf03915403aa606c4cf70fff",
+      "bytes": 215441
+    },
+    {
+      "path": "environment/hex_ground_grass_ground_foundation_normal.png",
+      "parent": "environment/hex_ground_grass.glb",
+      "imageName": "ground_foundation_normal",
+      "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+      "bytes": 161311
+    },
+    {
+      "path": "environment/hex_ground_grass_ground_foundation_roughness.png",
+      "parent": "environment/hex_ground_grass.glb",
+      "imageName": "ground_foundation_roughness",
+      "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+      "bytes": 4589
+    },
+    {
+      "path": "environment/hex_ground_grass_ground_grass_base_color.png",
+      "parent": "environment/hex_ground_grass.glb",
+      "imageName": "ground_grass_base_color",
+      "sha256": "5f3299cdf503b40af50490e5865264e940229120c65808c69ab349db34aa8066",
+      "bytes": 713065
+    },
+    {
+      "path": "environment/hex_ground_grass_ground_grass_normal.png",
+      "parent": "environment/hex_ground_grass.glb",
+      "imageName": "ground_grass_normal",
+      "sha256": "750fbbeb01111ba571c8c38d1be1eb4c5600f7d0fe39756769cbc022c967be9c",
+      "bytes": 692506
+    },
+    {
+      "path": "environment/hex_ground_grass_ground_grass_roughness.png",
+      "parent": "environment/hex_ground_grass.glb",
+      "imageName": "ground_grass_roughness",
+      "sha256": "21bc23c3ed2d05b095178d466677d3db84e05bb42b52ae1d5023598c7e1de3d1",
+      "bytes": 287212
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter_ground_foundation_base_color.png",
+      "parent": "environment/hex_ground_leaf_litter.glb",
+      "imageName": "ground_foundation_base_color",
+      "sha256": "6ad17f2decce1dd6b36e6b81e9f880cad768f46ecf03915403aa606c4cf70fff",
+      "bytes": 215441
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter_ground_foundation_normal.png",
+      "parent": "environment/hex_ground_leaf_litter.glb",
+      "imageName": "ground_foundation_normal",
+      "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+      "bytes": 161311
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter_ground_foundation_roughness.png",
+      "parent": "environment/hex_ground_leaf_litter.glb",
+      "imageName": "ground_foundation_roughness",
+      "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+      "bytes": 4589
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter_ground_leaf_litter_base_color.png",
+      "parent": "environment/hex_ground_leaf_litter.glb",
+      "imageName": "ground_leaf_litter_base_color",
+      "sha256": "c393a96fc0578ebcce416ac77c6aeb6fcda64da1387669cc60b63dec1a8d6825",
+      "bytes": 719364
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter_ground_leaf_litter_normal.png",
+      "parent": "environment/hex_ground_leaf_litter.glb",
+      "imageName": "ground_leaf_litter_normal",
+      "sha256": "4bafbe18d196fe553cbeafa7772e58989fb06523216d3e9be075c4087e3aaf78",
+      "bytes": 680651
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter_ground_leaf_litter_roughness.png",
+      "parent": "environment/hex_ground_leaf_litter.glb",
+      "imageName": "ground_leaf_litter_roughness",
+      "sha256": "7ad475b23a2daf653fd3b1b4c3f11bf20639e457c4e95ea03e449db045d2db33",
+      "bytes": 279361
+    },
+    {
+      "path": "environment/hex_ground_moss_ground_foundation_base_color.png",
+      "parent": "environment/hex_ground_moss.glb",
+      "imageName": "ground_foundation_base_color",
+      "sha256": "6ad17f2decce1dd6b36e6b81e9f880cad768f46ecf03915403aa606c4cf70fff",
+      "bytes": 215441
+    },
+    {
+      "path": "environment/hex_ground_moss_ground_foundation_normal.png",
+      "parent": "environment/hex_ground_moss.glb",
+      "imageName": "ground_foundation_normal",
+      "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+      "bytes": 161311
+    },
+    {
+      "path": "environment/hex_ground_moss_ground_foundation_roughness.png",
+      "parent": "environment/hex_ground_moss.glb",
+      "imageName": "ground_foundation_roughness",
+      "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+      "bytes": 4589
+    },
+    {
+      "path": "environment/hex_ground_moss_ground_moss_base_color.png",
+      "parent": "environment/hex_ground_moss.glb",
+      "imageName": "ground_moss_base_color",
+      "sha256": "0507b467c70fe3a843cc1caf1e611fe6297bc6adf20da3c73db237c64c3b3b9f",
+      "bytes": 711876
+    },
+    {
+      "path": "environment/hex_ground_moss_ground_moss_normal.png",
+      "parent": "environment/hex_ground_moss.glb",
+      "imageName": "ground_moss_normal",
+      "sha256": "a0bb89e2f8c421cf95fa90cde680ed968e94ab2c3c82950501a8f0fc4945edcb",
+      "bytes": 649144
+    },
+    {
+      "path": "environment/hex_ground_moss_ground_moss_roughness.png",
+      "parent": "environment/hex_ground_moss.glb",
+      "imageName": "ground_moss_roughness",
+      "sha256": "1cc49bbc7d460287ddcd08f46c7d18c29f6d9fd7cf1bef032a1cefa5f9dbac7d",
+      "bytes": 266074
+    },
+    {
+      "path": "environment/hex_ground_pine_duff_ground_foundation_base_color.png",
+      "parent": "environment/hex_ground_pine_duff.glb",
+      "imageName": "ground_foundation_base_color",
+      "sha256": "6ad17f2decce1dd6b36e6b81e9f880cad768f46ecf03915403aa606c4cf70fff",
+      "bytes": 215441
+    },
+    {
+      "path": "environment/hex_ground_pine_duff_ground_foundation_normal.png",
+      "parent": "environment/hex_ground_pine_duff.glb",
+      "imageName": "ground_foundation_normal",
+      "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+      "bytes": 161311
+    },
+    {
+      "path": "environment/hex_ground_pine_duff_ground_foundation_roughness.png",
+      "parent": "environment/hex_ground_pine_duff.glb",
+      "imageName": "ground_foundation_roughness",
+      "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+      "bytes": 4589
+    },
+    {
+      "path": "environment/hex_ground_pine_duff_ground_pine_duff_base_color.png",
+      "parent": "environment/hex_ground_pine_duff.glb",
+      "imageName": "ground_pine_duff_base_color",
+      "sha256": "93c138c664be263ecb0594bd972d784f757e20533c4cc5229d3152a72359ff76",
+      "bytes": 564030
+    },
+    {
+      "path": "environment/hex_ground_pine_duff_ground_pine_duff_normal.png",
+      "parent": "environment/hex_ground_pine_duff.glb",
+      "imageName": "ground_pine_duff_normal",
+      "sha256": "ded83a41882ecea7839850d31acfdd434e6d546278f7aa6cd5220a56ea451c0a",
+      "bytes": 567424
+    },
+    {
+      "path": "environment/hex_ground_pine_duff_ground_pine_duff_roughness.png",
+      "parent": "environment/hex_ground_pine_duff.glb",
+      "imageName": "ground_pine_duff_roughness",
+      "sha256": "d675ffe48262b55aecffbdc573e414832d020533b91a6ac9e56ed61029907a9d",
+      "bytes": 256585
+    },
+    {
+      "path": "environment/hex_path_end_ground_path_base_color.png",
+      "parent": "environment/hex_path_end.glb",
+      "imageName": "ground_path_base_color",
+      "sha256": "4df77861de8e20a83f353986483ced3f12d0f25fc6756f470c4e4429564ef134",
+      "bytes": 141587
+    },
+    {
+      "path": "environment/hex_path_end_ground_path_normal.png",
+      "parent": "environment/hex_path_end.glb",
+      "imageName": "ground_path_normal",
+      "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+      "bytes": 78912
+    },
+    {
+      "path": "environment/hex_path_end_ground_path_roughness.png",
+      "parent": "environment/hex_path_end.glb",
+      "imageName": "ground_path_roughness",
+      "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+      "bytes": 28866
+    },
+    {
+      "path": "environment/hex_path_straight_ground_path_base_color.png",
+      "parent": "environment/hex_path_straight.glb",
+      "imageName": "ground_path_base_color",
+      "sha256": "4df77861de8e20a83f353986483ced3f12d0f25fc6756f470c4e4429564ef134",
+      "bytes": 141587
+    },
+    {
+      "path": "environment/hex_path_straight_ground_path_normal.png",
+      "parent": "environment/hex_path_straight.glb",
+      "imageName": "ground_path_normal",
+      "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+      "bytes": 78912
+    },
+    {
+      "path": "environment/hex_path_straight_ground_path_roughness.png",
+      "parent": "environment/hex_path_straight.glb",
+      "imageName": "ground_path_roughness",
+      "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+      "bytes": 28866
+    },
+    {
+      "path": "environment/hex_path_turn_120_ground_path_base_color.png",
+      "parent": "environment/hex_path_turn_120.glb",
+      "imageName": "ground_path_base_color",
+      "sha256": "4df77861de8e20a83f353986483ced3f12d0f25fc6756f470c4e4429564ef134",
+      "bytes": 141587
+    },
+    {
+      "path": "environment/hex_path_turn_120_ground_path_normal.png",
+      "parent": "environment/hex_path_turn_120.glb",
+      "imageName": "ground_path_normal",
+      "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+      "bytes": 78912
+    },
+    {
+      "path": "environment/hex_path_turn_120_ground_path_roughness.png",
+      "parent": "environment/hex_path_turn_120.glb",
+      "imageName": "ground_path_roughness",
+      "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+      "bytes": 28866
+    },
+    {
+      "path": "environment/hex_path_turn_60_ground_path_base_color.png",
+      "parent": "environment/hex_path_turn_60.glb",
+      "imageName": "ground_path_base_color",
+      "sha256": "4df77861de8e20a83f353986483ced3f12d0f25fc6756f470c4e4429564ef134",
+      "bytes": 141587
+    },
+    {
+      "path": "environment/hex_path_turn_60_ground_path_normal.png",
+      "parent": "environment/hex_path_turn_60.glb",
+      "imageName": "ground_path_normal",
+      "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+      "bytes": 78912
+    },
+    {
+      "path": "environment/hex_path_turn_60_ground_path_roughness.png",
+      "parent": "environment/hex_path_turn_60.glb",
+      "imageName": "ground_path_roughness",
+      "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+      "bytes": 28866
+    },
+    {
+      "path": "environment/hex_river_overlay_end_ground_river_base_color.png",
+      "parent": "environment/hex_river_overlay_end.glb",
+      "imageName": "ground_river_base_color",
+      "sha256": "f1ae59b3e97a039659eeac70beb1014e3cbf9f48cfaa38c31dd83f72f08fd657",
+      "bytes": 41696
+    },
+    {
+      "path": "environment/hex_river_overlay_end_ground_river_normal.png",
+      "parent": "environment/hex_river_overlay_end.glb",
+      "imageName": "ground_river_normal",
+      "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+      "bytes": 36716
+    },
+    {
+      "path": "environment/hex_river_overlay_end_ground_river_roughness.png",
+      "parent": "environment/hex_river_overlay_end.glb",
+      "imageName": "ground_river_roughness",
+      "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+      "bytes": 5387
+    },
+    {
+      "path": "environment/hex_river_overlay_straight_ground_river_base_color.png",
+      "parent": "environment/hex_river_overlay_straight.glb",
+      "imageName": "ground_river_base_color",
+      "sha256": "f1ae59b3e97a039659eeac70beb1014e3cbf9f48cfaa38c31dd83f72f08fd657",
+      "bytes": 41696
+    },
+    {
+      "path": "environment/hex_river_overlay_straight_ground_river_normal.png",
+      "parent": "environment/hex_river_overlay_straight.glb",
+      "imageName": "ground_river_normal",
+      "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+      "bytes": 36716
+    },
+    {
+      "path": "environment/hex_river_overlay_straight_ground_river_roughness.png",
+      "parent": "environment/hex_river_overlay_straight.glb",
+      "imageName": "ground_river_roughness",
+      "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+      "bytes": 5387
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_120_ground_river_base_color.png",
+      "parent": "environment/hex_river_overlay_turn_120.glb",
+      "imageName": "ground_river_base_color",
+      "sha256": "f1ae59b3e97a039659eeac70beb1014e3cbf9f48cfaa38c31dd83f72f08fd657",
+      "bytes": 41696
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_120_ground_river_normal.png",
+      "parent": "environment/hex_river_overlay_turn_120.glb",
+      "imageName": "ground_river_normal",
+      "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+      "bytes": 36716
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_120_ground_river_roughness.png",
+      "parent": "environment/hex_river_overlay_turn_120.glb",
+      "imageName": "ground_river_roughness",
+      "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+      "bytes": 5387
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_60_ground_river_base_color.png",
+      "parent": "environment/hex_river_overlay_turn_60.glb",
+      "imageName": "ground_river_base_color",
+      "sha256": "f1ae59b3e97a039659eeac70beb1014e3cbf9f48cfaa38c31dd83f72f08fd657",
+      "bytes": 41696
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_60_ground_river_normal.png",
+      "parent": "environment/hex_river_overlay_turn_60.glb",
+      "imageName": "ground_river_normal",
+      "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+      "bytes": 36716
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_60_ground_river_roughness.png",
+      "parent": "environment/hex_river_overlay_turn_60.glb",
+      "imageName": "ground_river_roughness",
+      "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+      "bytes": 5387
     },
     {
       "path": "environment/hex_woodland_bridge_painted_crystal_blue_color.png",

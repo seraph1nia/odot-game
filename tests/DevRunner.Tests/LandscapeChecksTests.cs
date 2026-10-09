@@ -45,32 +45,58 @@ public sealed class LandscapeChecksTests
         Assert.False(LandscapeChecks.SameStartingArea(scene, scene with { Static = [scene.Static[0] with { X = 0 }] }));
     }
     [Fact]
-    public void StreamAndBridgeRequireActualContinuousWaterEdgesAndExactlyOneBridge()
+    public void SurfaceStreamRequiresContinuousPortsAndRemovedBridgeSubstrate()
     {
         var scene = new LandscapeObservation
         {
-            River = [
-            new(Game.AssetCatalog.Stream, [-4.5f, -.144f, 12.99f], [-1.5f, -.144f, 12.99f]),
-            new(Game.AssetCatalog.Bridge, [-1.5f, -.144f, 12.99f], [1.5f, -.144f, 12.99f]),
-            new(Game.AssetCatalog.Stream, [1.5f, -.144f, 12.99f], [4.5f, -.144f, 12.99f])]
+            BridgeSubstratesRemoved = 5,
+            River = Enumerable.Range(-1, 3).Select(i => new RiverObservation(
+                Game.DetailedGround.Connector(Game.GroundOverlay.River, 0, 3).Asset,
+                [i * 3 - 1.5f, -.024566f, 12.99f], [i * 3 + 1.5f, -.024566f, 12.99f])).ToArray()
         };
         Assert.True(LandscapeChecks.JoinedRiver(scene));
         Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [.. scene.River, scene.River[1]] }));
         Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0], scene.River[1], scene.River[2] with { Start = [1.6f, -.144f, 12.99f] }] }));
         Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0], scene.River[1] with { Start = [-1.5f, .2f, 12.99f] }, scene.River[2]] }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { BridgeRecessedMeshes = 1 }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { BridgeSubstratesRemoved = 0 }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0] with { Asset = Game.AssetCatalog.Stream }, scene.River[1], scene.River[2]] }));
+    }
+    [Fact]
+    public void LiveDirtTrailRejectsWrongOrientationHeightMissingEndsAndBuriedOverlay()
+    {
+        float y = .18f + .012f * (1.7320508f / 2.55f);
+        var plan = Game.DetailedGround.BankTrail().ToArray();
+        float[][][] ports = [
+            [[3.75f, y, 16.8875f]],
+            [[6, y, 18.1865f], [3.75f, y, 16.8875f]],
+            [[6, y, 18.1865f], [8.25f, y, 16.8875f]],
+            [[8.25f, y, 16.8875f]]];
+        var scene = new LandscapeObservation
+        {
+            DirtTrail = plan.Select((p, i) => new GroundTrailObservation(p.Connector.Asset, p.Column, p.Row,
+                Game.DetailedGround.Base(p.Column, p.Row), .0040754f, ports[i])).ToArray()
+        };
+        Assert.True(LandscapeChecks.JoinedTrail(scene));
+        Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail[..^1] }));
+        Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Ports = [[4, y, 16.8875f]] } : p).ToArray() }));
+        Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Ports = [[3.75f, y + .01f, 16.8875f]] } : p).ToArray() }));
+        Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Clearance = 0 } : p).ToArray() }));
     }
     [Fact]
     public void ImportedTerrainFootprintRejectsWrongScaleHeightAndLegacySubstitution()
     {
         var scene = new LandscapeObservation
         {
-            TerrainBounds = [
-            new(Game.AssetCatalog.Meadow, [-2.55f, -.36f, -2.20836f], [2.55f, 0, 2.20836f]),
-            new(Game.AssetCatalog.Stream, [-2.55f, -.36f, -2.20836f], [2.55f, 0, 2.20836f])]
+            Tiles = 100,
+            FloorCells = 100,
+            TerrainBounds = Game.DetailedGround.Bases.Select(b => new TerrainBoundsObservation(b,
+                [-2.55f, -.36f, -2.20836f], [2.55f, 0, 2.20836f])).ToArray()
         };
         Assert.True(LandscapeChecks.AuthoredTerrain(scene));
-        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [scene.TerrainBounds[0], scene.TerrainBounds[1] with { Asset = "legacy" }] }));
-        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [scene.TerrainBounds[0] with { Max = [3, 0, 2.20836f] }, scene.TerrainBounds[1]] }));
-        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [scene.TerrainBounds[0] with { Max = [2.55f, .2f, 2.20836f] }, scene.TerrainBounds[1]] }));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = [.. scene.TerrainBounds, new(Game.AssetCatalog.Meadow, [0, 0, 0], [1, 1, 1])] }));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { FloorCells = 101 }));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = scene.TerrainBounds.Select((b, i) => i == 0 ? b with { Max = [3, 0, 2.20836f] } : b).ToArray() }));
+        Assert.False(LandscapeChecks.AuthoredTerrain(scene with { TerrainBounds = scene.TerrainBounds.Select((b, i) => i == 0 ? b with { Max = [2.55f, .2f, 2.20836f] } : b).ToArray() }));
     }
 }

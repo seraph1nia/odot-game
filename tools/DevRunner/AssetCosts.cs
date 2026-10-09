@@ -7,6 +7,38 @@ internal sealed partial class Runner
 {
     // Selected diagnostic only: one ordinary static solo, no battle/campaign.
     // Catches capture/probe latency attribution errors hidden by numerical tests.
+    private async Task DetailedGroundViews(Child client, CancellationToken token)
+    {
+        // Extend the existing selected asset route, not another E2E match. Cheap
+        // topology tests cannot catch hidden floors, missing maps or bad contact
+        // in a rendered settlement. Three ordinary-input views cost a few probes
+        // and captures on the already-owned display; no extra peers/setup.
+        UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Countryside(frame);
+        await Checkpoint(client, "detailed-ground-settlement", token, dataOwner: client.Name);
+        foreach (bool trail in new[] { true, false })
+        {
+            await Click(client, "ResetView", token);
+            await FocusWorld(client, token);
+            frame = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            float[] point = trail ? frame.Landscape.TrailView : frame.Landscape.ForestView;
+            Require(point.Length == 2 && point.All(float.IsFinite), "actual projected ground detail point");
+            float x = frame.Width / 2f, y = frame.HudTop / 2;
+            await client.Send(FormattableString.Invariant($"mouse-down {x} {y}"));
+            await client.Send(FormattableString.Invariant($"mouse-move {x + x - point[0]} {y + y - point[1]}"));
+            await client.Send(FormattableString.Invariant($"mouse-up {x + x - point[0]} {y + y - point[1]}"));
+            frame = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            point = trail ? frame.Landscape.TrailView : frame.Landscape.ForestView;
+            Require(point[0] > 0 && point[0] < frame.Width && point[1] > 0 && point[1] < frame.HudTop, "ground detail reached through bounded ordinary camera input");
+            for (int i = 0; i < 6; i++) await Wheel(client, point[0], point[1], true);
+            frame = await WaitUi(client, p => p.Camera.Zoom > 1.9f, "normal permitted detail zoom", token);
+            Countryside(frame);
+            await Checkpoint(client, trail ? "detailed-ground-bank-trail" : "detailed-ground-forest", token, dataOwner: client.Name);
+        }
+        await Click(client, "ResetView", token);
+        await Pick(client, 1, token);
+        Require((await UiProtocol.Probe(client, options.StartupTimeout, token)).SelectedSlot == 1, "building picking/selection retained over detailed floor");
+    }
     private async Task AssetCostScenario(CancellationToken token)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(120));
@@ -49,6 +81,7 @@ internal sealed partial class Runner
             });
         }
         await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "static-cost-attribution.json"), JsonSerializer.Serialize(samples, Evidence.JsonOptions), token);
+        await DetailedGroundViews(client, token);
         await client.Send("quit"); Require(await client.WaitExit(token) == 0, "owned static cost window exits cleanly");
     }
 }

@@ -18,11 +18,18 @@ internal sealed record AssetPlacementObservation
 internal sealed record TerrainBoundsObservation(string Asset, float[] Min, float[] Max);
 internal sealed record WalkObservation(string Name, int Planks, int Foundations, float Thickness, float[] Start, float[] End, float[][] Centers, float[][] Footprints, float[] Supports);
 internal sealed record RiverObservation(string Asset, float[] Start, float[] End);
+internal sealed record GroundTrailObservation(string Asset, int Column, int Row, string Floor, float Clearance, float[][] Ports);
 internal sealed record LandscapeObservation
 {
     public int Tiles { get; init; }
     public int TerrainBatches { get; init; }
     public int TerrainSurfaces { get; init; }
+    public int FloorCells { get; init; }
+    public int BridgeSubstratesRemoved { get; init; }
+    public int BridgeRecessedMeshes { get; init; }
+    public GroundTrailObservation[] DirtTrail { get; init; } = [];
+    public float[] TrailView { get; init; } = [];
+    public float[] ForestView { get; init; } = [];
     public TerrainBoundsObservation[] TerrainBounds { get; init; } = [];
     public RiverObservation[] River { get; init; } = [];
     public WalkObservation[] Paths { get; init; } = [];
@@ -59,19 +66,37 @@ internal static class LandscapeChecks
     internal static bool JoinedRiver(LandscapeObservation landscape)
     {
         RiverObservation[] cells = landscape.River.OrderBy(r => r.Start.ElementAtOrDefault(0)).ToArray();
-        return cells.Length >= 3 && cells.Count(c => c.Asset == Game.AssetCatalog.Bridge) == 1
-            && cells.All(c => c.Start.Length == 3 && c.End.Length == 3 && c.Start.Concat(c.End).All(float.IsFinite)
+        return cells.Length >= 3 && landscape.BridgeSubstratesRemoved == 5 && landscape.BridgeRecessedMeshes == 0
+            && cells.All(c => c.Asset == Game.DetailedGround.Connector(Game.GroundOverlay.River, 0, 3).Asset
+                && c.Start.Length == 3 && c.End.Length == 3 && c.Start.Concat(c.End).All(float.IsFinite)
                 && Math.Abs(c.End[0] - c.Start[0] - 3) < .003f && Math.Abs(c.Start[1] - c.End[1]) < .003f && Math.Abs(c.Start[2] - c.End[2]) < .003f
-                && Math.Abs(c.Start[2] - 5 * 2.598076f) < .003f && Math.Abs(c.Start[1] - (-.03f - .1675f * (1.7320508f / 2.55f))) < .003f)
+                && Math.Abs(c.Start[2] - 5 * 2.598076f) < .003f && Math.Abs(c.Start[1] - (-.03f + .008f * (1.7320508f / 2.55f))) < .003f)
             && cells.Zip(cells.Skip(1)).All(p => p.First.End.Zip(p.Second.Start).All(q => Math.Abs(q.First - q.Second) < .003f));
     }
-    internal static bool AuthoredTerrain(LandscapeObservation landscape) => landscape.TerrainBounds.Length == 2
-        && landscape.TerrainBounds.All(b => b.Asset is Game.AssetCatalog.Meadow or Game.AssetCatalog.Stream
-            && b.Min.Length == 3 && b.Max.Length == 3
+    internal static bool AuthoredTerrain(LandscapeObservation landscape) => landscape.FloorCells == landscape.Tiles && landscape.Tiles > 0
+        && !landscape.TerrainBounds.Any(b => b.Asset is Game.AssetCatalog.Meadow or Game.AssetCatalog.Stream)
+        && landscape.TerrainBounds.Count(b => Game.DetailedGround.Bases.Contains(b.Asset)) == 5
+        && landscape.TerrainBounds.Where(b => Game.DetailedGround.Bases.Contains(b.Asset)).All(b => b.Min.Length == 3 && b.Max.Length == 3
             && Math.Abs(b.Min[0] + 2.55f) < .01 && Math.Abs(b.Max[0] - 2.55f) < .01
             && Math.Abs(b.Min[2] + 2.2083647f) < .01 && Math.Abs(b.Max[2] - 2.2083647f) < .01
             && Math.Abs(b.Max[1]) < .002 && Math.Abs(b.Min[1] + .36f) < .002);
 
+    internal static bool JoinedTrail(LandscapeObservation scene)
+    {
+        GroundTrailObservation[] trail = scene.DirtTrail;
+        var expected = Game.DetailedGround.BankTrail().ToArray();
+        if (trail.Length != expected.Length) return false;
+        for (int i = 0; i < trail.Length; i++)
+        {
+            var cell = trail[i]; var planned = expected[i];
+            if (cell.Column != planned.Column || cell.Row != planned.Row || cell.Asset != planned.Connector.Asset
+                || cell.Floor != Game.DetailedGround.Base(cell.Column, cell.Row) || cell.Clearance is < .004f or > .005f
+                || cell.Ports.Length != planned.Connector.Edges.Length || cell.Ports.Any(p => p.Length != 3 || !p.All(float.IsFinite)
+                    || Math.Abs(p[1] - (.18f + .012f * (1.7320508f / 2.55f))) > .0003f)) return false;
+            if (i > 0 && !cell.Ports.Any(p => trail[i - 1].Ports.Any(q => p.Zip(q).All(v => Math.Abs(v.First - v.Second) < .0003f)))) return false;
+        }
+        return true;
+    }
     internal static bool WalksJoined(LandscapeObservation scene)
     {
         static bool Point(float[] p) => p.Length == 3 && p.All(float.IsFinite);
@@ -123,10 +148,11 @@ internal sealed partial class Runner
         Require(frame.Landscape.Plots == 9 && frame.Landscape.CoreTerrain.Length >= 77 && frame.Landscape.Bridge.Length > 0, "shared plots, central terrain and bridge present");
         Require(frame.Landscape.Static.Length >= 16, "shared starting structures and decorations instantiated");
         Require(LandscapeChecks.AuthoredTerrain(frame.Landscape), "actual imported terrain bounds match the common hex footprint and ground surface");
-        Require(LandscapeChecks.JoinedRiver(frame.Landscape), "actual authored stream and single bridge water edges join without gaps or double cells");
+        Require(LandscapeChecks.JoinedRiver(frame.Landscape), "actual surface stream ports join through the timber-only bridge without recessed water or competing floors");
+        Require(LandscapeChecks.JoinedTrail(frame.Landscape), "actual same-origin dirt turns/ends join on the bank terrace with positive floor clearance");
         Require(LandscapeChecks.WalksJoined(frame.Landscape), "installed village-edge walk connects to actual bridge deck ends without occupying any fixed building envelope");
         Require(LandscapeChecks.SceneryClear(frame.Landscape, frame.Targets.Where(p => p.Key.StartsWith("Plot", StringComparison.Ordinal) && p.Value.Visible).Select(p => p.Value)), "new clustered scenery leaves actual projected plot selection points unobscured");
-        Require(frame.Landscape.Static.All(asset => LandscapeChecks.Contact(asset, LandscapeChecks.TerrainHeight(asset))), "starting assets meet supporting hex surfaces");
+        Require(frame.Landscape.Static.All(asset => LandscapeChecks.Contact(asset, asset.Support)), "starting assets meet supporting hex/overlay surfaces");
         AssetPlacementObservation home = frame.Landscape.Static.Single(p => p.Asset == Game.AssetCatalog.Home);
         AssetPlacementObservation defender = frame.Landscape.Static.Single(p => p.Asset == Game.AssetCatalog.Defender);
         Require(home.X == 1.5f && Math.Abs(home.Z - 2.598076f) < .002 && defender.X == -3 && defender.Z == 0, "home and defender centered on reserved hexes");

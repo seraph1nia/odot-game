@@ -61,7 +61,7 @@ internal static class NativeTerrainReceiver
                         {
                             Schema = "actual-native-battle-grass-receiver-v1",
                             Owner = scene.GetPathTo(owner).ToString(),
-                            Asset = AssetCatalog.Meadow,
+                            Asset = DetailedGround.Grass,
                             Instance = instance,
                             Surface = surface,
                             Triangle = triangle / 3,

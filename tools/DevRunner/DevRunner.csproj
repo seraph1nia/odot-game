@@ -10,6 +10,7 @@
     <Compile Include="../../src/Game/Distribution/ReleaseDiscovery.cs" Link="Distribution/ReleaseDiscovery.cs" />
     <Compile Include="../../src/Game/GameBrand.cs" Link="GameBrand.cs" />
     <Compile Include="../../src/Game/AssetCatalog.cs" Link="AssetCatalog.cs" />
+    <Compile Include="../../src/Game/DetailedGround.cs" Link="DetailedGround.cs" />
     <Compile Include="../../src/Game/OwnedFrameCapture.cs" Link="OwnedFrameCapture.cs" />
     <Compile Include="../../src/Game/LandscapeBoundaryProof.cs" Link="LandscapeBoundaryProof.cs" />
     <Compile Include="../../src/Game/NativeBoundaryControls.Receipt.cs" Link="NativeBoundaryControls.Receipt.cs" />

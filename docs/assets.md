@@ -84,6 +84,17 @@ were retained outside the import root; the unchanged reconnect slice passed
 in 79.19s (`logs/20261008-184658-21b13756`) before the final full pass. No gameplay,
 fixture, importer or assertion changes were made to obtain that pass.
 
+## Detailed forest floors and surface overlays
+
+The [detailed-ground integration](detailed-ground.md) adds 13 exact exports and
+54 required embedded-map extractions at the current manifest pin. New floors
+replace all live village meadow terrain; same-origin surface water replaces the
+straight decorative stream, including below a timber-only consumer adaptation of
+the bridge. A bounded bank-clearing dirt trail uses joined corners and center
+ends. The original recessed exports are unchanged and never joined to new surface
+ports. See that report for the exact files, consumer transforms, executable
+orientation/stack/contact checks, view evidence and compatibility limitations.
+
 ## Names versus authoritative identities
 
 Presentation names describe the selected authored silhouettes. Requests, stable
@@ -131,14 +142,17 @@ sacks or logs. Counts remain authoritative projections bounded by the existing
 stockpile cap. Level upgrades use available provision/cargo/training/book props
 and a measured stone plinth where a tower needs a supporting deck.
 
-Source terrain is flat-top, radius 2.55, meadow surface zero, foundation bottom
--0.36. The adapter rotates it 90 degrees and scales it to existing
-pointy-top anchors without changing numerical hex topology. Its stream is
-straight, so the decorative river runs along a compatible settlement-edge row;
-a complete woodland bridge replaces one stream cell rather than overlaying
-another water/ground tile. Shallow stepped meadow terraces and rocky woodland
-outcrops replace unavailable legacy slopes/mountains. Terrain batching combines
-only existing imported material surfaces and reuses chunked instances.
+Source terrain is flat-top, radius 2.55, occupation surface zero, foundation
+bottom -0.36. The adapter rotates it 90 degrees and scales it to existing
+pointy-top anchors without changing numerical hex topology. The detailed suite
+uses one new floor per cell plus same-origin thin overlays. The decorative river
+retains its straight settlement-edge row; its surface ribbon continues beneath
+the original timber deck after this consumer removes the bridge's incompatible
+recessed substrate/foam/fall. No original bridge export or unrelated recessed
+composition changes. Shallow stepped terraces and rocky woodland outcrops retain
+their placement. Terrain batching combines only fidelity-checked imported
+material surfaces and reuses chunked instances. See [placement and the recessed
+boundary](detailed-ground.md#placement-and-recessed-water-boundary).
 
 ## Authored animation and equipment contract
 
