@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/seraph1nia/odot-game-assets.git",
-  "revision": "a640d721065233dfbf488747694cd95110d4a907",
+  "revision": "ddd1ef1a35bd8db5bf3d1a405672d254aff68174",
   "permission": "the repo is my own work, so yes, use it",
   "permissionScope": "Required authored game-ready exports and embedded maps for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
   "files": [
     {
       "path": "buildings/archery_range.glb",
       "sourcePath": "exports/buildings/archery_range.glb",
-      "sha256": "773325095940b3b3379338e2d84af5398c41a922b676e5f1f15ef3762babbf81",
-      "bytes": 5483064,
-      "embeddedImages": 31,
-      "materials": 38,
+      "sha256": "4e231c7a9e6032b7e609961dac15637a44ab45996c3ec21d5ab79f74c3fa8069",
+      "bytes": 5304400,
+      "embeddedImages": 30,
+      "materials": 37,
       "animationNames": []
     },
     {
@@ -71,8 +71,8 @@
     {
       "path": "buildings/metal_mine.glb",
       "sourcePath": "exports/buildings/metal_mine.glb",
-      "sha256": "f03e7487735ac055a06acf7c6715cae87ff9cd771284168ee16fcf0b6cd1cbaa",
-      "bytes": 5252972,
+      "sha256": "5e5419d4deec0b78f6c742522a91e666ccd0762ec116bfb089efe9e17ebe3030",
+      "bytes": 5223804,
       "embeddedImages": 32,
       "materials": 35,
       "animationNames": []
@@ -80,8 +80,8 @@
     {
       "path": "buildings/research_tower.glb",
       "sourcePath": "exports/buildings/research_tower.glb",
-      "sha256": "22ee71ebef473aec72d869d49cc1faa12d724ed8c4f408abb68d15d678d09ac4",
-      "bytes": 5611168,
+      "sha256": "3c049de6133c307e32b30a2258f50ae3041067bd8302f5d8b578219b91fd0dbd",
+      "bytes": 5588324,
       "embeddedImages": 32,
       "materials": 36,
       "animationNames": []
@@ -98,10 +98,10 @@
     {
       "path": "buildings/town_hall.glb",
       "sourcePath": "exports/buildings/town_hall.glb",
-      "sha256": "d4e38bbf4a1754701211f937b6eee79fb105b03a13e547c179ba18172822150b",
-      "bytes": 8849548,
-      "embeddedImages": 31,
-      "materials": 30,
+      "sha256": "8150f41e63cdbae8e5073ab780c2a82f43d8e20d8612dba5c229af43aba3ce62",
+      "bytes": 8639132,
+      "embeddedImages": 30,
+      "materials": 29,
       "animationNames": []
     },
     {
@@ -125,8 +125,8 @@
     {
       "path": "buildings/weaver.glb",
       "sourcePath": "exports/buildings/weaver.glb",
-      "sha256": "bbffda6346918180bfe8b72cd54870dde97559cafc66309e078c52318c1f5247",
-      "bytes": 5427916,
+      "sha256": "5ae574a7d6ef44c6523735a162cfcc69f64cdfedad0976ca8925899e8617c51c",
+      "bytes": 5405332,
       "embeddedImages": 32,
       "materials": 33,
       "animationNames": []
@@ -175,10 +175,10 @@
     {
       "path": "characters/evil_berserker_unit.glb",
       "sourcePath": "exports/characters/evil_berserker_unit.glb",
-      "sha256": "3902fd908b742c9ab2b3e5d8dfcb052a2e61dde50ee56fc48eec0041893fe3fb",
-      "bytes": 716616,
+      "sha256": "371fd32a39b756620c53508545146af90147cef4bd423182ad4d0ab1b75bcfe8",
+      "bytes": 716416,
       "embeddedImages": 0,
-      "materials": 15,
+      "materials": 14,
       "animationNames": [
         "attack",
         "death",
@@ -191,10 +191,10 @@
     {
       "path": "characters/evil_mage_unit.glb",
       "sourcePath": "exports/characters/evil_mage_unit.glb",
-      "sha256": "e7c0d79a21d618124db1a43258110c830e0a6a4163144f092107294edfab438d",
-      "bytes": 631112,
+      "sha256": "465f5c8ef85a51d91da8789bf9afda968d647b9a1ca354a106baf3682fdf01e9",
+      "bytes": 630716,
       "embeddedImages": 0,
-      "materials": 16,
+      "materials": 14,
       "animationNames": [
         "attack",
         "death",
@@ -207,10 +207,10 @@
     {
       "path": "characters/evil_melee_unit.glb",
       "sourcePath": "exports/characters/evil_melee_unit.glb",
-      "sha256": "9d97c29db7eb0e1639508b0ec7943bb7bd062bda5fed8a24219d92c9a7bc3e84",
-      "bytes": 791840,
+      "sha256": "143406e23d41dfe78d4b10085ec5411ec9103d9a756f12768e21e190c55a3cab",
+      "bytes": 791468,
       "embeddedImages": 0,
-      "materials": 15,
+      "materials": 13,
       "animationNames": [
         "attack",
         "death",
@@ -223,8 +223,8 @@
     {
       "path": "characters/evil_ranged_unit.glb",
       "sourcePath": "exports/characters/evil_ranged_unit.glb",
-      "sha256": "5808c64a27e3ae9e0ce193c1b979625d76c55b50d96bc390e73415a5df7a95bc",
-      "bytes": 712228,
+      "sha256": "3723fcd68797e7f0cc0871a6bef05ad8206d444c9b4c46c8d15363d2c863cae9",
+      "bytes": 714932,
       "embeddedImages": 0,
       "materials": 23,
       "animationNames": [
@@ -239,7 +239,7 @@
     {
       "path": "characters/knight.glb",
       "sourcePath": "exports/characters/knight.glb",
-      "sha256": "1ffa02091ffae7617cd7cbb1c1108150703409086e8380f12c080e9f6bbb2130",
+      "sha256": "2e63744934d9e35f0f848aa5158306223b7086320b3181acaf5b74f38a4f3281",
       "bytes": 662780,
       "embeddedImages": 0,
       "materials": 13,
@@ -370,8 +370,8 @@
     {
       "path": "environment/hex_woodland_bridge.glb",
       "sourcePath": "exports/environment/hex_woodland_bridge.glb",
-      "sha256": "2195443dbb4712b58dc623c3dbf1fa3d3037f212ed3cd30db24f4c026f113024",
-      "bytes": 7843060,
+      "sha256": "f61bc6212b37fc0c41a372b906520e8c18d9d52ef330365e963f5f7ee83eb118",
+      "bytes": 7808052,
       "embeddedImages": 47,
       "materials": 57,
       "animationNames": []
@@ -542,13 +542,6 @@
       "imageName": "painted_roof_roughness",
       "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
       "bytes": 10146
-    },
-    {
-      "path": "buildings/archery_range_painted_stone_dark_color.png",
-      "parent": "buildings/archery_range.glb",
-      "imageName": "painted_stone_dark_color",
-      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
-      "bytes": 131685
     },
     {
       "path": "buildings/archery_range_painted_stone_light_color.png",
@@ -1207,13 +1200,6 @@
       "imageName": "painted_roof_roughness",
       "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
       "bytes": 10146
-    },
-    {
-      "path": "buildings/town_hall_painted_stone_dark_color.png",
-      "parent": "buildings/town_hall.glb",
-      "imageName": "painted_stone_dark_color",
-      "sha256": "bde3f24cba0af5bd4fe6975b64af9165f9f24052c8ee15467772cfb6538f7168",
-      "bytes": 131685
     },
     {
       "path": "buildings/town_hall_painted_stone_light_color.png",
