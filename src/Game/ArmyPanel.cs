@@ -121,7 +121,7 @@ public partial class Tabletop
         {
             HexCoordinate coordinate = state.Rules.Combat.Board.Cells.Single(c => c.Id == home.Cell).Coordinate;
             Vector3 position = VillageLayout.Hex(coordinate.Column, coordinate.R);
-            Label3D label = Label(markers, position + new Vector3(0, .12f, .95f), $"Space {index + 1} · {(home.Purchased ? "6 size" : "locked")}", 18);
+            Label3D label = Label(markers, position + new Vector3(0, .12f, .95f), home.Purchased ? "" : $"Space {index + 1} · locked", 18);
             label.Name = "Home" + index; label.Modulate = home.Purchased ? new Color("c7e6c5") : new Color("b9b5aa");
             if (!home.Purchased) markers.AddChild(new Sprite3D { Name = "LockedHome" + index, Position = position + new Vector3(0, .35f, 0), Texture = UiAssets.Icon("Gold"), PixelSize = .014f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Shaded = false });
         }

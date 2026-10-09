@@ -140,6 +140,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             Vector2 screen = GetViewport().GetFinalTransform() * position;
             targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position), Enabled = !application.IsModalOpen };
         }
+        fields["WorldLabels"] = _boards.GetValueOrDefault(_focus)?.FindChildren("*", "Label3D", true, false).OfType<Label3D>()
+            .Where(label => label.IsVisibleInTree() && label.Text.Length > 0).Select(label => label.Text).ToArray() ?? [];
         fields["LockedMarkers"] = _boards.TryGetValue(_focus, out Node3D? markersBoard) ? markersBoard.GetNodeOrNull<Node3D>("Buildings")?.GetChildren().OfType<Sprite3D>().Select(marker => marker.Name.ToString()).ToArray() ?? [] : [];
 
         for (int slot = 0; slot < 9; slot++)
@@ -503,7 +505,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                         bounds = bounds.Merge(LandscapeAssets.Bounds(addition));
                     }
                     _buildingBounds[city.Id][i] = bounds;
-                    Label(buildings, new Vector3(SlotPosition(i).X, bounds.End.Y + .28f, SlotPosition(i).Z), slot.Type == Building.TownHall ? "Town hall" : $"{BuildingName(slot.Type)} L{slot.Level}", 20);
+                    Label(buildings, new Vector3(SlotPosition(i).X, bounds.End.Y + .28f, SlotPosition(i).Z), slot.Type == Building.Lumbermill && slot.Level == 1 ? "" : slot.Type == Building.TownHall ? "Town hall" : $"{BuildingName(slot.Type)} L{slot.Level}", 20);
                     Node3D flag = Box(buildings, SlotPosition(i) + new Vector3(-0.6f, 1.1f, 0), new(.35f, .2f, .03f), city.Id == game.PlayerId ? "487ecc" : "a67152");
                     _flags.Add(flag);
                 }

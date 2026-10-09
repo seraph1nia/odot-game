@@ -56,6 +56,18 @@ internal sealed partial class Runner
         await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
         await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
         await Pick(client, 3, token); await Click(client, "ProductionChoices", token); await ClickAck(client, "LumbermillRecovery", token);
+        // Reuse the paid opening to catch accidental world-label restoration or
+        // broad title suppression. Live glyph text plus an existing PNG/pick route;
+        // no extra peer, battle or display, and only one small capture/probe.
+        await Pick(client, 3, token);
+        await Checkpoint(client, "army-ground-labels", token, owner);
+        UiObservation labels = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(labels.SelectedSlot == 3 && labels.Placements.Any(p => p.Name == "Slot3" && p.Asset == Game.AssetCatalog.Building(Building.Lumbermill).Path), "unlabelled hut retains its rendered model and actual roof selection");
+        Require(!labels.WorldLabels.Contains("Woodcutter hut L1", StringComparer.Ordinal)
+            && !Enumerable.Range(1, 2).Any(i => labels.WorldLabels.Contains($"Space {i} · 6 size", StringComparer.Ordinal)), "level-one hut and purchased-space world text are absent");
+        Require(labels.WorldLabels.Contains("Bakery L1", StringComparer.Ordinal)
+            && Enumerable.Range(3, 4).All(i => labels.WorldLabels.Contains($"Space {i} · locked", StringComparer.Ordinal)), "other building titles and locked-space text are retained");
+        Require(labels.ArmyHomes?.PurchasedHomes == 2 && labels.Targets["Upgrade"].Visible && labels.Targets["Sell"].Enabled, "hut actions and army-space capacity remain available");
         await ClickAck(client, "Ready", token); await ClickAck(client, "Ready", token);
         await Pick(client, 4, token); await ClickAck(client, "Stonecutter", token);
         await ClickAck(client, "Ready", token); await UiSwords(client, 2, 6, token, actualInput: false);
@@ -90,7 +102,10 @@ internal sealed partial class Runner
         int health = Unit(reserve).Health; await ClickAck(client, "UpgradeHallHealing", token);
         Require(City().Slots[5] is { HealingLevel: 2, CapacityLevel: 1 } && Unit(reserve).Health == health && City().Army!.PurchasedHomes == 2, "actual healing upgrade is independent and neither heals nor buys field space");
         await Click(client, "CloseTownHall", token); await ClickAck(client, "BuyHome", token);
-        await WaitUi(client, p => p.ArmyHomes?.PurchasedHomes == 3 && p.HomeMarkers.Count(n => n.StartsWith("LockedHome", StringComparison.Ordinal)) == 3, "paid physical home removes exactly one lock", token);
+        UiObservation expanded = await WaitUi(client, p => p.ArmyHomes?.PurchasedHomes == 3 && p.HomeMarkers.Count(n => n.StartsWith("LockedHome", StringComparison.Ordinal)) == 3, "paid physical home removes exactly one lock", token);
+        Require(!expanded.WorldLabels.Contains("Space 3 · 6 size", StringComparer.Ordinal)
+            && !expanded.WorldLabels.Contains("Space 3 · locked", StringComparer.Ordinal)
+            && expanded.WorldLabels.Contains("Space 4 · locked", StringComparer.Ordinal), "purchasing a space clears only its text and lock while retaining other locked labels");
         await Pick(client, 5, token); await Click(client, "OpenTownHall", token); await Click(client, "HallUnit" + reserve, token); await ClickAck(client, "HallSend", token);
         UnitState sent = Unit(reserve);
         Require(sent.Assignment is { Stored: false } && sent.Assignment.Tile == City().Army!.Homes[2].Cell && sent.Health == health, "hall Send first-fits the new third home without changing wounds or identity");
