@@ -118,6 +118,8 @@ internal sealed partial class VillageLandscape : Node3D
     }
     private void Path(string name, Mesh mesh, Vector3 start, Vector3 end)
     {
+        start.Y = 0;
+        end.Y = 0;
         Vector3 tangent = (end - start).Normalized();
         float span = mesh.GetAabb().Size.X;
         int count = (int)Math.Ceiling(start.DistanceTo(end) / (span * .985f));
@@ -318,6 +320,10 @@ internal sealed partial class VillageLandscape : Node3D
             Paths = _paths.Select(p =>
             {
                 MultiMesh instances = p.Batch.Multimesh; Aabb box = instances.Mesh.GetAabb();
+                Vector3[] vertices = Enumerable.Range(0, instances.Mesh.GetSurfaceCount())
+                    .SelectMany(i => instances.Mesh.SurfaceGetArrays(i)[(int)Mesh.ArrayType.Vertex].AsVector3Array()).ToArray();
+                float bottom = vertices.Min(v => v.Y);
+                Vector3[] underside = vertices.Where(v => v.Y <= bottom + .001f).ToArray();
                 Vector3 a = instances.GetInstanceTransform(0) * new Vector3(box.Position.X, 0, 0);
                 int foundations = p.Batch.GetMeta("foundation_count").AsInt32();
                 Vector3 b = instances.GetInstanceTransform(foundations - 1) * new Vector3(box.End.X, 0, 0);
@@ -330,6 +336,17 @@ internal sealed partial class VillageLandscape : Node3D
                     Start = new[] { a.X, a.Y, a.Z },
                     End = new[] { b.X, b.Y, b.Z },
                     Centers = Enumerable.Range(0, instances.InstanceCount).Select(i => { Vector3 v = instances.GetInstanceTransform(i).Origin; return new[] { v.X, v.Y, v.Z }; }).ToArray(),
+                    Bases = Enumerable.Range(0, instances.InstanceCount).Select(i =>
+                    {
+                        Basis basis = instances.GetInstanceTransform(i).Basis;
+                        return new[] { basis.X, basis.Y, basis.Z }.Select(v => new[] { v.X, v.Y, v.Z }).ToArray();
+                    }).ToArray(),
+                    BottomHeights = Enumerable.Range(0, instances.InstanceCount).Select(i =>
+                    {
+                        Transform3D transform = instances.GetInstanceTransform(i);
+                        float[] heights = underside.Select(v => (transform * v).Y - (v.Y - bottom)).ToArray();
+                        return new[] { heights.Min(), heights.Max() };
+                    }).ToArray(),
                     Supports = Enumerable.Range(0, instances.InstanceCount).Select(i => WalkSurface(instances.GetInstanceTransform(i).Origin)).ToArray(),
                     Footprints = Enumerable.Range(0, instances.InstanceCount).Select(i => { Aabb b = instances.GetInstanceTransform(i) * box; return new[] { b.Position.X, b.Position.Z, b.End.X, b.End.Z }; }).ToArray()
                 };

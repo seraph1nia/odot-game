@@ -104,7 +104,17 @@ The existing `Countryside` assertions, shared by ordinary source and exported UI
 checks, require actual installed five-family bounds, one floor per cell, continuous
 surface-water ports, no recessed bridge water, joined live dirt corners/ends and
 positive clearance, grounded decorations, unchanged building centers, menu/city
-parity and ordinary picking. Existing cooperative assertions are retained.
+parity and ordinary picking. Timber checks inspect actual emitted bases and
+bottom rendering-vertex height ranges across all six walks, including stacked
+courses, requiring horizontal orthonormal unit axes and contact with ground or
+the lower course while preserving the authored underside relief. This catches
+shear that center-only support checks miss. Cheap runner tests reject the actual
+south-bank 3D tangent and both floating and penetrating underside profiles;
+source/package UI exercises real emitted geometry through the same assertions.
+The headless dummy renderer returns identity `MultiMesh` transforms, so it cannot
+prove this instance-level regression. The existing launcher/assets slice owns
+its graphical execution; no additional scenario or process is added. Existing
+cooperative assertions are retained.
 
 For representative views, use the existing selected asset route:
 
@@ -123,6 +133,30 @@ ci` still gates all source cases, sequential exports and headless/graphical pack
 smoke; selected checks are partial coverage.
 
 ### Retained evidence
+
+The following author-recorded runs predate the timber-basis review correction.
+They do not validate its changed C# inputs; the outer pipeline owns final full
+validation. Fresh review-correction evidence is limited to:
+
+- Nine selected `LandscapeChecksTests` / `VillageWalkTests` passed, including
+  rejection of the original 3D south-bank tangent on both courses
+  (`logs/timber-walk-unit-final.log`).
+- Launcher/assets passed in 59.05s
+  (`logs/20261009-215212-afbe54c6`). Its bank-trail observation contains all six
+  emitted walk batches: the south batch has 14 foundations / 19 total planks,
+  unit horizontal axes and underside heights matching each support/course.
+  The genuine `launcher-worker/launcher/detailed-ground-bank-trail.png` was
+  inspected; the unchanged bridge landing, curved four-cell trail and surface
+  stream remain visible. Ordinary building picking passed afterward.
+- Earlier review-only headless proof attempts failed and remain under
+  `logs/20261009-214628-0a140a49`, `logs/20261009-214743-2eb37b93` and
+  `logs/20261009-214830-f8ebed45`. Inspection corrected the bottom-profile
+  assumption (the authored shadow strip is 0.55 mm below the wood) and exposed
+  dummy-renderer identity instance reads. That unusable proof was removed,
+  not counted as passing geometry coverage. No full CI or fresh package view
+  was run in this bounded review round.
+
+Original author-recorded evidence:
 
 - Before baseline: first full run failed in existing settings with a native client
   stack-smashing termination/Broken pipe (`logs/20261009-201654-7edcb780`). The

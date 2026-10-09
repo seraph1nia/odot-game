@@ -84,6 +84,38 @@ public sealed class LandscapeChecksTests
         Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Clearance = 0 } : p).ToArray() }));
     }
     [Fact]
+    public void EmittedWalkGeometryRejectsShearAndSlopedContactDespiteSupportedCenters()
+    {
+        float[][] basis = [[.6f, 0, .8f], [0, 1, 0], [-.8f, 0, .6f]];
+        var path = new WalkObservation("South bank walk", 2, 1, .12f, [4.5f, 0, 13.83f], [3, .18f, 15.588456f],
+            [[4, .18f, 14.5f], [4, .30f, 14.5f]], [[3.9f, 14, 4.1f, 15], [3.9f, 14, 4.1f, 15]], [.18f, .18f],
+            [basis, basis], [[.18f, .18f], [.30f, .30f]]);
+        Assert.True(LandscapeChecks.WalkGeometryGrounded(path));
+        var tangent = System.Numerics.Vector3.Normalize(new(-1.5f, .18f, 6 * 2.598076f - 13.83f));
+        var across = System.Numerics.Vector3.Cross(tangent, System.Numerics.Vector3.UnitY);
+        float[][] sheared = [[tangent.X, tangent.Y, tangent.Z], [0, 1, 0], [across.X, across.Y, across.Z]];
+        for (int instance = 0; instance < path.Planks; instance++)
+        {
+            Assert.False(LandscapeChecks.WalkGeometryGrounded(path with
+            {
+                Bases = path.Bases.Select((b, i) => i == instance ? sheared : b).ToArray()
+            }));
+            foreach (float offset in new[] { -.007f, .007f })
+                Assert.False(LandscapeChecks.WalkGeometryGrounded(path with
+                {
+                    BottomHeights = path.BottomHeights.Select((h, i) => i == instance ? new[] { h[0] + Math.Min(offset, 0), h[1] + Math.Max(offset, 0) } : h).ToArray()
+                }));
+        }
+        for (int axis = 0; axis < 3; axis++)
+        {
+            float[][] scaled = basis.Select((a, i) => i == axis ? a.Select(v => v * .99f).ToArray() : a).ToArray();
+            Assert.False(LandscapeChecks.WalkGeometryGrounded(path with { Bases = [scaled, basis] }));
+        }
+        Assert.False(LandscapeChecks.WalkGeometryGrounded(path with { Bases = [] }));
+        Assert.False(LandscapeChecks.WalkGeometryGrounded(path with { BottomHeights = [] }));
+        Assert.False(LandscapeChecks.WalkGeometryGrounded(path with { BottomHeights = [[float.NaN, .18f], [.30f, .30f]] }));
+    }
+    [Fact]
     public void ImportedTerrainFootprintRejectsWrongScaleHeightAndLegacySubstitution()
     {
         var scene = new LandscapeObservation

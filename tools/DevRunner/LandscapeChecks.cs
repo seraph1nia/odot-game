@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace DevRunner;
 
 internal sealed record AssetPlacementObservation
@@ -16,7 +18,7 @@ internal sealed record AssetPlacementObservation
 }
 
 internal sealed record TerrainBoundsObservation(string Asset, float[] Min, float[] Max);
-internal sealed record WalkObservation(string Name, int Planks, int Foundations, float Thickness, float[] Start, float[] End, float[][] Centers, float[][] Footprints, float[] Supports);
+internal sealed record WalkObservation(string Name, int Planks, int Foundations, float Thickness, float[] Start, float[] End, float[][] Centers, float[][] Footprints, float[] Supports, float[][][] Bases, float[][] BottomHeights);
 internal sealed record RiverObservation(string Asset, float[] Start, float[] End);
 internal sealed record GroundTrailObservation(string Asset, int Column, int Row, string Floor, float Clearance, float[][] Ports);
 internal sealed record LandscapeObservation
@@ -97,6 +99,28 @@ internal static class LandscapeChecks
         }
         return true;
     }
+    internal static bool WalkGeometryGrounded(WalkObservation path)
+    {
+        if (path.Planks < 1 || path.Foundations < 1 || path.Foundations > path.Planks || !float.IsFinite(path.Thickness)
+            || path.Supports.Length != path.Planks || path.Supports.Any(s => !float.IsFinite(s))
+            || path.Bases.Length != path.Planks || path.BottomHeights.Length != path.Planks) return false;
+        for (int i = 0; i < path.Planks; i++)
+        {
+            float[][] axes = path.Bases[i]; float[] heights = path.BottomHeights[i];
+            if (axes.Length != 3 || axes.Any(a => a.Length != 3 || !a.All(float.IsFinite))
+                || heights.Length != 2 || !heights.All(float.IsFinite) || heights[0] > heights[1]) return false;
+            var x = new Vector3(axes[0][0], axes[0][1], axes[0][2]);
+            var y = new Vector3(axes[1][0], axes[1][1], axes[1][2]);
+            var z = new Vector3(axes[2][0], axes[2][1], axes[2][2]);
+            if (Math.Abs(x.Length() - 1) > .0001f || Math.Abs(y.Length() - 1) > .0001f || Math.Abs(z.Length() - 1) > .0001f
+                || Math.Abs(Vector3.Dot(x, y)) > .0001f || Math.Abs(Vector3.Dot(x, z)) > .0001f
+                || Math.Abs(Vector3.Dot(y, z)) > .0001f || Vector3.Distance(Vector3.Cross(x, y), z) > .0001f
+                || Math.Abs(x.Y) > .0001f || Math.Abs(z.Y) > .0001f || Vector3.Distance(y, Vector3.UnitY) > .0001f) return false;
+            float support = path.Supports[i] + (i < path.Foundations ? 0 : path.Thickness);
+            if (heights.Any(h => Math.Abs(h - support) > .0002f)) return false;
+        }
+        return true;
+    }
     internal static bool WalksJoined(LandscapeObservation scene)
     {
         static bool Point(float[] p) => p.Length == 3 && p.All(float.IsFinite);
@@ -104,7 +128,7 @@ internal static class LandscapeChecks
         if (scene.Paths.Length != 6 || scene.BridgeLandings.Length != 2 || !scene.BridgeLandings.All(Point)) return false;
         foreach (WalkObservation path in scene.Paths)
         {
-            if (!Point(path.Start) || !Point(path.End) || path.Thickness is < .1f or > .15f
+            if (!WalkGeometryGrounded(path) || !Point(path.Start) || !Point(path.End) || path.Thickness is < .1f or > .15f
                 || path.Foundations < 1 || path.Planks < path.Foundations || path.Centers.Length != path.Planks || !path.Centers.All(Point)
                 || path.Footprints.Length != path.Planks || path.Footprints.Any(p => p.Length != 4 || !p.All(float.IsFinite) || p[0] >= p[2] || p[1] >= p[3])) return false;
             if (path.Supports.Length != path.Planks || path.Supports.Any(s => !float.IsFinite(s))
