@@ -12,8 +12,10 @@ public sealed class VillageWalkTests
         float[][] basis = Enumerable.Range(0, count).Select(i => new[] { x1 + (x2 - x1) * i / (count - 1), -.03f, z1 + (z2 - z1) * i / (count - 1) }).ToArray();
         float[][] centers = [.. basis, .. basis.Select(p => new[] { p[0], p[1] + .125f, p[2] })];
         float halfX = x1 == x2 ? .55f : .0891f, halfZ = x1 == x2 ? .0891f : .55f;
+        float[][] axes = [[(x2 - x1) / length, 0, (z2 - z1) / length], [0, 1, 0], [-(z2 - z1) / length, 0, (x2 - x1) / length]];
         return new(name, centers.Length, count, .125f, basis[0], basis[^1], centers,
-            centers.Select(p => new[] { p[0] - halfX, p[2] - halfZ, p[0] + halfX, p[2] + halfZ }).ToArray(), centers.Select(_ => -.03f).ToArray());
+            centers.Select(p => new[] { p[0] - halfX, p[2] - halfZ, p[0] + halfX, p[2] + halfZ }).ToArray(), centers.Select(_ => -.03f).ToArray(),
+            centers.Select(_ => axes).ToArray(), centers.Select(p => new[] { p[1], p[1] }).ToArray());
     }
     private static LandscapeObservation Scene() => new()
     {

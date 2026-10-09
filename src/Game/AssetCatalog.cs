@@ -10,7 +10,7 @@ public sealed record UnitVisual(string Name, string Path, string MainProp, strin
 public static class AssetCatalog
 {
     public const string Root = "res://Assets/Authored/";
-    public const string Revision = "ddd1ef1a35bd8db5bf3d1a405672d254aff68174";
+    public const string Revision = "ae7f76a28f7bdd8471aeacb8bb40596aec758bfe";
     public const string Permission = "the repo is my own work, so yes, use it";
     public const string Meadow = "environment/components/forest_hex_meadow.glb";
     public const string Stream = "environment/components/forest_hex_stream.glb";
@@ -93,6 +93,7 @@ public static class AssetCatalog
 
     public static IEnumerable<string> RequiredPaths => Buildings.Values.SelectMany(b => new[] { b.Path, b.Upgrade })
         .Concat(Units.Values.Select(u => u.Path))
+        .Concat(DetailedGround.Paths)
         .Concat(new[] { Meadow, Stream, Bridge, Home, Defender, Arrow, Provisions,
             "props/kit_barrel.glb", "props/kit_pine.glb",
             "environment/components/forest_boulder.glb", "environment/components/forest_spiral_tree.glb",

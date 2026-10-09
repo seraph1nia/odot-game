@@ -19,6 +19,8 @@ internal static class VillageLayout
         int column = (int)Math.Round((point.X - (Math.Abs(row) % 2) * HalfWidth) / (HalfWidth * 2));
         return Height(column, row);
     }
+    public static Transform3D GroundTransform(int column, int row, int turns = 0) => new(
+        new Basis(Vector3.Up, Mathf.Pi / 2 + turns * Mathf.Pi / 3).Scaled(Vector3.One * TerrainScale), Hex(column, row));
     public static Vector3 Slot(int slot) => Hex(slot % 3 - 1, slot / 3 + 2);
     public static bool Contains(int slot, Vector3 point)
     {

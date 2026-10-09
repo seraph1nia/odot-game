@@ -22,6 +22,8 @@ internal static class AssetFidelityProbe
     private static void RunGeometry(Node owner)
     {
         RunGlyphDuplicateRegression();
+        object detailedGround = GroundPlacementProof.Run(owner);
+        static bool Batched(string path) => path is AssetCatalog.Meadow or AssetCatalog.Stream || DetailedGround.Paths.Contains(path, StringComparer.Ordinal);
         var reports = new List<object>();
         foreach (string path in AssetCatalog.RequiredPaths.Where(p => !p.StartsWith("characters/", StringComparison.Ordinal)))
         {
@@ -32,7 +34,7 @@ internal static class AssetFidelityProbe
                 using ArrayMesh combined = StaticGeometry.Append(control);
                 var assessment = StaticGeometry.Inspect(control, combined);
                 StaticGeometryReport report = assessment.Report;
-                if (path is AssetCatalog.Meadow or AssetCatalog.Stream) StaticGeometry.Validate(control, combined);
+                if (Batched(path)) StaticGeometry.Validate(control, combined);
                 double scale = path.StartsWith("buildings/", StringComparison.Ordinal)
                     ? 1.9 / Math.Max(control.Positions.Max(p => p.X) - control.Positions.Min(p => p.X), control.Positions.Max(p => p.Z) - control.Positions.Min(p => p.Z)) : VillageLayout.TerrainScale;
                 // Diagnose the old collision-face guard without treating welded
@@ -51,7 +53,7 @@ internal static class AssetFidelityProbe
                     Path = path,
                     Report = report,
                     Errors = assessment.Errors,
-                    Disposition = path is AssetCatalog.Meadow or AssetCatalog.Stream ? "validated terrain batching" : "optional consolidation deferred; original authored hierarchy retained",
+                    Disposition = Batched(path) ? "validated terrain batching" : "optional consolidation deferred; original authored hierarchy retained",
                     PlacementScale = scale,
                     WorldPositionError = report.PositionError * scale,
                     WorldPositionAllowance = report.PositionAllowance * scale,
@@ -59,7 +61,7 @@ internal static class AssetFidelityProbe
                     CollisionMinimumCombined = new[] { b.X, b.Y, b.Z }
                 });
             }
-            catch (InvalidOperationException error) when (path is not (AssetCatalog.Meadow or AssetCatalog.Stream))
+            catch (InvalidOperationException error) when (!Batched(path))
             {
                 Vector3[] positions = StaticGeometry.Positions(original);
                 reports.Add(new { Path = path, Disposition = "optional consolidation rejected; original authored hierarchy retained", Reason = error.Message, OriginalVertices = positions.Length });
@@ -147,7 +149,7 @@ internal static class AssetFidelityProbe
         }
         finally { transformed.Free(); }
         object framePersistence = FramePersistenceProof.Run();
-        Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence }, WireJson.Options)));
+        Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence, DetailedGround = detailedGround }, WireJson.Options)));
         owner.GetTree().Quit();
     }
     private static void RunGlyphDuplicateRegression()

@@ -84,6 +84,13 @@ were retained outside the import root; the unchanged reconnect slice passed
 in 79.19s (`logs/20261008-184658-21b13756`) before the final full pass. No gameplay,
 fixture, importer or assertion changes were made to obtain that pass.
 
+## Detailed forest floors and surface overlays
+
+See [detailed-ground integration](detailed-ground.md) for the live floor/overlay
+composition, consumer transforms, bridge adaptation, executable checks, view
+evidence and compatibility limitations. The [manifest](../src/Game/Assets/Authored/manifest.json)
+owns the exact export and embedded-map inventory.
+
 ## Names versus authoritative identities
 
 Presentation names describe the selected authored silhouettes. Requests, stable
@@ -136,14 +143,9 @@ sacks or logs. Counts remain authoritative projections bounded by the existing
 stockpile cap. Level upgrades use available provision/cargo/training/book props
 and a measured stone plinth where a tower needs a supporting deck.
 
-Source terrain is flat-top, radius 2.55, meadow surface zero, foundation bottom
--0.36. The adapter rotates it 90 degrees and scales it to existing
-pointy-top anchors without changing numerical hex topology. Its stream is
-straight, so the decorative river runs along a compatible settlement-edge row;
-a complete woodland bridge replaces one stream cell rather than overlaying
-another water/ground tile. Shallow stepped meadow terraces and rocky woodland
-outcrops replace unavailable legacy slopes/mountains. Terrain batching combines
-only existing imported material surfaces and reuses chunked instances.
+Terrain placement and the incompatible recessed-water boundary are documented
+in [detailed-ground integration](detailed-ground.md#placement-and-recessed-water-boundary);
+[static fidelity](asset-fidelity.md) owns the imported-buffer batching constraints.
 
 ## Authored animation and equipment contract
 
