@@ -90,6 +90,11 @@ Presentation names describe the selected authored silhouettes. Requests, stable
 control selectors, enums, saved/session state, profile calculations, recruitment
 quotes, economic costs/output and numerical traces retain their existing IDs.
 
+The level-one Woodcutter hut has no world-space title; its name, level and
+production remain in the construction and selected-building controls. Its
+level-two title and other buildings' world-space titles remain visible. The
+model, roof picking, Upgrade and Sell actions are unchanged.
+
 | Visible building | Canonical identity | Existing role retained |
 | --- | --- | --- |
 | Bakery | `Farm` | Food production |
