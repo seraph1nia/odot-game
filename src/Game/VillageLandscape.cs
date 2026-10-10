@@ -12,6 +12,11 @@ internal sealed partial class VillageLandscape : Node3D
     private readonly List<Node3D> _static = [];
     private readonly Dictionary<(string Kind, int X, int Z), MultiMeshInstance3D> _terrain = [];
     private readonly Dictionary<string, Mesh> _meshes = [];
+    private sealed record ScatterGroup(LandscapeAssets.SceneryPart[] Parts, Aabb Bounds, MultiMeshInstance3D[] Batches)
+    {
+        internal readonly List<Transform3D> Placements = [];
+    }
+    private readonly Dictionary<(string Asset, int X, int Z), ScatterGroup> _scatter = [];
     private Vector3[] _renderedCells = [];
     private string[] _coreTerrain = [];
     private readonly Node3D _bridge;
@@ -44,7 +49,12 @@ internal sealed partial class VillageLandscape : Node3D
             ("environment/components/forest_moss.glb", 2, 0, .65f),
             ("environment/components/forest_lantern_post.glb", -2, 6, 1.1f),
             ("props/kit_barrel.glb", 1, 1, .45f), (AssetCatalog.Provisions, 2, 0, .35f)
-        }) _static.Add(assets.Place(this, path, VillageLayout.Hex(column, row), size));
+        })
+        {
+            Vector3 point = VillageLayout.Hex(column, row);
+            point.Y = GroundSurface(point);
+            _static.Add(assets.Place(this, path, point, size));
+        }
         // Only this consumer's bridge loses its recessed stream/foam/fall and
         // substrate. The new same-origin floor + surface stream continues below
         // the unchanged timber deck; no old/new water interface is joined.
@@ -60,9 +70,9 @@ internal sealed partial class VillageLandscape : Node3D
         // no new tall canopy or shadow can enter the battle's projected band.
         foreach (var (pocket, column, row, tree) in new[]
         {
-            ("West grove", -4, 4, true), ("West grove", -4, 6, true),
+            ("West grove", -4, 4, true), ("West grove", -5, 8, true),
             ("Mushroom hollow", -3, 3, false), ("Mushroom hollow", -3, 4, false),
-            ("East grove", 4, 4, true), ("East grove", 4, 6, true),
+            ("East grove", 4, 4, true), ("East grove", 5, 8, true),
             ("Bank garden", -1, 6, false), ("Bank garden", 0, 7, false)
         })
         {
@@ -84,6 +94,16 @@ internal sealed partial class VillageLandscape : Node3D
         }
         Decoration("Bridge clearing", "environment/components/forest_lantern_post.glb", VillageLayout.Hex(2, 6), 1.1f);
         Decoration("Bridge clearing", "environment/components/forest_boulder.glb", VillageLayout.Hex(2, 7) + new Vector3(.5f, 0, .25f), .65f);
+        Decoration("Wayside shrine", "environment/components/forest_shrine_plinth.glb", VillageLayout.Hex(1, 10) + new Vector3(.9f, 0, .3f), 1.15f);
+        Decoration("Wayside shrine", "environment/components/forest_boulder.glb", VillageLayout.Hex(2, 10) + new Vector3(-.3f, 0, .1f), 1.2f);
+        Decoration("Woodland trail clearing", "environment/components/forest_mushroom_small.glb", VillageLayout.Hex(-5, 7) + new Vector3(-.8f, 0, .3f), 1.15f);
+        foreach (var (column, row) in new[] { (-12, 8), (13, 6) })
+        {
+            Vector3 spring = VillageLayout.Hex(column, row);
+            Decoration("Rocky watercourse end", "environment/components/forest_boulder.glb", spring + new Vector3(.3f, 0, .7f), .9f);
+            Decoration("Rocky watercourse end", "environment/components/forest_boulder.glb", spring + new Vector3(-.8f, 0, .35f), .65f);
+            Decoration("Rocky watercourse end", "environment/components/forest_fern.glb", spring + new Vector3(.85f, 0, -.65f), .7f);
+        }
 
         // A timber village-edge walk, not a painted combat road. Ordinary imported
         // plank buffers/materials are reused in six short batches. Consolidation
@@ -111,9 +131,18 @@ internal sealed partial class VillageLandscape : Node3D
     }
     private float GroundSurface(Vector3 point)
     {
-        float height = VillageLayout.Surface(point);
-        foreach (var (column, row, connector) in DetailedGround.BankTrail())
-            height = Math.Max(height, GroundGeometry.Surface(_assets.Terrain(connector.Asset), VillageLayout.GroundTransform(column, row, connector.Turns), point) ?? height);
+        int row = (int)Math.Round(point.Z / VillageLayout.RowStep);
+        int column = (int)Math.Round((point.X - Math.Abs(row % 2) * VillageLayout.HalfWidth) / (VillageLayout.HalfWidth * 2));
+        float height = DetailedGround.Elevation(column, row);
+        foreach (var (c, r, connector) in DetailedGround.BankTrail().Concat(DetailedGround.WoodlandTrail()).Concat(DetailedGround.Watercourse()))
+        {
+            // Every imported ribbon fits the common hex. This deliberately
+            // generous broad phase skips only distant cells; nearby contacts
+            // still resolve actual triangles, not a guessed ribbon height.
+            float x = c * VillageLayout.HalfWidth * 2 + Math.Abs(r % 2) * VillageLayout.HalfWidth;
+            if (Math.Abs(point.X - x) > VillageLayout.Radius * 2 || Math.Abs(point.Z - r * VillageLayout.RowStep) > VillageLayout.Radius * 2) continue;
+            height = Math.Max(height, GroundGeometry.Surface(_assets.Terrain(connector.Asset), VillageLayout.GroundTransform(c, r, connector.Turns), point) ?? height);
+        }
         return height;
     }
     private void Path(string name, Mesh mesh, Vector3 start, Vector3 end)
@@ -243,19 +272,23 @@ internal sealed partial class VillageLandscape : Node3D
             if (_tiles.ContainsKey((column, row))) continue;
             var cell = new Node3D { Position = VillageLayout.Hex(column, row) }; this.AddChild(cell); _tiles[(column, row)] = cell;
             // Fixed coordinate pattern; no tall props in the playable region or its foreground sightlines.
-            if ((column <= -5 || row <= -7 && column >= 5) && Math.Abs(column * 17 + row * 31) % 7 == 0)
-                _assets.Place(cell, "props/kit_pine.glb", Vector3.Zero, 1.5f);
-            else if ((column <= -5 || column >= 5 || row <= -7 || row >= 7) && Math.Abs(column * 13 + row * 23) % 19 == 0)
-                _assets.Place(cell, "environment/components/forest_boulder.glb", Vector3.Zero, .5f);
+            bool originalScatter = (row < 3 || row > 14 || column is < -12 or > 12)
+                && (row < 3 || DetailedGround.ClearOfRoutes(cell.Position.X, cell.Position.Z, .7f));
+            Vector3 originalFoot = new(0, DetailedGround.Elevation(column, row) - VillageLayout.Height(column, row), 0);
+            if (originalScatter && (column <= -5 || row <= -7 && column >= 5) && Math.Abs(column * 17 + row * 31) % 7 == 0)
+                _assets.Place(cell, "props/kit_pine.glb", originalFoot, 1.5f);
+            else if (originalScatter && (column <= -5 || column >= 5 || row <= -7 || row >= 7) && Math.Abs(column * 13 + row * 23) % 19 == 0)
+                _assets.Place(cell, "environment/components/forest_boulder.glb", originalFoot, .5f);
+            foreach (GroundDecoration detail in DetailedGround.Scatter(column, row)) Scatter(detail, column, row);
         }
         RebuildTerrain();
+        RebuildScatter();
     }
     private void RebuildTerrain()
     {
-        GroundConnector river = DetailedGround.Connector(GroundOverlay.River, 0, 3);
-        var placements = _tiles.Keys.Select(k => (Kind: DetailedGround.Base(k.Column, k.Row), k.Column, k.Row, Turns: (int)Mathf.PosMod(k.Column * 17 + k.Row * 31, 6)))
-            .Concat(_tiles.Keys.Where(k => k.Row == VillageLayout.RiverRow).Select(k => (Kind: river.Asset, k.Column, k.Row, river.Turns)))
-            .Concat(DetailedGround.BankTrail().Where(p => _tiles.ContainsKey((p.Column, p.Row))).Select(p => (Kind: p.Connector.Asset, p.Column, p.Row, p.Connector.Turns)));
+        var placements = _tiles.Keys.Select(k => (Kind: DetailedGround.Base(k.Column, k.Row), k.Column, k.Row, Turns: DetailedGround.FloorTurns(k.Column, k.Row)))
+            .Concat(DetailedGround.Watercourse().Concat(DetailedGround.BankTrail()).Concat(DetailedGround.WoodlandTrail())
+                .Where(p => _tiles.ContainsKey((p.Column, p.Row))).Select(p => (Kind: p.Connector.Asset, p.Column, p.Row, p.Connector.Turns)));
         foreach (var group in placements.GroupBy(k => (k.Kind, X: (int)Math.Floor(k.Column / 8.0), Z: (int)Math.Floor(k.Row / 8.0))))
         {
             if (!_terrain.TryGetValue(group.Key, out MultiMeshInstance3D? batch))
@@ -276,10 +309,53 @@ internal sealed partial class VillageLandscape : Node3D
             .Select(p => FormattableString.Invariant($"{p.Kind}:{p.Transform.Origin.X:F3}:{p.Transform.Origin.Y:F3}:{p.Transform.Origin.Z:F3}:{p.Transform.Basis.X.X:F3}:{p.Transform.Basis.X.Z:F3}"))
             .Order(StringComparer.Ordinal).ToArray();
     }
+    private void Scatter(GroundDecoration detail, int column, int row)
+    {
+        var key = (detail.Asset, X: (int)Math.Floor(column / 16.0), Z: (int)Math.Floor(row / 16.0));
+        if (!_scatter.TryGetValue(key, out ScatterGroup? group))
+        {
+            var geometry = _assets.Scenery(detail.Asset);
+            MultiMeshInstance3D[] batches = geometry.Parts.Select(p => new MultiMeshInstance3D
+            {
+                Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = p.Mesh },
+                MaterialOverride = p.Material,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+            }).ToArray();
+            foreach (MultiMeshInstance3D batch in batches) AddChild(batch);
+            _scatter[key] = group = new(geometry.Parts, geometry.Bounds, batches);
+        }
+        group.Placements.Add(new(new Basis(Vector3.Up, Mathf.DegToRad(detail.Yaw)).Scaled(Vector3.One * detail.Size),
+            new Vector3(detail.X, DetailedGround.Elevation(column, row), detail.Z)));
+    }
+    private void RebuildScatter()
+    {
+        // Cover grows only when its envelope changes. No per-frame population,
+        // RNG, new lights, shadows, or copies of imported meshes/textures.
+        foreach (ScatterGroup group in _scatter.Values)
+            for (int part = 0; part < group.Parts.Length; part++)
+            {
+                MultiMesh instances = group.Batches[part].Multimesh;
+                instances.InstanceCount = group.Placements.Count;
+                for (int i = 0; i < group.Placements.Count; i++) instances.SetInstanceTransform(i, group.Placements[i] * group.Parts[part].Transform);
+            }
+    }
     // Read-only native ownership seam for the owned fixed-view counterfactual.
     internal IEnumerable<MultiMeshInstance3D> NativeGrassOwners() => _terrain.Where(p => p.Key.Kind == DetailedGround.Grass).Select(p => p.Value);
     private IEnumerable<(string Asset, MultiMesh Instances, Transform3D Transform)> Installed(string asset) => _terrain.Where(p => p.Key.Kind == asset)
         .SelectMany(p => Enumerable.Range(0, p.Value.Multimesh.InstanceCount).Select(i => (asset, p.Value.Multimesh, p.Value.Multimesh.GetInstanceTransform(i))));
+    private object[] ObserveRoute(IEnumerable<(int Column, int Row, GroundConnector Connector)> route) => route.SelectMany(p => Installed(p.Connector.Asset)
+        .Where(n => n.Transform.Origin.IsEqualApprox(VillageLayout.GroundTransform(p.Column, p.Row).Origin)).Select(n => new
+        {
+            n.Asset,
+            p.Column,
+            p.Row,
+            Ports = p.Connector.Edges.Select(e => GroundGeometry.Port(n.Instances.Mesh, n.Transform, (e - p.Connector.Turns + 6) % 6))
+                .Select(v => new[] { v.X, v.Y, v.Z }).ToArray(),
+            Profiles = p.Connector.Edges.Select(e => GroundGeometry.Profile(n.Instances.Mesh, (e - p.Connector.Turns + 6) % 6)
+                .Select(v => n.Transform * v).Select(v => new[] { v.X, v.Y, v.Z }).ToArray()).ToArray(),
+            Floor = DetailedGround.Base(p.Column, p.Row),
+            Clearance = (n.Transform * new Vector3(0, n.Instances.Mesh.GetAabb().Position.Y, 0)).Y - n.Transform.Origin.Y
+        }).Cast<object>()).ToArray();
     internal object Observe(Camera3D camera, Rect2 area)
     {
         Vector3[] cells = _renderedCells;
@@ -294,22 +370,39 @@ internal sealed partial class VillageLandscape : Node3D
             TerrainBatches = _terrain.Count,
             TerrainSurfaces = _meshes.Values.Sum(m => m.GetSurfaceCount()),
             TerrainBounds = _meshes.Select(p => new { Asset = p.Key, Min = new[] { p.Value.GetAabb().Position.X, p.Value.GetAabb().Position.Y, p.Value.GetAabb().Position.Z }, Max = new[] { p.Value.GetAabb().End.X, p.Value.GetAabb().End.Y, p.Value.GetAabb().End.Z } }).ToArray(),
-            River = Installed(DetailedGround.Connector(GroundOverlay.River, 0, 3).Asset).Select(p =>
+            River = ObserveRoute(DetailedGround.Watercourse()),
+            DirtTrail = ObserveRoute(DetailedGround.BankTrail()),
+            WoodlandTrail = ObserveRoute(DetailedGround.WoodlandTrail()),
+            SceneryBatches = _scatter.Values.Sum(g => g.Batches.Length),
+            SceneryInstances = _scatter.Values.Sum(g => g.Batches.Sum(b => b.Multimesh.InstanceCount)),
+            SceneryMeshes = _scatter.Values.SelectMany(g => g.Parts.Select(p => p.Mesh)).Distinct().Count(),
+            SceneryTransformError = _scatter.Values.SelectMany(g => g.Batches.SelectMany((b, part) => Enumerable.Range(0, b.Multimesh.InstanceCount).Select(i =>
             {
-                Vector3 a = GroundGeometry.Port(p.Instances.Mesh, p.Transform, 0), b = GroundGeometry.Port(p.Instances.Mesh, p.Transform, 3);
-                return new { p.Asset, Start = new[] { a.X, a.Y, a.Z }, End = new[] { b.X, b.Y, b.Z } };
-            }).ToArray(),
-            DirtTrail = DetailedGround.BankTrail().SelectMany(p => Installed(p.Connector.Asset)
-                .Where(n => n.Transform.Origin.IsEqualApprox(VillageLayout.Hex(p.Column, p.Row))).Select(n => new
+                Transform3D actual = b.Multimesh.GetInstanceTransform(i), expected = g.Placements[i] * g.Parts[part].Transform;
+                return Math.Max(actual.Origin.DistanceTo(expected.Origin), Math.Max(actual.Basis.X.DistanceTo(expected.Basis.X),
+                    Math.Max(actual.Basis.Y.DistanceTo(expected.Basis.Y), actual.Basis.Z.DistanceTo(expected.Basis.Z))));
+            }))).DefaultIfEmpty().Max(),
+            Scenery = _scatter.SelectMany(p => Enumerable.Range(0, p.Value.Batches[0].Multimesh.InstanceCount).Select(i =>
+            {
+                // Recover placement from actual emitted native instance bases,
+                // not from the requested coordinates kept by the composition.
+                Transform3D placement = p.Value.Batches[0].Multimesh.GetInstanceTransform(i) * p.Value.Parts[0].Transform.AffineInverse();
+                Vector3 v = placement.Origin;
+                Aabb box = placement * p.Value.Bounds;
+                Transform2D screen = GetViewport().GetFinalTransform();
+                Vector2[] corners = Enumerable.Range(0, 8).Select(j => screen * camera.UnprojectPosition(ToGlobal(box.GetEndpoint(j)))).ToArray();
+                return new
                 {
-                    n.Asset,
-                    p.Column,
-                    p.Row,
-                    Ports = p.Connector.Edges.Select(e => GroundGeometry.Port(n.Instances.Mesh, n.Transform, (e - p.Connector.Turns + 6) % 6))
-                        .Select(v => new[] { v.X, v.Y, v.Z }).ToArray(),
-                    Floor = DetailedGround.Base(p.Column, p.Row),
-                    Clearance = (n.Transform * new Vector3(0, n.Instances.Mesh.GetAabb().Position.Y, 0)).Y - n.Transform.Origin.Y
-                })).ToArray(),
+                    p.Key.Asset,
+                    X = v.X,
+                    Y = v.Y,
+                    Z = v.Z,
+                    Scale = placement.Basis.X.Length(),
+                    Support = GroundSurface(v),
+                    Contact = new[] { v.X, v.Y, v.Z },
+                    ProjectedBounds = new[] { corners.Min(c => c.X), corners.Min(c => c.Y), corners.Max(c => c.X), corners.Max(c => c.Y) }
+                };
+            })).ToArray(),
             TrailView = Viewpoint(2, 7),
             ForestView = Viewpoint(-3, 2),
             FloorCells = DetailedGround.Bases.Sum(b => Installed(b).Count()),

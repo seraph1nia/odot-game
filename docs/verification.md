@@ -1,5 +1,260 @@
 # Cooperative POC verification
 
+## Research controls wall-clock allowance, 2026-10-10
+
+Source run `38039688672`, job `114177279552`, tested head
+`65d90ab6141d9f95ea688688899432cdf8488f3b`. The prior full-combat timer
+correction was present. Research setup passed in **56.52s**; controls reached
+successful transport/identity/research/status recovery at **29.36s**, then their
+own **30s** timer cancelled the remaining current-baseline/no-replay check at
+**30.04s**. All seven pose proofs passed. Combat exited after **304.73s** including
+cleanup; source took **1231.89s**, below the unchanged **1500s** hosted budget.
+This is a nested controls timeout, not evidence that the uncompleted assertions
+passed, and not a demonstrated stale-request, renderer or import failure.
+Provider logs and the original failure artifact are retained under
+`logs/source-research-timeout-diagnosis/`.
+
+Authorized correction: the shared research feature allowance is **60s**, with
+its **120s** setup, wave-ten/action bounds and all behavioral assertions retained.
+Retained local controls passes took **19.63s/20.05s**; the hosted **29.36s** path
+was still progressing. Doubling the old feature allowance gives headroom for
+serial input/render/transport work rather than weakening its predicates. The
+selected research route now inherits its worker budget instead of a redundant
+**150s** inner timer. Its standalone default is **210s** (120 + 60 + 30s overhead).
+Standalone full combat defaults to **420s**, giving the observed roughly 305s
+hosted path room for remaining assertions, fresh-session checks and clean exit.
+Unfiltered UI remains **600s**, source/full CI **900s**, complete economy **1080s**,
+army **420s**, and melee's **70s** inner bound is unchanged. Explicit worker
+budgets and parent cancellation remain authoritative on every route.
+
+Removed only the redundant `research-fire-frost-lock` PNG/global asset check:
+the preceding fresh lock observation still requires disabled Frost, permanent
+lock text and the exact six-point deduction after actual Fire input. The
+`research-current-burn` PNG retains rendered asset/landscape coverage and all
+current badge/inspection, pause/disconnect freeze, actual Reconnect, identity,
+research/status deadlines, current cursor, no historical flashes/sounds and
+resume assertions remain. No ordinary paid setup or unique behavior is dropped.
+Estimated extra 30s controls allowance plus final cleanup remains within the
+hosted job's approximately 268s observed headroom; this is planning, not hosted
+completion proof. Actual assertion failures, stale-match rejections, native
+crashes and corrupt imports remain failures, not timing passes.
+
+The prior **708.05s** full local pass, subsequent **122.23s** failed full attempt
+(stale observer pause in reconnect), and **203.41s** selected combat pass remain
+historical/partial evidence as recorded below. No product/reconnect correction
+is claimed by this allowance change, and no failed attempt has been reclassified.
+
+After-change locked restore, formatting/format verification and **504 core +
+595 runner** tests passed with zero failures/skips,
+`logs/20261010-155229-7ceaecba/`. Executable option tests check both standalone
+and worker defaults, forwarding, smaller/larger explicit overrides and unchanged
+melee budgets; they do not inspect implementation text. Selected
+`mise run test-ui --scenario combat --checkpoint research --startup-timeout-ms
+60000` passed without a timeout override: **92.27s** case / **103.04s** runner,
+controls **21.03s**, `logs/20261010-155313-c10b50de/`.
+
+The single final `mise run ci --startup-timeout-ms 60000 --ui-jobs 2` attempt
+passed in **736.40s**, `logs/20261010-155504-f78a0297/`: formatting, locked
+restore/build/import, static fidelity, all **1099** cheap tests (zero failures/
+skips), all six network and five source UI cases, sequential Linux exports and
+headless/graphical package smokes. Source UI took **656.28s**; full combat
+**202.87s**, research setup/controls **38.94s/18.52s**. Admission reports maximum
+two scenarios/two displays. Reconnect passed **100.30s** in this attempt, which
+does not establish that the earlier stale-pause defect is repaired. The current
+burn/inspection and packed gameplay PNGs were opened and inspected. Owned cleanup
+and error checks passed; no real desktop/user preferences were used.
+
+This is complete local after-change coverage, not reproduction of hosted timing
+or final-head merge readiness. It uses Linux X11/llvmpipe (LLVM 23.1.1) and Dummy
+audio, not hosted hardware or native GPU/input/listening evidence. Only evidence/
+documentation updates followed verification. Final-published-head required
+Source/Linux/Windows/CodeRabbit verdicts remain the outer executor's responsibility;
+no push, provider retry, merge or pipeline-control action was performed.
+
+## Full combat inherits its worker deadline, 2026-10-10
+
+Source run `38037663441`, job `114171384708`, failed at head
+`3be920477140072b15e4aa82e76e03da1d70586b`. Combat's inner hard-coded **300s**
+timer cancelled it despite CI forwarding a **900s** worker budget. All seven
+pose proofs and research setup (**55.20s**) passed; research controls were
+cancelled after **24.42s**, before their own **30s** bound. Combat exited after
+**302.84s**, including cleanup. This is not a hosted job-limit cancellation or
+an observed renderer/import failure. Raw provider logs and the original combat
+failure artifact are retained in `logs/source-combat-timeout-diagnosis/`.
+
+Removed only the full-combat timer branch. Full combat now inherits the display
+supervisor/worker deadline: **900s** in source/full CI, **600s** in unfiltered
+source UI, and the unchanged **300s** standalone default. Explicit overrides
+remain authoritative. Selected melee/research retain their **70s/150s** linked
+bounds; research's **120s setup/30s feature** bounds, every assertion, economy
+allowances, other scenario deadlines and the hosted **25-minute** limit remain
+unchanged. The risk description now reports the inherited budget accurately.
+
+The unchanged before-baseline is `logs/20261010-080756-8d9d19fd/` (**708.05s**
+full local CI). After the correction, locked restore/format and **504 core +
+593 runner** tests passed with zero failures/skips,
+`logs/20261010-084910-8fecb0ba/`. The full local CI attempt remains **failed**:
+`logs/20261010-085003-882c2937/`, **122.23s**, rejected an observer `pause`
+with `Stale match, phase or turn.` in the unchanged reconnect setup, before
+combat admission, then cancelled siblings. No unrelated reconnect correction
+or repeated full-CI attempt was made in this fix round.
+
+Selected `mise run test-ui --scenario combat --startup-timeout-ms 60000
+--timeout-ms 900000` passed complete combat, research/reconnect and fresh-session
+coverage: **203.41s** case / **211.92s** runner,
+`logs/20261010-085220-e8fbb88a/`. Research setup/controls took **41.29s/20.05s**.
+This selected local pass did not reproduce the hosted 300s timing failure and
+is not complete after-CI coverage or hosted readiness. Final-head required
+checks and the separate local reconnect failure remain unresolved.
+
+## Hosted overlapping economy wall-clock allowance, 2026-10-10
+
+Source run `38015276254`, job `114104047930`, failed at published head
+`22de8e87eafec8cd5100124ec8190b32210c6781`: economy's display supervisor
+cancelled after **900.28s**, not a GitHub cancellation. Cooperative economy
+completed at approximately **604s**; the nested army reached its second paid
+battle at approximately **296s** before parent cancellation. Full-hall and
+expansion/retirement captures passed, but final recovery/capacity/exit did not
+complete. Combat was progressing when sibling cancellation stopped it after
+**38.02s**; no pose-failure artifact had been reached. These remain failures.
+Raw logs and diagnosis are retained in `logs/source-economy-timeout-diagnosis/`.
+
+The earlier serial hosted economy passed in **678.79s**, including approximately
+**229s** of army. With two displays, reconnect grew **139.89→213.33s**, settings
+**98.87→140.15s**, and launcher **345.97→477.70s**. This supports a contention
+allowance, not a claim of equivalent hardware or proof that every timeout is
+benign. The exact current-head army selector also completed both ordinary paid
+clears, all recovery assertions and five captures locally in **134.72s**,
+`logs/20261010-022055-5af82c90/`; that partial local pass is not hosted acceptance.
+
+Authorized adjustment: **complete economy 1080s**, **nested/selected army 420s**.
+The CI economy worker was 900s; standalone complete economy was 300s (600s in
+unfiltered source UI). They now resolve the same scenario-specific allowance at
+the display boundary and forward it explicitly to the worker. Standalone army
+was parent-bounded at 300s and now uses 420s, matching its nested bound. Explicit
+`--timeout-ms` remains authoritative, including smaller budgets. Every unrelated
+timeout, startup/phase/research barrier, two-scenario/two-display cap, and the
+hosted **25-minute** source limit remains unchanged.
+
+The measured 604s cooperative path plus 420s army allowance leaves about **56s**
+for worker overhead within 1080s. Other hosted graphical cases slowed by roughly
+38–53%; 229s × 1.53 is approximately 350s, below the 420s army bound. Adding 180s
+to the failed hosted job's approximately 1056s leaves approximately **264s** below
+1500s. These are bounded planning estimates, not completion measurements; any
+remaining assertion failure, nested timeout or job-budget failure remains a
+blocker and must be diagnosed rather than reported as passing.
+
+**Coverage change: none.** The repeated paid opening is not removed: cooperative
+economy owns exact displayed balances/receipts, real shortage and paused
+reconnect, research/producer retention, foreign controls, two viewport layouts,
+camera/roof/plot picking and land/Market inputs. Solo army owns stable inspector
+ids, hidden stored actors, full field/hall atomic rejection, purchased physical
+homes, first-fit Send, no-refund Retire, independent hall tracks, both paid clears,
+funded-but-nonparticipating storage, exact 5%/10% production recovery, five PNGs
+and clean exit. Existing `ArmyRosterTests`, `ArmyRecoveryTests`,
+`ArmyCommandTests`, `ArmyBalanceTests` and `EconomyArmyFixtureTests` independently
+exercise rules/paid setup/wire guards, but cannot replace these real UI witnesses.
+No tests, assertions, captures, paid setup or product behavior are dropped.
+
+The unchanged product/suite before-baseline is the retained full local CI pass
+`logs/20261010-014527-05d2a93c/` (**704.00s**). Allowance-only changes require a
+new full local pass and actual final-published-head Source/Linux/Windows/CodeRabbit
+verdicts; neither older evidence nor a local pass establishes merge readiness.
+
+Working-tree verification: locked restore/format and **504 core + 593 runner**
+tests passed (zero failures/skips), including executable option/deadline routing
+and explicit-override checks, `logs/20261010-073223-1a65ff74/`. Complete selected
+`mise run test-ui --scenario economy --startup-timeout-ms 60000` passed all
+cooperative and army behavior: **411.20s** case / **419.73s** runner,
+`logs/20261010-074241-7f357b1b/`. No timeout override, injected state or skipped
+assertions were used. All five army captures and clean exit completed.
+
+**Two prior full local CI attempts remain failed.** Both used
+`mise run ci --startup-timeout-ms 60000 --ui-jobs 2`:
+
+- `logs/20261010-073441-48d617b0/`, **417.07s**: native SIGSEGV/exit134 in
+  `libgallium-26.2.4-arch3.1.so` during `army-opening` capture, economy case
+  **351.85s**. Godot also emitted a caller-thread notification error. This was
+  before both old deadlines; no managed-code cause was established. All cheap
+  and six network cases, reconnect and settings passed. Launcher was cancelled;
+  combat and exports were not reached.
+- `logs/20261010-074949-48c1e115/`, **376.81s**: later army/menu clients could not
+  load the generated music `.sample` (`ERR_FILE_CORRUPT`), although earlier
+  clients loaded music successfully. Launcher failed its real music-loaded
+  assertion; economy was cancelled. The generated file's recorded modification
+  time predates both attempts; this does not establish why native loading failed.
+  All cheap/six network cases, reconnect and settings passed. Combat and exports
+  were not reached.
+
+Complete selected economy passed between these attempts; the second full run
+was a post-failure recheck, not evidence suppression. No renderer settings,
+imports, audio, dependency versions, tolerances or failure handling were changed.
+Do not manufacture a passing full verdict or bypass the source gate for exports.
+Console logs are retained as `allowance-{final-ci,selected-economy,
+final-ci-second}.log` beside the original hosted failure. No provider retry,
+push or other pipeline phase was performed.
+
+### Bounded native/resource follow-up
+
+Follow-up evidence is retained under
+`logs/source-economy-timeout-diagnosis/native-resource-followup/`, including the
+original allowance patch, source/input hashes, WAV/import metadata copies,
+importer receipt, kernel messages, native core and bounded backtraces. The
+preceding cheap and **411.20s** selected economy proofs were reused unchanged;
+no separate cheap/economy repeat was run merely for a new agent invocation.
+
+The exact generated music sample returned **OS EIO** when read. Kernel logs at
+the failed clients' startup times report **Btrfs checksum failure** for its
+matching inode **1970354**, offset **7479296**. The source WAV still matches its
+recorded SHA-256 `3783f4deed1ecd7933a17538a1d880ffb04319f6e11f34dc66f2df7a05ab70b4`;
+source MD5 matches the import receipt, and tracked import settings are unchanged.
+The sample's old mtime/ctime predates both failures. This establishes an
+unreadable generated artifact, not an importer writer race, stale-cache claim
+or product audio defect. The underlying corruption mechanism and why earlier
+clients could read it are not established.
+
+A same-filesystem rename retained the **original inode and unreadable extent**
+in evidence before preparation; a whole-file/prefix copy failed EIO, so no
+complete recovered-byte hash is claimed. Only this demonstrated invalid generated
+destination was moved: no source reset, other cache clearing or force-import
+workaround. Normal `mise run prepare --startup-timeout-ms 60000`, using the
+existing owned editor environment and `--editor --import`, reimported one asset
+and passed (**7.77s** runner, `logs/20261010-080545-d48d7893/`). The new sample is
+readable, **7,900,059 bytes**, SHA-256
+`651e0a6adb0958c7ad122528d2a490f6d9874906cd903fb9d454d0ec5d161a1b`;
+its MD5 `5b27a19b53f0142bedd356496e934975` exactly matches the earlier importer
+receipt. This reconstructs the artifact, not the host filesystem.
+
+The separately retained crash core identifies **llvmpipe-1** as the faulting
+thread at the logged libgallium offsets, with the ordinary seed-1 army argv and
+unchanged X11/OpenGL/Dummy renderer setup. The native fault is real; these
+unsymbolized frames and the preceding caller-thread notification do **not**
+prove a driver/engine bug, managed off-thread call or a causal relationship to
+the later sample corruption. No small product correction was demonstrated, and
+no renderer/audio/dependency settings or error handling were changed.
+
+After repairing that relevant generated input and re-tracing all allowance
+callers/overrides, **one** final normal
+`mise run ci --startup-timeout-ms 60000 --ui-jobs 2` passed in **708.05s**,
+`logs/20261010-080756-8d9d19fd/`. It includes locked restore, formatting/build/import,
+static fidelity, **504 core + 593 runner** tests (zero failures/skips), all six
+network and five source UI cases, sequential Linux exports, headless package
+smoke and graphical package smoke. Source UI took **628.14s**; economy completed
+**429.80s** case / **433.18s** worker, including all five army captures and clean
+exit. Admission evidence reports maximum **two scenarios/two displays**. The
+actual packed gameplay PNG was inspected. Product/test input hashes were
+unchanged through this run, and the regenerated sample's hash/inode/timestamps
+were unchanged after exports and both package checks. No matching kernel resource
+errors appeared during this final run.
+
+This is genuine full **local** coverage on the retained allowance delta, not a
+claim that the unexplained native crash or host storage integrity is resolved.
+The earlier failed attempts remain failed; host checksum errors need owner
+attention outside this worktree. Required final-published-head
+**Source/Linux/Windows/CodeRabbit** verdicts remain outstanding and belong to the
+outer executor. No merge readiness, waiver, publication or provider retry is
+claimed.
+
 ## Fixed-position settlement beautification, 2026-10-07
 
 The [change verification record](../openspec/changes/beautify-settlement-world/verification.md)

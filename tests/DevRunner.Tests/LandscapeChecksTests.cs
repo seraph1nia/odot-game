@@ -50,38 +50,71 @@ public sealed class LandscapeChecksTests
         var scene = new LandscapeObservation
         {
             BridgeSubstratesRemoved = 5,
-            River = Enumerable.Range(-1, 3).Select(i => new RiverObservation(
-                Game.DetailedGround.Connector(Game.GroundOverlay.River, 0, 3).Asset,
-                [i * 3 - 1.5f, -.024566f, 12.99f], [i * 3 + 1.5f, -.024566f, 12.99f])).ToArray()
+            River = RouteObservation(Game.DetailedGround.Watercourse(), Game.GroundOverlay.River)
         };
         Assert.True(LandscapeChecks.JoinedRiver(scene));
         Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [.. scene.River, scene.River[1]] }));
-        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0], scene.River[1], scene.River[2] with { Start = [1.6f, -.144f, 12.99f] }] }));
-        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0], scene.River[1] with { Start = [-1.5f, .2f, 12.99f] }, scene.River[2]] }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = scene.River.Select((p, i) => i == 2 ? p with { Ports = [[1.6f, -.144f, 12.99f]] } : p).ToArray() }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = scene.River.Select((p, i) => i == 1 ? p with { Ports = p.Ports.Select(q => new[] { q[0], q[1] + .01f, q[2] }).ToArray() } : p).ToArray() }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = scene.River.Select((p, i) => i == 1 ? p with { Profiles = p.Profiles.Select(q => q.Select(v => new[] { v[0], v[1] + .01f, v[2] }).ToArray()).ToArray() } : p).ToArray() }));
         Assert.False(LandscapeChecks.JoinedRiver(scene with { BridgeRecessedMeshes = 1 }));
         Assert.False(LandscapeChecks.JoinedRiver(scene with { BridgeSubstratesRemoved = 0 }));
-        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = [scene.River[0] with { Asset = Game.AssetCatalog.Stream }, scene.River[1], scene.River[2]] }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = scene.River.Select((p, i) => i == 0 ? p with { Asset = Game.AssetCatalog.Stream } : p).ToArray() }));
+        Assert.False(LandscapeChecks.JoinedRiver(scene with { River = scene.River[..^1] }));
     }
     [Fact]
     public void LiveDirtTrailRejectsWrongOrientationHeightMissingEndsAndBuriedOverlay()
     {
         float y = .18f + .012f * (1.7320508f / 2.55f);
-        var plan = Game.DetailedGround.BankTrail().ToArray();
-        float[][][] ports = [
-            [[3.75f, y, 16.8875f]],
-            [[6, y, 18.1865f], [3.75f, y, 16.8875f]],
-            [[6, y, 18.1865f], [8.25f, y, 16.8875f]],
-            [[8.25f, y, 16.8875f]]];
         var scene = new LandscapeObservation
         {
-            DirtTrail = plan.Select((p, i) => new GroundTrailObservation(p.Connector.Asset, p.Column, p.Row,
-                Game.DetailedGround.Base(p.Column, p.Row), .0040754f, ports[i])).ToArray()
+            DirtTrail = RouteObservation(Game.DetailedGround.BankTrail(), Game.GroundOverlay.Path),
+            WoodlandTrail = RouteObservation(Game.DetailedGround.WoodlandTrail(), Game.GroundOverlay.Path)
         };
         Assert.True(LandscapeChecks.JoinedTrail(scene));
         Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail[..^1] }));
         Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Ports = [[4, y, 16.8875f]] } : p).ToArray() }));
         Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Ports = [[3.75f, y + .01f, 16.8875f]] } : p).ToArray() }));
         Assert.False(LandscapeChecks.JoinedTrail(scene with { DirtTrail = scene.DirtTrail.Select((p, i) => i == 0 ? p with { Clearance = 0 } : p).ToArray() }));
+        Assert.False(LandscapeChecks.JoinedTrail(scene with { WoodlandTrail = [] }));
+        Assert.False(LandscapeChecks.JoinedTrail(scene with { WoodlandTrail = scene.WoodlandTrail.Select((p, i) => i == 1 ? p with { Profiles = [] } : p).ToArray() }));
+    }
+    private static GroundTrailObservation[] RouteObservation(IEnumerable<(int Column, int Row, Game.GroundConnector Connector)> route, Game.GroundOverlay family) => route.Select(p =>
+    {
+        float cx = p.Column * 3 + Math.Abs(p.Row % 2) * 1.5f, cz = p.Row * 2.598076f;
+        float y = Game.DetailedGround.Elevation(p.Column, p.Row) + (family == Game.GroundOverlay.River ? .008f : .012f) * (1.7320508f / 2.55f);
+        float[][] ports = p.Connector.Edges.Select(e => new[] { cx - 1.5f * MathF.Cos(e * MathF.PI / 3), y, cz + 1.5f * MathF.Sin(e * MathF.PI / 3) }).ToArray();
+        float[][][] profiles = ports.Select((v, i) => Enumerable.Range(-2, 5).Select(j => new[]
+        {
+            v[0] + j * .1f * MathF.Sin(p.Connector.Edges[i] * MathF.PI / 3), v[1],
+            v[2] + j * .1f * MathF.Cos(p.Connector.Edges[i] * MathF.PI / 3)
+        }).ToArray()).ToArray();
+        return new GroundTrailObservation(p.Connector.Asset, p.Column, p.Row, Game.DetailedGround.Base(p.Column, p.Row), .0040754f, ports) { Profiles = profiles };
+    }).ToArray();
+    [Fact]
+    public void SharedMeshScatterRejectsMissingPopulationWrongContactsPortsPlotObstructionAndPartTransforms()
+    {
+        AssetPlacementObservation[] props = Enumerable.Range(3, 12).SelectMany(row => Enumerable.Range(-12, 25)
+            .SelectMany(column => Game.DetailedGround.Scatter(column, row).Select(p => new AssetPlacementObservation
+            {
+                Asset = p.Asset,
+                X = p.X,
+                Z = p.Z,
+                Y = Game.DetailedGround.Elevation(column, row),
+                Scale = p.Size,
+                Support = Game.DetailedGround.Elevation(column, row),
+                Contact = [p.X, Game.DetailedGround.Elevation(column, row), p.Z],
+                ProjectedBounds = [-10, -10, -5, -5]
+            }))).ToArray();
+        var scene = new LandscapeObservation { Scenery = props, SceneryBatches = 330, SceneryMeshes = 165, SceneryInstances = props.Length * 2 };
+        UiTarget[] plots = [new(100, 100, true, true)];
+        Assert.True(LandscapeChecks.ScatterClear(scene, plots));
+        Assert.False(LandscapeChecks.ScatterClear(scene with { Scenery = [] }, plots));
+        Assert.False(LandscapeChecks.ScatterClear(scene with { SceneryTransformError = .01f }, plots));
+        Assert.False(LandscapeChecks.ScatterClear(scene with { SceneryTransformError = float.NaN }, plots));
+        Assert.False(LandscapeChecks.ScatterClear(scene with { Scenery = props.Select((p, i) => i == 0 ? p with { Support = p.Support + .01f } : p).ToArray() }, plots));
+        Assert.False(LandscapeChecks.ScatterClear(scene with { Scenery = props.Select((p, i) => i == 0 ? p with { ProjectedBounds = [99, 99, 101, 101] } : p).ToArray() }, plots));
+        Assert.False(LandscapeChecks.ScatterClear(scene with { Scenery = props.Select((p, i) => i == 0 ? p with { X = 4.5f, Z = 5 * 2.598076f, Y = -.03f, Support = -.03f, Contact = [4.5f, -.03f, 5 * 2.598076f] } : p).ToArray() }, plots));
     }
     [Fact]
     public void EmittedWalkGeometryRejectsShearAndSlopedContactDespiteSupportedCenters()

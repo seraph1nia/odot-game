@@ -6,8 +6,16 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
     bool Production = false, uint? SteamAppId = null, bool Offline = false, bool Exported = false, int Guests = 1,
     string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64", string? InstalledClient = null,
     string? UiCheckpoint = null, int SimulationSpeed = 4, bool Trace = false, int UiJobs = 2,
-    int ProfileIterations = 3, int ProfileFrames = 600, string ProfileConfiguration = "Debug", bool ProfileWorkCounters = false, string? ProfileBaseline = null, string? PixelOwnershipRequest = null, string? BoundaryEvidence = null)
+    int ProfileIterations = 3, int ProfileFrames = 600, string ProfileConfiguration = "Debug", bool ProfileWorkCounters = false, string? ProfileBaseline = null, string? PixelOwnershipRequest = null, string? BoundaryEvidence = null, bool ExplicitTimeout = false)
 {
+    public const int ArmyUiTimeout = 420000;
+
+    // Hosted two-display economy reached army battle two at 900s. Keep its
+    // complete paid paths bounded without extending sibling or explicit budgets.
+    public int UiTimeout(string scenario) => !ExplicitTimeout && scenario == "economy"
+        ? UiCheckpoint == "army" ? ArmyUiTimeout : 1080000
+        : Timeout;
+
     public static Options Parse(string[] args)
     {
         string command = args.FirstOrDefault() ?? "help";
@@ -77,12 +85,16 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 default: throw new ArgumentException($"Unknown runner argument: {args[i]}");
             }
         }
-        // Full source UI is serial. The measured 184s campaign and 156s economy
-        // slices need separate bounded headroom within the complete CI budget.
+        // CI's ordinary worker budget; economy's measured allowance is resolved
+        // separately at the display boundary, not applied to every source gate.
         if (!explicitTimeout && command is "ci" or "ci-source") timeout = 900000;
         else if (!explicitTimeout && command == "profile-presentation") timeout = 600000;
         else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario is null) timeout = 600000;
-        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario is "economy" or "exported-package" || command is "test-ui" or "_ui-worker" && scenario == "combat" && checkpoint is null)) timeout = 300000;
+        // Research's 120s setup + 60s controls need startup/cleanup headroom.
+        // Full standalone combat also includes the measured ~305s hosted path.
+        else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario == "combat" && checkpoint is null or "research")
+            timeout = checkpoint == "research" ? 210000 : 420000;
+        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario == "exported-package")) timeout = 300000;
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");
@@ -127,6 +139,6 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             throw new ArgumentException("direct-invite requires accepting an actual invitation; omit --lobby.");
         return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
             production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient, checkpoint, simulationSpeed, trace, uiJobs,
-            profileIterations, profileFrames, profileConfiguration, profileWorkCounters, profileBaseline, pixelOwnershipRequest, boundaryEvidence);
+            profileIterations, profileFrames, profileConfiguration, profileWorkCounters, profileBaseline, pixelOwnershipRequest, boundaryEvidence, explicitTimeout);
     }
 }

@@ -28,8 +28,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y xvfb xauth x11-utils mesa-utils libgl1-mesa-dri libglx-mesa0 openbox
       - name: Verify formatting, build, rules, network and source UI
-        # Cold imports need startup headroom; serialize owned graphics, not coverage.
-        run: mise run ci-source --startup-timeout-ms 60000 --ui-jobs 1
+        # Cold imports need startup headroom; use the supported two-display admission.
+        run: mise run ci-source --startup-timeout-ms 60000 --ui-jobs 2
       - name: Retain synthetic combat pose failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1 (same pin as release)

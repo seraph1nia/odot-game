@@ -40,23 +40,13 @@ new image encoding, external texture download or export-byte editing occurs.
 its imported static buffers; `VillageLandscape` batches the actual floor and
 ribbon meshes. Menu and every city use this same consumer, not a review-only scene.
 `DetailedGround` is a cosmetic coordinate/connector projection, not authority
-terrain or a procedural forest/river generator.
+terrain or a procedural river generator. The follow-up
+[rich background composition](rich-background.md) records the current authored
+runs, smaller ground patches, instanced woodland and before/after evidence.
 
-- Every rendered lattice cell has exactly one new floor. The open approach and
-  home/defender use grass; fixed settlement plots use dirt; the existing river
-  row uses moss; the western wooded area uses bounded moss/litter pockets; the
-  eastern pine area uses pine duff. Coordinate-only six-way floor rotation is
-  deterministic. Families intentionally have visible material transitions.
-- The existing river remains straight along row 5. New surface-stream straight
-  overlays continue across every cell, including beneath the timber bridge.
-  River turns/ends and path straight/60-normal-separation corners are registered
-  and actually imported by the diagnostic route, not claimed to appear in this
-  unchanged live river topology.
-- A four-cell dirt trail adapts the south bridge walk into the existing flat
-  bank-clearing/east-grove area: `(1,6)`, `(1,7)`, `(2,7)`, `(3,6)`. It uses two
-  120-normal-separation corners and two center ends. Only the timber walk's final
-  endpoint moves to `(1,6)`; its bridge landing, thickness and bank steps remain.
-  No connectors cross terrace height changes, plots or the combat approach.
+- Every rendered lattice cell has exactly one floor; the current family
+  distribution and authored route layout are owned by
+  [rich background composition](rich-background.md#what-is-composed).
 - Passive clearing decoration samples the installed ribbon triangles for local
   contact. Buildings, plots, home/defender, combat units and projectile origins
   keep their original supporting heights/centers/scales. Camera, lighting,
@@ -66,9 +56,11 @@ terrain or a procedural forest/river generator.
 ### Placement and recessed-water boundary
 
 The original flat-top radius 2.55 is converted through the **existing** +90°
-Godot-Y rotation and `VillageLayout.TerrainScale`, retaining the pointy lattice,
-ordering and terraced heights. Base and overlay share the exact transform origin
-and scale; connector turns add positive multiples of 60° about Godot Y. Edge 0
+Godot-Y rotation and `VillageLayout.TerrainScale`, retaining the pointy lattice
+and ordering. `VillageLayout.GroundTransform` uses `DetailedGround.Elevation`
+for cosmetic floor/ribbon heights; `VillageLayout.Height` retains the original
+structure/combat surface mapping. Base and overlay share the exact transform
+origin and scale; connector turns add positive multiples of 60° about Godot Y. Edge 0
 therefore faces west on this lattice. Matching ports are straight edge midpoints,
 not vertices. No extra vertical bias, priority, disabled depth test or water-above-
 occupant rendering is used. Source base top is zero, bottom −0.36; path/river
@@ -90,7 +82,8 @@ new map generator in this change.
 `mise run test` includes exact inventory/hash/dependency checks and focused
 executable mapping tests: every 15 unordered pair and six ends in both families,
 typed GLB connector metadata, reversed pairs, invalid inputs, signed-row opposite
-neighbors, bounded floor selection and the four adjacent non-plot trail cells.
+neighbors, bounded floor selection, protected combat receivers, complete adjacent
+non-intersecting flat routes, and stable varied scatter with route clearances.
 
 `mise run test-assets` extends the existing owned headless Godot fidelity probe.
 It checks actual imported native-root versus batched rotations, **42 distinct
@@ -102,8 +95,9 @@ negative corruption regressions remain mandatory.
 
 The existing `Countryside` assertions, shared by ordinary source and exported UI
 checks, require actual installed five-family bounds, one floor per cell, continuous
-surface-water ports, no recessed bridge water, joined live dirt corners/ends and
-positive clearance, grounded decorations, unchanged building centers, menu/city
+surface-water ports and full edge profiles, no recessed bridge water, joined live
+dirt corners/ends and positive clearance, grounded decorations and instanced
+scatter with plot/route clearance, unchanged building centers, menu/city
 parity and ordinary picking. Timber checks inspect actual emitted bases and
 bottom rendering-vertex height ranges across all six walks, including stacked
 courses, requiring horizontal orthonormal unit axes and contact with ground or
@@ -134,9 +128,11 @@ smoke; selected checks are partial coverage.
 
 ### Retained evidence
 
-The following author-recorded runs predate the timber-basis review correction.
-They do not validate its changed C# inputs; the outer pipeline owns final full
-validation. Fresh review-correction evidence is limited to:
+This section records the earlier detailed-ground delivery; the follow-up's
+[current composition evidence](rich-background.md#evidence-and-limitations)
+is recorded separately. The original author-recorded runs below predate the
+timber-basis review correction and do not validate its changed C# inputs.
+That review correction's focused evidence was limited to:
 
 - Nine selected `LandscapeChecksTests` / `VillageWalkTests` passed, including
   rejection of the original 3D south-bank tangent on both courses
