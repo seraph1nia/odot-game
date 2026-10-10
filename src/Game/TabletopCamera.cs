@@ -14,7 +14,8 @@ internal sealed class TabletopCamera(Camera3D camera)
     ];
     private readonly Dictionary<Key, Vector2> _held = [];
     private readonly HashSet<Key> _down = [], _blocked = [];
-    private Transform3D _base;
+    private static readonly bool TravelTrace = System.Environment.GetEnvironmentVariable("ODOT_CAMERA_TRAVEL_TRACE") == "1";
+    private Transform3D _base, _fittedBase;
     private float _baseSize;
     internal float Zoom { get; private set; } = 1;
     internal Vector2 Pan { get; private set; }
@@ -23,12 +24,25 @@ internal sealed class TabletopCamera(Camera3D camera)
 
     internal void Fit()
     {
-        _base = camera.Transform; _baseSize = camera.Size;
+        _fittedBase = _base = camera.Transform; _baseSize = camera.Size;
         Apply();
     }
     internal void Reset()
     {
         Zoom = 1; Pan = Vector2.Zero; Interrupt(); Apply();
+    }
+    internal void ProofView(string view, Vector3 point, float hudFraction)
+    {
+        Zoom = view is "forest" or "river" ? 3 : 1; Pan = Vector2.Zero;
+        _base = _fittedBase;
+        if (Zoom == 3)
+        {
+            Vector3 direction = _fittedBase.Basis.Z;
+            camera.Position = point + direction * 45; camera.LookAt(point);
+            camera.Position -= camera.Basis.Y * (_baseSize / Zoom) * hudFraction / 2;
+            _base = camera.Transform;
+        }
+        Interrupt(); Apply();
     }
     internal void Interrupt()
     {
@@ -37,6 +51,7 @@ internal sealed class TabletopCamera(Camera3D camera)
     internal void ObserveKey(InputEventKey key)
     {
         Key code = key.PhysicalKeycode == Key.None ? key.Keycode : key.PhysicalKeycode;
+        if (TravelTrace) GD.Print($"ODOT_TRAVEL key={code} pressed={key.Pressed} frame={Engine.GetProcessFrames()} utc={DateTimeOffset.UtcNow:O}");
         if (!key.Pressed) { _held.Remove(code); _down.Remove(code); _blocked.Remove(code); }
         else if (Actions.Any(a => key.IsAction(a.Action))) _down.Add(code);
     }
@@ -67,6 +82,7 @@ internal sealed class TabletopCamera(Camera3D camera)
             MovementSeconds += delta;
         }
         Apply();
+        if (TravelTrace && _down.Count != 0) GD.Print(FormattableString.Invariant($"ODOT_TRAVEL frame={Engine.GetProcessFrames()} delta={delta:R} eligible={eligible} physicalD={Input.IsPhysicalKeyPressed(Key.D)} direction={MovementDirection} pan={Pan} seconds={MovementSeconds:R} size={camera.Size:R} fraction={worldFraction:R} yaw={camera.Rotation.Y:R} utc={DateTimeOffset.UtcNow:O}"));
     }
     internal void ZoomAt(Vector2 cursor, bool inward, float factor)
     {

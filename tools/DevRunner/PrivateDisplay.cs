@@ -106,7 +106,8 @@ internal sealed partial class Runner
         var env = display.EnvironmentFor("display");
         env["DISPLAY"] = null; env["WAYLAND_DISPLAY"] = null; env["XAUTHORITY"] = null;
         env["DBUS_SESSION_BUS_ADDRESS"] = null;
-        env["LIBGL_ALWAYS_SOFTWARE"] = "true"; env["LP_NUM_THREADS"] = "2";
+        bool nativeVulkan = name == "atmosphere" && options.Renderer == "forward-plus";
+        env["LIBGL_ALWAYS_SOFTWARE"] = nativeVulkan ? null : "true"; env["LP_NUM_THREADS"] = nativeVulkan ? null : "2";
         env["ODOT_UI_WORKER"] = workerToken; env["ODOT_UI_RUNTIME"] = display.Directory;
         var args = new List<string> { "xvfb-run", "--auto-servernum", "--auth-file", Path.Combine(display.Directory, "xauthority"),
             "--error-file", Path.Combine(display.EvidenceDirectory, "xvfb.log"), "--server-args=-screen 0 1920x1080x24 -nolisten tcp",
@@ -114,6 +115,11 @@ internal sealed partial class Runner
             "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", timeout.ToString(CultureInfo.InvariantCulture) };
         args.AddRange(["--scenario", name, "--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
         if (options.Trace) args.Add("--trace");
+        if (name == "atmosphere")
+        {
+            args.AddRange(["--renderer", options.Renderer ?? "compatibility"]);
+            if (options.Exported) args.Add("--exported");
+        }
         if (name is "combat-playback" or "authored-scale")
         {
             args.AddRange(["--frames", "600", "--configuration", "Debug"]);
@@ -132,6 +138,7 @@ internal sealed partial class Runner
                 await using var worker = new Child("private-display-worker", "setsid", args, _root, environment: env, evidenceDirectory: display.EvidenceDirectory, ownsGroup: true);
                 Console.WriteLine($"OWNED display worker pid={worker.ProcessId}; coverage={(name ?? "all source slices")}");
                 int code = await worker.WaitExit(deadline.Token);
+                if (nativeVulkan && code == 2) throw new VerificationPrerequisiteException($"Native Vulkan unexecuted; evidence: {display.EvidenceDirectory}\n{worker.Tail()}");
                 if (code != 0 || worker.HasEngineErrors) throw new InvalidOperationException($"Private-display worker failed ({code}); evidence: {display.EvidenceDirectory}\n{worker.Tail()}");
             });
         }
@@ -142,9 +149,12 @@ internal sealed partial class Runner
     {
         PrivateDisplay.ValidateWorker(options);
         if (options.Scenario is null) throw new InvalidOperationException("A graphical worker must own exactly one selected scenario.");
-        await Capture("xdpyinfo");
+        string displayInfo = await Capture("xdpyinfo");
+        if (options.Scenario == "atmosphere" && options.Renderer == "forward-plus" && !displayInfo.Split('\n').Any(line => line.Trim() == "DRI3"))
+            throw new VerificationPrerequisiteException("Owned native Vulkan X11 surface unexecuted: this display has no DRI3 extension for hardware presentation. A qualified owned GPU surface is required; no desktop fallback or driver/display-server reconfiguration is permitted.");
         string info = await Capture("glxinfo", "-B");
-        Console.WriteLine(PrivateDisplay.RequireSoftwareGraphics(info));
+        if (options.Scenario != "atmosphere" || options.Renderer != "forward-plus") Console.WriteLine(PrivateDisplay.RequireSoftwareGraphics(info));
+        else Console.WriteLine("Owned X11 surface ready; native Vulkan method/driver/physical device must be authenticated by the rendered client, not this OpenGL query.");
         await File.WriteAllTextAsync(Path.Combine(_evidence.Directory, options.Scenario == "exported-package" ? "package-renderer.txt" : "source-renderer.txt"), info, cancellation);
         await using var wm = new Child("private-openbox", "openbox", ["--sm-disable"], _root, evidenceDirectory: _evidence.Directory, quiet: true);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(options.UiTimeout(options.Scenario));
@@ -153,7 +163,8 @@ internal sealed partial class Runner
         {
             await using var owned = new ScenarioScope(name, _evidence, graphical: true);
             var worker = new Runner(options, token, _evidence, owned);
-            if (name is "combat-playback" or "authored-scale") await worker.PresentationProfileScenario(token);
+            if (name == "atmosphere") await worker.AtmosphereScenario(token);
+            else if (name is "combat-playback" or "authored-scale") await worker.PresentationProfileScenario(token);
             else if (name == "launcher" && options.UiCheckpoint == "assets") await worker.AssetCostScenario(token);
             else if (name == "launcher") await worker.MenuUiScenario(null, token);
             else if (name is "installed-linux" or "exported-package")

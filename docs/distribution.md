@@ -28,7 +28,7 @@ available. Remove the application through Windows **Installed apps** or its
 registered The Common Watch uninstaller (Odot on older packages); player data is preserved by default.
 
 Windows needs a supported 64-bit Windows desktop and graphics hardware/drivers
-meeting [Godot's compatibility renderer requirements](https://docs.godotengine.org/en/stable/about/system_requirements.html).
+meeting [Godot's Forward+ Vulkan requirements](https://docs.godotengine.org/en/stable/about/system_requirements.html). Compatibility/OpenGL remains available for lower-end hardware: [renderer switching and restart-later settings](atmosphere.md#renderer-selection) describe native executable flags and persistent desired-vs-actual renderer behavior.
 Steam multiplayer needs the native 64-bit Steam client and an eligible signed-in
 account. The installer is currently unsigned because no code-signing certificate
 is configured.
@@ -69,7 +69,7 @@ integration. Missing Steam or overlay files never prevent solo play.
 
 The Linux build targets recent x86_64 glibc distributions and currently needs
 glibc 2.28 or newer plus ordinary system graphics/windowing libraries and
-OpenGL 3.3-capable drivers. It runs on current Arch-family distributions and
+Vulkan-capable GPU/drivers for the default Forward+ presentation, or OpenGL 3.3-capable drivers for the supported Compatibility fallback. It runs on current Arch-family distributions and
 Ubuntu 24.04. It is not a universal package for musl-only systems, old glibc
 releases, ARM machines, or every Linux graphics stack. Native Steam multiplayer
 expects the distribution's normal 64-bit Steam client.

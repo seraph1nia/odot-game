@@ -138,8 +138,17 @@ internal sealed record ProbeCostObservation(double FrameWaitMilliseconds, double
 internal sealed record RenderGroupObservation(string Group, int Nodes, long Surfaces, long Triangles, long Instances, int Materials);
 internal sealed record UiObservation
 {
+    public GraphicsObservation Graphics { get; init; } = new();
+    public Dictionary<string, int> GraphicsDraft { get; init; } = [];
+    public string GraphicsFocus { get; init; } = "";
     public bool AuthoredProvenanceBundled { get; init; }
     public string[] InstalledModels { get; init; } = [];
+    public string WindowMode { get; init; } = "";
+    public int ProcessId { get; init; }
+    public bool ModalOpen { get; init; }
+    public bool Exiting { get; init; }
+    public bool GraphicsDropdownOpen { get; init; }
+    public Dictionary<string, int> GraphicsPopupFocus { get; init; } = [];
     public RenderCostObservation? RenderCosts { get; init; }
     public ProbeCostObservation? ProbeCosts { get; init; }
     public RenderGroupObservation[] RenderGroups { get; init; } = [];
@@ -319,6 +328,7 @@ internal sealed partial class Runner
     private static readonly string[] EconomyResourceLabels = ["Gold", "Food", "Wood", "Stone", "Metal", "Cloth"];
     private static string UiRisk(string name) => name switch
     {
+        "atmosphere" => "Optional fixed-clock native atmosphere initialization/material/weather/readability evidence. Eight fixed views and one ordinary paid first-wave combat snapshot, one owned display/client. Shader compilation, actual Vulkan device/surface and rendered pixels cannot be proven by cheap preference tests; does not expand mandatory CI or repeat a full battle.",
         "authored-scale" => "Selected authored settlement/combat diagnostic at 16/64/256 pressure recipes and zoom1/3; 600 frames, owned display, no default-suite expansion or graphical campaign",
         "combat-playback" => "Selected fixed-input runtime measurement of normal playback/views; owned 600-frame replay, no default-suite or large graphical fight",
         "combat" => "Direct committed walking with intentional transit overlap, bounded pose/facing blends and non-beam linked melee intent/strike/impact. The selectable melee gate adds at most twelve fresh progression observations/four PNGs in the same paid setup, peers and display (measured 4-6s); cheap timing tests and paused endpoints cannot prove actual advancing imported bones or rendered geometry. No additional scenario or graphical campaign. Paused focus away/return, current bones and inspection, camera/health-bar projection, rig/action/tower/effect/audio/casualty cleanup using the existing owned peers/display. Adds ordinary earned research through at most wave ten: actual global Fire purchase, permanent Frost lock and current paused burn badge/inspection. Research is separately selectable with 120s setup/60s feature bounds; default reuses the existing match under the supervisor-resolved worker deadline. Cheap tests cannot sample rendered controls, bones, pools or voices; no branch matrix or full graphical campaign.",
@@ -511,6 +521,7 @@ internal sealed partial class Runner
         if (options.UiCheckpoint is null) Console.WriteLine($"UI risk: {name}: {UiRisk(name)}");
         if (options.UiCheckpoint == "melee") Console.WriteLine("Melee checkpoint risk: fixed-anchor swings without a readable target, missed shared near/far occupants or conflicting routes. Ordinary six-Swordsman opening and recruitment up to wave two, four paused overview/close PNGs and live-node witnesses; 65s checkpoint/70s scenario bounds. Owned peers/display/data cleanup uses the existing combat slice.");
         using var combatDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        if (options.UiCheckpoint is "travel-diagnostic" or "travel") combatDeadline.CancelAfter(180000);
         if (name == "combat" && options.UiCheckpoint == "melee")
             combatDeadline.CancelAfter(70000);
         token = combatDeadline.Token;
@@ -525,6 +536,19 @@ internal sealed partial class Runner
         await WaitUi(client, p => p.Connected && p.Models > 0, "presentation ready", token);
         GameEvent initial = await ClickAck(client, "Start", token);
         await Observe(observer, s => s.Revision >= State(initial).Revision && s.Phase == Phase.Building, "observer sees UI Start", token);
+        if (options.UiCheckpoint == "travel")
+        {
+            await SimulationSpeed(started.Server, 1, token);
+            await CameraControls(client, true, token);
+            Require(!client.HasEngineErrors, "focused original travel controls have no engine errors");
+            return;
+        }
+        if (options.UiCheckpoint == "travel-diagnostic")
+        {
+            await SimulationSpeed(started.Server, 1, token);
+            await CameraTravelDiagnostic(client, token);
+            return;
+        }
         switch (name)
         {
             case "economy":
@@ -644,6 +668,7 @@ internal sealed partial class Runner
                 await WaitUi(client, p => p.SettingsOpen && !p.DropdownOpen, "Escape closes dropdown before settings", token);
                 UiObservation resized = await ResizeTo1280(client, token);
                 TrioPresentation(resized);
+                await GraphicsSettingsInput(client, token);
                 Require(Math.Abs(resized.Camera.Zoom - closed.Camera.Zoom) < 0.001 && Math.Abs(resized.Camera.PanX - closed.Camera.PanX) < 0.001 && Math.Abs(resized.Camera.PanZ - closed.Camera.PanZ) < 0.001, "resize preserves relative navigation");
                 await Click(client, "AboutTab", token);
                 UiObservation about = await WaitUi(client, p => p.Targets.TryGetValue("CheckUpdate", out UiTarget? update) && update.Visible, "About controls visible", token);
@@ -670,10 +695,17 @@ internal sealed partial class Runner
                 int originalId = client.PlayerId;
                 await client.Send("quit"); Require(await client.WaitExit(token) == 0, "settings client exits cleanly");
                 await Observe(observer, s => !s.Players.Single(p => p.Id == originalId).Connected, "restart absent city", token);
+                InvalidGraphicsFixture(changed);
                 Child restarted = StartGame("ui-client", false, false, started.Port);
                 GameEvent recovered = await restarted.WaitFor(e => e.Type == "connected", "settings client restarted", options.StartupTimeout, token);
                 UiObservation persisted = await WaitUi(restarted, p => p.Connected && p.Models > 0, "restarted settings ready", token);
                 RequireOverview(persisted);
+                Require(persisted.Graphics.Settings["aa"] == 3 && persisted.Graphics.Effective["aa"] == 0
+                    && persisted.Graphics.Msaa == "Disabled" && persisted.Graphics.Fxaa == "Disabled" && !persisted.Graphics.Taa
+                    && Math.Abs(persisted.Graphics.TonemapExposure - 1) < .001f,
+                    "actual ConfigFile loading rejects wrong-type AA and exposure, retains desired default AA and applies truthful Compatibility Off policy independently of valid saved comfort/audio values");
+                Require(persisted.Graphics.Settings["fps"] == 2 && persisted.Graphics.FpsLimit == 30, "saved desired 120FPS survives restart without persisting the transient CI30FPS cap");
+                Require(persisted.Graphics.Settings["weather"] == 3 && persisted.Graphics.Settings["reduce_motion"] == 1 && persisted.Graphics.Settings["reduce_weather"] == 1 && persisted.Graphics.Settings["reduce_effects"] == 1 && persisted.Graphics.DesiredRenderer == "forward_plus", "graphics and comfort preferences survive restart while explicit CI renderer remains transient");
                 Require(recovered.PlayerId == originalId && persisted.MasterVolume == changed.MasterVolume && Math.Abs(persisted.MasterGain - changed.MasterGain) < 0.001f, "owned preference survives client restart without regrant");
                 await Checkpoint(restarted, "settings-restarted", token);
                 break;

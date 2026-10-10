@@ -18,6 +18,11 @@ catch (OperationCanceledException)
     Console.Error.WriteLine("Stopped; supervised children were cleaned up.");
     return 130;
 }
+catch (VerificationPrerequisiteException error)
+{
+    Console.Error.WriteLine($"UNEXECUTED: {error.Message}");
+    return 2;
+}
 catch (Exception error)
 {
     Console.Error.WriteLine($"FAILED: {error.Message}");

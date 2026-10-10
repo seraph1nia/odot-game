@@ -53,7 +53,7 @@ internal sealed partial class VillageLandscape : Node3D
         {
             Vector3 point = VillageLayout.Hex(column, row);
             point.Y = GroundSurface(point);
-            _static.Add(assets.Place(this, path, point, size));
+            _static.Add(assets.Place(this, path, point, size, atmosphere: true));
         }
         // Only this consumer's bridge loses its recessed stream/foam/fall and
         // substrate. The new same-origin floor + surface stream continues below
@@ -122,7 +122,7 @@ internal sealed partial class VillageLandscape : Node3D
     {
         // Offsets are local grouping, never an elevation guess or map mutation.
         point.Y = GroundSurface(point);
-        Node3D node = _assets.Place(this, path, point, size);
+        Node3D node = _assets.Place(this, path, point, size, atmosphere: true);
         node.SetMeta("pocket", pocket);
         foreach (GeometryInstance3D geometry in node.FindChildren("*", "GeometryInstance3D", true, false).OfType<GeometryInstance3D>())
             geometry.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
@@ -276,7 +276,7 @@ internal sealed partial class VillageLandscape : Node3D
                 && (row < 3 || DetailedGround.ClearOfRoutes(cell.Position.X, cell.Position.Z, .7f));
             Vector3 originalFoot = new(0, DetailedGround.Elevation(column, row) - VillageLayout.Height(column, row), 0);
             if (originalScatter && (column <= -5 || row <= -7 && column >= 5) && Math.Abs(column * 17 + row * 31) % 7 == 0)
-                _assets.Place(cell, "props/kit_pine.glb", originalFoot, 1.5f);
+                _assets.Place(cell, "props/kit_pine.glb", originalFoot, 1.5f, atmosphere: true);
             else if (originalScatter && (column <= -5 || column >= 5 || row <= -7 || row >= 7) && Math.Abs(column * 13 + row * 23) % 19 == 0)
                 _assets.Place(cell, "environment/components/forest_boulder.glb", originalFoot, .5f);
             foreach (GroundDecoration detail in DetailedGround.Scatter(column, row)) Scatter(detail, column, row);
@@ -293,7 +293,12 @@ internal sealed partial class VillageLandscape : Node3D
         {
             if (!_terrain.TryGetValue(group.Key, out MultiMeshInstance3D? batch))
             {
-                if (!_meshes.TryGetValue(group.Key.Kind, out Mesh? imported)) _meshes[group.Key.Kind] = imported = _assets.Terrain(group.Key.Kind);
+                if (!_meshes.TryGetValue(group.Key.Kind, out Mesh? imported))
+                {
+                    ArrayMesh terrain = _assets.Terrain(group.Key.Kind);
+                    WoodlandMotion.Water(terrain, group.Key.Kind);
+                    _meshes[group.Key.Kind] = imported = terrain;
+                }
                 batch = new MultiMeshInstance3D { Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = imported }, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
                 AddChild(batch); _terrain[group.Key] = batch;
             }

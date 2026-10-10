@@ -24,7 +24,7 @@ internal sealed class LandscapeAssets
         return StaticRenderKey.Create(
             (Godot.FileAccess.FileExists(source) ? Godot.FileAccess.GetSha256(source) : Godot.FileAccess.GetSha256(AssetCatalog.Root + "manifest.json")) + ":" + (Godot.FileAccess.FileExists(imported) ? Godot.FileAccess.GetSha256(imported) : ""),
             Godot.FileAccess.FileExists(import) ? Godot.FileAccess.GetSha256(import) : "packed-import",
-            Engine.GetVersionInfo()["string"].AsString(), ProjectSettings.GetSetting("rendering/renderer/rendering_method").AsString());
+            Engine.GetVersionInfo()["string"].AsString(), RenderingServer.GetCurrentRenderingMethod());
     }
 
     internal Node3D Native(Node3D parent, string path, Vector3 position, float scale, float rotation = 0)
@@ -47,7 +47,7 @@ internal sealed class LandscapeAssets
         }
         return scene;
     }
-    internal Node3D Place(Node3D parent, string path, Vector3 position, float size)
+    internal Node3D Place(Node3D parent, string path, Vector3 position, float size, bool atmosphere = false)
     {
         var wrapper = new Node3D { Position = position }; parent.AddChild(wrapper);
         // Optional static-scene consolidation is deferred: AppendFrom does
@@ -67,6 +67,7 @@ internal sealed class LandscapeAssets
         float factor = size / extent;
         model.Scale *= factor; model.Position -= geometry.Foot * factor;
         wrapper.SetMeta("asset", path); wrapper.SetMeta("foot", geometry.Foot); wrapper.SetMeta("bounds", geometry.Bounds);
+        if (atmosphere) WoodlandMotion.Foliage(wrapper, path);
         return wrapper;
     }
     // Reuse each original imported part, including its nonuniform local basis.

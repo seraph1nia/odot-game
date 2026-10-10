@@ -62,9 +62,12 @@ runs all five with at most two independent owned displays; `--jobs 1` keeps the 
 exports without preparing source or implicitly rebuilding packages.
 
 Private-display verification currently supports Linux x86_64 with the README's
-Xvfb/Xauthority/X11/Mesa/Openbox prerequisites. Use owned X11 displays, software
-OpenGL and Dummy audio; missing prerequisites report unexecuted with a nonzero
-exit, while rendering/assertion failures report failed. No desktop fallback. `mise run dev` deliberately opens two playable desktop windows.
+Xvfb/Xauthority/X11/Mesa/Openbox prerequisites. Required CI uses owned X11 displays, explicit Compatibility/software
+OpenGL and Dummy audio. Optional `test-vulkan` uses an owned X11 surface and
+actual native Vulkan device, never a desktop fallback; see
+[renderer verification](docs/atmosphere.md#verification-and-visual-evidence).
+Missing prerequisites report unexecuted with a nonzero exit, while
+rendering/assertion failures report failed. `mise run dev` deliberately opens two playable desktop windows.
 Keep that development behavior: one playable ENet host plus one guest by default,
 with `--guests 1..3`. `play` opens the normal start screen. Steam paired checks
 are separate from ordinary CI and require two distinct accounts/machines; missing

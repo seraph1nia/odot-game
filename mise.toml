@@ -138,6 +138,18 @@ depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-ui"
 raw_args = true
 
+[tasks.test-atmosphere]
+description = "Capture eight deterministic atmospheric views on owned Compatibility graphics (--exported uses existing packages)"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-atmosphere"
+raw_args = true
+
+[tasks.test-vulkan]
+description = "Optional owned native Forward+/Vulkan hardware smoke and eight visual captures; never mandatory software CI"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-vulkan"
+raw_args = true
+
 [tasks.check-ui-prerequisites]
 description = "Check private-display executable prerequisites without launching Godot"
 depends = ["runner"]
