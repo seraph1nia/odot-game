@@ -11,11 +11,11 @@ internal sealed partial class Runner
     // no injected resources, outcomes, probes or desktop automation.
     private async Task ArmyUiScenario(CancellationToken token)
     {
-        Console.WriteLine("Army checkpoint risk: misbound retire/store ids, hidden stored actors, wrong full-destination controls, coupled hall tracks or UI healing. One owned solo window, two paid early clears, bounded input and four PNGs; no complete graphical campaign.");
-        // Hosted software rendering exhausted 150s even with serial UI admission while
-        // recovery inputs still progressed. This is wall-time allowance, not game timing;
-        // the linked parent deadline and every assertion/capture remain in force.
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(300000); token = deadline.Token;
+        Console.WriteLine("Army checkpoint risk: misbound retire/store ids, hidden stored actors, wrong full-destination controls, coupled hall tracks or UI healing. One owned solo window, two paid early clears, bounded input and five PNGs; no complete graphical campaign.");
+        // Hosted serial army completed in 229s; overlapping displays reached battle
+        // two at 296s before parent cancellation. Allow measured contention headroom,
+        // retaining the linked parent deadline and every assertion/capture.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(Options.ArmyUiTimeout); token = deadline.Token;
         const string owner = "ui-army";
         await using Child client = StartGameRole(owner, "menu", false, 0, null, "--combat-seed", "1");
         await client.WaitFor(e => e.Type == "menu", "owned army menu", options.StartupTimeout, token);

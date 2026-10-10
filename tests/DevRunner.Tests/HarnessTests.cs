@@ -115,10 +115,48 @@ public sealed class HarnessTests
         Assert.Equal(300000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
         Assert.Equal(180000, Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).Timeout);
         Assert.Equal("research", Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).UiCheckpoint);
-        Assert.Equal(300000, Options.Parse(["test-ui", "--scenario", "economy"]).Timeout);
+        Assert.Equal(1080000, Options.Parse(["test-ui", "--scenario", "economy"]).UiTimeout("economy"));
         Assert.Equal(300000, Options.Parse(["test-network"]).Timeout);
         Assert.Equal(42, Options.Parse(["ci", "--timeout-ms", "42"]).Timeout);
         Assert.Equal(300000, Options.Parse(["_ui-worker", "--timeout-ms", "300000"]).Timeout);
+    }
+    [Theory]
+    [InlineData("ci")]
+    [InlineData("ci-source")]
+    [InlineData("test-ui")]
+    public void OnlyEconomyGetsTheMeasuredDefaultAllowance(string command)
+    {
+        Options options = Options.Parse([command]);
+        Assert.Equal(1080000, options.UiTimeout("economy"));
+        foreach (string sibling in ScenarioNames.Ui.Where(n => n != "economy"))
+            Assert.Equal(options.Timeout, options.UiTimeout(sibling));
+        Assert.Equal(1080000, Options.Parse(["test-ui", "--scenario", "economy"]).UiTimeout("economy"));
+        // Recreate the supervisor's executable argument contract: its resolved
+        // allowance reaches the worker as an explicit deadline, not a new default.
+        Options worker = Options.Parse(["_ui-worker", "--scenario", "economy", "--timeout-ms",
+            options.UiTimeout("economy").ToString(CultureInfo.InvariantCulture)]);
+        Assert.Equal(options.UiTimeout("economy"), worker.UiTimeout("economy"));
+    }
+    [Theory]
+    [InlineData(42)]
+    [InlineData(300000)]
+    [InlineData(900000)]
+    [InlineData(1200000)]
+    public void EconomyNeverOverridesAnExplicitDeadline(int timeout)
+    {
+        foreach (string command in new[] { "ci", "ci-source", "test-ui", "_ui-worker" })
+        {
+            Options options = Options.Parse([command, "--timeout-ms", timeout.ToString(CultureInfo.InvariantCulture)]);
+            foreach (string scenario in ScenarioNames.Ui) Assert.Equal(timeout, options.UiTimeout(scenario));
+        }
+        foreach (string command in new[] { "test-ui", "_ui-worker" })
+        {
+            Options army = Options.Parse([command, "--scenario", "economy", "--checkpoint", "army"]);
+            Assert.Equal(420000, army.UiTimeout("economy"));
+            Options bounded = Options.Parse([command, "--scenario", "economy", "--checkpoint", "army",
+                "--timeout-ms", timeout.ToString(CultureInfo.InvariantCulture)]);
+            Assert.Equal(timeout, bounded.UiTimeout("economy"));
+        }
     }
     [Fact]
     public void CombatIsSelectableSourceCoverageAndPackagesRemainExplicit()

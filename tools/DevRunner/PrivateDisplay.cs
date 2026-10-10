@@ -97,8 +97,9 @@ internal sealed partial class Runner
     }
     private async Task UiDisplay(string name, CancellationToken tokenCancellation, string? evidenceName = null)
     {
+        int timeout = options.UiTimeout(name);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(tokenCancellation);
-        deadline.CancelAfter(options.Timeout);
+        deadline.CancelAfter(timeout);
         await using var display = new ScenarioScope("display-" + (evidenceName ?? name), _evidence);
         string workerToken = Guid.NewGuid().ToString("N");
         await File.WriteAllTextAsync(Path.Combine(display.Directory, "worker-token"), workerToken, tokenCancellation);
@@ -110,7 +111,7 @@ internal sealed partial class Runner
         var args = new List<string> { "xvfb-run", "--auto-servernum", "--auth-file", Path.Combine(display.Directory, "xauthority"),
             "--error-file", Path.Combine(display.EvidenceDirectory, "xvfb.log"), "--server-args=-screen 0 1920x1080x24 -nolisten tcp",
             "dotnet", typeof(Runner).Assembly.Location, "_ui-worker", "--evidence-directory", Path.Combine(_evidence.Directory, (evidenceName ?? name) + "-worker"), "--worker-token", workerToken,
-            "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", options.Timeout.ToString(CultureInfo.InvariantCulture) };
+            "--startup-timeout-ms", options.StartupTimeout.ToString(CultureInfo.InvariantCulture), "--timeout-ms", timeout.ToString(CultureInfo.InvariantCulture) };
         args.AddRange(["--scenario", name, "--simulation-speed", options.SimulationSpeed.ToString(CultureInfo.InvariantCulture)]);
         if (options.Trace) args.Add("--trace");
         if (name is "combat-playback" or "authored-scale")
@@ -135,7 +136,7 @@ internal sealed partial class Runner
             });
         }
         catch (OperationCanceledException) when (!tokenCancellation.IsCancellationRequested)
-        { throw new TimeoutException($"UI suite exceeded {options.Timeout} ms; owned worker/display/peers were cleaned up. Evidence: {display.EvidenceDirectory}"); }
+        { throw new TimeoutException($"UI suite exceeded {timeout} ms; owned worker/display/peers were cleaned up. Evidence: {display.EvidenceDirectory}"); }
     }
     private async Task UiWorker()
     {
@@ -146,7 +147,7 @@ internal sealed partial class Runner
         Console.WriteLine(PrivateDisplay.RequireSoftwareGraphics(info));
         await File.WriteAllTextAsync(Path.Combine(_evidence.Directory, options.Scenario == "exported-package" ? "package-renderer.txt" : "source-renderer.txt"), info, cancellation);
         await using var wm = new Child("private-openbox", "openbox", ["--sm-disable"], _root, evidenceDirectory: _evidence.Directory, quiet: true);
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(options.Timeout);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(options.UiTimeout(options.Scenario));
         string[] selected = options.Scenario is null ? ScenarioNames.Ui.Where(n => n is not ("exported-package" or "installed-linux")).ToArray() : [options.Scenario];
         var scenarios = selected.Select(name => new Scenario(name, UiRisk(name), token => _evidence.Measure(name, "ui", async () =>
         {

@@ -1,5 +1,153 @@
 # Cooperative POC verification
 
+## Hosted overlapping economy wall-clock allowance, 2026-10-10
+
+Source run `38015276254`, job `114104047930`, failed at published head
+`22de8e87eafec8cd5100124ec8190b32210c6781`: economy's display supervisor
+cancelled after **900.28s**, not a GitHub cancellation. Cooperative economy
+completed at approximately **604s**; the nested army reached its second paid
+battle at approximately **296s** before parent cancellation. Full-hall and
+expansion/retirement captures passed, but final recovery/capacity/exit did not
+complete. Combat was progressing when sibling cancellation stopped it after
+**38.02s**; no pose-failure artifact had been reached. These remain failures.
+Raw logs and diagnosis are retained in `logs/source-economy-timeout-diagnosis/`.
+
+The earlier serial hosted economy passed in **678.79s**, including approximately
+**229s** of army. With two displays, reconnect grew **139.89→213.33s**, settings
+**98.87→140.15s**, and launcher **345.97→477.70s**. This supports a contention
+allowance, not a claim of equivalent hardware or proof that every timeout is
+benign. The exact current-head army selector also completed both ordinary paid
+clears, all recovery assertions and five captures locally in **134.72s**,
+`logs/20261010-022055-5af82c90/`; that partial local pass is not hosted acceptance.
+
+Authorized adjustment: **complete economy 1080s**, **nested/selected army 420s**.
+The CI economy worker was 900s; standalone complete economy was 300s (600s in
+unfiltered source UI). They now resolve the same scenario-specific allowance at
+the display boundary and forward it explicitly to the worker. Standalone army
+was parent-bounded at 300s and now uses 420s, matching its nested bound. Explicit
+`--timeout-ms` remains authoritative, including smaller budgets. Every unrelated
+timeout, startup/phase/research barrier, two-scenario/two-display cap, and the
+hosted **25-minute** source limit remains unchanged.
+
+The measured 604s cooperative path plus 420s army allowance leaves about **56s**
+for worker overhead within 1080s. Other hosted graphical cases slowed by roughly
+38–53%; 229s × 1.53 is approximately 350s, below the 420s army bound. Adding 180s
+to the failed hosted job's approximately 1056s leaves approximately **264s** below
+1500s. These are bounded planning estimates, not completion measurements; any
+remaining assertion failure, nested timeout or job-budget failure remains a
+blocker and must be diagnosed rather than reported as passing.
+
+**Coverage change: none.** The repeated paid opening is not removed: cooperative
+economy owns exact displayed balances/receipts, real shortage and paused
+reconnect, research/producer retention, foreign controls, two viewport layouts,
+camera/roof/plot picking and land/Market inputs. Solo army owns stable inspector
+ids, hidden stored actors, full field/hall atomic rejection, purchased physical
+homes, first-fit Send, no-refund Retire, independent hall tracks, both paid clears,
+funded-but-nonparticipating storage, exact 5%/10% production recovery, five PNGs
+and clean exit. Existing `ArmyRosterTests`, `ArmyRecoveryTests`,
+`ArmyCommandTests`, `ArmyBalanceTests` and `EconomyArmyFixtureTests` independently
+exercise rules/paid setup/wire guards, but cannot replace these real UI witnesses.
+No tests, assertions, captures, paid setup or product behavior are dropped.
+
+The unchanged product/suite before-baseline is the retained full local CI pass
+`logs/20261010-014527-05d2a93c/` (**704.00s**). Allowance-only changes require a
+new full local pass and actual final-published-head Source/Linux/Windows/CodeRabbit
+verdicts; neither older evidence nor a local pass establishes merge readiness.
+
+Working-tree verification: locked restore/format and **504 core + 593 runner**
+tests passed (zero failures/skips), including executable option/deadline routing
+and explicit-override checks, `logs/20261010-073223-1a65ff74/`. Complete selected
+`mise run test-ui --scenario economy --startup-timeout-ms 60000` passed all
+cooperative and army behavior: **411.20s** case / **419.73s** runner,
+`logs/20261010-074241-7f357b1b/`. No timeout override, injected state or skipped
+assertions were used. All five army captures and clean exit completed.
+
+**Two prior full local CI attempts remain failed.** Both used
+`mise run ci --startup-timeout-ms 60000 --ui-jobs 2`:
+
+- `logs/20261010-073441-48d617b0/`, **417.07s**: native SIGSEGV/exit134 in
+  `libgallium-26.2.4-arch3.1.so` during `army-opening` capture, economy case
+  **351.85s**. Godot also emitted a caller-thread notification error. This was
+  before both old deadlines; no managed-code cause was established. All cheap
+  and six network cases, reconnect and settings passed. Launcher was cancelled;
+  combat and exports were not reached.
+- `logs/20261010-074949-48c1e115/`, **376.81s**: later army/menu clients could not
+  load the generated music `.sample` (`ERR_FILE_CORRUPT`), although earlier
+  clients loaded music successfully. Launcher failed its real music-loaded
+  assertion; economy was cancelled. The generated file's recorded modification
+  time predates both attempts; this does not establish why native loading failed.
+  All cheap/six network cases, reconnect and settings passed. Combat and exports
+  were not reached.
+
+Complete selected economy passed between these attempts; the second full run
+was a post-failure recheck, not evidence suppression. No renderer settings,
+imports, audio, dependency versions, tolerances or failure handling were changed.
+Do not manufacture a passing full verdict or bypass the source gate for exports.
+Console logs are retained as `allowance-{final-ci,selected-economy,
+final-ci-second}.log` beside the original hosted failure. No provider retry,
+push or other pipeline phase was performed.
+
+### Bounded native/resource follow-up
+
+Follow-up evidence is retained under
+`logs/source-economy-timeout-diagnosis/native-resource-followup/`, including the
+original allowance patch, source/input hashes, WAV/import metadata copies,
+importer receipt, kernel messages, native core and bounded backtraces. The
+preceding cheap and **411.20s** selected economy proofs were reused unchanged;
+no separate cheap/economy repeat was run merely for a new agent invocation.
+
+The exact generated music sample returned **OS EIO** when read. Kernel logs at
+the failed clients' startup times report **Btrfs checksum failure** for its
+matching inode **1970354**, offset **7479296**. The source WAV still matches its
+recorded SHA-256 `3783f4deed1ecd7933a17538a1d880ffb04319f6e11f34dc66f2df7a05ab70b4`;
+source MD5 matches the import receipt, and tracked import settings are unchanged.
+The sample's old mtime/ctime predates both failures. This establishes an
+unreadable generated artifact, not an importer writer race, stale-cache claim
+or product audio defect. The underlying corruption mechanism and why earlier
+clients could read it are not established.
+
+A same-filesystem rename retained the **original inode and unreadable extent**
+in evidence before preparation; a whole-file/prefix copy failed EIO, so no
+complete recovered-byte hash is claimed. Only this demonstrated invalid generated
+destination was moved: no source reset, other cache clearing or force-import
+workaround. Normal `mise run prepare --startup-timeout-ms 60000`, using the
+existing owned editor environment and `--editor --import`, reimported one asset
+and passed (**7.77s** runner, `logs/20261010-080545-d48d7893/`). The new sample is
+readable, **7,900,059 bytes**, SHA-256
+`651e0a6adb0958c7ad122528d2a490f6d9874906cd903fb9d454d0ec5d161a1b`;
+its MD5 `5b27a19b53f0142bedd356496e934975` exactly matches the earlier importer
+receipt. This reconstructs the artifact, not the host filesystem.
+
+The separately retained crash core identifies **llvmpipe-1** as the faulting
+thread at the logged libgallium offsets, with the ordinary seed-1 army argv and
+unchanged X11/OpenGL/Dummy renderer setup. The native fault is real; these
+unsymbolized frames and the preceding caller-thread notification do **not**
+prove a driver/engine bug, managed off-thread call or a causal relationship to
+the later sample corruption. No small product correction was demonstrated, and
+no renderer/audio/dependency settings or error handling were changed.
+
+After repairing that relevant generated input and re-tracing all allowance
+callers/overrides, **one** final normal
+`mise run ci --startup-timeout-ms 60000 --ui-jobs 2` passed in **708.05s**,
+`logs/20261010-080756-8d9d19fd/`. It includes locked restore, formatting/build/import,
+static fidelity, **504 core + 593 runner** tests (zero failures/skips), all six
+network and five source UI cases, sequential Linux exports, headless package
+smoke and graphical package smoke. Source UI took **628.14s**; economy completed
+**429.80s** case / **433.18s** worker, including all five army captures and clean
+exit. Admission evidence reports maximum **two scenarios/two displays**. The
+actual packed gameplay PNG was inspected. Product/test input hashes were
+unchanged through this run, and the regenerated sample's hash/inode/timestamps
+were unchanged after exports and both package checks. No matching kernel resource
+errors appeared during this final run.
+
+This is genuine full **local** coverage on the retained allowance delta, not a
+claim that the unexplained native crash or host storage integrity is resolved.
+The earlier failed attempts remain failed; host checksum errors need owner
+attention outside this worktree. Required final-published-head
+**Source/Linux/Windows/CodeRabbit** verdicts remain outstanding and belong to the
+outer executor. No merge readiness, waiver, publication or provider retry is
+claimed.
+
 ## Fixed-position settlement beautification, 2026-10-07
 
 The [change verification record](../openspec/changes/beautify-settlement-world/verification.md)
