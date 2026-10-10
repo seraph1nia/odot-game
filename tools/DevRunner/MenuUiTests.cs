@@ -143,7 +143,8 @@ internal sealed partial class Runner
         UiObservation game = await WaitUi(client, p => p.Screen == "session" && p.Connected && p.Models > 0, "solo tabletop ready", token);
         Countryside(game);
         Require(LandscapeChecks.SameStartingArea(menu.Landscape, game.Landscape), "menu and fresh solo instantiate the same starting countryside");
-        Require(game.MasterVolume == changed.MasterVolume && game.MusicInstance == menu.MusicInstance && game.MusicPlaying && game.MusicPosition >= menu.MusicPosition, "settings and same music continue into solo");
+        // The authored loop wraps playback position; it is not a lifetime clock.
+        Require(game.MasterVolume == changed.MasterVolume && game.MusicInstance == menu.MusicInstance && game.MusicPlaying, "settings and same music continue into solo");
         await Pick(client, 0, token);
         UiTarget behind = UiProtocol.Target(await UiProtocol.Probe(client, options.StartupTimeout, token), "Farm");
         await Click(client, "Settings", token);
@@ -206,7 +207,7 @@ internal sealed partial class Runner
         Countryside(returned);
         Branding(returned);
         Require(LandscapeChecks.SameStartingArea(menu.Landscape, returned.Landscape) && returned.Placements.Length == 0, "return restores passive starting countryside without match buildings");
-        Require(returned.MasterVolume == changed.MasterVolume && returned.MusicInstance == menu.MusicInstance && returned.MusicPlaying && returned.MusicPosition >= game.MusicPosition, "preferences and uninterrupted music survive return");
+        Require(returned.MasterVolume == changed.MasterVolume && returned.MusicInstance == menu.MusicInstance && returned.MusicPlaying, "preferences and same playing music survive return");
         await Click(client, "Singleplayer", token);
         GameEvent second = await client.WaitFor(e => e.Type == "ack" && e.Result?.Accepted == true && e.State?.Phase == Phase.Building && e.State.MatchId != solo.MatchId, "second fresh solo session", options.StartupTimeout, token);
         MatchSnapshot fresh = State(second);
