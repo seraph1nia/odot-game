@@ -3,6 +3,14 @@ using Xunit;
 
 namespace DevRunner.Tests;
 
+public sealed class WindowsGraphicsFactAttribute : FactAttribute
+{
+    public WindowsGraphicsFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows()) Skip = "Requires native Windows command-line APIs; Linux execution is not Windows coverage.";
+    }
+}
+
 public sealed class GraphicsTests
 {
     [Fact]
@@ -163,6 +171,45 @@ public sealed class GraphicsTests
             Assert.False(OwnedDisplayIsolation.AbsentWaylandSocket(socket, runtime, owner));
         }
         finally { Directory.Delete(owner, true); }
+    }
+    [Theory]
+    [InlineData("test-vulkan")]
+    [InlineData("test-atmosphere")]
+    public void OptionalExportedAtmosphereChecksRequireOnlyTheClient(string command)
+    {
+        string root = Path.Combine(Directory.GetCurrentDirectory(), "logs", "atmosphere-prerequisite-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var evidence = new Evidence(root, Path.Combine(root, "evidence"));
+            var runner = new Runner(Options.Parse([command, "--exported"]), CancellationToken.None, evidence, root: root);
+            string executable = Path.Combine(root, "dist", "client", "odot.x86_64");
+            var missing = Assert.Throws<VerificationPrerequisiteException>(() => runner.AtmosphereClientPackage());
+            Assert.Contains(executable, missing.Message, StringComparison.Ordinal);
+            Directory.CreateDirectory(Path.GetDirectoryName(executable)!);
+            File.WriteAllBytes(executable, []);
+            Assert.Equal(executable, runner.AtmosphereClientPackage());
+            Assert.Throws<InvalidOperationException>(() => runner.CheckPackages());
+            string server = Path.Combine(root, "dist", "server", "odot.x86_64");
+            Directory.CreateDirectory(Path.GetDirectoryName(server)!);
+            File.WriteAllBytes(server, []);
+            runner.CheckPackages();
+        }
+        finally { Directory.Delete(root, true); }
+    }
+    [WindowsGraphicsFact]
+    public void WindowsNativeArgumentsRetainConsumedEngineFlagsAndQuotedPaths()
+    {
+        string[] args = OriginalProcessArguments.WindowsArguments("\"C:\\Program Files\\Godot\\Godot.exe\" --path \"C:\\Game With Spaces\" --max-fps 30 --disable-vsync --windowed --resolution 1280x720 -- --solo");
+        string[] expected = [@"C:\Program Files\Godot\Godot.exe", "--path", @"C:\Game With Spaces", "--max-fps", "30", "--disable-vsync", "--windowed", "--resolution", "1280x720", "--", "--solo"];
+        Assert.Equal(expected, args);
+    }
+    [WindowsGraphicsFact]
+    public void WindowsOriginalArgumentReaderDoesNotDependOnGodotsConsumedArgumentArray()
+    {
+        string[] expected = OriginalProcessArguments.WindowsArguments(Environment.CommandLine).TakeWhile(a => a != "--").ToArray();
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, OriginalProcessArguments.Read([]));
     }
     [Fact]
     public async Task MissingNativeSurfaceRemainsUnexecutedThroughScheduling()

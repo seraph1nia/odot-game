@@ -77,7 +77,14 @@ internal sealed partial class Runner
             catch { await server.DisposeAsync(); throw; }
         }
     }
-    private void CheckPackages()
+    internal string AtmosphereClientPackage()
+    {
+        string executable = Path.Combine(_root, "dist", "client", "odot.x86_64");
+        if (!File.Exists(executable))
+            throw new VerificationPrerequisiteException("Missing exported client: " + executable + "; run mise run export-client first. The selected atmosphere check never implicitly exports.");
+        return executable;
+    }
+    internal void CheckPackages()
     {
         foreach (string role in new[] { "client", "server" })
             if (!File.Exists(Path.Combine(_root, "dist", role, "odot.x86_64")))

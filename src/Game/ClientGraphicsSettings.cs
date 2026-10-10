@@ -47,7 +47,7 @@ public partial class ClientSettings
         _cancelGraphics = new Button { Name = "CancelGraphics", Text = "Cancel graphics changes", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         actions.AddChild(_applyGraphics); actions.AddChild(_cancelGraphics);
         _applyGraphics.Pressed += ApplyGraphics; _cancelGraphics.Pressed += CancelGraphics;
-        _dialog.Confirmed += ApplyGraphics;
+        _dialog.Confirmed += () => { ApplyGraphics(); _dialog.Hide(); };
         RefreshGraphics();
     }
     private void BeginGraphicsEdit()

@@ -300,6 +300,8 @@ public partial class GameApplication(Main session) : Node
             ObserveControl(targets, "DownloadUpdate", Settings.DownloadUpdateButton);
             ObserveControl(targets, "ReturnToMenu", Settings.ReturnButton);
             ObserveControl(targets, "CloseSettings", Settings.Dialog.GetOkButton());
+            Vector2 close = GetViewport().GetFinalTransform() * ((Vector2)Settings.Dialog.Position + new Vector2(Settings.Dialog.Size.X - 8, -14));
+            targets["CancelSettings"] = new { X = close.X, Y = close.Y, Width = 14, Height = 14, Visible = true, Enabled = true };
             Settings.ObserveGraphics(this, targets);
         }
         if (_join.Visible)

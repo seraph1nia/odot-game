@@ -48,7 +48,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                 case "test-atmosphere":
                     if (!options.DesktopSurface) PrivateDisplay.CheckPrerequisites();
                     else CheckDesktopVulkanPrerequisites();
-                    if (options.Exported) CheckPackages(); else await Prepare();
+                    if (options.Exported) _ = AtmosphereClientPackage(); else await Prepare();
                     var atmosphere = new Runner(options with { Scenario = "atmosphere", Renderer = options.Command == "test-vulkan" ? "forward-plus" : "compatibility" }, cancellation, _evidence, root: _root);
                     if (options.DesktopSurface) await atmosphere.DesktopVulkan();
                     else await atmosphere.UiDisplay("atmosphere", cancellation);
@@ -222,6 +222,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             {
                 args.AddRange(["--verbose", "--display-driver", "x11", "--audio-driver", "Dummy", "--max-fps", "30", "--windowed", "--resolution", "1100x820"]);
                 if (!options.UseSavedRenderer) args.AddRange(RendererArguments(options.Scenario == "atmosphere" || options.DesktopSurface ? options.Renderer ?? "compatibility" : "compatibility"));
+                if (options.Scenario == "settings") args.Add("--disable-vsync");
             }
             else if (options.Renderer is not null) args.AddRange(RendererArguments(options.Renderer));
             if (name == "client-a") args.AddRange(["--position", "30,80"]);

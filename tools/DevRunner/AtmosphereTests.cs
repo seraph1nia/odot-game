@@ -49,7 +49,7 @@ internal sealed partial class Runner
     private async Task AtmosphereScenario(CancellationToken token)
     {
         bool vulkan = options.Renderer == "forward-plus";
-        string? executable = options.Exported ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null;
+        string? executable = options.Exported ? AtmosphereClientPackage() : null;
         Child client = StartGameRole("atmosphere-client", "menu", false, 0, executable, "--combat-seed", "1");
         await client.WaitFor(e => e.Type == "menu", "owned graphical atmosphere start", options.StartupTimeout, token);
         if (options.UiCheckpoint is "vanilla-popup" or "vanilla-native")

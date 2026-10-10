@@ -704,7 +704,8 @@ internal sealed partial class Runner
                     && persisted.Graphics.Msaa == "Disabled" && persisted.Graphics.Fxaa == "Disabled" && !persisted.Graphics.Taa
                     && Math.Abs(persisted.Graphics.TonemapExposure - 1) < .001f,
                     "actual ConfigFile loading rejects wrong-type AA and exposure, retains desired default AA and applies truthful Compatibility Off policy independently of valid saved comfort/audio values");
-                Require(persisted.Graphics.Settings["fps"] == 2 && persisted.Graphics.FpsLimit == 30, "saved desired 120FPS survives restart without persisting the transient CI30FPS cap");
+                Require(persisted.Graphics.Settings["fps"] == 2 && persisted.Graphics.FpsLimit == 30 && persisted.Graphics.Settings["vsync"] == 1 && persisted.Graphics.Vsync == "Disabled",
+                    "saved desired FPS and VSync survive restart without persisting transient launch overrides");
                 Require(persisted.Graphics.Settings["weather"] == 3 && persisted.Graphics.Settings["reduce_motion"] == 1 && persisted.Graphics.Settings["reduce_weather"] == 1 && persisted.Graphics.Settings["reduce_effects"] == 1 && persisted.Graphics.DesiredRenderer == "forward_plus", "graphics and comfort preferences survive restart while explicit CI renderer remains transient");
                 Require(recovered.PlayerId == originalId && persisted.MasterVolume == changed.MasterVolume && Math.Abs(persisted.MasterGain - changed.MasterGain) < 0.001f, "owned preference survives client restart without regrant");
                 await Checkpoint(restarted, "settings-restarted", token);

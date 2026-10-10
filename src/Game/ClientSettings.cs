@@ -62,7 +62,7 @@ public partial class ClientSettings : Node
         UiAssets.Decorate(_button, "Settings");
         ui.AddChild(_button);
         _button.Pressed += Open;
-        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Apply & close", DialogCloseOnEscape = true };
+        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Apply & close", DialogHideOnOk = false, DialogCloseOnEscape = true };
         // Let Godot route modal input and dropdown focus within the parent viewport.
         _window.GuiEmbedSubwindows = true;
         AddChild(_dialog);
@@ -124,18 +124,7 @@ public partial class ClientSettings : Node
         Callable.From(() => _initialized = true).CallDeferred();
     }
 
-    internal static string[] EngineArguments()
-    {
-        // Godot consumes display flags, and its embedded .NET host has no managed argv.
-        // The supported Linux desktop export can read its original process arguments.
-        string[] args = OS.GetCmdlineArgs();
-        if (OS.GetName() == "Linux")
-        {
-            try { args = System.IO.File.ReadAllText("/proc/self/cmdline").Split('\0'); }
-            catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException) { }
-        }
-        return args.TakeWhile(a => a != "--").ToArray();
-    }
+    internal static string[] EngineArguments() => OriginalProcessArguments.Read(OS.GetCmdlineArgs());
 
     private VBoxContainer Page(TabContainer tabs, string name)
     {

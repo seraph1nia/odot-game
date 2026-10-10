@@ -49,18 +49,37 @@ internal sealed partial class Runner
     }
     private async Task GraphicsSettingsInput(Child client, CancellationToken token)
     {
-        // Keep the existing live resolution preview as an explicit baseline.
-        await Click(client, "ApplyGraphics", token);
         UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(initial.Graphics.Method == "gl_compatibility" && initial.Graphics.DesiredRenderer == "forward_plus", "CI launch override is actual Compatibility, not a saved desired renderer change");
+        Require(initial.Graphics.FpsLimit == 30 && initial.Graphics.Settings["fps"] == 1 && initial.Graphics.Vsync == "Disabled" && initial.Graphics.Settings["vsync"] == 1,
+            "original FPS and VSync launch overrides survive initial settings application without becoming preferences");
+        await Click(client, "CloseSettings", token);
+        await WaitUi(client, p => !p.SettingsOpen && p.Width == 1280 && p.Height == 720, "Apply & close commits the live resolution preview before hiding", token);
+        await Click(client, "Settings", token);
+        await WaitUi(client, p => p.SettingsOpen, "reopen the committed display baseline", token);
         await GraphicsOptionInput(client, "quality", 0, token);
         UiObservation draft = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(draft.Graphics.Settings["quality"] == initial.Graphics.Settings["quality"], "unapplied graphics controls do not mutate current rendering or preferences");
         await Click(client, "CancelGraphics", token);
         Require((await UiProtocol.Probe(client, options.StartupTimeout, token)).Graphics.Settings["quality"] == initial.Graphics.Settings["quality"], "Cancel preserves committed graphics");
         await GraphicsOptionInput(client, "quality", 0, token);
-        await Click(client, "ApplyGraphics", token);
-        UiObservation low = await WaitUi(client, p => p.Graphics.Settings["quality"] == 0 && Math.Abs(p.Graphics.RenderScale - .85f) < .001f, "Low preset really applies viewport scaling", token);
+        await Click(client, "CloseSettings", token);
+        UiObservation low = await WaitUi(client, p => !p.SettingsOpen && p.Width == 1280 && p.Height == 720 && p.Graphics.Settings["quality"] == 0 && Math.Abs(p.Graphics.RenderScale - .85f) < .001f,
+            "Apply & close commits Low graphics and preserves the committed resolution before hiding", token);
+        foreach (string cancellation in new[] { "Escape", "window-close" })
+        {
+            await Click(client, "Settings", token);
+            await WaitUi(client, p => p.SettingsOpen && p.GraphicsDraft["quality"] == 0, "reopen retains applied Low baseline", token);
+            await GraphicsOptionInput(client, "quality", 2, token);
+            NativeWindowClose.Resize(client, options, low.NativeWindow, 1100, 820);
+            await WaitUi(client, p => p.SettingsOpen && p.Width == 1100 && p.Height == 820, "owned display resize remains an uncommitted preview", token);
+            if (cancellation == "Escape") await client.Send("key Escape");
+            else await Click(client, "CancelSettings", token);
+            await WaitUi(client, p => !p.SettingsOpen && p.Width == 1280 && p.Height == 720 && p.Graphics.Settings["quality"] == 0,
+                cancellation + " cancels the graphics draft and restores the committed display preview", token);
+        }
+        await Click(client, "Settings", token);
+        await WaitUi(client, p => p.SettingsOpen && p.GraphicsDraft["quality"] == 0, "cancelled drafts do not survive reopening", token);
         Require(!low.Graphics.VolumetricFogEnabled && !low.Graphics.SsilEnabled && !low.Graphics.SsaoEnabled && !low.Graphics.Taa && low.Graphics.Shadows && low.Graphics.Effective["aa"] == 0 && low.Graphics.Fxaa == "Disabled" && low.Graphics.Msaa == "Disabled", "Low produces simple supported rendering with unsupported Compatibility FXAA honestly Off");
         await GraphicsOptionInput(client, "fps", 2, token); await Click(client, "ApplyGraphics", token);
         UiObservation custom = await WaitUi(client, p => p.Graphics.Settings["quality"] == 4, "individual edit selects Custom", token);
@@ -82,7 +101,8 @@ internal sealed partial class Runner
         UiObservation comfort = await WaitUi(client, p => p.Graphics.Rain && p.Graphics.Wind == 0 && !p.Graphics.Leaves && !p.Graphics.GlowEnabled, "actual rain, motion and reduced effects accessibility policy", token);
         Require(comfort.Graphics.RainRatio <= .088f && !comfort.Graphics.VolumetricFogEnabled && comfort.Graphics.Settings["volumetric"] == 1,
             "weather reduction is bounded and unsupported volumetric preference retained without claiming it active");
-        Require(comfort.Graphics.FpsLimit == 30 && comfort.Graphics.Settings["fps"] == 2, "CI frame cap remains transient while player FPS preference is preserved");
+        Require(comfort.Graphics.FpsLimit == 30 && comfort.Graphics.Settings["fps"] == 2 && comfort.Graphics.Vsync == "Disabled" && comfort.Graphics.Settings["vsync"] == 1,
+            "original FPS and VSync overrides survive repeated Apply while player preferences remain independent");
         await client.Send("key Tab");
         await WaitUi(client, p => p.GraphicsFocus == "CancelGraphics", "native Tab traverses Apply/Cancel focus without moving the camera", token);
         await ScrollGraphicsControl(client, "ResetGraphics", token); await Click(client, "ResetGraphics", token);

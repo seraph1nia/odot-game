@@ -18,6 +18,7 @@
     <Compile Include="../../src/Game/ProgressionPresentation.cs" Link="ProgressionPresentation.cs" />
     <Compile Include="../../src/Game/SessionFile.cs" Link="SessionFile.cs" />
     <Compile Include="../../src/Game/GraphicsPreferences.cs" Link="GraphicsPreferences.cs" />
+    <Compile Include="../../src/Game/OriginalProcessArguments.cs" Link="OriginalProcessArguments.cs" />
     <Compile Include="../../src/Game/OwnedDisplayIsolation.cs" Link="OwnedDisplayIsolation.cs" />
     <Compile Include="../../src/Game/WoodlandEligibility.cs" Link="WoodlandEligibility.cs" />
   </ItemGroup>
