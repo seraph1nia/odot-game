@@ -1,5 +1,41 @@
 # Cooperative POC verification
 
+## Full combat inherits its worker deadline, 2026-10-10
+
+Source run `38037663441`, job `114171384708`, failed at head
+`3be920477140072b15e4aa82e76e03da1d70586b`. Combat's inner hard-coded **300s**
+timer cancelled it despite CI forwarding a **900s** worker budget. All seven
+pose proofs and research setup (**55.20s**) passed; research controls were
+cancelled after **24.42s**, before their own **30s** bound. Combat exited after
+**302.84s**, including cleanup. This is not a hosted job-limit cancellation or
+an observed renderer/import failure. Raw provider logs and the original combat
+failure artifact are retained in `logs/source-combat-timeout-diagnosis/`.
+
+Removed only the full-combat timer branch. Full combat now inherits the display
+supervisor/worker deadline: **900s** in source/full CI, **600s** in unfiltered
+source UI, and the unchanged **300s** standalone default. Explicit overrides
+remain authoritative. Selected melee/research retain their **70s/150s** linked
+bounds; research's **120s setup/30s feature** bounds, every assertion, economy
+allowances, other scenario deadlines and the hosted **25-minute** limit remain
+unchanged. The risk description now reports the inherited budget accurately.
+
+The unchanged before-baseline is `logs/20261010-080756-8d9d19fd/` (**708.05s**
+full local CI). After the correction, locked restore/format and **504 core +
+593 runner** tests passed with zero failures/skips,
+`logs/20261010-084910-8fecb0ba/`. The full local CI attempt remains **failed**:
+`logs/20261010-085003-882c2937/`, **122.23s**, rejected an observer `pause`
+with `Stale match, phase or turn.` in the unchanged reconnect setup, before
+combat admission, then cancelled siblings. No unrelated reconnect correction
+or repeated full-CI attempt was made in this fix round.
+
+Selected `mise run test-ui --scenario combat --startup-timeout-ms 60000
+--timeout-ms 900000` passed complete combat, research/reconnect and fresh-session
+coverage: **203.41s** case / **211.92s** runner,
+`logs/20261010-085220-e8fbb88a/`. Research setup/controls took **41.29s/20.05s**.
+This selected local pass did not reproduce the hosted 300s timing failure and
+is not complete after-CI coverage or hosted readiness. Final-head required
+checks and the separate local reconnect failure remain unresolved.
+
 ## Hosted overlapping economy wall-clock allowance, 2026-10-10
 
 Source run `38015276254`, job `114104047930`, failed at published head
