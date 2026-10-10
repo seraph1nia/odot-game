@@ -651,7 +651,10 @@ internal sealed partial class Runner
                 break;
             case "settings":
                 await SimulationSpeed(started.Server, 1, token);
-                await CameraInputPriority(client, token);
+                if (options.UiCheckpoint == "display") { await DisplayPersistenceInput(client, observer, started.Port, token); break; }
+                // Explicit graphics selection omits only the independently covered camera
+                // prelude; all settings/modal/display/audio/restart assertions below remain.
+                if (options.UiCheckpoint != "graphics") await CameraInputPriority(client, token);
                 await Pick(client, 0, token);
                 UiObservation closed = await UiProtocol.Probe(client, options.StartupTimeout, token);
                 UiTarget behind = UiProtocol.Target(closed, "Farm");
@@ -677,9 +680,11 @@ internal sealed partial class Runner
                 await WaitUi(client, p => p.UpdateStatus.Contains("Development builds", StringComparison.Ordinal), "development update feedback", token);
                 await Click(client, "AudioTab", token);
                 await Click(client, "Volume", token);
-                await UiProtocol.Probe(client, options.StartupTimeout, token);
+                UiObservation slider = await UiProtocol.Probe(client, options.StartupTimeout, token);
+                // The pointer can move the slider before Right increments it; compare
+                // with that settled value, not the pre-dialog volume it may restore.
                 await client.Send("key Right");
-                UiObservation changed = await WaitUi(client, p => p.MasterVolume != closed.MasterVolume, "representative volume change", token);
+                UiObservation changed = await WaitUi(client, p => p.MasterVolume == slider.MasterVolume + 1, "representative volume change", token);
                 Require(SameCamera(resized.Camera, changed.Camera), "consumed slider arrows do not pan camera");
                 Require(Math.Abs(changed.MasterGain - changed.MasterVolume / 100f) < 0.001f && changed.MasterMuted == (changed.MasterVolume == 0), "Master state follows actual slider input (silent Dummy audio)");
                 await client.Send("key Home");

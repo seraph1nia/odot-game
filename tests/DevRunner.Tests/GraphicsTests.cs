@@ -173,6 +173,23 @@ public sealed class GraphicsTests
         finally { Directory.Delete(owner, true); }
     }
     [Theory]
+    [InlineData("display")]
+    [InlineData("graphics")]
+    public void FocusedSettingsSelectionKeepsOriginalDeadlinesAndExplicitEvidenceOwnership(string checkpoint)
+    {
+        string evidence = Path.Combine(Directory.GetCurrentDirectory(), "logs", "selected-graphics-evidence");
+        Options options = Options.Parse(["test-ui", "--scenario", "settings", "--checkpoint", checkpoint, "--evidence-directory", evidence]);
+        Assert.Equal(checkpoint, options.UiCheckpoint);
+        Assert.Equal(180000, options.Timeout);
+        Assert.Equal(15000, options.StartupTimeout);
+        Assert.Equal(evidence, options.EvidenceDirectory);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-ui", "--scenario", "launcher", "--checkpoint", checkpoint]));
+        Assert.Equal(checkpoint, Options.Parse(["_ui-worker", "--scenario", "settings", "--checkpoint", checkpoint]).UiCheckpoint);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["ci", "--checkpoint", checkpoint]));
+        foreach (string[] command in new string[][] { ["test-ui"], ["test-ui", "--scenario", "settings"], ["ci"], ["ci-source"] })
+            Assert.Null(Options.Parse(command).UiCheckpoint);
+    }
+    [Theory]
     [InlineData("test-vulkan")]
     [InlineData("test-atmosphere")]
     public void OptionalExportedAtmosphereChecksRequireOnlyTheClient(string command)
