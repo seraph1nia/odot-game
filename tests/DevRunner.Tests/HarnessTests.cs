@@ -112,8 +112,8 @@ public sealed class HarnessTests
         Assert.Equal(900000, Options.Parse(["ci"]).Timeout);
         Assert.Equal(900000, Options.Parse(["ci-source"]).Timeout);
         Assert.Equal(600000, Options.Parse(["test-ui"]).Timeout);
-        Assert.Equal(300000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
-        Assert.Equal(180000, Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).Timeout);
+        Assert.Equal(420000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
+        Assert.Equal(210000, Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).Timeout);
         Assert.Equal("research", Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).UiCheckpoint);
         Assert.Equal(1080000, Options.Parse(["test-ui", "--scenario", "economy"]).UiTimeout("economy"));
         Assert.Equal(300000, Options.Parse(["test-network"]).Timeout);
@@ -157,6 +157,25 @@ public sealed class HarnessTests
                 "--timeout-ms", timeout.ToString(CultureInfo.InvariantCulture)]);
             Assert.Equal(timeout, bounded.UiTimeout("economy"));
         }
+    }
+    [Theory]
+    [InlineData("test-ui")]
+    [InlineData("_ui-worker")]
+    public void CombatAndResearchDefaultsReachWorkersWithoutOverridingExplicitBudgets(string command)
+    {
+        foreach (string? checkpoint in new string?[] { null, "research" })
+        {
+            string[] args = checkpoint is null ? [command, "--scenario", "combat"]
+                : [command, "--scenario", "combat", "--checkpoint", checkpoint];
+            Options selected = Options.Parse(args);
+            Assert.Equal(checkpoint is null ? 420000 : 210000, selected.UiTimeout("combat"));
+            Options forwarded = Options.Parse(["_ui-worker", "--scenario", "combat", "--timeout-ms",
+                selected.UiTimeout("combat").ToString(CultureInfo.InvariantCulture), .. checkpoint is null ? Array.Empty<string>() : new[] { "--checkpoint", checkpoint }]);
+            Assert.Equal(selected.UiTimeout("combat"), forwarded.UiTimeout("combat"));
+            foreach (int timeout in new[] { 42, 300000, 900000 })
+                Assert.Equal(timeout, Options.Parse([.. args, "--timeout-ms", timeout.ToString(CultureInfo.InvariantCulture)]).UiTimeout("combat"));
+        }
+        Assert.Equal(180000, Options.Parse([command, "--scenario", "combat", "--checkpoint", "melee"]).Timeout);
     }
     [Fact]
     public void CombatIsSelectableSourceCoverageAndPackagesRemainExplicit()

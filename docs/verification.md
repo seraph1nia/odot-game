@@ -1,5 +1,76 @@
 # Cooperative POC verification
 
+## Research controls wall-clock allowance, 2026-10-10
+
+Source run `38039688672`, job `114177279552`, tested head
+`65d90ab6141d9f95ea688688899432cdf8488f3b`. The prior full-combat timer
+correction was present. Research setup passed in **56.52s**; controls reached
+successful transport/identity/research/status recovery at **29.36s**, then their
+own **30s** timer cancelled the remaining current-baseline/no-replay check at
+**30.04s**. All seven pose proofs passed. Combat exited after **304.73s** including
+cleanup; source took **1231.89s**, below the unchanged **1500s** hosted budget.
+This is a nested controls timeout, not evidence that the uncompleted assertions
+passed, and not a demonstrated stale-request, renderer or import failure.
+Provider logs and the original failure artifact are retained under
+`logs/source-research-timeout-diagnosis/`.
+
+Authorized correction: the shared research feature allowance is **60s**, with
+its **120s** setup, wave-ten/action bounds and all behavioral assertions retained.
+Retained local controls passes took **19.63s/20.05s**; the hosted **29.36s** path
+was still progressing. Doubling the old feature allowance gives headroom for
+serial input/render/transport work rather than weakening its predicates. The
+selected research route now inherits its worker budget instead of a redundant
+**150s** inner timer. Its standalone default is **210s** (120 + 60 + 30s overhead).
+Standalone full combat defaults to **420s**, giving the observed roughly 305s
+hosted path room for remaining assertions, fresh-session checks and clean exit.
+Unfiltered UI remains **600s**, source/full CI **900s**, complete economy **1080s**,
+army **420s**, and melee's **70s** inner bound is unchanged. Explicit worker
+budgets and parent cancellation remain authoritative on every route.
+
+Removed only the redundant `research-fire-frost-lock` PNG/global asset check:
+the preceding fresh lock observation still requires disabled Frost, permanent
+lock text and the exact six-point deduction after actual Fire input. The
+`research-current-burn` PNG retains rendered asset/landscape coverage and all
+current badge/inspection, pause/disconnect freeze, actual Reconnect, identity,
+research/status deadlines, current cursor, no historical flashes/sounds and
+resume assertions remain. No ordinary paid setup or unique behavior is dropped.
+Estimated extra 30s controls allowance plus final cleanup remains within the
+hosted job's approximately 268s observed headroom; this is planning, not hosted
+completion proof. Actual assertion failures, stale-match rejections, native
+crashes and corrupt imports remain failures, not timing passes.
+
+The prior **708.05s** full local pass, subsequent **122.23s** failed full attempt
+(stale observer pause in reconnect), and **203.41s** selected combat pass remain
+historical/partial evidence as recorded below. No product/reconnect correction
+is claimed by this allowance change, and no failed attempt has been reclassified.
+
+After-change locked restore, formatting/format verification and **504 core +
+595 runner** tests passed with zero failures/skips,
+`logs/20261010-155229-7ceaecba/`. Executable option tests check both standalone
+and worker defaults, forwarding, smaller/larger explicit overrides and unchanged
+melee budgets; they do not inspect implementation text. Selected
+`mise run test-ui --scenario combat --checkpoint research --startup-timeout-ms
+60000` passed without a timeout override: **92.27s** case / **103.04s** runner,
+controls **21.03s**, `logs/20261010-155313-c10b50de/`.
+
+The single final `mise run ci --startup-timeout-ms 60000 --ui-jobs 2` attempt
+passed in **736.40s**, `logs/20261010-155504-f78a0297/`: formatting, locked
+restore/build/import, static fidelity, all **1099** cheap tests (zero failures/
+skips), all six network and five source UI cases, sequential Linux exports and
+headless/graphical package smokes. Source UI took **656.28s**; full combat
+**202.87s**, research setup/controls **38.94s/18.52s**. Admission reports maximum
+two scenarios/two displays. Reconnect passed **100.30s** in this attempt, which
+does not establish that the earlier stale-pause defect is repaired. The current
+burn/inspection and packed gameplay PNGs were opened and inspected. Owned cleanup
+and error checks passed; no real desktop/user preferences were used.
+
+This is complete local after-change coverage, not reproduction of hosted timing
+or final-head merge readiness. It uses Linux X11/llvmpipe (LLVM 23.1.1) and Dummy
+audio, not hosted hardware or native GPU/input/listening evidence. Only evidence/
+documentation updates followed verification. Final-published-head required
+Source/Linux/Windows/CodeRabbit verdicts remain the outer executor's responsibility;
+no push, provider retry, merge or pipeline-control action was performed.
+
 ## Full combat inherits its worker deadline, 2026-10-10
 
 Source run `38037663441`, job `114171384708`, failed at head

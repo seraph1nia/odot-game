@@ -6,7 +6,7 @@ internal sealed partial class Runner
 {
     private async Task ResearchCheckpoint(Child client, Child observer, CancellationToken token)
     {
-        Console.WriteLine("Research checkpoint risk: actual global purchase routing, permanent sibling lock, current burn badge/inspection and owned Reconnect control restoring active statuses without historical cues; ordinary earned points, at most wave ten; setup bound 120s, feature bound 30s; existing owned combat display/peers and cleanup.");
+        Console.WriteLine("Research checkpoint risk: actual global purchase routing, permanent sibling lock, current burn badge/inspection and owned Reconnect control restoring active statuses without historical cues; ordinary earned points, at most wave ten; setup bound 120s, feature bound 60s; existing owned combat display/peers and cleanup.");
         Child server = _scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal));
         await _evidence.Measure("research-setup", "checkpoint", async () =>
         {
@@ -43,7 +43,7 @@ internal sealed partial class Runner
         });
         await _evidence.Measure("research-controls", "checkpoint", async () =>
         {
-            using var feature = CancellationTokenSource.CreateLinkedTokenSource(token); feature.CancelAfter(30000);
+            using var feature = CancellationTokenSource.CreateLinkedTokenSource(token); feature.CancelAfter(60000);
             await SimulationSpeed(server, 1, feature.Token);
             await Click(client, "Research", feature.Token); await Click(client, "ResearchMagic", feature.Token);
             UiObservation before = await UiProtocol.Probe(client, options.StartupTimeout, feature.Token);
@@ -53,7 +53,7 @@ internal sealed partial class Runner
             await ClickAck(client, "TechFire", feature.Token);
             UiObservation locked = await WaitUi(client, p => p.Targets["TechFrost"].Text.Contains("Permanently locked", StringComparison.Ordinal), "acknowledged Frost lock", feature.Token);
             Require(!locked.Targets["TechFrost"].Enabled && Latest(client).Players.Single(c => c.Id == client.PlayerId).Research.Points == points - 6, "Fire spends six actual points and locks Frost");
-            await Checkpoint(client, "research-fire-frost-lock", feature.Token); await Click(client, "CloseResearch", feature.Token);
+            await Click(client, "CloseResearch", feature.Token);
             while (Latest(client).Phase is Phase.Building or Phase.Preparation) await UiReadyPair(client, observer, feature.Token, actualInput: false);
             var capture = await PauseBurn(observer, client.PlayerId, feature.Token);
             MatchSnapshot paused = State(capture.Receipt);

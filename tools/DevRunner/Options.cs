@@ -90,7 +90,11 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (!explicitTimeout && command is "ci" or "ci-source") timeout = 900000;
         else if (!explicitTimeout && command == "profile-presentation") timeout = 600000;
         else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario is null) timeout = 600000;
-        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario == "exported-package" || command is "test-ui" or "_ui-worker" && scenario == "combat" && checkpoint is null)) timeout = 300000;
+        // Research's 120s setup + 60s controls need startup/cleanup headroom.
+        // Full standalone combat also includes the measured ~305s hosted path.
+        else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario == "combat" && checkpoint is null or "research")
+            timeout = checkpoint == "research" ? 210000 : 420000;
+        else if (!explicitTimeout && (command is "test-network" or "ci-linux-package" || command is "test-ui" or "_ui-worker" && scenario == "exported-package")) timeout = 300000;
         if (port is < 1 or > 65535 || startup <= 0 || timeout <= 0 || jobs <= 0)
             throw new ArgumentException("Port must be 1..65535; deadlines and --jobs must be positive.");
         if (guests is < 1 or > 3) throw new ArgumentException("--guests must be 1..3; the playing host occupies the fourth city.");
