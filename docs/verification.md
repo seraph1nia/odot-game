@@ -257,30 +257,12 @@ claimed.
 
 ## Forward+ and atmospheric presentation, 2026-10-10
 
-[Current renderer/atmosphere qualification](atmosphere.md#current-checked-qualification--steering022)
-owns the checked requirement map, actual renderer/device and source/export bindings,
-commands, image inspection and retained failures. Before CI passed on unchanged
-landed source (`logs/20261010-093637-df088641`, **648.61s**); initial provenance-read
-failure and successful focused/full rechecks remain recorded.
-
-The corrected final campaign passed native exported/source eight-view acceptance
-(**31.76s / 30.08s**), exported real popup reopen/Escape/Apply/return/Exit (**19.10s**),
-Compatibility scenic (**33.44s**), and complete required CI (**804.29s**, original
-**900s/jobs2/ui-jobs2**), `logs/20261010-205104-d590a723`. All **618 runner + 504
-gameplay tests**, six network and five source UI cases, sequential client/server
-exports and headless/graphical packages passed. Final exported bytes match the
-native-tested inputs; all eight exported High PNGs were inspected.
-
-Native evidence uses the explicitly authorized dedicated **windowed** X11 game,
-actual Forward+/Vulkan RX 6800/RADV, isolated settings and game-only captures. Owned
-Xvfb still lacks DRI3 hardware presentation; there is no automatic desktop/Wayland
-fallback, and mandatory CI still uses explicit Compatibility/software graphics.
-Earlier managed-host SIGSEGVs and diagnostic-artifact identity discrepancies remain
-unexplained, private evidence retained and forensic acquisition parked by explicit
-Captain decision. No crash recurred in this final campaign; that neither repairs nor
-explains the earlier faults. No check was waived or deadline/assertion relaxed.
-No release, native performance/compositor/input/listening certification or manual
-publication is claimed; same-worker no-mistakes shipping remains a separate handoff.
+[Renderer/atmosphere qualification status](atmosphere.md#qualification-status)
+owns the current coverage boundary and retained Settings results, historical
+source/export/native campaign receipts, actual device/input bindings, image
+inspection and unresolved limitations. The historical steering022 campaign does
+not qualify subsequent review/test fixes. For selectable commands and renderer
+requirements, see [renderer verification](atmosphere.md#verification-and-visual-evidence).
 
 ## Fixed-position settlement beautification, 2026-10-07
 

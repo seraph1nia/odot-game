@@ -1,6 +1,31 @@
 # Desktop renderer, woodland atmosphere and graphics preferences
 
-## Current checked qualification — steering022
+## Qualification status
+
+The steering022 campaign below predates the no-mistakes review and test fixes;
+it is historical evidence, not qualification of the current head. Later changes
+correct graphics confirmation ordering, original Windows launch-argument handling,
+client-only export prerequisites and explicit resize persistence. The latest
+runner-only repair reuses fresh Settings observations and asserts the Audio
+slider's actual post-click baseline without changing deadlines or product behavior.
+
+For the implementation in `96612ee7aa5ab2ab47d2001346cd3603af1fb666`, retained
+Linux results are **71 affected runner tests passed**, with **2 native Windows
+argument tests skipped**, and both Settings selections passed: `settings/graphics`
+**153.51s** scenario / **161.40s** command, and complete `settings` **168.29s** /
+**176.24s**. Evidence is under `logs/settings-fixed/`,
+`logs/settings-full-fixed/` and `logs/settings-fix-unit.txt`; the full selection
+includes the original camera/HUD/modal/focus prelude as well as graphics, display,
+audio, invalid saved values and same-city restart assertions. Earlier actual
+180s Settings failures remain in `logs/settings-reproduce/` and
+`logs/settings-trace/`, distinct from the earlier 30-minute agent invocation cutoff.
+These selected results are not a complete source UI or CI pass, native Windows
+execution, or recertification of native/export receipts. Current full CI and
+changed-input native/export qualification belong to the outer validation phases;
+this documentation pass ran no behavioral checks. Default source/CI selection
+still includes all five source UI cases; neither focused checkpoint replaces it.
+
+## Historical qualification — steering022
 
 Captain explicitly parked debugger acquisition, archive-integrity and root-cause
 investigation in favor of **one final game-verification campaign** on the corrected
@@ -10,7 +35,7 @@ retained; these results do **not** explain either managed-host crash or establis
 that the runtime, machine or diagnostic archives were repaired. No suspect debugger
 archive was parsed, extracted or executed during this campaign.
 
-| Current corrected inputs | Result and retained evidence |
+| Historical campaign inputs | Result and retained evidence |
 | --- | --- |
 | Fresh client preparation/export | Passed, `logs/20261010-204151-080f751b` |
 | Native exported eight-view/control/bootstrap/override acceptance | Passed **31.76s**, `logs/20261010-204253-b051d9f4` |
@@ -24,7 +49,7 @@ NAVI21, DiscreteGpu, X11, Windowed**, with owned PID/native handle and isolated
 settings. All eight exported game-only PNGs were inspected: authored palettes,
 leaf details, rigid trunks/architecture, continuous painted river/banks/bridge,
 subtle mist/evening, visible rain, readable HUD and paid-combat bodies/health bars.
-All eight current Compatibility PNGs were also inspected: brighter software
+All eight campaign Compatibility PNGs were also inspected: brighter software
 lighting than native High, with readable combat/UI silhouettes, continuous banks
 and bridge and restrained weather. Native RGB8→RGBA8 texture conversion warnings
 remain visible, separately from engine errors. Source/native and software evidence
@@ -43,26 +68,29 @@ state were drained. No runner crash recurred in this campaign; intermittent faul
 remain an explicit limitation, not an exoneration or accepted failing check.
 
 The chronological evidence below records the status **at each historical boundary**.
-Its pending/blocker statements are not the current campaign result. Forensic work
-is parked; publication remains the separate same-worker no-mistakes handoff, with
-no manual push/PR/merge/release or waived checks.
+Its pending/blocker statements do not supersede the qualification status above.
+Forensic work is parked; publication remains the separate same-worker no-mistakes
+handoff, with no manual push/PR/merge/release or waived checks.
 
 ## Renderer selection
 
 First-run desktop play/dev/client use Godot's native **Forward+ / Vulkan**. No
 custom renderer or simulation weather is involved. Windows/Linux need a working
 Vulkan driver and a supported GPU; Compatibility remains the OpenGL 3.3 fallback.
-The engine can fall back on unsupported hardware: diagnostics and Settings always
-report the **actual** method, driver, adapter/vendor, API and device type, not the
-requested label. A fallback is not a Vulkan qualification.
+The engine can fall back on unsupported hardware: diagnostics report the **actual**
+method, driver, adapter/vendor, API and device type, not the requested label.
+Settings shows the running method, driver and adapter separately from the next-launch
+preference. A fallback is not a Vulkan qualification.
 
 ```sh
 mise run play                              # project default, or saved desired renderer
 mise run dev --renderer compatibility      # host + guest, transient OpenGL override
 mise run play --renderer forward-plus      # transient Vulkan override
 mise run play --exported --renderer compatibility # existing Linux client; no rebuild
+mise run play --exported --target windows-x64 --renderer compatibility # native Windows client
 # Direct source/export engine arguments also work:
 dist/client/odot.x86_64 --rendering-method gl_compatibility --rendering-driver opengl3
+# Windows: dist/windows-client/odot.exe --rendering-method gl_compatibility --rendering-driver opengl3
 ```
 
 `--renderer forward-plus|compatibility` belongs to graphical desktop launches.
@@ -77,8 +105,11 @@ and Accessibility/comfort groups. Existing display mode/resolution, Audio, About
 kit styling, focus restoration and selectors remain. Display changes preview
 immediately; **Apply graphics** keeps them and **Cancel graphics changes** restores
 the last applied state. **Apply & close** keeps changes and closes only Settings;
-Escape/window-close discards unapplied graphics changes. Audio retains immediate
-application/save. Native keyboard focus follows the scroll container.
+Escape/window-close discards unapplied graphics changes. A deliberate window resize
+outside Settings is saved, even when the initial launch supplied a transient display
+override; untouched launch overrides and cancelled in-dialog previews are not saved.
+Audio retains immediate application/save. Native keyboard focus follows the scroll
+container.
 
 Preferences use the existing `user://settings.cfg`: old `graphics`/`audio` keys
 remain, new validated integer choices live in `visuals`. Missing, wrong-type and
@@ -93,7 +124,10 @@ merely running a check or changing audio does not overwrite renderer preference.
 VSync offers portable On/Off. Adaptive is deliberately not offered because the
 engine has no portable present-mode support query; a driver can reject VSync
 changes (for example Xvfb/Mesa), and diagnostics expose the actual mode. FPS choices
-are 30/60/120/unlimited; an explicit native `--max-fps` keeps its launch bound.
+are 30/60/120/unlimited; explicit native `--max-fps` and `--disable-vsync` overrides
+remain effective through Apply without becoming saved preferences. Original engine
+arguments are read before the application `--` separator on Linux and Windows;
+Windows runtime coverage is classified separately in the qualification status.
 Render scale affects 3D only (70/85/100%), leaving the UI at native resolution.
 AA is mutually exclusive Off/FXAA/TAA/MSAA 2×/4×. FXAA/TAA, SSIL and volumetric fog are
 Forward+-only in this product; unsupported choices are disabled with a supported
@@ -145,9 +179,9 @@ via Ultra/Custom. Glow targets authored emissive objects with a high threshold,
 not a fullscreen bloom wash.
 
 Depth fog begins 48 metres from the camera and reaches bounded haze at 135 metres;
-height fog is light and below the settlement surface. Forward+ uses a conservative
-64×64×64 froxel budget and 55-metre volumetric distance. A small river FogVolume
-exists **only** in Forward+ and follows the currently viewed city. The playable
+height fog is light and below the settlement surface. Forward+ uses conservative
+volumetric volume-size/depth settings of 64 and a 55-metre volumetric distance.
+A small river FogVolume exists **only** in Forward+ and follows the currently viewed city. The playable
 center is not filled with dense volumes. Native GPU rain (120/240/360 bounded
 particles) and a maximum 18 drifting leaves follow the camera's ground focus;
 they cast no shadows and do not simulate every city/forest.
@@ -169,7 +203,9 @@ changes are intentionally outside this implementation.
 
 ```sh
 mise run test                              # cheap preferences/capabilities/launch policy + existing rules
-mise run test-ui --scenario settings       # existing slice extended with real graphics controls
+mise run test-ui --scenario settings       # full original + expanded Settings coverage
+mise run test-ui --scenario settings --checkpoint graphics # omits only camera-input prelude
+mise run test-ui --scenario settings --checkpoint display  # bounded display-persistence regression
 mise run test-ui --scenario economy --checkpoint travel # selects original full camera/travel controls
 mise run test-atmosphere                   # optional Compatibility scenic evidence
 mise run test-vulkan                       # optional native Vulkan hardware/surface qualification
@@ -179,11 +215,17 @@ mise run test-vulkan --desktop --exported   # existing export, same explicit sur
 mise run ci                                # unchanged complete source/network/UI/export/package coverage
 ```
 
-Both atmosphere commands reuse DevRunner's owned Xvfb/Xauthority/Openbox display,
-client XDG state, ordered event driver, input/capture protocol, evidence and bounded
-cleanup. The Vulkan command does not set software-OpenGL environment flags. It
-requires an actual Forward+ Vulkan RenderingDevice, physical integrated/discrete
-GPU and real X11 window with captured pixels. CPU/software Vulkan, Dummy,
+By default both atmosphere commands use DevRunner's owned Xvfb/Xauthority/Openbox
+display, client XDG state, ordered event driver, input/capture protocol, evidence and
+bounded cleanup. Explicitly authorized `test-vulkan --desktop` instead uses the
+existing Linux X11 surface with an owned windowed game, isolated client state and
+game-viewport-only captures; it creates no display server/window manager and never
+serves as a mandatory CI fallback. Both `--exported` checks require only the existing
+Linux client executable, not a server export; missing clients are **unexecuted** and
+neither command implicitly rebuilds them. Ordinary exported-package smoke retains
+its client/server prerequisite. The Vulkan command does not set software-OpenGL
+environment flags. It requires an actual Forward+ Vulkan RenderingDevice, physical
+integrated/discrete GPU and real X11 window with captured pixels. CPU/software Vulkan, Dummy,
 OpenGL fallback and missing prerequisites are **unexecuted**, never hardware green.
 For Mesa hardware X11 presentation the owned display must expose DRI3; ordinary
 Xvfb does not provide it. The native slice preflights this requirement and reports
@@ -210,9 +252,13 @@ benchmarks from software rendering or cumulative allocations.
 
 ## Requirement / milestone / evidence map
 
+Implementation milestones below do not imply current-head acceptance. The
+[qualification status](#qualification-status) owns that boundary; steering022
+receipts refer to the historical pre-review campaign.
+
 - [x] Shared renderer/environment ownership, explicit source/export overrides and
-  truthful actual diagnostics implemented; current native/Compatibility proof
-  recorded in steering022 above.
+  truthful actual diagnostics implemented; qualification boundaries are recorded
+  [above](#qualification-status).
 - [x] Native sky/light/shadows/fog/volumetrics/river volume, manual weather,
   GPU rain/leaves, explicit leaf wind and restrained water/glow implemented.
 - [x] Full scrollable graphics/preferences, quality/custom, supported combinations,
@@ -237,11 +283,10 @@ benchmarks from software rendering or cumulative allocations.
 - [x] Authentic source native Vulkan smoke, all eight inspected High views,
   real Apply/lifecycle and preference-bootstrap/transient-override proof:
   `logs/20261010-160141-1c1936ff`, 37.79s owned / 47.71s command.
-- [x] Authentic corrected exported native Vulkan acceptance and eight-view inspection:
-  steering022, **31.76s**, plus focused real popup lifecycle **19.10s**.
-- [x] Current corrected complete CI and exports/package evidence: steering022,
-  **804.29s**, **618 runner + 504 gameplay**; documentation/evidence consistency
-  reviewed without erasing earlier failures or unresolved crash limitations.
+- [x] Historical exported native Vulkan acceptance and eight-view inspection:
+  [steering022](#historical-qualification--steering022).
+- [x] Historical pre-review complete CI and exports/package evidence: steering022.
+  This does not certify later changed inputs; see [qualification status](#qualification-status).
 
 First Compatibility implementation attempt (`logs/20261010-101006-1a2838f3`) correctly
 failed on unsupported fog-resource allocation and a forbidden runtime uniform

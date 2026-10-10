@@ -49,9 +49,10 @@ runs, smaller ground patches, instanced woodland and before/after evidence.
   [rich background composition](rich-background.md#what-is-composed).
 - Passive clearing decoration samples the installed ribbon triangles for local
   contact. Buildings, plots, home/defender, combat units and projectile origins
-  keep their original supporting heights/centers/scales. Camera, lighting,
-  picking, collisions, clips, sockets, gameplay, network and saved state are
-  unchanged. Ground detail is painted/normal-mapped, not displaced geometry.
+  keep their original supporting heights/centers/scales. This ground integration
+  left camera, lighting, picking, collisions, clips, sockets, gameplay, network
+  and saved state unchanged. Ground detail is painted/normal-mapped, not displaced
+  geometry.
 
 ### Placement and recessed-water boundary
 
