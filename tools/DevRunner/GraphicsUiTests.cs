@@ -36,11 +36,29 @@ internal sealed partial class Runner
         await client.Send("key Enter");
         await WaitUi(client, p => !p.GraphicsDropdownOpen && p.GraphicsDraft[key] == index, "native graphics choice changes the requested draft without applying", token);
     }
-    private void InvalidGraphicsFixture(UiObservation owned)
+    private string OwnedSettingsPath(UiObservation owned)
     {
         string path = Path.GetFullPath(Path.Combine(owned.UserDataPath, "settings.cfg"));
         string relative = Path.GetRelativePath(_scope!.Directory, path);
-        Require(!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative), "invalid settings fixture remains within this client's owned data");
+        Require(!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative), "settings file remains within this client's owned data");
+        return path;
+    }
+    private void RequireSavedWindowSize(UiObservation owned, int width, int height)
+    {
+        Dictionary<string, string> graphics = File.ReadLines(OwnedSettingsPath(owned))
+            .SkipWhile(line => line.Trim() != "[graphics]").Skip(1)
+            .TakeWhile(line => !line.TrimStart().StartsWith('['))
+            .Where(line => line.Contains('='))
+            .Select(line => line.Split('=', 2))
+            .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
+        Require(graphics["mode"] == "\"windowed\""
+            && int.Parse(graphics["window_width"], CultureInfo.InvariantCulture) == width
+            && int.Parse(graphics["window_height"], CultureInfo.InvariantCulture) == height,
+            "owned settings.cfg persists the committed window mode and both size dimensions");
+    }
+    private void InvalidGraphicsFixture(UiObservation owned)
+    {
+        string path = OwnedSettingsPath(owned);
         string text = File.ReadAllText(path);
         var aa = new System.Text.RegularExpressions.Regex(@"^aa=.*$", System.Text.RegularExpressions.RegexOptions.Multiline);
         var exposure = new System.Text.RegularExpressions.Regex(@"^exposure=.*$", System.Text.RegularExpressions.RegexOptions.Multiline);
@@ -77,6 +95,7 @@ internal sealed partial class Runner
             else await Click(client, "CancelSettings", token);
             await WaitUi(client, p => !p.SettingsOpen && p.Width == 1280 && p.Height == 720 && p.Graphics.Settings["quality"] == 0,
                 cancellation + " cancels the graphics draft and restores the committed display preview", token);
+            RequireSavedWindowSize(low, 1280, 720);
         }
         await Click(client, "Settings", token);
         await WaitUi(client, p => p.SettingsOpen && p.GraphicsDraft["quality"] == 0, "cancelled drafts do not survive reopening", token);

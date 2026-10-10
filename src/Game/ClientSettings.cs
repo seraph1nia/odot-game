@@ -195,6 +195,7 @@ public partial class ClientSettings : Node
     public void Open(Control? returnFocus)
     {
         if (IsOpen) return;
+        Save();
         _returnFocus = returnFocus ?? GetViewport().GuiGetFocusOwner() ?? _button;
         RefreshDisplay();
         BeginGraphicsEdit();
@@ -272,7 +273,7 @@ public partial class ClientSettings : Node
     private void Save()
     {
         if (!_dirty) return;
-        bool saveDisplay = _commitDisplay || !IsOpen && !_launchDisplayOverride;
+        bool saveDisplay = _commitDisplay || !IsOpen && (_displayEdited || !_launchDisplayOverride);
         using var file = new ConfigFile();
         file.Load(SettingsPath);
         file.SetValue("audio", "master_volume", _masterVolume);

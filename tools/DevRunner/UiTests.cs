@@ -692,8 +692,12 @@ internal sealed partial class Runner
                 await WaitUi(client, p => !p.SettingsOpen, "settings closed and saved", token);
                 await Click(client, "ResetView", token);
                 RequireOverview(await UiProtocol.Probe(client, options.StartupTimeout, token));
+                NativeWindowClose.Resize(client, options, changed.NativeWindow, 1600, 900);
+                await WaitUi(client, p => !p.SettingsOpen && p.Width == 1600 && p.Height == 900,
+                    "deliberate outside-dialog resize replaces the transient launch resolution", token);
                 int originalId = client.PlayerId;
                 await client.Send("quit"); Require(await client.WaitExit(token) == 0, "settings client exits cleanly");
+                RequireSavedWindowSize(changed, 1600, 900);
                 await Observe(observer, s => !s.Players.Single(p => p.Id == originalId).Connected, "restart absent city", token);
                 InvalidGraphicsFixture(changed);
                 Child restarted = StartGame("ui-client", false, false, started.Port);
