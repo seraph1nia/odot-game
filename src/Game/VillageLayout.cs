@@ -20,7 +20,8 @@ internal static class VillageLayout
         return Height(column, row);
     }
     public static Transform3D GroundTransform(int column, int row, int turns = 0) => new(
-        new Basis(Vector3.Up, Mathf.Pi / 2 + turns * Mathf.Pi / 3).Scaled(Vector3.One * TerrainScale), Hex(column, row));
+        new Basis(Vector3.Up, Mathf.Pi / 2 + turns * Mathf.Pi / 3).Scaled(Vector3.One * TerrainScale),
+        new Vector3(Hex(column, row).X, DetailedGround.Elevation(column, row), Hex(column, row).Z));
     public static Vector3 Slot(int slot) => Hex(slot % 3 - 1, slot / 3 + 2);
     public static bool Contains(int slot, Vector3 point)
     {

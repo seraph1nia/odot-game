@@ -43,7 +43,10 @@ internal sealed partial class Runner
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(120));
         token = deadline.Token;
-        Child client = StartGameRole("ui-cost", "solo", false, 0);
+        // Retained detailed-ground before views used this seed. Pin it so future
+        // ordinary non-battle comparisons match authority state as well as the
+        // coordinate-only cosmetic map; do not rely on a fresh random seed.
+        Child client = StartGameRole("ui-cost", "solo", false, 0, extra: ["--combat-seed", "877325505053986740"]);
         await client.WaitFor(e => e.Type == "ack" && e.State?.Phase == Game.Core.Phase.Building, "ordinary static solo", options.StartupTimeout, token);
         UiObservation ready = await WaitUi(client, p => p.Connected && p.Screen == "session" && p.UnitBindings.Length > 0, "actual static authored scene ready", token);
         NativeWindowClose.Resize(client, options, ready.NativeWindow, 1280, 720);

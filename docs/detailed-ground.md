@@ -40,23 +40,26 @@ new image encoding, external texture download or export-byte editing occurs.
 its imported static buffers; `VillageLandscape` batches the actual floor and
 ribbon meshes. Menu and every city use this same consumer, not a review-only scene.
 `DetailedGround` is a cosmetic coordinate/connector projection, not authority
-terrain or a procedural forest/river generator.
+terrain or a procedural river generator. The follow-up
+[rich background composition](rich-background.md) records the current authored
+runs, smaller ground patches, instanced woodland and before/after evidence.
 
-- Every rendered lattice cell has exactly one new floor. The open approach and
-  home/defender use grass; fixed settlement plots use dirt; the existing river
-  row uses moss; the western wooded area uses bounded moss/litter pockets; the
-  eastern pine area uses pine duff. Coordinate-only six-way floor rotation is
-  deterministic. Families intentionally have visible material transitions.
-- The existing river remains straight along row 5. New surface-stream straight
-  overlays continue across every cell, including beneath the timber bridge.
-  River turns/ends and path straight/60-normal-separation corners are registered
-  and actually imported by the diagnostic route, not claimed to appear in this
-  unchanged live river topology.
-- A four-cell dirt trail adapts the south bridge walk into the existing flat
-  bank-clearing/east-grove area: `(1,6)`, `(1,7)`, `(2,7)`, `(3,6)`. It uses two
-  120-normal-separation corners and two center ends. Only the timber walk's final
-  endpoint moves to `(1,6)`; its bridge landing, thickness and bank steps remain.
-  No connectors cross terrace height changes, plots or the combat approach.
+- Every rendered lattice cell has exactly one floor. Fixed plots still use dirt;
+  the established combat boundary retains its previous families, elevations and
+  rotations. Elsewhere, deterministic weighted small patches interleave moss,
+  grass clearings, leaf litter and pine duff instead of large west/east stripes.
+  Six-way floor rotation is coordinate-only. Material transitions remain visible.
+- A complete 34-cell surface watercourse uses straight, both turn classes and
+  center ends. Its middle retains the original row-5 bridge/settlement-edge
+  contact; its wooded flanks meander across rows 5–8. Only decorative channel
+  floors follow its −.03 height. Dry former river-row cells return to the .18
+  bank terrace rather than leaving a straight trench beneath the new bends.
+- The south bridge walk still ends at `(1,6)` and retains its landing, thickness
+  and bank steps. The same initial four trail cells now lead into a nine-cell
+  winding run to a wayside shrine clearing at `(1,10)`. A separate six-cell
+  woodland trail joins the existing bank lantern and mushroom clearing. No
+  through-pieces overlap to invent junctions; neither trail crosses terrace
+  height changes, plots, water or the combat approach.
 - Passive clearing decoration samples the installed ribbon triangles for local
   contact. Buildings, plots, home/defender, combat units and projectile origins
   keep their original supporting heights/centers/scales. Camera, lighting,
@@ -90,7 +93,8 @@ new map generator in this change.
 `mise run test` includes exact inventory/hash/dependency checks and focused
 executable mapping tests: every 15 unordered pair and six ends in both families,
 typed GLB connector metadata, reversed pairs, invalid inputs, signed-row opposite
-neighbors, bounded floor selection and the four adjacent non-plot trail cells.
+neighbors, bounded floor selection, protected combat receivers, complete adjacent
+non-intersecting flat routes, and stable varied scatter with route clearances.
 
 `mise run test-assets` extends the existing owned headless Godot fidelity probe.
 It checks actual imported native-root versus batched rotations, **42 distinct
@@ -102,8 +106,9 @@ negative corruption regressions remain mandatory.
 
 The existing `Countryside` assertions, shared by ordinary source and exported UI
 checks, require actual installed five-family bounds, one floor per cell, continuous
-surface-water ports, no recessed bridge water, joined live dirt corners/ends and
-positive clearance, grounded decorations, unchanged building centers, menu/city
+surface-water ports and full edge profiles, no recessed bridge water, joined live
+dirt corners/ends and positive clearance, grounded decorations and instanced
+scatter with plot/route clearance, unchanged building centers, menu/city
 parity and ordinary picking. Timber checks inspect actual emitted bases and
 bottom rendering-vertex height ranges across all six walks, including stacked
 courses, requiring horizontal orthonormal unit axes and contact with ground or

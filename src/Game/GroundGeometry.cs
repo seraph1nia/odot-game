@@ -28,6 +28,8 @@ internal static class GroundGeometry
     internal static float? Surface(Mesh mesh, Transform3D transform, Vector3 point)
     {
         Vector3 local = transform.AffineInverse() * point;
+        Aabb bounds = mesh.GetAabb();
+        if (local.X < bounds.Position.X || local.X > bounds.End.X || local.Z < bounds.Position.Z || local.Z > bounds.End.Z) return null;
         float? height = null;
         for (int surface = 0; surface < mesh.GetSurfaceCount(); surface++)
         {

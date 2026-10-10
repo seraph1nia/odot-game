@@ -9,6 +9,8 @@ internal sealed class LandscapeAssets
     private readonly Dictionary<string, (Aabb Bounds, Vector3 Foot)> _geometry = [];
     private readonly Dictionary<string, ArrayMesh> _meshes = [];
     private readonly Dictionary<string, string> _versions = [];
+    private readonly Dictionary<string, (SceneryPart[] Parts, Aabb Bounds)> _scenery = [];
+    internal sealed record SceneryPart(Mesh Mesh, Transform3D Transform, Material? Material);
     internal IEnumerable<string> Paths => _scenes.Keys;
     private static string Version(string path)
     {
@@ -38,7 +40,7 @@ internal sealed class LandscapeAssets
         string version = Version(path);
         if (!_scenes.TryGetValue(path, out PackedScene? scene) || _versions.GetValueOrDefault(path) != version)
         {
-            _geometry.Remove(path); _meshes.Remove(path);
+            _geometry.Remove(path); _meshes.Remove(path); _scenery.Remove(path);
             _scenes[path] = scene = ResourceLoader.Load<PackedScene>(AssetCatalog.Root + path, cacheMode: _versions.ContainsKey(path) ? ResourceLoader.CacheMode.ReplaceDeep : ResourceLoader.CacheMode.Reuse)
                 ?? throw new InvalidOperationException("Missing authored landscape: " + path);
             _versions[path] = version;
@@ -66,6 +68,35 @@ internal sealed class LandscapeAssets
         model.Scale *= factor; model.Position -= geometry.Foot * factor;
         wrapper.SetMeta("asset", path); wrapper.SetMeta("foot", geometry.Foot); wrapper.SetMeta("bounds", geometry.Bounds);
         return wrapper;
+    }
+    // Reuse each original imported part, including its nonuniform local basis.
+    // Unlike AppendFrom/global flattening this leaves rendering buffers, material
+    // maps, normals and per-part transforms intact. Only new passive scatter uses it.
+    internal (SceneryPart[] Parts, Aabb Bounds) Scenery(string path)
+    {
+        if (_scenery.TryGetValue(path, out var cached)) return cached;
+        var parent = new Node3D();
+        Node3D template = Place(parent, path, Vector3.Zero, 1);
+        try
+        {
+            var parts = new List<SceneryPart>();
+            void Visit(Node3D node, Transform3D transform)
+            {
+                transform *= node.Transform;
+                if (node is MeshInstance3D { Mesh: { } mesh } instance)
+                {
+                    if (instance.Skin is not null || mesh is not ArrayMesh arrays || arrays.GetBlendShapeCount() != 0 || transform.Basis.Determinant() <= 0
+                        || Enumerable.Range(0, mesh.GetSurfaceCount()).Any(i => instance.GetSurfaceOverrideMaterial(i) is not null))
+                        throw new InvalidOperationException("Scenery requires unskinned, unmirrored original material parts: " + path);
+                    parts.Add(new(mesh, transform, instance.MaterialOverride));
+                }
+                foreach (Node3D child in node.GetChildren().OfType<Node3D>()) Visit(child, transform);
+            }
+            Visit(template, Transform3D.Identity);
+            if (parts.Count == 0) throw new InvalidOperationException("Empty scenery: " + path);
+            return _scenery[path] = (parts.ToArray(), Bounds(template));
+        }
+        finally { parent.Free(); }
     }
     internal static Aabb Bounds(Node3D wrapper) => wrapper.Transform * wrapper.GetChild<Node3D>(0).Transform * wrapper.GetMeta("bounds").AsAabb();
     internal static Vector3 Contact(Node3D wrapper) => wrapper.Transform * wrapper.GetChild<Node3D>(0).Transform * wrapper.GetMeta("foot").AsVector3();
