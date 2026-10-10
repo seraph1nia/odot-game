@@ -44,22 +44,9 @@ terrain or a procedural river generator. The follow-up
 [rich background composition](rich-background.md) records the current authored
 runs, smaller ground patches, instanced woodland and before/after evidence.
 
-- Every rendered lattice cell has exactly one floor. Fixed plots still use dirt;
-  the established combat boundary retains its previous families, elevations and
-  rotations. Elsewhere, deterministic weighted small patches interleave moss,
-  grass clearings, leaf litter and pine duff instead of large west/east stripes.
-  Six-way floor rotation is coordinate-only. Material transitions remain visible.
-- A complete 34-cell surface watercourse uses straight, both turn classes and
-  center ends. Its middle retains the original row-5 bridge/settlement-edge
-  contact; its wooded flanks meander across rows 5–8. Only decorative channel
-  floors follow its −.03 height. Dry former river-row cells return to the .18
-  bank terrace rather than leaving a straight trench beneath the new bends.
-- The south bridge walk still ends at `(1,6)` and retains its landing, thickness
-  and bank steps. The same initial four trail cells now lead into a nine-cell
-  winding run to a wayside shrine clearing at `(1,10)`. A separate six-cell
-  woodland trail joins the existing bank lantern and mushroom clearing. No
-  through-pieces overlap to invent junctions; neither trail crosses terrace
-  height changes, plots, water or the combat approach.
+- Every rendered lattice cell has exactly one floor; the current family
+  distribution and authored route layout are owned by
+  [rich background composition](rich-background.md#what-is-composed).
 - Passive clearing decoration samples the installed ribbon triangles for local
   contact. Buildings, plots, home/defender, combat units and projectile origins
   keep their original supporting heights/centers/scales. Camera, lighting,
@@ -69,9 +56,11 @@ runs, smaller ground patches, instanced woodland and before/after evidence.
 ### Placement and recessed-water boundary
 
 The original flat-top radius 2.55 is converted through the **existing** +90°
-Godot-Y rotation and `VillageLayout.TerrainScale`, retaining the pointy lattice,
-ordering and terraced heights. Base and overlay share the exact transform origin
-and scale; connector turns add positive multiples of 60° about Godot Y. Edge 0
+Godot-Y rotation and `VillageLayout.TerrainScale`, retaining the pointy lattice
+and ordering. `VillageLayout.GroundTransform` uses `DetailedGround.Elevation`
+for cosmetic floor/ribbon heights; `VillageLayout.Height` retains the original
+structure/combat surface mapping. Base and overlay share the exact transform
+origin and scale; connector turns add positive multiples of 60° about Godot Y. Edge 0
 therefore faces west on this lattice. Matching ports are straight edge midpoints,
 not vertices. No extra vertical bias, priority, disabled depth test or water-above-
 occupant rendering is used. Source base top is zero, bottom −0.36; path/river
@@ -139,9 +128,11 @@ smoke; selected checks are partial coverage.
 
 ### Retained evidence
 
-The following author-recorded runs predate the timber-basis review correction.
-They do not validate its changed C# inputs; the outer pipeline owns final full
-validation. Fresh review-correction evidence is limited to:
+This section records the earlier detailed-ground delivery; the follow-up's
+[current composition evidence](rich-background.md#evidence-and-limitations)
+is recorded separately. The original author-recorded runs below predate the
+timber-basis review correction and do not validate its changed C# inputs.
+That review correction's focused evidence was limited to:
 
 - Nine selected `LandscapeChecksTests` / `VillageWalkTests` passed, including
   rejection of the original 3D south-bank tangent on both courses

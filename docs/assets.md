@@ -86,9 +86,10 @@ fixture, importer or assertion changes were made to obtain that pass.
 
 ## Detailed forest floors and surface overlays
 
-See [detailed-ground integration](detailed-ground.md) for the live floor/overlay
-composition, consumer transforms, bridge adaptation, executable checks, view
-evidence and compatibility limitations. The [manifest](../src/Game/Assets/Authored/manifest.json)
+See [rich background composition](rich-background.md) for the current live
+layout and view evidence, and [detailed-ground integration](detailed-ground.md)
+for consumer transforms, bridge adaptation, executable checks and compatibility
+limitations. The [manifest](../src/Game/Assets/Authored/manifest.json)
 owns the exact export and embedded-map inventory.
 
 ## Names versus authoritative identities

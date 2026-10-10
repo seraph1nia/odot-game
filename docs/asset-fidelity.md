@@ -13,8 +13,10 @@ recommendations below are superseded by the current game-side-only scope.
 
 ## Decision: defer optional scene consolidation
 
-Buildings and props retain their original imported authored hierarchies rather
-than undergoing optional scene consolidation. Live terrain and the timber walk
+Buildings and individually placed props retain their original imported authored
+hierarchies rather than undergoing optional scene consolidation. The fuller
+woodland uses the [shared-mesh scatter consumer](rich-background.md#shared-rendering-and-executable-checks),
+not scene flattening. Live terrain and the timber walk
 use fidelity-validated imported-buffer consolidation; terrain uses chunked
 instances. [Detailed-ground integration](detailed-ground.md#placement-and-recessed-water-boundary)
 owns the current floor/overlay placement and bridge consumer adaptation.
