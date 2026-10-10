@@ -204,8 +204,9 @@ cases**, all **five source UI slices**, sequential Linux client/server exports,
 headless package smoke and graphical exported-package smoke. Source UI completed
 in **651.35s**; the deliberately retained serial timeout above is not reclassified
 as passing. Normal expensive-scenario limits remained 900s, with no assertion,
-case, admission-owner or cleanup waiver. The corresponding C# and lock hashes
-still match `cached-final-inputs.sha256`; only documentation changed afterward.
+case, admission-owner or cleanup waiver. Those results bind the C# and lock
+hashes in `cached-final-inputs.sha256`; subsequent documentation and diagnostic
+`Scope` wording corrections are not covered by that run.
 
 The final packed `exported-package-worker/exported-package/packed-layout-1280x720.png`
 was also opened and inspected: the richer groves, patchwork floors and winding

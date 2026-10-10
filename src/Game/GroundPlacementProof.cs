@@ -77,7 +77,7 @@ internal static class GroundPlacementProof
             Require(deckBottom > water.End.Y + .01, "surface water remains below timber deck with normal depth");
         }
         finally { owner.RemoveChild(holder); holder.Free(); }
-        return new { Stacks = stacks, NeighborJoins = joins, Orientations = orientations, Scope = "owned imported diagnostic orientations; live river remains straight; bank trail exercises turns and ends" };
+        return new { Stacks = stacks, NeighborJoins = joins, Orientations = orientations, Scope = "owned imported ground diagnostics: connector orientations, neighbor profiles, base/overlay stacks and bridge adaptation" };
     }
     private static IEnumerable<Vector3> Positions(Mesh mesh) => Enumerable.Range(0, mesh.GetSurfaceCount())
         .SelectMany(i => mesh.SurfaceGetArrays(i)[(int)Mesh.ArrayType.Vertex].AsVector3Array());
