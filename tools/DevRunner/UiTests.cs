@@ -164,6 +164,8 @@ internal sealed record UiObservation
     public string[] ButtonTextures { get; init; } = [];
     public int FocusBorder { get; init; }
     public string SliderTexture { get; init; } = "";
+    public string UiFont { get; init; } = "";
+    public string SealTexture { get; init; } = "";
     public string Id { get; init; } = "";
     public string? Error { get; init; }
     public string Screen { get; init; } = "";
@@ -335,7 +337,7 @@ internal sealed partial class Runner
         "economy" => "Income/upkeep, explicit zero-wood recovery, build/upgrade/sale capacity, both-size inspector bounds and paused transport refresh. One bounded additional ordinary clear and two productions fund a real shortage sale; no extra peers or display. Hex/surface contacts and countryside coverage through existing captures/probes; no new setup. Cursor zoom, held WASD/arrows, pan limits, Space reset, left drag/interruption, resource-table input protection, resize and moved roof picking; seconds of fresh input/probes in existing setup. One actual witness per control family, repeated recruit/trade/production via ordinary requests, six-resource costs, purchased/locked land, contextual sales, Market bundles and full HUD/plot bounds. Research replaces the rank control in the same opening: actual level-two Research Tower upgrade, thirds-earned foundation and retained technology/wounds on sale, with quoted trades of current surplus stocks while reserving recruitment equipment and upkeep. Picking/control routing to authority and rendered assets; headless tests miss input and presentation.",
         "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or badges.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
-        "launcher" => "Live Common Watch title/window identity, cooperative positioning and measured label fit at existing sizes/return checkpoints; a few assertions and one multiplayer capture, no extra fixture. Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Trio panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
+        "launcher" => "Live Common Watch title/window identity, cooperative positioning and measured label fit at existing sizes/return checkpoints; a few assertions and one multiplayer capture, no extra fixture. Shared menu/starting landscape and return cleanliness through existing probes; no extra setup. Woodland native panel/button resources, text controls and full control bounds; Cancel-default/Escape confirmation, guest leave/private resume and host return reuse the existing fixture; one owned guest restart and a few modal probes, no extra battle. Application navigation, direct-invitation fixture modal/focus/scrolling, local session transitions and actual process exit once per boundary, with prepared-window resizing for both sizes; cheap checks miss native controls. Steam remains disabled.",
         "exported-package" => "Packed shared countryside and contacts through existing captures; no additional match. Packed cursor zoom/pan/reset/picking parity using actual events in existing setup. Packed-resource loading and actual UI input; source tests cannot detect package-only omissions.",
         "installed-linux" => "Installed archive reuses focused packed launch/solo/purchase/bindings/live animation/two-size/Exit route; inventory alone cannot establish an installed graphical launch.",
         _ => throw new ArgumentException("Unknown UI scenario: " + name)
@@ -456,7 +458,7 @@ internal sealed partial class Runner
                 || bar.Role != expectedRole
                 || bar.Fraction != PresentationLimits.HealthFraction(unit.Health, unit.MaximumHealth)
                 || Math.Abs(bar.FillWidth - 43 * bar.Fraction) > 0.001 || !bar.InputIgnored
-                || bar.Track != "res://Assets/TrioUI/derived/health_track.svg" || bar.Fill != "res://Assets/TrioUI/derived/health_fill.svg")
+                || !bar.Track.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal) || !bar.Fill.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal) || bar.Track == bar.Fill)
                 throw new InvalidOperationException("Health bar disagrees with sampled living unit: " + bar.Id);
             if (bar.Visible && (bar.Width <= 0 || bar.Height <= 0 || bar.X < 0 || bar.Y < 0 || bar.X + bar.Width > frame.Width + 1 || bar.Y + bar.Height > frame.HudTop + 1))
                 throw new InvalidOperationException("Health bar outside visible world area: " + bar.Id);
@@ -464,25 +466,26 @@ internal sealed partial class Runner
         foreach (UnitObservation unit in frame.Units.Where(u => u.Visible && u.Deployed && !u.Dead))
             if (!frame.HealthBars.Any(b => b.Id == unit.Id)) throw new InvalidOperationException("Missing living unit health bar: " + unit.Id);
     }
-    private static void TrioPresentation(UiObservation frame)
+    private static void WoodlandPresentation(UiObservation frame)
     {
         Branding(frame);
         Require(frame.UiProvenanceBundled, "kit provenance and permission documentation bundled with UI assets");
-        Require(frame.PanelTexture == "res://Assets/TrioUI/cozy/panel_plain.svg" && frame.FocusBorder == 2, "actual kit panel and keyboard focus styles loaded");
-        Require(frame.ButtonTextures.Length == 4 && frame.ButtonTextures.Distinct().Count() == 4 && frame.ButtonTextures.All(p => p.StartsWith("res://Assets/TrioUI/derived/button_", StringComparison.Ordinal)), "four distinct kit button-state textures");
-        Require(frame.SliderTexture == "res://Assets/TrioUI/derived/slider_knob.svg", "kit slider knob loaded");
+        Require(frame.PanelTexture == "res://UI/art/woodland/branch_frame.svg" && frame.FocusBorder == 2, "actual woodland branch panel and independent keyboard focus styles loaded");
+        Require(frame.UiFont == "res://UI/fonts/DejaVuSerif.ttf" && frame.SealTexture == "res://UI/art/menu_seal.png", "actual licensed serif font and original seal loaded");
+        Require(frame.ButtonTextures.Length == 4 && frame.ButtonTextures.Distinct().Count() == 4 && frame.ButtonTextures.All(p => p.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal)), "four distinct native woodland button-state styles");
+        Require(frame.SliderTexture.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal), "native woodland slider style loaded");
         if (frame.SettingsOpen || frame.FriendsOpen || frame.JoinConfirmationOpen || frame.ReturnConfirmationOpen)
-            Require(frame.DialogTexture == "res://Assets/TrioUI/cozy/panel_plain.svg", "actual owned dialog uses shared kit panel");
+            Require(frame.DialogTexture == "res://UI/art/woodland/branch_frame.svg", "actual owned Control modal uses shared woodland branch panel");
         if (frame.SettingsOpen)
-            Require(frame.TabTextures.Length == 2 && frame.TabTextures.Distinct().Count() == 2, "selected and unselected tabs use distinct kit textures");
+            Require(frame.TabTextures.Length == 2 && frame.TabTextures.Distinct().Count() == 2, "selected and unselected tabs use distinct woodland styles");
         if (frame.DropdownOpen)
-            Require(frame.DropdownTexture == "res://Assets/TrioUI/cozy/panel_plain.svg", "actual dropdown popup uses shared kit panel");
+            Require(frame.DropdownTexture.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal), "actual native dropdown popup uses woodland style");
         if (frame.Screen == "session")
         {
             Require(frame.ResourceRowsSingleLine && frame.HudHeight <= 190, "six exact single-line balances and approximately 180px HUD");
             Require(frame.ResourceOrder.SequenceEqual(new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" }), "resource table uses requested row order");
             Require(EconomyResourceLabels.All(resource => frame.ResourceBalances.ContainsKey(resource)) && frame.UpkeepText.Length != 0, "six resources including zero and separate Details upkeep");
-            Require(frame.ResourceIcons.Values.All(icon => icon.Length == 0) && frame.Targets.Values.All(target => target.Icon.Length == 0), "text controls and resource table omit semantic icons");
+            Require(frame.ResourceIcons.Count == 6 && frame.ResourceIcons.Values.All(icon => icon == "res://UI/art/woodland/resource_icons.svg") && frame.Targets.Values.All(target => target.Icon.Length == 0), "six original atlas icons accompany resource names; ordinary command controls retain text semantics");
             Require(!frame.Targets.ContainsKey("ResetView") && (!frame.Targets.TryGetValue("ReturnToMenu", out UiTarget? leave) || !leave.Visible || frame.SettingsOpen), "reset and leave removed from bottom HUD");
             if (frame.Connected && frame.HomeHealth.Maximum > 0) Require(frame.HomeHealth.InputIgnored && frame.HomeHealth.PercentageInside && frame.HomeHealth.Percent == (int)Math.Round(PresentationLimits.HealthFraction(frame.HomeHealth.Current, frame.HomeHealth.Maximum) * 100, MidpointRounding.AwayFromZero), "home percentage uses matching authoritative health scales");
             foreach (var (name, plot) in frame.Targets.Where(t => t.Key.StartsWith("Plot", StringComparison.Ordinal) && t.Value.Visible))
@@ -506,7 +509,7 @@ internal sealed partial class Runner
             Require(frame.HomeHealth.Current == observedCity.Health && frame.HomeHealth.Maximum == HealthPoints.FromWhole(current.Rules.CityHealth), "home bar follows authoritative city health and maximum");
             Require(Enum.GetValues<Resource>().All(resource => frame.ResourceBalances[resource.ToString()] == observedCity.Resources.Amount(resource)), "observed resource amounts match exact authoritative balances including zero");
         }
-        TrioPresentation(frame);
+        WoodlandPresentation(frame);
         Countryside(frame);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.Materials > 0 && frame.MusicLoaded, "rendered UI/models/materials/music loaded on owned X11 display");
         Require(frame.UnitBindings.Length == Game.AssetCatalog.RequiredPaths.Count() + 8, "all required authored models and eight faction/role rigs, clips and equipment sockets imported");
@@ -670,7 +673,7 @@ internal sealed partial class Runner
                 await client.Send("key Escape");
                 await WaitUi(client, p => p.SettingsOpen && !p.DropdownOpen, "Escape closes dropdown before settings", token);
                 UiObservation resized = await ResizeTo1280(client, token);
-                TrioPresentation(resized);
+                WoodlandPresentation(resized);
                 await GraphicsSettingsInput(client, token);
                 Require(Math.Abs(resized.Camera.Zoom - closed.Camera.Zoom) < 0.001 && Math.Abs(resized.Camera.PanX - closed.Camera.PanX) < 0.001 && Math.Abs(resized.Camera.PanZ - closed.Camera.PanZ) < 0.001, "resize preserves relative navigation");
                 await Click(client, "AboutTab", token);

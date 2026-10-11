@@ -132,6 +132,11 @@ depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-network"
 raw_args = true
 
+[tasks.test-ui-resources]
+description = "Focused headless native UI resource/modal/input/settings fixture; never starts the game or a display"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-ui-resources"
+
 [tasks.test-ui]
 description = "Run named graphical checks on an owned private Linux display"
 depends = ["runner"]

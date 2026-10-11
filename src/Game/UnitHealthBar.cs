@@ -6,9 +6,9 @@ namespace Game;
 // One inexpensive, input-transparent overlay owned by the current tabletop.
 internal sealed partial class UnitHealthBar : Control
 {
-    private readonly TextureRect _track = new() { Texture = UiAssets.Texture("derived/health_track.svg"), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = MouseFilterEnum.Ignore };
+    private readonly Panel _track = new() { MouseFilter = MouseFilterEnum.Ignore };
     private readonly Control _clip = new() { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore };
-    private readonly TextureRect _fill = new() { Texture = UiAssets.Texture("derived/health_fill.svg"), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = MouseFilterEnum.Ignore };
+    private readonly Panel _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
     private readonly Label _role = new() { MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Left };
     internal int Current { get; private set; }
     internal int Maximum { get; private set; }
@@ -16,6 +16,9 @@ internal sealed partial class UnitHealthBar : Control
     internal UnitHealthBar()
     {
         MouseFilter = MouseFilterEnum.Ignore; Size = new(46, 9);
+        Theme theme = ApplicationTheme.Create();
+        _track.AddThemeStyleboxOverride("panel", theme.GetStylebox("background", "ProgressBar"));
+        _fill.AddThemeStyleboxOverride("panel", theme.GetStylebox("fill", "ProgressBar"));
         AddChild(_track); _track.Size = Size;
         AddChild(_clip); _clip.Position = new(1.5f, 1.5f); _clip.Size = Size - new Vector2(3, 3);
         _clip.AddChild(_fill); _fill.Size = _clip.Size;
@@ -54,8 +57,8 @@ internal sealed partial class UnitHealthBar : Control
             Height = Size.Y * transform.Scale.Y,
             FillWidth = _clip.Size.X,
             InputIgnored = MouseFilter == MouseFilterEnum.Ignore && _clip.MouseFilter == MouseFilterEnum.Ignore && _fill.MouseFilter == MouseFilterEnum.Ignore && _role.MouseFilter == MouseFilterEnum.Ignore,
-            Track = _track.Texture.ResourcePath,
-            Fill = _fill.Texture.ResourcePath
+            Track = _track.GetThemeStylebox("panel").ResourcePath,
+            Fill = _fill.GetThemeStylebox("panel").ResourcePath
         };
     }
 }

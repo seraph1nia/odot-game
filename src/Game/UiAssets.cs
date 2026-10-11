@@ -5,38 +5,37 @@ namespace Game;
 
 internal static class UiAssets
 {
-    internal const string Root = "res://Assets/TrioUI/";
+    internal const string Root = "res://UI/";
     private static readonly Dictionary<string, Texture2D> Textures = [];
     internal static Texture2D Texture(string path)
     {
         if (!Textures.TryGetValue(path, out Texture2D? texture))
-            Textures[path] = texture = GD.Load<Texture2D>(Root + path) ?? throw new InvalidOperationException("Missing Trio UI asset: " + path);
+            Textures[path] = texture = GD.Load<Texture2D>(Root + path) ?? throw new InvalidOperationException("Missing woodland UI asset: " + path);
         return texture;
     }
-    internal static Texture2D? Icon(string meaning) => meaning switch
+    internal static Texture2D? Icon(string meaning)
     {
-        "Settings" or "MenuSettings" => Texture("icons/icon_gear.svg"),
-        "Singleplayer" or "Start" or "Ready" or "Resume" or "AcceptJoin" => Texture("icons/icon_play.svg"),
-        "Back" or "ReturnToMenu" or "DeclineJoin" => Texture("cozy/arrow_left.svg"),
-        "Host" or "City" => Texture("icons/icon_home.svg"),
-        "Inspect" => Texture("icons/icon_map.svg"),
-        "Health" => Texture("icons/icon_heart.svg"),
-        "Audio" => Texture("icons/icon_sound_on.svg"),
-        "Gold" => Texture("icons/icon_gold_pile.svg"),
-        "Food" or "Farm" => Texture("icons/icon_bread.svg"),
-        "Army" or "Barracks" => Texture("icons/icon_helmet.svg"),
-        "Swordsman" or "Melee" => Texture("icons/icon_sword.svg"),
-        "Berserker" => Texture("icons/icon_axe.svg"),
-        "Crossbowman" or "Ranged" or "ArcheryRange" or "ArrowTower" => Texture("icons/icon_bow.svg"),
-        "Mage" or "Magic" or "Arcanum" => Texture("icons/icon_staff_magic.svg"),
-        "Upgrade" or "ResearchTower" => Texture("icons/icon_buff.svg"),
-        "Mine" => Texture("icons/icon_gold_pile.svg"),
-        "CatapultTower" => Texture("icons/icon_shield.svg"),
-        _ => null
-    };
+        string[] names = ["Gold", "Food", "Wood", "Stone", "Metal", "Cloth"];
+        int index = Array.IndexOf(names, meaning);
+        return index < 0 ? null : new AtlasTexture { Atlas = Texture("art/woodland/resource_icons.svg"), Region = new(index * 32, 0, 32, 32) };
+    }
+    internal static Control Component(string name, Node parent)
+    {
+        var control = GD.Load<PackedScene>(Root + "components/" + name + ".tscn").Instantiate<Control>();
+        parent.AddChild(control);
+        return control;
+    }
     internal static void Decorate(Button button, string meaning)
     {
         button.Icon = null;
+        button.ThemeTypeVariation = meaning switch
+        {
+            "Singleplayer" or "Start" or "Host" or "AcceptJoin" => "PrimaryButton",
+            "Ready" or "Unready" => "ReadyButton",
+            "Pause" or "Resume" => "MagicButton",
+            "Exit" or "ReturnToMenu" => "DangerButton",
+            _ => ""
+        };
     }
     internal static void Cost(Button button, ResourceCost cost)
     {

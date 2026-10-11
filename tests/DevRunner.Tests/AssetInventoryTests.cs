@@ -12,7 +12,7 @@ public sealed class AssetInventoryTests
     public void SourceAndPackedMappingFilesProjectExactlyTheSameRequiredInventory(string suffix)
     {
         string[] required = AssetCatalog.RequiredPaths.Select(path => AssetCatalog.Root + path).ToArray();
-        string[] observed = required.Select(path => path + suffix).Concat(["res://Assets/TrioUI/README.md", "res://Assets/Authored/manifest.json"]).ToArray();
+        string[] observed = required.Select(path => path + suffix).Concat(["res://UI/README.md", "res://Assets/Authored/manifest.json"]).ToArray();
         Assert.Equal(required, AssetCatalog.InstalledModels(observed));
         Assert.Equal(required, AssetCatalog.InstalledModels(observed.Concat(required)));
         Assert.Throws<InvalidDataException>(() => AssetCatalog.InstalledModels(observed.Skip(1)));

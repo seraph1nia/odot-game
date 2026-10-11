@@ -25,10 +25,12 @@ source-relative export paths, SHA-256, byte counts and embedded dependencies.
 use it**. This is not an invented open-source license or permission to copy
 reference images. Only required game-ready exports are distributed; no editable
 Blender sources, reference archives, catalog files or source-repository caches.
-UI/audio retain their independent notices. The user separately approved
-continued existing third-party UI use with the exact words **yes, 3rd party ui is
-fine too**. This is user approval, not independent verification of creator-granted
-redistribution rights or a new license; no UI/audio replacement is included.
+UI/audio retain their independent notices. The earlier approval of third-party
+UI use (**yes, 3rd party ui is fine too**) is historical owner approval, not creator
+redistribution clearance. The current [woodland UI migration](ui-migration.md)
+replaces every live Trio pack dependency with the pinned authored native kit and
+licensed DejaVu Serif; music is unchanged. Original UI notices and exact removed
+member hashes remain attributable outside the runtime pack.
 
 ## Landed quality refresh
 

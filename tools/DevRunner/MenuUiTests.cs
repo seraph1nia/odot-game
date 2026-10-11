@@ -129,6 +129,7 @@ internal sealed partial class Runner
         UiObservation outsideSettings = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(!outsideSettings.Targets["ReturnToMenu"].Visible, "non-session Settings omits return action");
         await Click(client, "AudioTab", token);
+        await MenuCheckpoint(client, "menu-settings-audio-" + size, token);
         await Click(client, "Volume", token);
         await UiProtocol.Probe(client, options.StartupTimeout, token);
         await client.Send("key Right");
@@ -312,7 +313,7 @@ internal sealed partial class Runner
         string path = Path.Combine(_scope!.EvidenceDirectory, name + ".png");
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
         UiProtocol.Frame(frame, path);
-        TrioPresentation(frame);
+        WoodlandPresentation(frame);
         Countryside(frame);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.MusicLoaded && frame.MusicPlaying, "menu/solo frame uses bundled scenery and persistent music");
         Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "menu route uses owned software graphics and silent audio");
