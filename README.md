@@ -92,14 +92,13 @@ mise run client --host 127.0.0.1 --port 7001 --session-file .sessions/player-a.j
 mise run test-fast
 mise run test-core --filter 'FullyQualifiedName~HexRoutingTests'
 mise run test-runner
-mise run test-engine --scenario settings
+mise run test-engine --scenario settings # settings + native UI resources/modal/input/services
 mise run test-network --scenario playing-host-lifecycle
 # Explicit headless deep qualification, not the default development loop:
 mise run test-campaign
 mise run test-network --scenario redistribution
 mise run test-deep
 mise run test-network --jobs 1
-mise run test-ui-resources # focused headless components/settings; no full game or display
 mise run ci-source
 mise run ci-linux-package
 # Graphical checks require separate authorization; do not run under headless-only tasks.

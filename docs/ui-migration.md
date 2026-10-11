@@ -124,11 +124,9 @@ front. The focused headless regression creates exactly that later blocking sibli
 and proves actual Settings Audio-tab pointer input plus native slider keyboard
 input reach the intended controls. No blind live-game rerun followed the failure.
 
-`mise run test-ui-resources` is a small selected fixture in the existing C# process
-owner, with a 60s child bound and isolated settings. It imports native resources
-and uses an explicit headless SceneTree entry point, never the main scene, a match,
-scenery, display or screenshots. Its current pass is **38 checks** in 8.19s
-(`logs/20261011-081831-3e821258/`): all ten production scenes, actual branch/font/seal,
+The former `mise run test-ui-resources` fixture recorded a historical pre-rebase
+pass of **38 checks** in 8.19s (`logs/20261011-081831-3e821258/`): all ten production
+scenes, actual branch/font/seal,
 four native button states and blue focus, opaque quote intent and disabled reason,
 real-catalog bounded compact node footprints/prerequisite direction for all three
 classes, modal pointer/Tab/Esc/outside blocking/front-sibling routing, actual Settings
@@ -137,19 +135,42 @@ transient renderer overrides. Native header/footer rectangles are measured at
 1100×820 and 1280×720. This is native headless component/input/service evidence,
 **not rendered visual readability or full-game acceptance**. The earlier fixture
 attempt (`logs/20261011-080053-bbef46f4/`) failed because it added UI to a root busy
-initializing; the fixture now owns its UI children directly. Its logs remain.
+initializing; the corrected fixture owned its UI children directly. Its logs remain.
+
+Those checks now live in the existing minimal `EngineTests` scene under
+`mise run test-engine --scenario settings`, including routine source CI selection.
+The redundant probe/launcher/SceneTree-entry/task chain was removed, not its
+meaningful assertions. The landed supervisor supplies isolated preferences,
+marker validation, engine logs, deadline and awaited cleanup. Added headless
+regressions cover nested confirmation scope across Settings resize, current
+per-open invokers after old controls are freed, invalid explicit invokers and
+external Settings-control cleanup before reload.
+
+The review-fix worktree based on `41738cdf` passed the focused
+`test-engine --scenario settings --startup-timeout-ms 60000` selection:
+**56 assertions** (the original settings checks, preserved 38 UI checks and added
+ownership/lifetime/resize regressions), component 1.09s, runner including locked
+restore/build/headless import 14.57s. Receipt:
+`logs/20261011-102513-59899b65/test-engine-summary.json` and
+`engine-settings/engine.log` beneath that run directory. Changed C# was formatted
+with `dotnet format Odot.slnx --no-restore --include ...`. An initial preparation
+attempt stopped at worktree-local mise trust; process-local path authorization
+avoided user configuration changes. The first build then caught nullable invoker
+marshalling, corrected before the passing run. Animation/assets, full C#/lint,
+transport/package/CI and graphical checks were not run in this review-fix round;
+those required outer gates remain separate from this partial component receipt.
 
 Final village/building/army/research/combat/multiplayer live-game journeys and
 refreshed screenshots, native GPU/compositor/performance/physical input/listening,
 exported presentation, paired Steam delivery, HiDPI/localization/RTL/tiny-window/
 controller support remain **unexecuted on the final source** under the new policy.
 The earlier Settings pass does not certify subsequent layout edits. Original
-ordinary UI/network/Compatibility/full-CI assertions and admission/deadlines remain
-intact; this migration does not overhaul or waive them. The separate testing-policy
-implementation owns reconciliation. Graphical export presets now include the
-current UI manifest/notices/font license and exclude the selected fixture entry;
-packaged runtime/visual execution remains unexecuted, not inferred from filters. In particular `.github/workflows/ci.yml`
-still invokes `ci-source`, `ci-linux-package` and `ci-windows`, which include now
-forbidden game/graphical checks. No-mistakes must not start those phases or publish
-an unvalidated PR until its required check contract is reconciled by that owner.
+graphical journeys remain explicit, authorized selections rather than ordinary CI;
+the landed [testing policy](verification.md) owns headless engine/transport/package
+selection and process admission/deadlines. Client export presets include the
+current UI manifest/notices/font license and exclude `Verification/*`;
+packaged runtime/visual execution remains unexecuted by this review, not inferred
+from filters. `.github/workflows/ci.yml` invokes the landed headless `ci-source`,
+`ci-linux-package` and `ci-windows` gates; no graphical qualification is selected
+by those ordinary gates.
 No fullscreen or unrelated desktop capture is used for this migration.

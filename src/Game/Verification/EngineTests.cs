@@ -21,7 +21,7 @@ public partial class EngineTests : Node
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             switch (scenario)
             {
-                case "settings": await Settings(); break;
+                case "settings": await Settings(); await UiComponents(); break;
                 case "animation": Animation(); break;
                 case "assets": await AssetFidelityProbe.Run(this); return;
                 default: throw new ArgumentException("Unknown engine scenario: " + scenario);
@@ -57,22 +57,33 @@ public partial class EngineTests : Node
             "volume signal updates actual bus gain");
         first.VolumeSlider.EmitSignal(Slider.SignalName.DragEnded, true);
         // The production control's signal path, not a duplicate graphics implementation.
-        var weather = first.FindChildren("Graphics_weather", "OptionButton", true, false).OfType<OptionButton>().Single();
+        var weather = first.Dialog.Content.FindChildren("Graphics_weather", "OptionButton", true, false).OfType<OptionButton>().Single();
         weather.EmitSignal(OptionButton.SignalName.ItemSelected, 2L);
         Check(first.Graphics["weather"] != 2 && first.GraphicsDraft["weather"] == 2, "graphics edits remain draft before Apply");
-        var apply = first.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single();
+        var apply = first.Dialog.FooterContent.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single();
         apply.EmitSignal(BaseButton.SignalName.Pressed);
         Check(first.Graphics["weather"] == 2, "Apply signal commits graphics preferences");
         first.Close(false);
         Check(!first.IsOpen, "close dismisses dialog");
-        RemoveChild(first); first.Free();
+        DestroySettings(first);
+        Check(ui.GetChildCount() == 0, "settings reload releases externally parented controls");
         ClientSettings restored = Create();
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         Check(restored.MasterVolume == 37 && restored.Graphics["weather"] == 2, "new component reloads persisted volume and graphics");
         Check(!AudioServer.IsBusMute(bus) && Math.Abs(AudioServer.GetBusVolumeLinear(bus) - .37f) < .001,
             "reload applies persisted audio gain");
-        RemoveChild(restored); restored.Free();
+        DestroySettings(restored);
         RemoveChild(ui); ui.Free();
+    }
+
+    private static void DestroySettings(ClientSettings settings)
+    {
+        UiDialog dialog = settings.Dialog;
+        Button button = settings.SettingsButton;
+        settings.GetParent().RemoveChild(settings);
+        settings.Free();
+        dialog.Free();
+        button.Free();
     }
 
     private void Animation()
