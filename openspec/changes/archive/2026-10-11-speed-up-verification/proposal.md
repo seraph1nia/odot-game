@@ -2,7 +2,7 @@
 
 > Historical completed change, not current execution policy. The later headless
 > overhaul supersedes its routine campaign/graphical selections; see the
-> [current testing strategy](../../../.agents/skills/testing-strategy/SKILL.md).
+> [current testing strategy](../../../../.agents/skills/testing-strategy/SKILL.md).
 
 ## Why
 

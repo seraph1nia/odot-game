@@ -1,9 +1,9 @@
 # Design
 
 > Historical completed design. Its campaign partitions and automatic graphical
-> gates are superseded by the [current testing strategy](../../../.agents/skills/testing-strategy/SKILL.md).
+> gates are superseded by the [current testing strategy](../../../../.agents/skills/testing-strategy/SKILL.md).
 > Original measurements and coverage ownership are retained in
-> [verification history](../../../docs/verification-history.md#verification-speed-implementation-coverage-ownership).
+> [verification history](../../../../docs/verification-history.md#verification-speed-implementation-coverage-ownership).
 
 ## Context
 

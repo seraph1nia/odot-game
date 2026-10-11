@@ -110,6 +110,12 @@ relevant evidence; that first selected pass is not final-head acceptance.
 
 ### Current headless-only qualification (captain policy, 2026-10-11)
 
+The later pipeline Test receipt at `01c05c8` includes a tool-acquisition incident.
+The [retained incident audit](toolchain-incident.md) separates earlier selected
+passes, failed/download-touched attempts and the final package consumer. Current
+locks are restored, but residual tool-state and final-input provenance remain
+unresolved; that receipt is not publication clearance.
+
 After the captain prohibited tests that launch the actual graphical game, no more
 source/exported graphical journeys, displays, captures or old full-CI tasks were
 started. Completed owned workers/game PIDs were checked absent and their runtime/
