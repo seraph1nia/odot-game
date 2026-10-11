@@ -89,12 +89,10 @@ of that import.
 
 ## Forest art direction
 
-The [forest art pass](forest-art.md) extends this same environment owner with
-Natural / Enchanted / Dreaming themes, native 3D LUT correction and one bounded
-optional magic rig. Art Style preferences use the existing graphics transaction;
-weather/quality remain independent. Current headless checks establish resource
-and lifecycle behavior, **not** new native scenic appearance. See the separate
-[headless verification plan](forest-art-verification-plan.md).
+See [forest art direction](forest-art.md) for the themes, Art Style preferences,
+optional magic rig and its qualification boundary. It extends this same
+atmosphere owner; the [headless verification plan](forest-art-verification-plan.md)
+selects the change-specific checks.
 
 ## Renderer selection
 
@@ -124,10 +122,10 @@ Compatibility/OpenGL, regardless of project defaults or user preference.
 
 ## Settings behavior
 
-The native Graphics tab has scrollable Display/performance, Atmosphere/weather
-and Accessibility/comfort groups. Existing display mode/resolution, Audio, About,
-kit styling, focus restoration and selectors remain. Display changes preview
-immediately; **Apply graphics** keeps them and **Cancel graphics changes** restores
+The native Graphics tab has scrollable Display/performance, Atmosphere/weather,
+[Art Style](forest-art.md#settings-and-palette) and Accessibility/comfort groups.
+Existing display mode/resolution, Audio, About, kit styling, focus restoration
+and selectors remain. Display changes preview immediately; **Apply graphics** keeps them and **Cancel graphics changes** restores
 the last applied state. **Apply & close** keeps changes and closes only Settings;
 Escape/window-close discards unapplied graphics changes. A deliberate window resize
 outside Settings is saved, even when the initial launch supplied a transient display
@@ -182,7 +180,9 @@ values. Weather/renderer/accessibility remain independent. Reduce environmental
 motion removes wind, drifting leaves and water motion. Reduce weather effects
 quarters rain/airborne intensity. Reduced visual effects removes glow and SSIL.
 Atmosphere Off disables cosmetic fog/weather/motion/glow without changing gameplay
-or the chosen shadow/AA settings. Reset produces a cancellable default draft.
+or the chosen shadow/AA settings. For its interaction with magic, quality and
+comfort settings, see [forest effect policy](forest-art.md#one-bounded-environmental-effect-rig).
+Reset produces a cancellable default draft.
 
 ## Ownership and bounded effects
 

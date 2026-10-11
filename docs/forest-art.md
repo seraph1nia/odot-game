@@ -93,10 +93,11 @@ gills/runes/lanterns. Alpha remains coverage, never guessed emission.
 
 Off hides lights, marks and **existing live particles immediately**, not merely
 stopping new emission. Atmosphere Off also suppresses optional magic. Reduced
-motion stops ambient particle motion; Reduced visual effects caps magic at Subtle.
-Low quality has no ambient magic particles and at most two accents. Weather
-particle density stays independent. Full on Medium does not require volumetric
-fog. Changing the viewed city resets/moves the same local particle rig, frees
+motion hides ambient magic particles and stops new emission; it does not freeze
+the particle simulation. Reduced visual effects caps magic at Subtle. Low quality
+also caps magic at Subtle, with no ambient magic particles and at most two accents.
+Weather particle density stays independent. Full on Medium does not require
+volumetric fog. Changing the viewed city resets/moves the same local particle rig, frees
 old decals and binds the new grounded sites; repeated selection does not add
 nodes. A null landscape suppresses the rig. Owner disposal releases its subtree.
 
@@ -125,8 +126,8 @@ further asset exports are currently unnecessary.
 Protected: authoritative terrain/hexes, floor/river/bridge/trail topology and
 heights, collision/picking/navigation/combat paths, fixed plots, camera controls,
 rigs/animations/sockets, Arch numerical state, gameplay input, multiplayer,
-economy and saves. Decorative transforms and the receiver visibility bit alone
-change presentation.
+economy and saves. The additions above, decorative transforms and the receiver
+visibility bit affect presentation only.
 
 ## Verification and limitations
 

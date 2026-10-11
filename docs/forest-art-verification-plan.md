@@ -6,13 +6,14 @@ Do not start any GUI game, private X11/Xvfb display, full-game UI/scenic journey
 Forward+ native capture, graphical package smoke or installed graphical test.
 Do not set ODOT_ALLOW_GRAPHICAL_TESTS=1, including as a pipeline or CI workaround.
 Do not certify appearance from older renderer receipts or the asset showcase.
-No release, merge, skip, waiver or prerequisite download/install is authorized.
+This plan authorizes no release, skipped checks, waivers or prerequisite
+downloads/installs; merge authority remains with the outer no-mistakes run.
 
-Use declared Godot .NET 4.7.2 and locked SDK/NuGet/template inputs. Matching local
-export templates already exist at ~/.local/share/godot/export_templates/4.7.2.stable.mono;
-check availability rather than acquiring missing ones. Run shared preparation and
-exports serially; only completed isolated binaries/owned headless transport peers
-may overlap. Existing Child/ScenarioScope cleanup/error/readiness/admission owners
+Use the locked tools and matching templates described in [setup](../README.md#setup)
+and [exports](../README.md#verification-and-exports). Check local template
+availability rather than assuming they exist or acquiring missing ones. Run shared
+preparation and exports serially; only completed isolated binaries/owned headless
+transport peers may overlap. Existing Child/ScenarioScope cleanup/error/readiness/admission owners
 and deadlines remain unchanged. Never touch developer preferences or unrelated
 processes/endpoints. Missing prerequisites are nonzero/unexecuted.
 
@@ -31,8 +32,8 @@ processes/endpoints. Missing prerequisites are nonzero/unexecuted.
    images/metadata/binding; shadowless finite lights; actual device-based decal
    fallback; imported receiver/support/provenance/material/mip contracts; bounded
    GPU configurations, Off/comfort/quality, transitions and disposal. Dummy
-   cannot verify pixels or 3D GPU readback. The exported asset proof uses the same
-   production resource assertions, not a source-text proxy.
+   cannot verify rendered pixels or 3D GPU readback. The exported asset proof uses
+   the same production resource assertions, not a source-text proxy.
 4. Required full **headless** current workflow coverage: `mise run ci-source
    --startup-timeout-ms 60000`, `mise run ci-linux-package
    --startup-timeout-ms 60000` (serial after source). Existing bounded essential

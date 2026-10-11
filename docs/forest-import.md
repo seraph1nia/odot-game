@@ -63,18 +63,21 @@ new map UID sidecars. Growth is **224,696 GLB bytes + 223,186 derived-map bytes*
 These are storage counts, not GPU-memory, batching or performance measurements.
 
 Four texture-only resources—rune circle, moss wash, fairy ring and spore growth—are
-supplied for subsequent styling. The manifest's `textures` records own their exact
-source/destination paths and byte identities, independently of `derived` maps;
+supplied for styling; their runtime use is owned by
+[forest art direction](forest-art.md#one-bounded-environmental-effect-rig).
+The manifest's `textures` records own their exact source/destination paths and
+byte identities, independently of `derived` maps;
 standalone textures have no fictitious embedded-map parents.
 
 They total **97,676 bytes**: four source/export-identical 512×512 8-bit RGBA PNGs,
 straight sRGB RGB and linear coverage alpha, transparent borders and peak alpha
 ≤0.42. Imports are lossless, mipmapped, not premultiplied, with transparent-border
-RGB rewriting disabled. Alpha is not emission, roughness or wind. No native Decal,
-projector, receiver filter or runtime placement is added. Source PNG top is +Y
-(right +X, normal +Z); through the existing glTF conversion it is −Z (normal +Y).
-Suggested source-unit footprints are rune 1.2–2.0, moss 0.5–1.2, fairy 0.8–1.6,
-spore 0.3–0.7; future placement must independently qualify bounded receiving depth.
+RGB rewriting disabled. Alpha is not emission, roughness or wind. This resource
+import added no native Decal, projector, receiver filter or runtime placement.
+Source PNG top is +Y (right +X, normal +Z); through the existing glTF conversion
+it is −Z (normal +Y). Suggested source-unit footprints are rune 1.2–2.0,
+moss 0.5–1.2, fairy 0.8–1.6, spore 0.3–0.7; actual game footprints and receiving
+depth belong to the forest art reference linked above.
 
 ## Effective zero emission correction
 
