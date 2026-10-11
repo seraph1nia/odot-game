@@ -88,12 +88,78 @@ supervisor is needed. This lint turn used the installed absolute .NET/OpenSpec
 executables for locked restore, changed-file formatting and static compilation;
 it ran no behavioral checks.
 
-**Publication remains blocked by unresolved incident provenance.** Current
-versions, restored locks and absent disposable directories do not prove that the
-35-tool installation left global/user tool/plugin/config state unchanged, or
-prove the final consumer's input identities. The retained evidence lacks the
-exact incident/final commands, full destination environment and pre/post state
-comparison. The outer executor needs retained acquisition/restoration/cleanup
-command evidence and attributable final executable/package/staged-library
-identities, or an explicit resolution of those unknowns; this lint phase cannot
-invent that evidence, mutate global state, rerun Test, or clear publication.
+**Publication remains blocked by unresolved incident provenance and missing fresh
+qualification.** Current versions, restored locks and absent disposable directories
+do not establish the destinations of every acquisition or the final consumer's
+input identities. Historical before-state is unknown: current inspection cannot
+prove complete global restoration, and no such claim is made. The latest recorded
+approval requires bounded reconstruction and fresh pipeline-owned headless Test
+qualification, not a waiver of those unknowns. This lint phase cannot invent
+missing records, mutate global state, rerun Test, or clear publication.
+
+## Bounded follow-up at `0177c9a`
+
+The follow-up lint input is
+`0177c9ab841e562c6d9e6355a09bc753990dafd1`. Inspection stayed within the named
+run's evidence root, the worktree and previously resolved executable paths.
+The supplied latest recorded decision defines the approval boundary; no separate
+updated canonical-brief file or Test-native-session path was supplied or found
+in the worktree/named evidence root. No host/session-directory search was made.
+
+A fresh read-only `axi logs --run 01M4N6QHV3Y2Y254Q4GY8P7VC8 --step test --full`
+returned byte-identical output to `logs/lint-test-phase-retained.log`; the new
+copy is `logs/lint-test-phase-current.log`. The retained launch record identifies
+Test's `pi` PID as `1453573`, but exposes only narrative/result, not native tool
+calls. `axi logs --help` offers step-log retrieval, not a native-session export or
+qualification dispatch. The available evidence root contains the receipts and
+attempt logs listed above, not the missing launch environment or cleanup commands.
+
+The setup log explicitly reports these 35 installed tool/version identities:
+
+- zoxide 0.10.0, fzf 0.74.4, tmux 3.7c, starship 1.26.0, direnv 2.37.1,
+  eza 0.23.5, ripgrep 15.2.0, fd 10.5.0, jq 1.8.2, bat 0.26.1;
+- node 24.21.0, yq 4.53.6, herdr 0.9.1, docker-cli 29.8.2, gh 2.101.0,
+  kubectl 1.37.1, kubectx 0.11.0, uv 0.12.19, helm 4.3.0, go 1.27.1;
+- kubens 0.11.0, kubelogin 1.36.4, python 3.14.7, pnpm 11.28.0, op 2.40.0,
+  just 1.58.0, npm:@fission-ai/openspec 1.13.2, godot-dotnet 4.7.2-stable;
+- awscli 2.37.9, opencode 1.18.32, npm:cdk 2.1143.0, copilot 1.0.88,
+  claude 2.1.283, npm:vite-plus 0.3.3, dotnet 10.0.401.
+
+The plugin clone is separately identified as `vfox-1password.git#912327d`.
+Only the disposable .NET destination is explicit in the log. The receipt attributes
+the workaround to `mise exec` after changing `XDG_DATA_HOME`, but its exact argv,
+complete environment and other destinations remain unobserved. There is no basis
+to label any particular global directory as incident-mutated, or unchanged.
+The concrete owned `.test-runtime` and `dist` paths remain absent; lockfiles remain
+unchanged from Test head. Current executable versions and hashes still match the
+table above. Those observations do not recover historical before-state.
+
+The failed/setup and passing receipts were preserved. SHA-256 identities measured
+in this follow-up, relative to the retained evidence root, are:
+
+| Retained file | SHA-256 |
+| --- | --- |
+| `testing-receipt.json` | `417028e4d08888d0359bdaad8792d95c9847cd53ae28727c63ba3c87db673330` |
+| `package-resource-setup-attempt.log` | `8da7b40977d57da4e8e9e3da738f3b52d43982b71a8e7de324588ac975d4a82c` |
+| `package-pointer-initial-attempt.log` | `dab8313bd7519675cabe00ea81e60a4dc699c2bb57731108167a78f693fa633a` |
+| `package-resource-consumer.log` | `78c947fe11ddfe8c1a2e023cb2cc9d535ad6c60d14f6a0544d80e9c11ecfa3c2` |
+
+Current-head **static checks only** passed: installed absolute .NET 10.0.401
+locked restore, formatting verification scoped to all 21 changed C# files and
+solution compilation with zero warnings/errors; installed OpenSpec 1.13.2 with
+installed Node 24.21.0 passed `validate --all --strict` (26 passed, zero failed).
+Logs are `logs/lint-round3-{restore,format,build,openspec}.log`. Process-local
+installed-tool directories preceded mise shims on `PATH`, and both no-auto-install
+settings resolved to `false`. No behavioral test or graphical process ran.
+
+Fresh source/package/staged-library qualification is **unexecuted**. The phase
+boundary explicitly forbids this worker from running Test or invoking pipeline
+control/continuation commands, so it cannot dispatch the supported pipeline-owned
+Test route. The outer executor must arrange that continuation and supply the
+owned native Test launch/session records if available. Qualification must capture
+exact commands, resolved locked executable paths/hashes, source head, package and
+staged-library paths/hashes, actual results and awaited owned cleanup, retaining
+old attempts separately. If the outer executor has no supported continuation or
+cannot recover incident facts, it must report that limitation without approving,
+skipping, restarting or claiming complete restoration. This static pass is not
+current-head behavioral qualification or publication clearance.
