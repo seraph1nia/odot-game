@@ -13,7 +13,8 @@ internal sealed record GlbSummary(int Meshes, int Materials, int Images, string[
     IReadOnlyDictionary<string, double> ClipStarts, string[] Joints, IReadOnlyDictionary<string, string[]> Children);
 
 // Actual distribution bytes and their declarative GLB contracts, not C# source
-// text. Engine import/posed attachment checks remain the graphical consumer's job.
+// text. Imported-resource checks belong to the headless engine consumer;
+// rendered acceptance remains separate from byte-contract admission.
 internal static class AuthoredAssets
 {
     private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };

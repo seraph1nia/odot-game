@@ -32,12 +32,10 @@ unsupported and explicitly rejected by the consolidation interface.
 
 ## Current forest resources
 
-The selected [forest resource import](forest-import.md) adds immutable map/standalone
-PNG admission and imported source-factor checks to the same headless proof.
-`mise run test-assets --exported` selects an existing Linux client without source
-preparation, implicit re-export, graphical display or gameplay session. The same
-geometry/ground negative regressions and bounded ownership remain. Final evidence
-and current headless-only policy limitations are recorded in the import report.
+See the [forest resource import](forest-import.md) for map/standalone PNG admission,
+imported-material and mipmap checks, existing-client `--exported` usage, and the
+historical-versus-current evidence boundary. These extend the same headless proof;
+geometry/ground negative regressions and bounded ownership remain unchanged.
 
 ## Executable causal check
 

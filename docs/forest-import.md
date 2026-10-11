@@ -22,14 +22,14 @@ No editable source, reference image, source tool or preview is distributed.
 
 Only **six of the 22 refined exports** have current game consumers:
 
-| ID (destination adds `.glb` under `src/Game/Assets/Authored/`) | Current consumer | Exact export bytes |
-| --- | --- | ---: |
-| `environment/components/forest_fern` | Existing deterministic woodland understory | 468,244 |
-| `environment/components/forest_leaf_clump` | Existing deterministic woodland understory | 388,060 |
-| `environment/components/forest_moss` | Existing deterministic woodland understory | 365,340 |
-| `environment/components/forest_mushroom_small` | Existing small mushrooms/clearing and woodland understory | 1,614,404 |
-| `environment/components/forest_spiral_tree` | Existing spiral canopy and passive scenery | 1,053,088 |
-| `environment/hex_woodland_bridge` | Existing adapted timber bridge composition | 7,896,016 |
+| ID (destination adds `.glb` under `src/Game/Assets/Authored/`) | Current consumer |
+| --- | --- |
+| `environment/components/forest_fern` | Existing deterministic woodland understory |
+| `environment/components/forest_leaf_clump` | Existing deterministic woodland understory |
+| `environment/components/forest_moss` | Existing deterministic woodland understory |
+| `environment/components/forest_mushroom_small` | Existing small mushrooms/clearing and woodland understory |
+| `environment/components/forest_spiral_tree` | Existing spiral canopy and passive scenery |
+| `environment/hex_woodland_bridge` | Existing adapted timber bridge composition |
 
 The first four derive from `sources/environment/shared_forest_kit.blend`, the
 spiral tree from `sources/environment/shared_enchanted_kit.blend`, and the bridge
@@ -62,15 +62,10 @@ image-path bytes unchanged. Existing GLB import UIDs are retained; Godot supplie
 new map UID sidecars. Growth is **224,696 GLB bytes + 223,186 derived-map bytes**.
 These are storage counts, not GPU-memory, batching or performance measurements.
 
-Four texture-only resources are supplied for subsequent styling, with independent
-`textures` manifest records rather than fictitious embedded-map parents:
-
-| Canonical source export | Game destination (under `src/Game/Assets/Authored/`) |
-| --- | --- |
-| `exports/environment/decals/forest_decal_rune_circle.png` | `environment/decals/forest_decal_rune_circle.png` |
-| `exports/environment/decals/forest_decal_moss_wash.png` | `environment/decals/forest_decal_moss_wash.png` |
-| `exports/environment/decals/forest_decal_fairy_ring.png` | `environment/decals/forest_decal_fairy_ring.png` |
-| `exports/environment/decals/forest_decal_spore_growth.png` | `environment/decals/forest_decal_spore_growth.png` |
+Four texture-only resources—rune circle, moss wash, fairy ring and spore growth—are
+supplied for subsequent styling. The manifest's `textures` records own their exact
+source/destination paths and byte identities, independently of `derived` maps;
+standalone textures have no fictitious embedded-map parents.
 
 They total **97,676 bytes**: four source/export-identical 512×512 8-bit RGBA PNGs,
 straight sRGB RGB and linear coverage alpha, transparent borders and peak alpha

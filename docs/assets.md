@@ -18,10 +18,11 @@ integration correction; neither rejected optimization candidate ships.
 
 ## Source and permission
 
-Selected GLBs under `src/Game/Assets/Authored/` are copied byte-for-byte from
-https://github.com/seraph1nia/odot-game-assets.git at the revision pinned in the
-[manifest](../src/Game/Assets/Authored/manifest.json). It records exact
-source-relative export paths, SHA-256, byte counts and embedded dependencies.
+Selected authored exports under `src/Game/Assets/Authored/` are copied byte-for-byte
+from https://github.com/seraph1nia/odot-game-assets.git at the revision pinned in the
+[manifest](../src/Game/Assets/Authored/manifest.json). It owns the GLB, extracted-map
+and standalone-texture inventories and their exact source-relative paths, SHA-256
+hashes, byte counts and embedded dependencies.
 `NOTICE.md` records owner permission exactly: **the repo is my own work, so yes,
 use it**. This is not an invented open-source license or permission to copy
 reference images. Only required game-ready exports are distributed; no editable
@@ -31,15 +32,15 @@ continued existing third-party UI use with the exact words **yes, 3rd party ui i
 fine too**. This is user approval, not independent verification of creator-granted
 redistribution rights or a new license; no UI/audio replacement is included.
 
-## Landed quality refresh
+## Earlier quality refresh (2026-10-08)
 
 The [landed asset upgrade](https://github.com/seraph1nia/odot-game-assets/pull/2)
-changes 11 of the 44 exports already used by the game. The remaining 33 match
-that revision without copying new bytes. No unused catalog models are added.
-The existing [manifest](../src/Game/Assets/Authored/manifest.json) is the
-source-to-destination ID/path/SHA-256 inventory: each ID is its `path` without
-`.glb`, `sourcePath` is relative to the pinned source repository, and the game
-destination is `src/Game/Assets/Authored/<path>`.
+changed 11 of the 44 exports then used by the game. The remaining 33 matched
+that revision without copying new bytes. No unused catalog models were added.
+The refinements and receipts below describe that earlier refresh, not the current
+inventory or the subsequent forest-resource inputs. See [Source and permission](#source-and-permission)
+for current provenance and the [forest import report](forest-import.md#pin-and-selection)
+for source-to-destination ID/path conventions.
 
 | Changed game-used IDs | Export refinements |
 | --- | --- |
@@ -92,8 +93,8 @@ The [forest import report](forest-import.md) and
 required embedded-map closure, four standalone transparent decal textures and
 source-factor-faithful post-import correction. The current manifest pins the
 actual inspected source revision; no unused focal/library export or Ledger UI
-package is copied. The report distinguishes completed headless checks from
-historical native evidence and the captain's later headless-only test policy.
+package is copied. The report distinguishes retained pre-rebase headless/native evidence from
+current inputs and the landed headless CI policy.
 Dreaming Forest game styling remains a separate next task.
 
 ## Detailed forest floors and surface overlays
