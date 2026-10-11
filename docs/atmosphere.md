@@ -72,6 +72,15 @@ Its pending/blocker statements do not supersede the qualification status above.
 Forensic work is parked; publication remains the separate same-worker no-mistakes
 handoff, with no manual push/PR/merge/release or waived checks.
 
+## Later forest resource import
+
+The [selected forest import](forest-import.md) follows this landed renderer work.
+It preserves the atmosphere controller, renderer/weather/quality/preferences
+behavior while updating only selected authored resources and source-faithful
+import handling. Its current test policy and qualification boundary are separate
+from the historical native campaigns below; Dreaming Forest styling is not part
+of that import.
+
 ## Renderer selection
 
 First-run desktop play/dev/client use Godot's native **Forward+ / Vulkan**. No

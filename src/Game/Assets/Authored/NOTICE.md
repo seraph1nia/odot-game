@@ -1,6 +1,6 @@
 # Authored export permission and provenance
 
-These selected game-ready GLBs are copied byte-for-byte from the owner's
+These selected game-ready GLBs and standalone forest decal PNGs are copied byte-for-byte from the owner's
 `odot-game-assets` repository:
 
 - Source: https://github.com/seraph1nia/odot-game-assets.git
@@ -10,7 +10,7 @@ These selected game-ready GLBs are copied byte-for-byte from the owner's
   **the repo is my own work, so yes, use it**
 
 This records owner-permitted use of the authored game-ready exports and their
-embedded maps. It is **not** an invented open-source license, a public-domain
+embedded maps and requested standalone forest textures. It is **not** an invented open-source license, a public-domain
 claim, an attribution requirement, or permission to redistribute unrelated
 third-party/reference material. No standalone export LICENSE was supplied by the
 source project. No external reference images, editable Blender files, catalogs,

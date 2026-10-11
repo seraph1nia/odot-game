@@ -2,7 +2,8 @@
 
 ## Migration status
 
-The distribution contains byte-identical authored GLBs and extracted PNG maps;
+The distribution contains byte-identical authored GLBs, extracted PNG maps and
+selected standalone forest decal textures;
 the [manifest](../src/Game/Assets/Authored/manifest.json) owns the current inventory
 and per-file byte counts. All 71 legacy active/dormant models and their 166
 buffer/atlas/import supports are removed;
@@ -83,6 +84,17 @@ paid setup lost its observer city (`logs/20261008-184423-3546fd00`). Stale cache
 were retained outside the import root; the unchanged reconnect slice passed
 in 79.19s (`logs/20261008-184658-21b13756`) before the final full pass. No gameplay,
 fixture, importer or assertion changes were made to obtain that pass.
+
+## Selected Dreamlike Forest refresh
+
+The [forest import report](forest-import.md) and
+[selection receipt](forest-import-receipt.json) own the later six-export refresh,
+required embedded-map closure, four standalone transparent decal textures and
+source-factor-faithful post-import correction. The current manifest pins the
+actual inspected source revision; no unused focal/library export or Ledger UI
+package is copied. The report distinguishes completed headless checks from
+historical native evidence and the captain's later headless-only test policy.
+Dreaming Forest game styling remains a separate next task.
 
 ## Detailed forest floors and surface overlays
 

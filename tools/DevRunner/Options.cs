@@ -84,7 +84,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--target" when command is "export-client" or "check-steam-extension" or "release-preflight" or "play" or "client": exportTarget = Value(); break;
                 case "--offline" when command == "check-steam-extension": offline = true; break;
                 case "--desktop" when command == "test-vulkan": desktopSurface = true; break;
-                case "--exported" when command is "check-steam-extension" or "test-steam" or "test-vulkan" or "test-atmosphere" or "_ui-worker" or "play" or "client": exported = true; break;
+                case "--exported" when command is "check-steam-extension" or "test-steam" or "test-vulkan" or "test-atmosphere" or "test-assets" or "_ui-worker" or "play" or "client": exported = true; break;
                 case "--role" when command == "test-steam": steamRole = Value(); break;
                 case "--lobby" when command == "test-steam": lobby = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
                 case "--help": return new("help", host, bind, port, startup, timeout, [], sessionFile);

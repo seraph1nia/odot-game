@@ -10,7 +10,7 @@ public sealed record UnitVisual(string Name, string Path, string MainProp, strin
 public static class AssetCatalog
 {
     public const string Root = "res://Assets/Authored/";
-    public const string Revision = "ae7f76a28f7bdd8471aeacb8bb40596aec758bfe";
+    public const string Revision = "12bc5ef02765c1d4b725013791f7420918aacd64";
     public const string Permission = "the repo is my own work, so yes, use it";
     public const string Meadow = "environment/components/forest_hex_meadow.glb";
     public const string Stream = "environment/components/forest_hex_stream.glb";
@@ -90,6 +90,16 @@ public static class AssetCatalog
                 + string.Join(", ", installed.Except(required, StringComparer.Ordinal)));
         return installed;
     }
+
+    // Texture-only resources for the subsequent forest styling pass. Registering
+    // these PNGs does not project decals or assign an emission/wind channel.
+    public static IEnumerable<string> RequiredTexturePaths => new[]
+    {
+        "environment/decals/forest_decal_fairy_ring.png",
+        "environment/decals/forest_decal_moss_wash.png",
+        "environment/decals/forest_decal_rune_circle.png",
+        "environment/decals/forest_decal_spore_growth.png"
+    };
 
     public static IEnumerable<string> RequiredPaths => Buildings.Values.SelectMany(b => new[] { b.Path, b.Upgrade })
         .Concat(Units.Values.Select(u => u.Path))
