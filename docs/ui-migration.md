@@ -2,29 +2,22 @@
 
 ## Source and runtime boundary
 
-The game consumes the accepted native kit from
-`https://github.com/seraph1nia/odot-game-assets.git` at
-`12bc5ef02765c1d4b725013791f7420918aacd64`. This incorporates the compact skill tree
-and its later woodland HUD/menu presentation, not the superseded flat Ledger
-palette. `src/Game/UI/manifest.json` pins all 46 production member hashes and
-source-relative paths, the current API/inventory/migration/coverage/woodland
-records, theme generator, original seal source and reference hashes. See
-[notices](../src/Game/UI/README.md), [woodland provenance](../src/Game/UI/woodland-art.json)
-and the complete [font license](../src/Game/UI/fonts/LICENSE-DejaVu.txt).
+The game consumes the accepted native kit from `odot-game-assets`, incorporating
+its compact skill tree and later woodland HUD/menu presentation, not the
+superseded flat Ledger palette. The [manifest](../src/Game/UI/manifest.json) owns
+the exact source revision, production member hashes and source-relative paths,
+API/inventory/migration/coverage/woodland bindings, theme generator, original seal
+source, reference hashes and catalog package identity. See
+[notices and acquisition boundary](../src/Game/UI/README.md),
+[woodland provenance](../src/Game/UI/woodland-art.json) and the complete
+[font license](../src/Game/UI/fonts/LICENSE-DejaVu.txt).
 
-The current catalog package hash is
-`9e33e478bd3ce329fd9ad892eb19858b84b1dc797fb8ff8aed3c23c8381df946`
-(554,750 bytes). Its package/check owner is pinned separately. The runtime
-members were measured and copied from the exact accepted source payload; the ZIP
-was absent in the read-only checkout. We do not claim a direct current-ZIP load.
-Game import/export and live UI checks are the receiving-project qualification.
-No authoring host, fixtures, sample state, preview project, generators, Blender,
-reference raster or caches are copied. `hud.png` remains upstream reference
-context (SHA-256 `c471bcf4be7d980566a2e4bcecb161830cf36f5dc79d67a627fdbad829eaf28c`),
-not runtime artwork. The menu seal remains the original 192px transparent PNG,
-fixed at 48px; vignette and atlas icons retain aspect. Branch slices stay 40px,
-parchment slices 24px horizontal/16px vertical, blue focus remains independent of
-ownership/selection. Godot imports SVGs/font locally without installing tools.
+Game import/export and live UI checks are the receiving-project qualification;
+source-member integrity does not establish runtime acceptance. `hud.png` remains
+upstream reference context, not runtime artwork. The menu seal remains the
+original 192px transparent PNG, fixed at 48px; vignette and atlas icons retain
+aspect. Branch slices stay 40px, parchment slices 24px horizontal/16px vertical,
+blue focus remains independent of ownership/selection. Godot imports SVGs/font locally without installing tools.
 
 ## Discovered live consumers
 
@@ -44,7 +37,15 @@ ownership/selection. Godot imports SVGs/font locally without installing tools.
 
 `UiDialog` is a receiving-game adapter to the existing production Control shell,
 not a competing framework or session/settings service. The shell owns visible
-Tab/Shift-Tab/Esc, popup-first handling, scrim, native scroll and invoker return.
+Tab/Shift-Tab/Esc, popup-first handling, scrim, native scroll and synchronous
+invoker return. The adapter validates invokers on each opening, promotes the
+active dialog by sibling order and keeps directional focus inside the foreground
+scope. Before keyboard activation it repairs missing or external focus, while
+owned native popups retain their own routing. Layout-only resize reflow must not
+reopen, promote or refocus a dialog or reactivate a suspended input scope.
+Friends/Settings deferred restoration runs only when no foreground sibling modal
+remains, including fallback restoration. These receiving-boundary regressions
+live in `src/Game/Verification/EngineTests.Ui.cs`.
 The game still explicitly blocks picking/held-world gestures/commands while a
 modal is open. Leave confirmation temporarily suspends the underlying Settings
 key scope; closure restores it. Dialogs are outside layout containers under the
@@ -69,19 +70,18 @@ skill currency, one-point root, respec, local spend, prediction or new research 
 
 ## Removed-resource evidence
 
-All **81** tracked files under `src/Game/Assets/TrioUI/` (selected Cozy/icon/derived
+The tracked files under `src/Game/Assets/TrioUI/` (selected Cozy/icon/derived
 SVGs, import recipes and pack notices/manifest) are removed after replacing every
-live consumer and fallback. Their exact old path/SHA-256 inventory is retained
-in `UI/manifest.json::supersededFiles`; cheap inventory tests require every old
-member absent and every copied production member byte-identical. Native
-presentation assertions now sample actual loaded styles/font/seal/icons/progress
+live consumer and fallback. The manifest's `supersededFiles` owns their exact
+old path/SHA-256 inventory; cheap inventory tests require every old member absent
+and every copied production member byte-identical. Native presentation assertions now sample actual loaded styles/font/seal/icons/progress
 and distinct hover/pressed/disabled/focus/tab states, rather than asserting old
 Trio paths. Existing action/control/economy/cooperative/renderer assertions and
 scenario admission/deadlines are not weakened. Old UI notices remain attributable
-in [the historical notice archive](asset-history/trio-ui/README.md) and git history; no unrelated 3D assets,
-licenses, music, engine widgets, geometry or simulation/network/save rules are
-removed. Live correctness is established by receiving-game interaction/loading
-checks, not this path inventory alone.
+in [the historical notice archive](asset-history/trio-ui/README.md) and git history;
+no unrelated 3D assets, licenses, music, engine widgets, geometry or
+simulation/network/save rules are removed. Live correctness is established by
+receiving-game interaction/loading checks, not this path inventory alone.
 
 ## Verification and limitations
 
