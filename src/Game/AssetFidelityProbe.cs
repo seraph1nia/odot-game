@@ -150,7 +150,8 @@ internal static class AssetFidelityProbe
         finally { transformed.Free(); }
         object framePersistence = FramePersistenceProof.Run();
         object forestResources = ForestResources();
-        Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence, DetailedGround = detailedGround, ForestResources = forestResources }, WireJson.Options)));
+        object forestArt = Verification.ForestArtProof.Run(owner);
+        Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence, DetailedGround = detailedGround, ForestResources = forestResources, ForestArt = forestArt }, WireJson.Options)));
         owner.GetTree().Quit();
     }
     private static object ForestResources()

@@ -8,6 +8,7 @@ internal sealed partial class VillageLandscape : Node3D
     internal static Vector3 Home => VillageLayout.Hex(0, 1);
     internal static Vector3 Defender => VillageLayout.Hex(-1, 0);
     private readonly LandscapeAssets _assets;
+    internal IReadOnlyList<ForestMagic.Site> MagicSites { get; private set; } = [];
     private readonly Dictionary<(int Column, int Row), Node3D> _tiles = [];
     private readonly List<Node3D> _static = [];
     private readonly Dictionary<(string Kind, int X, int Z), MultiMeshInstance3D> _terrain = [];
@@ -62,6 +63,18 @@ internal sealed partial class VillageLandscape : Node3D
         _bridgeSubstratesRemoved = GroundGeometry.AdaptBridge(_bridge);
         for (int slot = 0; slot < 9; slot++) PlotOutline(slot);
         ComposeVillage();
+        MagicSites = new[]
+        {
+            ("Mushroom hollow", -3, 4, "spore_growth", .6f, "9bcfc9"),
+            ("Bridge lantern", 2, 6, "moss_wash", .8f, "efd3a0"),
+            ("West clearing", -4, 9, "fairy_ring", 1.2f, "afd4c3"),
+            ("Wayside runes", 2, 10, "rune_circle", 1.4f, "b9aed5")
+        }.Select(site =>
+        {
+            Vector3 point = VillageLayout.Hex(site.Item2, site.Item3);
+            point.Y = GroundSurface(point);
+            return new ForestMagic.Site(site.Item1, point, new Color(site.Item6), site.Item4, site.Item5);
+        }).ToArray();
     }
     private void ComposeVillage()
     {
@@ -91,6 +104,16 @@ internal sealed partial class VillageLandscape : Node3D
             }
             Decoration(pocket, "environment/components/forest_moss.glb", anchor + new Vector3(-.65f, 0, -.65f), .7f);
             Decoration(pocket, "environment/components/forest_leaf_clump.glb", anchor + new Vector3(.1f, 0, .7f), .5f);
+        }
+        // Lower foreground clumps frame the existing hollow without adding tall
+        // silhouettes to village/combat sightlines. Outer canopies remain in the
+        // already camera-bounded deterministic scatter, not a second terrain pass.
+        foreach (var (column, row) in new[] { (-3, 4), (-4, 9), (2, 10) })
+        {
+            Vector3 anchor = VillageLayout.Hex(column, row);
+            Decoration("Enchanted understory", "environment/components/forest_mushroom_small.glb", anchor + new Vector3(-.75f, 0, .35f), .55f);
+            Decoration("Enchanted understory", "environment/components/forest_fern.glb", anchor + new Vector3(.75f, 0, .3f), .6f);
+            Decoration("Enchanted understory", "environment/components/forest_leaf_clump.glb", anchor + new Vector3(.25f, 0, -.7f), .4f);
         }
         Decoration("Bridge clearing", "environment/components/forest_lantern_post.glb", VillageLayout.Hex(2, 6), 1.1f);
         Decoration("Bridge clearing", "environment/components/forest_boulder.glb", VillageLayout.Hex(2, 7) + new Vector3(.5f, 0, .25f), .65f);
@@ -124,6 +147,8 @@ internal sealed partial class VillageLandscape : Node3D
         point.Y = GroundSurface(point);
         Node3D node = _assets.Place(this, path, point, size, atmosphere: true);
         node.SetMeta("pocket", pocket);
+        int column = (int)Math.Round(point.X / 3), row = (int)Math.Round(point.Z / VillageLayout.RowStep);
+        node.RotationDegrees = new(0, DetailedGround.Variation(column, row, pocket.Length) % 360, 0);
         foreach (GeometryInstance3D geometry in node.FindChildren("*", "GeometryInstance3D", true, false).OfType<GeometryInstance3D>())
             geometry.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         foreach (Light3D light in node.FindChildren("*", "Light3D", true, false).OfType<Light3D>()) light.Visible = false;
@@ -299,7 +324,12 @@ internal sealed partial class VillageLandscape : Node3D
                     WoodlandMotion.Water(terrain, group.Key.Kind);
                     _meshes[group.Key.Kind] = imported = terrain;
                 }
-                batch = new MultiMeshInstance3D { Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = imported }, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+                batch = new MultiMeshInstance3D
+                {
+                    Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = imported },
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                    Layers = 1u | (DetailedGround.Bases.Contains(group.Key.Kind) ? ForestMagic.GroundReceiverLayer : 0u)
+                };
                 AddChild(batch); _terrain[group.Key] = batch;
             }
             var keys = group.ToArray();

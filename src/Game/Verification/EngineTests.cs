@@ -57,21 +57,46 @@ public partial class EngineTests : Node
             "volume signal updates actual bus gain");
         first.VolumeSlider.EmitSignal(Slider.SignalName.DragEnded, true);
         // The production control's signal path, not a duplicate graphics implementation.
+        GraphicsPreferences? preview = null;
+        first.GraphicsApplied = preferences => preview = preferences.Clone();
+        var forest = first.FindChildren("Graphics_forest_theme", "OptionButton", true, false).OfType<OptionButton>().Single();
+        var magic = first.FindChildren("Graphics_magic", "OptionButton", true, false).OfType<OptionButton>().Single();
+        forest.EmitSignal(OptionButton.SignalName.ItemSelected, 0L);
+        magic.EmitSignal(OptionButton.SignalName.ItemSelected, 2L);
+        Check(first.Graphics["forest_theme"] == 2 && first.Graphics["magic"] == 1 && preview is not null && preview["forest_theme"] == 0 && preview["magic"] == 2,
+            "art signals preview a local draft without committing default Dreaming/Subtle preferences");
+        first.FindChildren("CancelGraphics", "Button", true, false).OfType<Button>().Single().EmitSignal(BaseButton.SignalName.Pressed);
+        Check(preview is not null && preview["forest_theme"] == 2 && preview["magic"] == 1, "Cancel restores applied artistic preview");
+        forest.EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+        magic.EmitSignal(OptionButton.SignalName.ItemSelected, 0L);
         var weather = first.FindChildren("Graphics_weather", "OptionButton", true, false).OfType<OptionButton>().Single();
         weather.EmitSignal(OptionButton.SignalName.ItemSelected, 2L);
         Check(first.Graphics["weather"] != 2 && first.GraphicsDraft["weather"] == 2, "graphics edits remain draft before Apply");
         var apply = first.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single();
         apply.EmitSignal(BaseButton.SignalName.Pressed);
-        Check(first.Graphics["weather"] == 2, "Apply signal commits graphics preferences");
+        Check(first.Graphics["weather"] == 2 && first.Graphics["forest_theme"] == 1 && first.Graphics["magic"] == 0, "Apply signal commits independent weather/theme/magic preferences");
+        first.FindChildren("ResetGraphics", "Button", true, false).OfType<Button>().Single().EmitSignal(BaseButton.SignalName.Pressed);
+        Check(first.GraphicsDraft["forest_theme"] == 2 && first.GraphicsDraft["magic"] == 1 && first.Graphics["forest_theme"] == 1,
+            "Reset previews cancellable art defaults");
         first.Close(false);
         Check(!first.IsOpen, "close dismisses dialog");
         RemoveChild(first); first.Free();
         ClientSettings restored = Create();
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        Check(restored.MasterVolume == 37 && restored.Graphics["weather"] == 2, "new component reloads persisted volume and graphics");
+        Check(restored.MasterVolume == 37 && restored.Graphics["weather"] == 2 && restored.Graphics["forest_theme"] == 1 && restored.Graphics["magic"] == 0, "new component reloads persisted volume and graphics");
         Check(!AudioServer.IsBusMute(bus) && Math.Abs(AudioServer.GetBusVolumeLinear(bus) - .37f) < .001,
             "reload applies persisted audio gain");
         RemoveChild(restored); restored.Free();
+        using (var invalid = new ConfigFile())
+        {
+            Check(invalid.Load("user://settings.cfg") == Error.Ok, "isolated saved preferences available");
+            invalid.SetValue("visuals", "forest_theme", "dreaming"); invalid.SetValue("visuals", "magic", 99);
+            Check(invalid.Save("user://settings.cfg") == Error.Ok, "invalid art fixture stored in owned preferences only");
+        }
+        ClientSettings fallback = Create();
+        Check(fallback.Graphics["forest_theme"] == 2 && fallback.Graphics["magic"] == 1 && fallback.Graphics["weather"] == 2 && fallback.MasterVolume == 37,
+            "invalid saved art fields fallback independently, leaving valid weather/audio intact");
+        RemoveChild(fallback); fallback.Free();
         RemoveChild(ui); ui.Free();
     }
 

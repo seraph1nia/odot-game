@@ -53,7 +53,9 @@ home/defender, towers/projectile origins, occupants, picking, collisions,
 authority rules, gameplay RNG, networking and saves are unchanged. This composition
 change left camera/lighting unchanged; subsequent atmospheric presentation is
 owned by [the atmosphere subsystem](atmosphere.md#ownership-and-bounded-effects).
-No simulated fauna, active scenery lights or added decorative shadows appear.
+This composition added no simulated fauna, active scenery lights or decorative
+shadows; subsequent optional magical effects are owned by
+[forest art direction](forest-art.md#one-bounded-environmental-effect-rig).
 
 ## Shared rendering and executable checks
 

@@ -33,7 +33,7 @@ public partial class ClientSettings
             control.GetPopup().ForceNative = true;
             foreach (string choice in option.Choices) control.AddItem(choice);
             page.AddChild(control); _graphicsControls.Add(option.Key, control);
-            control.ItemSelected += index => { _draftGraphics.Edit(option.Key, (int)index); RefreshGraphics(); };
+            control.ItemSelected += index => { _draftGraphics.Edit(option.Key, (int)index); RefreshGraphics(); PreviewArt(); };
             AttachPopupTrace(control);
         }
         Label(page, "Brightness / exposure (80–120%)");
@@ -41,7 +41,7 @@ public partial class ClientSettings
         page.AddChild(_exposure);
         _exposure.ValueChanged += value => { _draftGraphics.SetExposure((int)value); RefreshGraphics(); };
         _resetGraphics = new Button { Name = "ResetGraphics", Text = "Reset graphics to defaults", CustomMinimumSize = new(0, 38) }; page.AddChild(_resetGraphics);
-        _resetGraphics.Pressed += () => { _draftGraphics = new(); RefreshGraphics(); };
+        _resetGraphics.Pressed += () => { _draftGraphics = new(); RefreshGraphics(); PreviewArt(); };
         var actions = new HBoxContainer(); content.AddChild(actions);
         _applyGraphics = new Button { Name = "ApplyGraphics", Text = "Apply graphics", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _cancelGraphics = new Button { Name = "CancelGraphics", Text = "Cancel graphics changes", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -79,6 +79,16 @@ public partial class ClientSettings
         _rendererStatus.Text += $"\nAA — applied: {aa[Graphics.Effective(forward)["aa"]]}; desired draft: {aa[_draftGraphics["aa"]]}; draft effective: {aa[_draftGraphics.Effective(forward)["aa"]]}.";
         if (!forward) _rendererStatus.Text += "\nCompatibility: FXAA/TAA unsupported; desired MSAA 2× uses Off by default cost policy. High MSAA 4× remains supported.";
     }
+    // Preview only artistic fields over the applied performance/weather state.
+    // Cancel/close restores that state through the existing transaction baseline.
+    private void PreviewArt()
+    {
+        if (!_dialog.Visible) return;
+        GraphicsPreferences preview = Graphics.Clone();
+        preview.Edit("forest_theme", _draftGraphics["forest_theme"]);
+        preview.Edit("magic", _draftGraphics["magic"]);
+        GraphicsApplied?.Invoke(preview);
+    }
     private void ApplyGraphics()
     {
         _rendererEdited |= Graphics["renderer"] != _draftGraphics["renderer"];
@@ -95,6 +105,7 @@ public partial class ClientSettings
         if (_previewMode == Window.ModeEnum.Windowed) _window.Size = _windowedSize;
         _changingDisplay = false; _displayEdited = _previewEdited;
         RefreshDisplay(); RefreshGraphics();
+        GraphicsApplied?.Invoke(Graphics);
     }
     private void LoadGraphics(ConfigFile file)
     {

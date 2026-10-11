@@ -11,6 +11,9 @@ internal sealed partial class AtmosphereController : Node3D
     private ProceduralSkyMaterial _sky = null!;
     private GpuParticles3D _rain = null!, _leaves = null!;
     private FogVolume? _riverMist;
+    private readonly ForestTheme _themes = new();
+    internal ForestMagic Magic { get; private set; } = null!;
+    internal void ViewLandscape(VillageLandscape? landscape) => Magic.View(landscape);
     private float _uploadedWind;
     private Color? _uploadedSkyHaze;
     private long _skyUploads;
@@ -67,6 +70,7 @@ internal sealed partial class AtmosphereController : Node3D
             };
             AddChild(_riverMist);
         }
+        Magic = new ForestMagic(); AddChild(Magic);
         Apply(_preferences);
         GD.Print($"Graphics actual: method={RenderingServer.GetCurrentRenderingMethod()}; driver={RenderingServer.GetCurrentRenderingDriverName()}; GPU={RenderingServer.GetVideoAdapterName()}; vendor={RenderingServer.GetVideoAdapterVendor()}; device={RenderingServer.GetVideoAdapterType()}; display={DisplayServer.GetName()}");
     }
@@ -112,7 +116,9 @@ internal sealed partial class AtmosphereController : Node3D
     internal void Apply(GraphicsPreferences preferences)
     {
         _preferences = preferences.Clone(); _effective = preferences.Effective(ForwardPlus);
-        _target = AtmosphereProfile.For(_effective["atmosphere"] == 0 ? 0 : _effective["weather"]);
+        _target = ForestTheme.Palette(AtmosphereProfile.For(_effective["atmosphere"] == 0 ? 0 : _effective["weather"]), _effective["forest_theme"]);
+        Environment.AdjustmentColorCorrection = _themes.Lut(_effective["forest_theme"]);
+        Magic.Apply(_effective);
         var viewport = GetViewport();
         viewport.Scaling3DScale = new[] { .7f, .85f, 1f }[_effective["scale"]];
         viewport.Msaa3D = _effective["aa"] switch { 3 => Viewport.Msaa.Msaa2X, 4 => Viewport.Msaa.Msaa4X, _ => Viewport.Msaa.Disabled };
@@ -199,6 +205,11 @@ internal sealed partial class AtmosphereController : Node3D
     {
         Apply(settings); _current = _target; _proofTime = time; _seekParticles = true; UpdateWeather(time);
     }
+    public override void _ExitTree()
+    {
+        Environment.AdjustmentColorCorrection = null;
+        _themes.Dispose();
+    }
     internal object Observe() => new
     {
         DesiredRenderer = _preferences.DesiredMethod,
@@ -234,7 +245,9 @@ internal sealed partial class AtmosphereController : Node3D
         Leaves = _leaves.Emitting,
         LocalFog = _riverMist?.Visible ?? false,
         CosmeticTime = _proofTime ?? (float)_time,
-        SkyUploads = _skyUploads
+        SkyUploads = _skyUploads,
+        ForestTheme = _effective["forest_theme"],
+        Magic = Magic.Observe()
     };
 }
 

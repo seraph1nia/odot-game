@@ -87,6 +87,13 @@ import handling. Its current test policy and qualification boundary are separate
 from the historical native campaigns below; Dreaming Forest styling is not part
 of that import.
 
+## Forest art direction
+
+See [forest art direction](forest-art.md) for the themes, Art Style preferences,
+optional magic rig and its qualification boundary. It extends this same
+atmosphere owner; the [headless verification plan](forest-art-verification-plan.md)
+selects the change-specific checks.
+
 ## Renderer selection
 
 First-run desktop play/dev/client use Godot's native **Forward+ / Vulkan**. No
@@ -115,10 +122,10 @@ Compatibility/OpenGL, regardless of project defaults or user preference.
 
 ## Settings behavior
 
-The native Graphics tab has scrollable Display/performance, Atmosphere/weather
-and Accessibility/comfort groups. Existing display mode/resolution, Audio, About,
-kit styling, focus restoration and selectors remain. Display changes preview
-immediately; **Apply graphics** keeps them and **Cancel graphics changes** restores
+The native Graphics tab has scrollable Display/performance, Atmosphere/weather,
+[Art Style](forest-art.md#settings-and-palette) and Accessibility/comfort groups.
+Existing display mode/resolution, Audio, About, kit styling, focus restoration
+and selectors remain. Display changes preview immediately; **Apply graphics** keeps them and **Cancel graphics changes** restores
 the last applied state. **Apply & close** keeps changes and closes only Settings;
 Escape/window-close discards unapplied graphics changes. A deliberate window resize
 outside Settings is saved, even when the initial launch supplied a transient display
@@ -173,7 +180,9 @@ values. Weather/renderer/accessibility remain independent. Reduce environmental
 motion removes wind, drifting leaves and water motion. Reduce weather effects
 quarters rain/airborne intensity. Reduced visual effects removes glow and SSIL.
 Atmosphere Off disables cosmetic fog/weather/motion/glow without changing gameplay
-or the chosen shadow/AA settings. Reset produces a cancellable default draft.
+or the chosen shadow/AA settings. For its interaction with magic, quality and
+comfort settings, see [forest effect policy](forest-art.md#one-bounded-environmental-effect-rig).
+Reset produces a cancellable default draft.
 
 ## Ownership and bounded effects
 
@@ -211,8 +220,9 @@ roughness/normal on cool water-colored pixels: no moving shoreline, UV scroll or
 terrain displacement. Source/imported resources remain immutable; geometry is
 reused. Only three shared shader uniforms are uploaded per frame; diagnostics
 retain the last uploaded wind value rather than performing a forbidden runtime
-global-uniform/GPU readback. Automatic weather progression and thematic/art-pack
-changes are intentionally outside this implementation.
+global-uniform/GPU readback. Automatic weather progression is intentionally outside this implementation.
+The later [forest art pass](forest-art.md) layers themes and optional magic on
+this owner without changing authored art or weather ownership.
 
 ## Verification and visual evidence
 

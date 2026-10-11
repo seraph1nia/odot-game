@@ -114,6 +114,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         button.Pressed += () => { if (!application.IsModalOpen) action(); }; return button;
     }
     internal Vector3 AtmosphereOrigin => Center(_focus);
+    internal VillageLandscape? AtmosphereLandscape => _landscapes.GetValueOrDefault(_focus);
     internal void AtmosphereProofView(string view)
     {
         Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
