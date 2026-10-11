@@ -19,7 +19,7 @@ Odot's original code and documentation are licensed under the [GNU General Publi
 
 Development is maintainer-led, and external contributions and pull requests are not accepted. Write access, including branch creation in this repository, is limited to authorized maintainers. You may fork the project and develop your own branches under the applicable licenses.
 
-Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
+Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), and [music provenance](src/Game/Assets/Music/README.md), and [woodland UI/font notices](src/Game/UI/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
 
 ## Setup
 
@@ -79,7 +79,7 @@ Read [the rules and tested campaign strategies](docs/gameplay.md). Six resources
 
 Each city earns one personal research point per shared wave clear. Research Towers add +1/+2 per full three-production cycle, retaining partial progress; multiple towers add together. Open **Research** without selecting a plot to buy 3/6/9-point foundations, exclusive specializations and masteries. Points and choices reset each match; sale preserves them. Fire gives burn, Venom poison, and Frost slows future actions. Inspector text and status badges show current effects. Freeze/stun are deferred; incompatible older peers are refused.
 
-The graphical client uses owner-permitted immutable exports from `odot-game-assets` in a detailed woodland hex landscape with a lower angled view. [Asset mappings](docs/assets.md) document honest cosmetic substitutes (Bakery, Woodcutter hut, Knight and Archer) while canonical rule/save/protocol identities remain unchanged. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
+The graphical client uses owner-permitted immutable exports from `odot-game-assets` in a detailed woodland hex landscape with a lower angled view. Its live menus/settings/HUD/dialogs use the pinned woodland native UI kit, original seal and licensed serif font; the former Trio UI pack is removed. See [UI migration and source bindings](docs/ui-migration.md). [Asset mappings](docs/assets.md) document honest cosmetic substitutes (Bakery, Woodcutter hut, Knight and Archer) while canonical rule/save/protocol identities remain unchanged. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
 
 ## Development commands
 
@@ -98,6 +98,8 @@ mise run test-network --scenario playing-host-lifecycle
 mise run test-campaign
 mise run test-network --scenario redistribution
 mise run test-deep
+mise run test-network --jobs 1
+mise run test-ui-resources # focused headless components/settings; no full game or display
 mise run ci-source
 mise run ci-linux-package
 # Graphical checks require separate authorization; do not run under headless-only tasks.

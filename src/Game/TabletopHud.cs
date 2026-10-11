@@ -10,21 +10,23 @@ public partial class Tabletop
     private Label _armyDetails = null!;
     private void CreateHud(Control root)
     {
-        _resources = new PanelContainer { Name = "ResourceTable", MouseFilter = Control.MouseFilterEnum.Stop };
-        root.AddChild(_resources);
+        _resources = (PanelContainer)UiAssets.Component("resource_ledger", root);
+        _resources.Name = "ResourceTable";
+        _resources.MouseFilter = Control.MouseFilterEnum.Stop;
         _resources.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
-        _resources.OffsetLeft = -272; _resources.OffsetRight = -12; _resources.OffsetTop = 12;
-        var stack = new VBoxContainer(); stack.AddThemeConstantOverride("separation", 5); _resources.AddChild(stack);
-        var table = new GridContainer { Columns = 3 }; table.AddThemeConstantOverride("v_separation", 3); stack.AddChild(table);
-        Text(table, "Resource", 12); Text(table, "Stock", 12).HorizontalAlignment = HorizontalAlignment.Right;
-        _incomeHeading = Text(table, "Income/turn", 11); _incomeHeading.HorizontalAlignment = HorizontalAlignment.Right;
-        foreach (Game.Core.Resource resource in new[] { Game.Core.Resource.Gold, Game.Core.Resource.Food, Game.Core.Resource.Wood, Game.Core.Resource.Stone, Game.Core.Resource.Metal, Game.Core.Resource.Cloth })
+        _resources.OffsetLeft = -300; _resources.OffsetRight = -12; _resources.OffsetTop = 12;
+        var rows = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (string name in new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" })
+            rows.Add(new() { ["name"] = name, ["stock"] = "0", ["income"] = "0" });
+        _resources.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Resources", ["rows"] = rows });
+        var stack = _resources.GetNode<VBoxContainer>("Body");
+        var table = stack.GetChildren().OfType<GridContainer>().Single();
+        _incomeHeading = table.GetChild<Label>(2);
+        var labels = _resources.Get("value_labels").AsGodotDictionary();
+        foreach (string name in new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" })
         {
-            Text(table, resource.ToString(), 13);
-            Label amount = Text(table, "0", 13); amount.HorizontalAlignment = HorizontalAlignment.Right;
-            _values[resource.ToString()] = amount;
-            Label income = Text(table, "0", 13); income.HorizontalAlignment = HorizontalAlignment.Right;
-            _incomes[resource.ToString()] = income;
+            var values = labels[name].AsGodotArray();
+            _values[name] = values[0].As<Label>(); _incomes[name] = values[1].As<Label>();
         }
         _incomeContext = Text(stack, "", 11);
         Text(stack, "Upkeep", 12);
@@ -51,14 +53,13 @@ public partial class Tabletop
         _status = Text(city, "", 12); _feedback = Text(city, "", 12);
         _roster = new HBoxContainer(); city.AddChild(_roster);
         _rosterDetails = Text(_roster, "", 11);
-        _detailsDialog = new AcceptDialog { Title = "City details", Theme = application.Theme, Transient = true, Exclusive = false };
-        AddChild(_detailsDialog);
-        var scroll = new ScrollContainer { CustomMinimumSize = new(600, 350) }; _detailsDialog.AddChild(scroll);
-        var details = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; scroll.AddChild(details);
+        _detailsDialog = new UiDialog { Title = "City details", Theme = application.Theme };
+        application.AddDialog(_detailsDialog);
+        var details = _detailsDialog.Content;
         _inspectionRoster = Text(details, "", 13);
         _quoteDetails = Text(details, "", 13);
         _upkeep = Text(details, "", 14); _reward = Text(details, "", 14); _armyDetails = Text(details, "", 13);
-        _detailsDialog.VisibilityChanged += () => { if (!_detailsDialog.Visible) _detailsButton.GrabFocus(); };
+        _detailsDialog.VisibilityChanged += () => { if (!_detailsDialog.Visible && _detailsButton.IsVisibleInTree()) _detailsButton.GrabFocus(); };
         var context = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.6f }; columns.AddChild(context);
         _detail = Text(context, "", 12); _detail.CustomMinimumSize = Vector2.Zero;
         _buyPlot = Button(context, "Buy plot", () => ContextAction("buy-plot")); _buyPlot.Name = "BuyPlot";

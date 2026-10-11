@@ -8,17 +8,19 @@ public partial class GameApplication(Main session) : Node
     private Node3D _scenery = null!;
     private Camera3D _menuCamera = null!;
     private AtmosphereController _atmosphere = null!;
-    private Control _menuRoot = null!;
+    private Control _menuRoot = null!, _uiRoot = null!;
+    internal void AddDialog(UiDialog dialog) => _uiRoot.AddChild(dialog);
     private VBoxContainer _startMenu = null!, _multiplayerMenu = null!;
     private Button _solo = null!, _multiplayer = null!, _menuSettings = null!, _exit = null!, _host = null!, _back = null!;
     private Label _feedback = null!;
     private Label _steamStatus = null!;
     private Label _brandTitle = null!, _brandPositioning = null!;
+    private TextureRect _seal = null!;
     private AudioStreamPlayer _music = null!;
     private Tabletop? _tabletop;
-    private ConfirmationDialog _leave = null!;
+    private UiDialog _leave = null!;
     private long _leaveGeneration = -1;
-    private ConfirmationDialog _join = null!;
+    private UiDialog _join = null!;
     private Action? _joinAccepted, _joinDeclined;
     private bool _exiting;
     private readonly LandscapeAssets _landscapeAssets = new();
@@ -37,7 +39,7 @@ public partial class GameApplication(Main session) : Node
         GetWindow().Title = GameBrand.Title;
         Theme = ApplicationTheme.Create();
         var canvas = new CanvasLayer { Name = "ApplicationUi", Layer = 10 }; AddChild(canvas);
-        var root = new Control { Name = "ApplicationControls", Theme = Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
+        var root = _uiRoot = new Control { Name = "ApplicationControls", Theme = Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
         canvas.AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         Settings = new ClientSettings { Name = "ClientSettings", FocusFallback = ActiveFocus }; AddChild(Settings);
         _atmosphere = new AtmosphereController { Name = "Atmosphere" }; AddChild(_atmosphere);
@@ -52,10 +54,12 @@ public partial class GameApplication(Main session) : Node
         CreateBackground();
         _menuRoot = new CenterContainer { Name = "Menu", MouseFilter = Control.MouseFilterEnum.Ignore };
         root.AddChild(_menuRoot); _menuRoot.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        var panel = new PanelContainer { Name = "MenuPanel", CustomMinimumSize = new(460, 0) }; _menuRoot.AddChild(panel);
+        var panel = new PanelContainer { Name = "MenuPanel", CustomMinimumSize = new(540, 0) }; _menuRoot.AddChild(panel);
         var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 14); panel.AddChild(content);
+        var seal = _seal = new TextureRect { Name = "WatchSeal", Texture = UiAssets.Texture("art/menu_seal.png"), CustomMinimumSize = new(48, 48), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        content.AddChild(seal);
         _brandTitle = new Label { Name = "BrandTitle", Text = GameBrand.Title, HorizontalAlignment = HorizontalAlignment.Center };
-        _brandTitle.AddThemeFontSizeOverride("font_size", 32); content.AddChild(_brandTitle);
+        _brandTitle.AddThemeFontSizeOverride("font_size", 28); content.AddChild(_brandTitle);
         _brandPositioning = new Label { Name = "BrandPositioning", Text = GameBrand.Positioning, HorizontalAlignment = HorizontalAlignment.Center };
         content.AddChild(_brandPositioning);
         _startMenu = new VBoxContainer { Name = "StartMenu" }; _startMenu.AddThemeConstantOverride("separation", 12); content.AddChild(_startMenu);
@@ -83,20 +87,21 @@ public partial class GameApplication(Main session) : Node
         root.AddChild(_steamStatus);
         _steamStatus.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide);
         _steamStatus.OffsetLeft = 14; _steamStatus.OffsetRight = -14; _steamStatus.OffsetTop = -46; _steamStatus.OffsetBottom = -14;
-        _join = new ConfirmationDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Transient = true, Exclusive = false, Theme = Theme, DialogCloseOnEscape = true };
-        AddChild(_join);
+        var ornament = new TextureRect { Texture = UiAssets.Texture("art/woodland/woodland_corners.svg"), CustomMinimumSize = new(180, 84), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        content.AddChild(ornament);
+        _join = new UiDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Confirmation = true, Theme = Theme };
+        AddDialog(_join);
         UiAssets.Decorate(_join.GetOkButton(), "AcceptJoin");
         UiAssets.Decorate(_join.GetCancelButton(), "DeclineJoin");
-        _leave = new ConfirmationDialog { Name = "LeaveConfirmation", Title = "Return to menu?", OkButtonText = "Return to menu", CancelButtonText = "Cancel", Transient = true, Exclusive = false, Theme = Theme, DialogCloseOnEscape = true };
-        AddChild(_leave);
-        _leave.GetCancelButton().Name = "CancelReturn"; _leave.GetOkButton().Name = "ConfirmReturn";
+        _leave = new UiDialog { Name = "LeaveConfirmation", Title = "Return to menu?", OkButtonText = "Return to menu", CancelButtonText = "Cancel", Confirmation = true, Theme = Theme };
+        AddDialog(_leave);
         _leave.Confirmed += ConfirmReturn;
         _leave.Canceled += CancelReturn;
-        _leave.CloseRequested += CancelReturn;
+        _leave.VisibilityChanged += () => Settings.Dialog.SetInputScope(!_leave.Visible);
         _join.Confirmed += AcceptJoin;
         _join.Canceled += DeclineJoin;
         Friends = new SteamFriendsDialog { Name = "SteamFriends", Theme = Theme, FocusFallback = FocusCurrent };
-        AddChild(Friends);
+        AddDialog(Friends);
         GetTree().AutoAcceptQuit = false;
         GetWindow().CloseRequested += RequestExit;
         ShowMenu();
@@ -256,17 +261,8 @@ public partial class GameApplication(Main session) : Node
         _music.Stop(); _music.Stream = null;
     }
     public bool BlocksWorldInput(Vector2 mouse) => IsModalOpen || Settings.BlocksWorldHover(mouse);
-    public override void _Input(InputEvent @event)
-    {
-        // Embedded subwindows receive their own input before this root viewport.
-        // Consume only events routed outside the dialog, keeping native focus inside.
-        // Nonexclusive dialogs let the main window deliver native close requests.
-        if (!IsModalOpen) return;
-        if (_tabletop?.DetailsOpen == true) { _tabletop.FocusDetails(); GetViewport().SetInputAsHandled(); return; }
-        if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true })
-            (_leave.Visible ? _leave : _join.Visible ? _join : Friends.IsOpen ? Friends : Settings.Dialog).GrabFocus();
-        GetViewport().SetInputAsHandled();
-    }
+    // Production modals own their visible native GUI scope. World commands keep
+    // the explicit IsModalOpen guard; never swallow events before Control routing.
     public override void _UnhandledInput(InputEvent @event)
     {
         if (_exiting || IsModalOpen || !@event.IsActionPressed("ui_cancel", false)) return;
@@ -300,8 +296,7 @@ public partial class GameApplication(Main session) : Node
             ObserveControl(targets, "DownloadUpdate", Settings.DownloadUpdateButton);
             ObserveControl(targets, "ReturnToMenu", Settings.ReturnButton);
             ObserveControl(targets, "CloseSettings", Settings.Dialog.GetOkButton());
-            Vector2 close = GetViewport().GetFinalTransform() * ((Vector2)Settings.Dialog.Position + new Vector2(Settings.Dialog.Size.X - 8, -14));
-            targets["CancelSettings"] = new { X = close.X, Y = close.Y, Width = 14, Height = 14, Visible = true, Enabled = true };
+            ObserveControl(targets, "CancelSettings", Settings.Dialog.HeaderClose);
             Settings.ObserveGraphics(this, targets);
         }
         if (_join.Visible)
@@ -311,8 +306,7 @@ public partial class GameApplication(Main session) : Node
         }
         if (_leave.Visible)
         {
-            Vector2 close = GetViewport().GetFinalTransform() * ((Vector2)_leave.Position + new Vector2(_leave.Size.X - 8, -14));
-            targets["CloseReturn"] = new { X = close.X, Y = close.Y, Width = 14, Height = 14, Visible = true, Enabled = true };
+            ObserveControl(targets, "CloseReturn", _leave.HeaderClose);
             ObserveControl(targets, "ConfirmReturn", _leave.GetOkButton());
             ObserveControl(targets, "CancelReturn", _leave.GetCancelButton());
         }
@@ -329,11 +323,13 @@ public partial class GameApplication(Main session) : Node
             ["AuthoredProvenanceBundled"] = Godot.FileAccess.FileExists(AssetCatalog.Root + "manifest.json") && Godot.FileAccess.FileExists(AssetCatalog.Root + "NOTICE.md")
                 && AssetCatalog.RequiredTexturePaths.All(path => ResourceLoader.Exists(AssetCatalog.Root + path, "Texture2D")),
             ["InstalledModels"] = UnitAssets.InstalledModels(),
-            ["UiProvenanceBundled"] = Godot.FileAccess.FileExists(UiAssets.Root + "manifest.json") && Godot.FileAccess.FileExists(UiAssets.Root + "UPSTREAM-README.txt") && Godot.FileAccess.FileExists(UiAssets.Root + "README.md"),
+            ["UiProvenanceBundled"] = Godot.FileAccess.FileExists(UiAssets.Root + "manifest.json") && Godot.FileAccess.FileExists(UiAssets.Root + "fonts/LICENSE-DejaVu.txt") && Godot.FileAccess.FileExists(UiAssets.Root + "README.md"),
             ["PanelTexture"] = (Theme.GetStylebox("panel", "PanelContainer") as StyleBoxTexture)?.Texture?.ResourcePath,
-            ["ButtonTextures"] = ApplicationTheme.ButtonStates.Select(state => (Theme.GetStylebox(state, "Button") as StyleBoxTexture)?.Texture?.ResourcePath).ToArray(),
+            ["ButtonTextures"] = ApplicationTheme.ButtonStates.Select(state => Theme.GetStylebox(state, "Button").ResourcePath).ToArray(),
             ["FocusBorder"] = (Theme.GetStylebox("focus", "Button") as StyleBoxFlat)?.BorderWidthTop,
-            ["SliderTexture"] = Theme.GetIcon("grabber", "HSlider").ResourcePath,
+            ["SliderTexture"] = Theme.GetStylebox("slider", "HSlider").ResourcePath,
+            ["UiFont"] = Theme.DefaultFont.ResourcePath,
+            ["SealTexture"] = _seal.Texture.ResourcePath,
             ["Screen"] = Screen,
             ["WindowTitle"] = GetWindow().Title,
             ["BrandTitle"] = _brandTitle.Text,
@@ -346,17 +342,18 @@ public partial class GameApplication(Main session) : Node
             ["ModalOpen"] = IsModalOpen,
             ["Exiting"] = _exiting,
             ["GraphicsDropdownOpen"] = graphicsDropdown,
-            ["SettingsPosition"] = new { X = Settings.Dialog.Position.X, Y = Settings.Dialog.Position.Y },
+            ["SettingsPosition"] = new { X = Settings.Dialog.Panel.GetGlobalRect().Position.X, Y = Settings.Dialog.Panel.GetGlobalRect().Position.Y },
             ["WindowPosition"] = new { X = GetWindow().Position.X, Y = GetWindow().Position.Y },
             ["ResolutionFocused"] = Settings.ResolutionSelector.GetPopup().GetFocusedItem(),
             ["ResolutionSelected"] = Settings.ResolutionSelector.Selected,
             ["DropdownOpen"] = Settings.DisplaySelector.GetPopup().Visible || Settings.ResolutionSelector.GetPopup().Visible,
-            ["DropdownTexture"] = (Settings.DisplaySelector.GetPopup().GetThemeStylebox("panel") as StyleBoxTexture)?.Texture?.ResourcePath,
-            ["TabTextures"] = new[] { Settings.Categories.GetTabBar().GetThemeStylebox("tab_selected"), Settings.Categories.GetTabBar().GetThemeStylebox("tab_unselected") }.OfType<StyleBoxTexture>().Select(box => box.Texture.ResourcePath).ToArray(),
-            ["DialogTexture"] = ((_leave.Visible ? _leave : Settings.IsOpen ? Settings.Dialog : _join.Visible ? _join : Friends).GetThemeStylebox("panel", "AcceptDialog") as StyleBoxTexture)?.Texture?.ResourcePath,
+            ["DropdownTexture"] = Settings.DisplaySelector.GetPopup().GetThemeStylebox("panel").ResourcePath,
+            ["TabTextures"] = new[] { Settings.Categories.GetTabBar().GetThemeStylebox("tab_selected"), Settings.Categories.GetTabBar().GetThemeStylebox("tab_unselected") }.Select(box => box.ResourcePath).ToArray(),
+            ["DialogTexture"] = (((_leave.Visible ? _leave : Settings.IsOpen ? Settings.Dialog : _join.Visible ? _join : Friends).Panel.GetThemeStylebox("panel") as StyleBoxTexture)?.Texture?.ResourcePath),
             ["ReturnConfirmationOpen"] = _leave.Visible,
             ["ReturnWarning"] = _leave.DialogText,
-            ["ConfirmationFocus"] = _leave.GuiGetFocusOwner()?.Name.ToString() ?? "",
+            ["ConfirmationFocus"] = _leave.GuiGetFocusOwner() == _leave.GetCancelButton() ? "CancelReturn"
+                : _leave.GuiGetFocusOwner() == _leave.GetOkButton() ? "ConfirmReturn" : _leave.GuiGetFocusOwner()?.Name.ToString() ?? "",
             ["JoinConfirmationOpen"] = _join.Visible,
             ["FriendsOpen"] = Friends.IsOpen,
             ["FriendCount"] = Friends.FriendCount,

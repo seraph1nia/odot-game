@@ -6,3 +6,8 @@
 
 # Preserve upstream Steam files byte-for-byte for the provenance hashes.
 /src/Game/addons/godotsteam/** -text
+
+# The accepted font/license are verbatim upstream bytes pinned by SHA-256.
+# The license includes original trailing whitespace; do not rewrite legal text.
+/src/Game/UI/fonts/DejaVuSerif.ttf -text
+/src/Game/UI/fonts/LICENSE-DejaVu.txt -text whitespace=-blank-at-eol

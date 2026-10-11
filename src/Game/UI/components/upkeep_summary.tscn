@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://UI/components/upkeep_summary.gd" id="1"]
+[ext_resource type="Theme" path="res://UI/theme/ledger.tres" id="2"]
+[node name="UpkeepSummary" type="PanelContainer"]
+custom_minimum_size = Vector2(260, 0)
+theme = ExtResource("2")
+theme_type_variation = "InformationPanel"
+script = ExtResource("1")
+[node name="Body" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
