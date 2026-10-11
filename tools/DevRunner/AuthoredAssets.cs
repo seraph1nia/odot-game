@@ -7,12 +7,14 @@ namespace DevRunner;
 
 internal sealed record AuthoredAssetFile(string Path, string SourcePath, string Sha256, long Bytes, int EmbeddedImages, int Materials, string[] AnimationNames);
 internal sealed record AuthoredDerivedFile(string Path, string Parent, string ImageName, string Sha256, long Bytes);
-internal sealed record AuthoredAssetManifest(int SchemaVersion, string Source, string Revision, string Permission, string PermissionScope, AuthoredAssetFile[] Files, AuthoredDerivedFile[] Derived);
+internal sealed record AuthoredTextureFile(string Path, string SourcePath, string Sha256, long Bytes);
+internal sealed record AuthoredAssetManifest(int SchemaVersion, string Source, string Revision, string Permission, string PermissionScope, AuthoredAssetFile[] Files, AuthoredDerivedFile[] Derived, AuthoredTextureFile[]? Textures = null);
 internal sealed record GlbSummary(int Meshes, int Materials, int Images, string[] Clips, IReadOnlyDictionary<string, double> ClipLengths,
     IReadOnlyDictionary<string, double> ClipStarts, string[] Joints, IReadOnlyDictionary<string, string[]> Children);
 
 // Actual distribution bytes and their declarative GLB contracts, not C# source
-// text. Engine import/posed attachment checks remain the graphical consumer's job.
+// text. Imported-resource checks belong to the headless engine consumer;
+// rendered acceptance remains separate from byte-contract admission.
 internal static class AuthoredAssets
 {
     private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
@@ -59,9 +61,11 @@ internal static class AuthoredAssets
         }
         string[] images = Directory.EnumerateFiles(directory, "*.png", SearchOption.AllDirectories)
             .Select(p => System.IO.Path.GetRelativePath(directory, p).Replace(System.IO.Path.DirectorySeparatorChar, '/')).Order(StringComparer.Ordinal).ToArray();
-        if (manifest.Derived is null || manifest.Derived.Length != images.Length
-            || !manifest.Derived.Select(d => d.Path).Order(StringComparer.Ordinal).SequenceEqual(images, StringComparer.Ordinal))
-            throw new InvalidDataException("Extracted authored map inventory differs from provenance.");
+        ValidateTextures(directory, manifest.Textures);
+        if (manifest.Derived is null || manifest.Derived.Length + manifest.Textures!.Length != images.Length
+            || !manifest.Derived.Select(d => d.Path).Concat(manifest.Textures.Select(t => t.Path))
+                .Order(StringComparer.Ordinal).SequenceEqual(images, StringComparer.Ordinal))
+            throw new InvalidDataException("Authored map/texture inventory differs from provenance.");
         foreach (AuthoredDerivedFile image in manifest.Derived)
         {
             if (!originals.TryGetValue(image.Parent, out byte[]? glb)
@@ -80,6 +84,29 @@ internal static class AuthoredAssets
                 throw new InvalidDataException("Extracted map differs from its immutable embedded source: " + image.Path);
         }
         return summaries;
+    }
+
+    internal static void ValidateTextures(string directory, AuthoredTextureFile[]? textures)
+    {
+        if (textures is null || !textures.Select(t => t.Path).Order(StringComparer.Ordinal)
+                .SequenceEqual(AssetCatalog.RequiredTexturePaths, StringComparer.Ordinal))
+            throw new InvalidDataException("Standalone authored texture inventory differs from the required resources.");
+        foreach (AuthoredTextureFile texture in textures)
+        {
+            // Exact catalog membership above admits only portable relative PNG
+            // destinations; external/export provenance remains separate from
+            // derived maps, which must still match immutable embedded bytes.
+            if (texture.SourcePath != "exports/" + texture.Path)
+                throw new InvalidDataException("Invalid standalone authored texture source path.");
+            byte[] bytes = File.ReadAllBytes(System.IO.Path.Combine(directory, texture.Path));
+            if (bytes.LongLength != texture.Bytes || Convert.ToHexStringLower(SHA256.HashData(bytes)) != texture.Sha256)
+                throw new InvalidDataException("Standalone texture bytes differ from provenance: " + texture.Path);
+            if (bytes.Length < 33 || !bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })
+                || BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(8)) != 13 || !bytes.AsSpan(12, 4).SequenceEqual("IHDR"u8)
+                || BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16)) != 512 || BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20)) != 512
+                || bytes[24] != 8 || bytes[25] != 6)
+                throw new InvalidDataException("Standalone forest decal must be a 512-square 8-bit RGBA PNG.");
+        }
     }
 
     internal static GlbSummary Inspect(ReadOnlySpan<byte> bytes)

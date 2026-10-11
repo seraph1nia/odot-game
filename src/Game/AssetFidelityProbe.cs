@@ -149,9 +149,106 @@ internal static class AssetFidelityProbe
         }
         finally { transformed.Free(); }
         object framePersistence = FramePersistenceProof.Run();
-        Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence, DetailedGround = detailedGround }, WireJson.Options)));
+        object forestResources = ForestResources();
+        Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence, DetailedGround = detailedGround, ForestResources = forestResources }, WireJson.Options)));
         owner.GetTree().Quit();
     }
+    private static object ForestResources()
+    {
+        var textures = new List<object>();
+        foreach (string path in AssetCatalog.RequiredTexturePaths)
+        {
+            Texture2D texture = GD.Load<Texture2D>(AssetCatalog.Root + path);
+            using Image image = texture.GetImage();
+            if (image.GetWidth() != 512 || image.GetHeight() != 512)
+                throw new InvalidOperationException("Forest decal imported dimensions changed: " + path);
+            if (!image.HasMipmaps()) throw new InvalidOperationException("Forest decal imported mipmaps missing: " + path);
+            float peak = 0;
+            int translucent = 0;
+            for (int y = 0; y < 512; y++)
+                for (int x = 0; x < 512; x++)
+                {
+                    float alpha = image.GetPixel(x, y).A;
+                    peak = Math.Max(peak, alpha);
+                    if (alpha > 0 && alpha < 1) translucent++;
+                    if ((x == 0 || y == 0 || x == 511 || y == 511) && alpha != 0)
+                        throw new InvalidOperationException("Forest decal lost transparent border: " + path);
+                }
+            if (peak is <= 0 or > .42f || translucent == 0)
+                throw new InvalidOperationException("Forest decal lost bounded coverage alpha: " + path);
+            textures.Add(new { Path = path, Width = 512, Height = 512, PeakAlpha = peak, TranslucentPixels = translucent, MipmapCount = image.GetMipmapCount() });
+        }
+        var channels = new List<object>();
+        var maps = new List<object>();
+        foreach (string path in new[] { "environment/components/forest_fern.glb", "environment/components/forest_leaf_clump.glb",
+            "environment/components/forest_moss.glb", "environment/components/forest_mushroom_small.glb",
+            "environment/components/forest_spiral_tree.glb", AssetCatalog.Bridge })
+        {
+            Node3D scene = GD.Load<PackedScene>(AssetCatalog.Root + path).Instantiate<Node3D>();
+            try
+            {
+                var materials = scene.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
+                    .SelectMany(mesh => Enumerable.Range(0, mesh.Mesh.GetSurfaceCount()).Select(mesh.GetActiveMaterial))
+                    .OfType<StandardMaterial3D>().DistinctBy(m => m.GetInstanceId());
+                foreach (StandardMaterial3D material in materials)
+                {
+                    foreach (var (channel, texture) in new (string, Texture2D?)[] {
+                        ("albedo", material.AlbedoTexture), ("roughness", material.RoughnessTexture),
+                        ("normal", material.NormalTexture), ("emission", material.EmissionTexture),
+                        ("metallic", material.MetallicTexture), ("ao", material.AOTexture) })
+                    {
+                        if (texture is null) continue;
+                        using Image image = texture.GetImage();
+                        if (!image.HasMipmaps())
+                            throw new InvalidOperationException("Forest imported mipmaps missing: " + path + "/" + material.ResourceName + "/" + channel);
+                        maps.Add(new { Path = path, Material = material.ResourceName, Channel = channel, Texture = texture.ResourcePath, MipmapCount = image.GetMipmapCount() });
+                    }
+                    string name = material.ResourceName.Split('.')[0];
+                    if (name is not ("forest_leaf" or "forest_leaf_light" or "forest_leaf_teal" or "forest_leaf_lilac" or "moss"
+                        or "mushroom_blue" or "mushroom_purple" or "gill_glow")) continue;
+                    // The source supplies leaf normals, but no normal map for
+                    // moss, caps or gills. Absence is an intentional channel.
+                    bool hasNormal = name.StartsWith("forest_leaf", StringComparison.Ordinal);
+                    if (material.AlbedoTexture is null || material.RoughnessTexture is null
+                        || material.NormalEnabled != hasNormal || (material.NormalTexture is not null) != hasNormal
+                        || material.RoughnessTextureChannel != BaseMaterial3D.TextureChannel.Green)
+                        throw new InvalidOperationException("Forest imported PBR channel lost: " + path + "/" + material.ResourceName);
+                    bool emits = material.EmissionEnabled && material.EmissionEnergyMultiplier > 0
+                        && (material.Emission.R > 0 || material.Emission.G > 0 || material.Emission.B > 0);
+                    if (emits != (name == "gill_glow"))
+                        throw new InvalidOperationException("Forest body/gill emission differs from source factors: " + path + "/" + material.ResourceName);
+                    if (name == "gill_glow")
+                    {
+                        if (material.EmissionTexture is null) throw new InvalidOperationException("Forest gill emission mask missing.");
+                        using Image mask = material.EmissionTexture.GetImage();
+                        if (mask.IsCompressed() && mask.Decompress() != Error.Ok) throw new InvalidOperationException("Cannot decode gill emission mask.");
+                        int black = 0, lit = 0;
+                        for (int y = 0; y < mask.GetHeight(); y++)
+                            for (int x = 0; x < mask.GetWidth(); x++)
+                            {
+                                Color pixel = mask.GetPixel(x, y);
+                                if (pixel.R == 0 && pixel.G == 0 && pixel.B == 0) black++; else lit++;
+                            }
+                        if (black == 0 || lit == 0) throw new InvalidOperationException("Forest gill mask must contain both black body and lit localized pixels.");
+                    }
+                    channels.Add(new
+                    {
+                        Path = path,
+                        Material = material.ResourceName,
+                        EmissionEnabled = material.EmissionEnabled,
+                        EffectiveEmission = emits,
+                        UnusedEmissionTexture = !emits && material.EmissionTexture is not null,
+                        RoughnessChannel = material.RoughnessTextureChannel.ToString(),
+                        NormalEnabled = material.NormalEnabled
+                    });
+                }
+            }
+            finally { scene.Free(); }
+        }
+        if (channels.Count == 0) throw new InvalidOperationException("No imported forest material channels observed.");
+        return new { Textures = textures, Materials = channels, Maps = maps };
+    }
+
     private static void RunGlyphDuplicateRegression()
     {
         foreach (string description in new[] { "", "Native nonempty glyph description" })

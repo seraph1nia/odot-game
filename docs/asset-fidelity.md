@@ -30,6 +30,13 @@ fidelity. The Arrow tower also contains mirrored instances: flattening them
 without preserving per-instance culling, index winding and tangent handedness is
 unsupported and explicitly rejected by the consolidation interface.
 
+## Current forest resources
+
+See the [forest resource import](forest-import.md) for map/standalone PNG admission,
+imported-material and mipmap checks, existing-client `--exported` usage, and the
+historical-versus-current evidence boundary. These extend the same headless proof;
+geometry/ground negative regressions and bounded ownership remain unchanged.
+
 ## Executable causal check
 
 Run `mise run test-assets`. It restores/builds/imports normally, then runs one

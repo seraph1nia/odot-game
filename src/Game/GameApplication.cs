@@ -326,7 +326,8 @@ public partial class GameApplication(Main session) : Node
         var fields = new Dictionary<string, object?>
         {
             ["Id"] = id,
-            ["AuthoredProvenanceBundled"] = Godot.FileAccess.FileExists(AssetCatalog.Root + "manifest.json") && Godot.FileAccess.FileExists(AssetCatalog.Root + "NOTICE.md"),
+            ["AuthoredProvenanceBundled"] = Godot.FileAccess.FileExists(AssetCatalog.Root + "manifest.json") && Godot.FileAccess.FileExists(AssetCatalog.Root + "NOTICE.md")
+                && AssetCatalog.RequiredTexturePaths.All(path => ResourceLoader.Exists(AssetCatalog.Root + path, "Texture2D")),
             ["InstalledModels"] = UnitAssets.InstalledModels(),
             ["UiProvenanceBundled"] = Godot.FileAccess.FileExists(UiAssets.Root + "manifest.json") && Godot.FileAccess.FileExists(UiAssets.Root + "UPSTREAM-README.txt") && Godot.FileAccess.FileExists(UiAssets.Root + "README.md"),
             ["PanelTexture"] = (Theme.GetStylebox("panel", "PanelContainer") as StyleBoxTexture)?.Texture?.ResourcePath,
