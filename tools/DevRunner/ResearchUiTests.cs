@@ -33,8 +33,8 @@ internal sealed partial class Runner
                 CityState city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
                 if (!city.Research.Has(TechnologyId.MagicFoundation) && city.Research.Points >= 3)
                 {
-                    await Click(client, "Research", setup.Token); await Click(client, "ResearchMagic", setup.Token);
-                    await ClickAck(client, "TechMagicFoundation", setup.Token); await Click(client, "CloseResearch", setup.Token);
+                    await Click(client, "Research", setup.Token); await Click(client, "Node_primary_center", setup.Token);
+                    await ClickAck(client, "PurchaseResearch", setup.Token); await Click(client, "CloseResearch", setup.Token);
                 }
                 city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
                 if (city.Research.Points >= 6 && city.Research.Has(TechnologyId.MagicFoundation) && city.Soldiers.Any(u => u.Type == UnitType.Mage)) break;
@@ -45,14 +45,17 @@ internal sealed partial class Runner
         {
             using var feature = CancellationTokenSource.CreateLinkedTokenSource(token); feature.CancelAfter(60000);
             await SimulationSpeed(server, 1, feature.Token);
-            await Click(client, "Research", feature.Token); await Click(client, "ResearchMagic", feature.Token);
+            await Click(client, "Research", feature.Token); await Click(client, "Node_secondary_center_b", feature.Token);
             UiObservation before = await UiProtocol.Probe(client, options.StartupTimeout, feature.Token);
             if (options.UiCheckpoint == "research") Require(before.SelectedSlot == -1, "research purchases need no selected plot");
-            Require(before.Targets["TechFire"].Enabled && before.Targets["TechFrost"].Enabled, "exclusive options are both initially available");
+            Require(before.Targets["PurchaseResearch"].Enabled, "Frost is initially available");
+            await Click(client, "Node_secondary_center_a", feature.Token);
+            Require((await UiProtocol.Probe(client, options.StartupTimeout, feature.Token)).Targets["PurchaseResearch"].Enabled, "Fire is initially available");
             int points = Latest(client).Players.Single(c => c.Id == client.PlayerId).Research.Points;
-            await ClickAck(client, "TechFire", feature.Token);
-            UiObservation locked = await WaitUi(client, p => p.Targets["TechFrost"].Text.Contains("Permanently locked", StringComparison.Ordinal), "acknowledged Frost lock", feature.Token);
-            Require(!locked.Targets["TechFrost"].Enabled && Latest(client).Players.Single(c => c.Id == client.PlayerId).Research.Points == points - 6, "Fire spends six actual points and locks Frost");
+            await ClickAck(client, "PurchaseResearch", feature.Token);
+            await Click(client, "Node_secondary_center_b", feature.Token);
+            UiObservation locked = await WaitUi(client, p => p.ResearchText.Contains("Permanently locked", StringComparison.Ordinal), "acknowledged Frost lock", feature.Token);
+            Require(!locked.Targets["PurchaseResearch"].Enabled && Latest(client).Players.Single(c => c.Id == client.PlayerId).Research.Points == points - 6, "Fire spends six actual points and locks Frost");
             await Click(client, "CloseResearch", feature.Token);
             while (Latest(client).Phase is Phase.Building or Phase.Preparation) await UiReadyPair(client, observer, feature.Token, actualInput: false);
             var capture = await PauseBurn(observer, client.PlayerId, feature.Token);

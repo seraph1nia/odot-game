@@ -121,7 +121,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
     internal bool DetailsOpen => _detailsDialog?.Visible == true || _researchDialog?.Visible == true || _hallDialog?.Visible == true;
-    internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GrabFocus(); else if (_researchDialog.Visible) _researchDialog.GrabFocus(); else _detailsDialog.GrabFocus(); }
+    internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GrabFocus(); else if (_researchDialog.Visible) _researchDialog.FocusContent(); else _detailsDialog.GrabFocus(); }
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
@@ -135,7 +135,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         ObserveResearch(targets);
         ObserveArmy(fields, targets);
         fields["StatusBadges"] = _units.Values.Where(v => v.Visible && v.StatusBadge.Length > 0).ToDictionary(v => v.State.Id, v => v.StatusBadge);
-        fields["ResearchText"] = _researchBalance.Text;
+        fields["ResearchText"] = _researchDialog.Research.Description.Text;
         fields["DetailsText"] = _inspectionRoster.Text + "\n" + _upkeep.Text + "\n" + _reward.Text + "\n" + _armyDetails.Text + "\n" + _quoteDetails.Text;
         fields["ResourceOrder"] = _values.Keys.ToArray();
         _inspector.Observe(application, fields, targets);

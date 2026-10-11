@@ -85,7 +85,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--target" when command is "export-client" or "check-steam-extension" or "release-preflight" or "play" or "client": exportTarget = Value(); break;
                 case "--offline" when command == "check-steam-extension": offline = true; break;
                 case "--desktop" when command == "test-vulkan": desktopSurface = true; break;
-                case "--exported" when command is "check-steam-extension" or "test-steam" or "test-vulkan" or "test-atmosphere" or "test-assets" or "_ui-worker" or "play" or "client": exported = true; break;
+                case "--exported" when command is "check-steam-extension" or "test-steam" or "test-vulkan" or "test-atmosphere" or "test-assets" or "test-engine" or "_ui-worker" or "play" or "client": exported = true; break;
                 case "--role" when command == "test-steam": steamRole = Value(); break;
                 case "--lobby" when command == "test-steam": lobby = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
                 case "--help": return new("help", host, bind, port, startup, timeout, [], sessionFile);
@@ -108,7 +108,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
-            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback", "authored-scale", "atmosphere"] : command == "profile-presentation" ? ["combat-playback", "authored-scale"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : command == "test-engine" ? ["settings", "animation", "assets"] : [];
+            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback", "authored-scale", "atmosphere"] : command == "profile-presentation" ? ["combat-playback", "authored-scale"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : command == "test-engine" ? ["settings", "animation", "assets", "worldtree"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
         if (checkpoint is not null && !(checkpoint is "deep" or "smoke" && scenario is "economy" or "launcher" or "exported-package" || scenario == "combat" && checkpoint is "melee" or "research" or "admission" || scenario == "economy" && checkpoint is "army" or "travel-diagnostic" or "travel" || scenario == "launcher" && checkpoint == "assets" || scenario == "settings" && checkpoint is "display" or "graphics" || checkpoint == "return-diagnostic" && (command == "test-atmosphere" || command == "_ui-worker" && scenario == "atmosphere") || checkpoint is "startup-diagnostic" or "popup-diagnostic" or "vanilla-popup" or "vanilla-native" && command == "test-vulkan" && desktopSurface))

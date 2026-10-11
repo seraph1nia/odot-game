@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64">
+<!-- Original editable amber/parchment surface; 24px corner slices. -->
+<defs><linearGradient id="paper" x2="0" y2="1"><stop stop-color="#eed5a0"/><stop offset=".5" stop-color="#d9b381"/><stop offset="1" stop-color="#b98350"/></linearGradient><linearGradient id="edge" x2="0" y2="1"><stop stop-color="#e7b267"/><stop offset="1" stop-color="#553a2b"/></linearGradient></defs>
+<rect x="2" y="2" width="124" height="60" rx="26" fill="#261e21"/>
+<rect x="5" y="5" width="118" height="54" rx="24" fill="url(#paper)" stroke="url(#edge)" stroke-width="3"/>
+<rect x="9" y="9" width="110" height="46" rx="20" fill="none" stroke="#ffe4ad" stroke-opacity=".38"/>
+<path d="M23 14Q40 11 54 14 M78 50Q97 53 109 46 M13 36Q15 42 20 44" fill="none" stroke="#745235" stroke-opacity=".16"/>
+</svg>

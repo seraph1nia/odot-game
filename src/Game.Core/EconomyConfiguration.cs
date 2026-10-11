@@ -136,21 +136,24 @@ public sealed class EconomyConfiguration
         { 1 => building.Upgrade, 2 => new(6, 2, Stone: 2), 3 => new(9, 2, Stone: 3), 4 => new(14, 2, Stone: 4), _ => throw new InvalidOperationException("Invalid recruitment level.") };
         return true;
     }
-    public ResourceCost Production(IEnumerable<SlotState> slots)
+    public ResourceCost Production(IEnumerable<SlotState> slots, ResearchState research = default)
     {
+        Research.ValidateState(research);
+        ProductionBenefit[] benefits = Research.Definitions().Where(n => research.Has(n.Id) && n.Production is not null).Select(n => n.Production!).ToArray();
         ResourceCost total = BaseProduction;
         foreach (SlotState slot in slots)
         {
             if (!_buildings.TryGetValue(slot.Type, out BuildingDefinition? building) || building.Produces is not Resource resource) continue;
-            ResourceCost output = new ResourceCost().With(resource, building.Output(slot.Level));
+            int bonus = benefits.Where(b => b.Building == slot.Type && b.Resource == resource).Sum(b => b.ExtraPerProducer);
+            ResourceCost output = new ResourceCost().With(resource, checked(building.Output(slot.Level) + bonus));
             if (!total.TryAdd(output, out ResourceCost next)) throw new OverflowException("Production exceeds whole-resource bounds.");
             total = next;
         }
         return total;
     }
-    public ResourceCost? ProjectedProduction(IEnumerable<SlotState> slots)
+    public ResourceCost? ProjectedProduction(IEnumerable<SlotState> slots, ResearchState research = default)
     {
-        try { return Production(slots); }
+        try { return Production(slots, research); }
         catch (OverflowException) { return null; }
     }
     public MarketRate[] MarketRates() => _marketCatalog.ToArray();

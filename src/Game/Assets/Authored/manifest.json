@@ -2891,5 +2891,460 @@
       "sha256": "b75d2718063b6109b698a9aa96d2570771aca6d1a58c2df5384055e18aad062f",
       "bytes": 19671
     }
-  ]
+  ],
+  "worldtree": {
+    "source": "https://github.com/seraph1nia/odot-game-assets.git",
+    "revision": "cadf0373c33dcde6858f59f2873575da8665be2d",
+    "permission": "Requested integration of owner-authored living Worldtree into The Common Watch; no license invented.",
+    "attribution": "Original editable SVG illustrations authored in odot-game-assets; concept boards supplied as AI-generated reference, not runtime art; canonical structure from original programmatic handoff. DejaVu Serif retains its bundled license.",
+    "qualification": "Asset standalone receipts do not qualify this game; current game headless bindings are recorded in docs/worldtree.md.",
+    "sourceOwners": {
+      "docs/ui/api.md": "f7e40750a8b074b83b1c6048dbab351f9dcaa631020c55f5f846cf8ff15ea280",
+      "docs/ui/worldtree.md": "d263af79a0add91f94a03eb743fe6bcf4a8a3bc0f900eadb8b1abaad27957861",
+      "docs/ui/worldtree-validation.json": "90b9b744e9c182a209d8d578ebb07377bf96a15e6237a1fde57391f5618a935f",
+      "docs/ui/worldtree-art.json": "596a7907d0f75dc96dd218a1d37c8625a88eae1aaa53a557fbdc907bbe4af76b",
+      "docs/ui/payload.json": "e9983dff6354ebaf09422bc73bafc4a461442f58d2c5fa23b1b5964650ed9217",
+      "exports/ui/ledger-ui.zip": "a01304395166916aaaada1f15af5cffdf88348c45adf86c170657c48d0e9e7ff"
+    },
+    "files": [
+      {
+        "path": "UI/art/woodland/branch_frame.svg",
+        "sourcePath": "ui/preview/UI/art/woodland/branch_frame.svg",
+        "sha256": "cb0aca39770e057cd90ec6fc021e80cc9a9961ea515cefeee34166684b5d91c0",
+        "bytes": 3116
+      },
+      {
+        "path": "UI/art/woodland/parchment_button.svg",
+        "sourcePath": "ui/preview/UI/art/woodland/parchment_button.svg",
+        "sha256": "98398d1e0bc3f811bcc205a61726e30c2162d3159368e146f542203bfc674e5e",
+        "bytes": 865
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_primary_center.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_primary_center.svg",
+        "sha256": "386f73ced25f6aa6cce4fbee0003691ed5302531186a5fceb30080b026971742",
+        "bytes": 2699
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_primary_left.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_primary_left.svg",
+        "sha256": "fc6e0218fd39789d251fa84ba418afe49f9380e2c2bc9513556edf1b0f56c039",
+        "bytes": 2790
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_primary_right.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_primary_right.svg",
+        "sha256": "bfac4c38ffb174f8b129f43c78a794b728927cd50951caa4e5f34966d96ba18b",
+        "bytes": 2808
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_secondary_center_a.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_secondary_center_a.svg",
+        "sha256": "84cfc7c109993db9dbbf11106a956fec8544eb561442122293e7ea0388c351b7",
+        "bytes": 2764
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_secondary_center_b.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_secondary_center_b.svg",
+        "sha256": "050e91aca98a04ae5734d2f8acd6d8841cd61e897f18770b7ada495d73d5802e",
+        "bytes": 2778
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_secondary_left_a.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_secondary_left_a.svg",
+        "sha256": "337e88fe61d32f6bbb37156b2ec12c7bf89a749a0a10cdfe52717dfd7d54e645",
+        "bytes": 2759
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_secondary_left_b.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_secondary_left_b.svg",
+        "sha256": "51b830d8827274e4118f439e1097b42c998ee78cee7d94b0b66c8b56fa40d75d",
+        "bytes": 2741
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_secondary_right_a.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_secondary_right_a.svg",
+        "sha256": "a4db496f60eff53f2b59d3ebed759cf71c43abf23097b94342328fd96559d979",
+        "bytes": 2733
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_secondary_right_b.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_secondary_right_b.svg",
+        "sha256": "b212f4670b3eb9ef8ac740d4a7ef6b9b1b055bc4212e0c5bb639c17832d579c9",
+        "bytes": 2782
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_center_a_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_center_a_1.svg",
+        "sha256": "6d31cf5e236c3d28fd9dd6415bae483691f77b43039ef068ad5b07d8b67adfec",
+        "bytes": 2714
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_center_a_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_center_a_2.svg",
+        "sha256": "dcd0d2eeae66a4911999ba1041e9f730b1d1f7227cdf17096344f075a2e96333",
+        "bytes": 2709
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_center_b_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_center_b_1.svg",
+        "sha256": "b23e07daa0f1cf4c59f9d5e6e4dc2d4d743b5f1e788781a34b0163ede7b8efe7",
+        "bytes": 2730
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_center_b_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_center_b_2.svg",
+        "sha256": "184097c5814e9ab0ce3b08944b0ab7cc6f98915b79b5d95ede9ad9bfa2561006",
+        "bytes": 2694
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_left_a_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_left_a_1.svg",
+        "sha256": "0c58feb65603ca0f49dcc882edd4548f851ed8dc5ebb17f22608a187e5ea9b8e",
+        "bytes": 2712
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_left_a_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_left_a_2.svg",
+        "sha256": "95c4deee164736ec2865233c15fd7fa86ebd07363fff6c47226f01d9eb3e99ca",
+        "bytes": 2715
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_left_b_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_left_b_1.svg",
+        "sha256": "3222c53e6adb695e19a41ec675d48482d4cba6a72f2c1f4bd7a26533b2a0dbc8",
+        "bytes": 2713
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_left_b_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_left_b_2.svg",
+        "sha256": "e7ca31e19ea17ccc060e71e6ecb909cd6831c5e84c0457b253c0f5166db3128a",
+        "bytes": 2716
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_right_a_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_right_a_1.svg",
+        "sha256": "65c89f6cb041fea2d48117540b55b0d0f9263e15c0caaf4c435148abc50e97d4",
+        "bytes": 2708
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_right_a_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_right_a_2.svg",
+        "sha256": "375667a37f4e2394101d78e27687626421c3c55516773658732d2320fa217085",
+        "bytes": 2716
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_right_b_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_right_b_1.svg",
+        "sha256": "5bff8ece8abede2c468ca40b678f6a00e1bffe207c64a6ba14cdd3b655b8b1a4",
+        "bytes": 2720
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_terminal_right_b_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_terminal_right_b_2.svg",
+        "sha256": "95c4deee164736ec2865233c15fd7fa86ebd07363fff6c47226f01d9eb3e99ca",
+        "bytes": 2715
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_trunk_1.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_trunk_1.svg",
+        "sha256": "10043d61eedff55fa7300c7ddf194532ee2960423cdfefe1ace48623199e1d9a",
+        "bytes": 2693
+      },
+      {
+        "path": "UI/art/worldtree/branches/edge_to_trunk_2.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/branches/edge_to_trunk_2.svg",
+        "sha256": "10043d61eedff55fa7300c7ddf194532ee2960423cdfefe1ace48623199e1d9a",
+        "bytes": 2693
+      },
+      {
+        "path": "UI/art/worldtree/foliage_alive.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/foliage_alive.svg",
+        "sha256": "a4e5b862175483d32ed5e3c0375de6a3e552658279f616d6b139e903c9c13a5d",
+        "bytes": 1755
+      },
+      {
+        "path": "UI/art/worldtree/foliage_dead.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/foliage_dead.svg",
+        "sha256": "13de01be67aba7208734cde082c2004df25f175994a3ef534922058b147301b7",
+        "bytes": 709
+      },
+      {
+        "path": "UI/art/worldtree/forest.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/forest.svg",
+        "sha256": "1b6fb9e47019e31885c2dd1b2ac64b63e2fb27cbee7540d2cc1bf0da351330b3",
+        "bytes": 6406
+      },
+      {
+        "path": "UI/art/worldtree/halo.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/halo.svg",
+        "sha256": "d25611d8d6b541ac50c7460648b3a1abb1d462fd7440a7b61b825347ea703e7a",
+        "bytes": 468
+      },
+      {
+        "path": "UI/art/worldtree/icons/acorn.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/acorn.svg",
+        "sha256": "242bb9dd8d4a145667a753ad3d1b2c23db9a810fa25fa3aaa66dbc62d036a5c2",
+        "bytes": 447
+      },
+      {
+        "path": "UI/art/worldtree/icons/antlers.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/antlers.svg",
+        "sha256": "9f80d847bfbe44a7d3b351f44db09e2fdecc6bcdd21d2c173f5b3850a63aaeaf",
+        "bytes": 468
+      },
+      {
+        "path": "UI/art/worldtree/icons/book.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/book.svg",
+        "sha256": "4221c2224e350b007716894b2c060fa0854e8ef4d59f87ab8c1c017f62fde873",
+        "bytes": 450
+      },
+      {
+        "path": "UI/art/worldtree/icons/boot.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/boot.svg",
+        "sha256": "bbd5272b833dc1761884079a42284d3a21b96d18e6d7ba41113e9019d38b596d",
+        "bytes": 421
+      },
+      {
+        "path": "UI/art/worldtree/icons/bow.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/bow.svg",
+        "sha256": "94f64a1d9237592246c4810035c23a3dd2fd2fe6a1b422b686b7f134197d8852",
+        "bytes": 386
+      },
+      {
+        "path": "UI/art/worldtree/icons/crescent_moon.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/crescent_moon.svg",
+        "sha256": "0500720db2a016c14e62a43935cbbbafad0760770ea8fbd21d7097fbbcd23839",
+        "bytes": 441
+      },
+      {
+        "path": "UI/art/worldtree/icons/crossed_swords.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/crossed_swords.svg",
+        "sha256": "d3d3e983af2a5f0705c9a39ebe8a273f623f0da4b84865ec21810b82dfbcf2c5",
+        "bytes": 444
+      },
+      {
+        "path": "UI/art/worldtree/icons/crystal.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/crystal.svg",
+        "sha256": "8cb3bdfe86b9bb6a8fac654f2668b84f55564160e2e1608ab00fcd4e5b5248f8",
+        "bytes": 446
+      },
+      {
+        "path": "UI/art/worldtree/icons/eye.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/eye.svg",
+        "sha256": "508deb3902e336dc815b8f4741208596b7e23319b11cb280b58511f5e041c146",
+        "bytes": 416
+      },
+      {
+        "path": "UI/art/worldtree/icons/feather.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/feather.svg",
+        "sha256": "afd57c2c564bd141fa5c25051fb957db0943a194b31244b85531f1e27b653f56",
+        "bytes": 456
+      },
+      {
+        "path": "UI/art/worldtree/icons/flame.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/flame.svg",
+        "sha256": "c11281b87342151f73f060ea18d35f6a001bab4aaadccedbd4ea2ba8e3efb356",
+        "bytes": 467
+      },
+      {
+        "path": "UI/art/worldtree/icons/heart.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/heart.svg",
+        "sha256": "7f46177d66add3019fa594c0233ea4158dd96136bfc863c654250a23cb42630a",
+        "bytes": 425
+      },
+      {
+        "path": "UI/art/worldtree/icons/lantern.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/lantern.svg",
+        "sha256": "e61bb8876265cd219d7811922a156c684e11d391b42ffc13afab19488dc79322",
+        "bytes": 465
+      },
+      {
+        "path": "UI/art/worldtree/icons/leaf.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/leaf.svg",
+        "sha256": "4bd3da4eedd54a377fc7c8bd8121f91936c6dd181a8128bdc73a372eb962ca52",
+        "bytes": 402
+      },
+      {
+        "path": "UI/art/worldtree/icons/mushroom.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/mushroom.svg",
+        "sha256": "9b3885ed4273b6804e8bfff3c3020310a278014bf9143a929b0f51a72a2e8854",
+        "bytes": 432
+      },
+      {
+        "path": "UI/art/worldtree/icons/owl.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/owl.svg",
+        "sha256": "63ff7408726c97c2912ca939d0876f227f62935ac6c861fc4f8e4fe4fcbbef05",
+        "bytes": 514
+      },
+      {
+        "path": "UI/art/worldtree/icons/paw.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/paw.svg",
+        "sha256": "2464566e36734f05e1e95d511242d112a353cfa29698c8d6df523abe568c8308",
+        "bytes": 567
+      },
+      {
+        "path": "UI/art/worldtree/icons/poison_drop.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/poison_drop.svg",
+        "sha256": "8ba0fc609d1240bd046fe1e2dc4b65026ef4f2c9a35a7e18eefea08ad2da18bd",
+        "bytes": 483
+      },
+      {
+        "path": "UI/art/worldtree/icons/rune.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/rune.svg",
+        "sha256": "b4a9e9aab048b1d2679d6e3c78ead64fe53d853e67fa2396ba0709844b2fa083",
+        "bytes": 382
+      },
+      {
+        "path": "UI/art/worldtree/icons/shield.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/shield.svg",
+        "sha256": "83a51ae61d1d1c015fb332587c64c911a77b783e648355014f1323fabc6962c0",
+        "bytes": 426
+      },
+      {
+        "path": "UI/art/worldtree/icons/snowflake.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/snowflake.svg",
+        "sha256": "484a273131e923d9815c84953efd3b719e946c16d6d60b5b40c005fd99317ffd",
+        "bytes": 478
+      },
+      {
+        "path": "UI/art/worldtree/icons/spark.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/spark.svg",
+        "sha256": "b10c01a7547dd2ac4dee307e68ca0d87d1b1ffb904c8a156b00b507e1666b818",
+        "bytes": 381
+      },
+      {
+        "path": "UI/art/worldtree/icons/spiral.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/spiral.svg",
+        "sha256": "3b8eba3bf0a57a8dc30d857c51d2592429f6a039b045a562327eaf48d8fbc56d",
+        "bytes": 426
+      },
+      {
+        "path": "UI/art/worldtree/icons/squirrel.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/squirrel.svg",
+        "sha256": "322fbd6d72e7b7ff3eefd9159353443e35890805a1b6f401429bbcdef6779105",
+        "bytes": 477
+      },
+      {
+        "path": "UI/art/worldtree/icons/stone.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/stone.svg",
+        "sha256": "0355609da6a9b70e23d42444f9baff24533ba7bc36a83e284d694180b5cde903",
+        "bytes": 420
+      },
+      {
+        "path": "UI/art/worldtree/icons/thorn_vine.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/thorn_vine.svg",
+        "sha256": "7400be875aa8194e895ced9adc31e0c33552321bbcda96b74da314ebd07e71b0",
+        "bytes": 459
+      },
+      {
+        "path": "UI/art/worldtree/icons/tower.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/tower.svg",
+        "sha256": "4a1e0c9ff80e371e43a347226603ca0608652142eeeba620587c50b9a33c2b30",
+        "bytes": 431
+      },
+      {
+        "path": "UI/art/worldtree/icons/tree_roots.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/tree_roots.svg",
+        "sha256": "0d32f351f8649a99f332c232fae8647ff01faa707da7b2ec235285b94d2e6c62",
+        "bytes": 442
+      },
+      {
+        "path": "UI/art/worldtree/icons/water_drop.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/water_drop.svg",
+        "sha256": "cd84af48e5f8a33dee5b1f55b2f5af29069aae1b6c7158cb371c6eac0d98b7c5",
+        "bytes": 411
+      },
+      {
+        "path": "UI/art/worldtree/icons/world_seed.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/icons/world_seed.svg",
+        "sha256": "2c9521904fe79b5ea6c22d3faf32b4bcdd6b39991e7798e8fea037e2389749cd",
+        "bytes": 480
+      },
+      {
+        "path": "UI/art/worldtree/modules.json",
+        "sourcePath": "ui/preview/UI/art/worldtree/modules.json",
+        "sha256": "5f70024956d82817508687508f7601dd16e19518d8676f26a9495bb2289f7da6",
+        "bytes": 10084
+      },
+      {
+        "path": "UI/art/worldtree/roots.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/roots.svg",
+        "sha256": "c295fa8b08fb16e068d8ab8c9eacab0b4a4652a97309c127621933f8c02b2ea4",
+        "bytes": 3107
+      },
+      {
+        "path": "UI/art/worldtree/roots_alive.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/roots_alive.svg",
+        "sha256": "b8aaa47b4919d5e3a85f5c7d57cc546c25f92cdc97f1a32a289677957b8752b1",
+        "bytes": 3428
+      },
+      {
+        "path": "UI/art/worldtree/socket.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/socket.svg",
+        "sha256": "5c389735c9d3327115dd580d967fab8f00be2381533e2389e917a9bee7f6850b",
+        "bytes": 695
+      },
+      {
+        "path": "UI/art/worldtree/topology.json",
+        "sourcePath": "ui/preview/UI/art/worldtree/topology.json",
+        "sha256": "f916023b78d66341d9d6268ea17c6ca322b87a5bcb1c6e7eebfda223bd0332e9",
+        "bytes": 9766
+      },
+      {
+        "path": "UI/art/worldtree/twig.svg",
+        "sourcePath": "ui/preview/UI/art/worldtree/twig.svg",
+        "sha256": "7b904391a7220963fd8d23c3a5f31359f4a5d42445e7533b6433aab3e3fa74b7",
+        "bytes": 361
+      },
+      {
+        "path": "UI/components/worldtree.gd",
+        "sourcePath": "ui/preview/UI/components/worldtree.gd",
+        "sha256": "a8392bf39f46d1d2e84312a50bc87665c62a1be34dc03973f7fce72ab154dcb0",
+        "bytes": 10461
+      },
+      {
+        "path": "UI/components/worldtree.gd.uid",
+        "sourcePath": "ui/preview/UI/components/worldtree.gd.uid",
+        "sha256": "3638585aa21fe229ab9eb4363c23591cdc50910f85b12e2e4944099f04b3fd2c",
+        "bytes": 20
+      },
+      {
+        "path": "UI/components/worldtree.tscn",
+        "sourcePath": "ui/preview/UI/components/worldtree.tscn",
+        "sha256": "f9c18f707e0aa222d23f934172caf02637b825d18c65737c17f27dd2ea0b3480",
+        "bytes": 358
+      },
+      {
+        "path": "UI/components/worldtree_branch.gd",
+        "sourcePath": "ui/preview/UI/components/worldtree_branch.gd",
+        "sha256": "cdfd67aa07bc761cce5cad119dfb947106e09d9111a700004261e5cd9db7d0c5",
+        "bytes": 969
+      },
+      {
+        "path": "UI/components/worldtree_branch.gd.uid",
+        "sourcePath": "ui/preview/UI/components/worldtree_branch.gd.uid",
+        "sha256": "16292109d2aaac2bff5ce1c0b686a5dff56ea6b3dc6f517f2ca10986ca667854",
+        "bytes": 19
+      },
+      {
+        "path": "UI/fonts/DejaVuSerif.ttf",
+        "sourcePath": "ui/preview/UI/fonts/DejaVuSerif.ttf",
+        "sha256": "ae665174c5b7fdb9b457d112db098cbe651dff847bfcf8bcb711172856d0c6b1",
+        "bytes": 380660
+      },
+      {
+        "path": "UI/fonts/LICENSE-DejaVu.txt",
+        "sourcePath": "ui/preview/UI/fonts/LICENSE-DejaVu.txt",
+        "sha256": "7a083b136e64d064794c3419751e5c7dd10d2f64c108fe5ba161eae5e5958a93",
+        "bytes": 8816
+      },
+      {
+        "path": "UI/theme/ledger.tres",
+        "sourcePath": "ui/preview/UI/theme/ledger.tres",
+        "sha256": "e5ee7852f2873c274155c363ec5b93c9d01f6ba9dcf81f69f7a0921726f46ca5",
+        "bytes": 50769
+      }
+    ]
+  }
 }

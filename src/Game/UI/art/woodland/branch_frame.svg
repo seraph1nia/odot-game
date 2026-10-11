@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+<!-- Original editable woodland border. 28px protected corners, no text or scene imagery. -->
+<defs>
+ <radialGradient id="ink"><stop stop-color="#22222c"/><stop offset="1" stop-color="#11131c"/></radialGradient>
+ <linearGradient id="bark" x2="0.4" y2="1"><stop stop-color="#986349"/><stop offset=".4" stop-color="#593c36"/><stop offset="1" stop-color="#302527"/></linearGradient>
+ <linearGradient id="leaf" x2=".7" y2="1"><stop stop-color="#b2ab53"/><stop offset=".45" stop-color="#667b38"/><stop offset="1" stop-color="#304d38"/></linearGradient>
+ <linearGradient id="violet" x2=".6" y2="1"><stop stop-color="#dcb3ff"/><stop offset=".4" stop-color="#9452cb"/><stop offset="1" stop-color="#403477"/></linearGradient>
+</defs>
+<rect x="7" y="7" width="146" height="146" rx="23" fill="url(#ink)" stroke="#17161c" stroke-width="8"/>
+<path d="M29 10 C51 4 68 12 80 8 S114 8 130 10 Q154 15 151 36 C145 65 157 81 149 105 S158 135 134 150 C104 154 91 147 78 152 S43 146 27 150 Q6 146 10 124 C16 101 6 87 11 73 S6 44 10 28 Q12 13 29 10Z" fill="none" stroke="#251e22" stroke-width="12"/>
+<path d="M29 10 C51 4 68 12 80 8 S114 8 130 10 Q154 15 151 36 C145 65 157 81 149 105 S158 135 134 150 C104 154 91 147 78 152 S43 146 27 150 Q6 146 10 124 C16 101 6 87 11 73 S6 44 10 28 Q12 13 29 10Z" fill="none" stroke="url(#bark)" stroke-width="8"/>
+<path d="M25 14 C55 9 64 16 82 13 S108 11 134 15 M146 26 C140 48 150 65 145 80 S145 109 144 132 M133 144 C110 147 97 140 80 145 S43 144 27 146 M16 132 C19 113 12 96 17 80 S14 42 17 28" fill="none" stroke="#ae7950" stroke-width="1.5" opacity=".65"/>
+<path d="M16 31 Q27 18 40 22 M121 9 Q122 25 140 26 M8 118 Q27 128 23 146 M119 151 Q120 133 143 132 M28 6 Q22 22 11 22" fill="none" stroke="#4c5430" stroke-width="3"/>
+<g fill="url(#leaf)" stroke="#26392a" stroke-width=".6">
+ <path d="M22 20 Q18 2 31 2 Q35 14 22 20Z"/><path d="M29 20 Q35 8 45 13 Q43 24 29 20Z"/>
+ <path d="M13 30 Q1 22 3 12 Q16 12 13 30Z"/><path d="M21 29 Q33 26 35 35 Q24 39 21 29Z"/>
+ <path d="M137 23 Q122 14 126 3 Q138 7 137 23Z"/><path d="M140 27 Q144 10 156 13 Q156 24 140 27Z"/>
+ <path d="M151 35 Q158 38 158 51 Q146 48 151 35Z"/>
+ <path d="M24 142 Q12 134 11 121 Q26 122 24 142Z"/><path d="M24 141 Q26 129 37 132 Q38 145 24 141Z"/>
+ <path d="M130 143 Q135 126 146 128 Q146 142 130 143Z"/><path d="M129 145 Q118 144 115 157 Q129 160 129 145Z"/>
+</g>
+<g stroke="#b4b76b" stroke-width=".7" opacity=".7" fill="none"><path d="M23 18L29 6 M141 25L153 16 M24 139L16 127 M132 141L142 132"/></g>
+<path d="M3 144 L7 132 L12 139 L11 155Z" fill="url(#violet)" stroke="#2a2850"/><path d="M7 132L7 149L11 155" fill="none" stroke="#c7afff" stroke-width="1"/>
+<path d="M144 151Q144 142 146 137L150 137Q151 145 154 151" fill="#b28dba"/>
+<path d="M137 138 Q144 123 151 130 Q155 132 158 140 Q149 145 137 138Z" fill="url(#violet)" stroke="#453050"/><path d="M140 138 Q151 141 156 139" fill="none" stroke="#dbc0ff"/><g fill="#e6d0ee" opacity=".8"><ellipse cx="147" cy="132" rx="2" ry="1"/><ellipse cx="153" cy="137" rx="1.4" ry=".8"/></g>
+</svg>

@@ -31,6 +31,7 @@ internal sealed partial class Runner
         await _evidence.Measure("windows-package-inventory", "package", () => ValidateWindowsPackage(payload));
         await SteamExtensionProbe(exported: true, offline: true);
         await BuildIdentityProbe(null, Path.Combine(payload, "odot.exe"));
+        await EngineTests(exported: true);
         // One bounded startup/economy slice catches runtime/PCK/managed-load failures
         // that a cross-export or unit fixture cannot establish. No rendered battle.
         await _evidence.Measure("windows-offline-solo", "package", () => WindowsSolo(payload));

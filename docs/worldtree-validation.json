@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "scope": "Measured dirty implementation tree receipts, not final published-head qualification; headless only. Pipeline must bind fresh current-head checks after any source fix/rebase.",
+  "baseHead": "a3c3b4b1ac75d7f285949d392e1f4a7599080ef7",
+  "sourceInputSha256": {
+    "mise.toml": "4bdf9e3c120534779f9f19af4fc774f5342b3a0dfd7e65dfd52c0bd58206a6fd",
+    "src/Game.Core/EconomyConfiguration.cs": "2463a481198fccc8f0438129db3d561eeda6593dac2fef35f39f7b5965bdccac",
+    "src/Game.Core/Research.cs": "77786f4fb2a2318160296c630581bb9a60371e1dcdb8d4bb3e12dfa84a30fcc3",
+    "src/Game.Core/SettlementCommands.cs": "dfa6d8f0087b2fac9ed0fe0577053656f61bc4c88053cf4bb2210f6346d4a10f",
+    "src/Game.Core/World.cs": "a1ffd6f7f8a445d08851b16286b14f9598a07d35a0b4e566c0d5164439eb5c89",
+    "src/Game/Main.cs": "41132fb57bf7bfbc7d0d8fec31749216b71e46bb911992c5f583df98bbc77167",
+    "src/Game/ResearchPanel.cs": "7f829795ea4e63991b0c66d23da6c2218bd9e955993f518429a542cdfdfec2c0",
+    "src/Game/Tabletop.cs": "335baa976b0d6a1e9da139a187a11243011c360792e2f130258bd4d926563c62",
+    "src/Game/TabletopHud.cs": "2a62030a0fb71ed91c7c34b453b3643f0ef25e5b1f5cb9634ef6234cebafba3a",
+    "src/Game/Verification/EngineTests.cs": "9356eb01a83ce2807cda1b281adb2a98b0d9f3674c5ffd65709c6a8f7d0cb78d",
+    "src/Game/Verification/EngineWorldtree.cs": "07a2e04cc675c773cff2cba345742af97e51fa1f7597330896e16f8efc19b1d3",
+    "src/Game/WorldtreeProjection.cs": "d5b8ed6aaf956f4f6b5e9287a39b4af27acbb8d5b4493a036eef1a63cb5608bd",
+    "src/Game/WorldtreeResearch.cs": "5499b1bf8a1d730fa2fa27375b5520ff0d999172b9034c21903770616a8768df",
+    "src/Game/export_presets.cfg": "9f1662a1929547ef578cd69fe93a2a1307e9f6ffd509e9b3a01206eb7ed083da",
+    "tests/DevRunner.Tests/AuthoredAssetTests.cs": "7fc95cd1079172863198d191ba9a4f8f2339610018892ff5e83a0cdfa75d485d",
+    "tests/Game.Core.Tests/CityResearchTests.cs": "b73e5820d9fb9b62c678ba7e627141ebb0c6fa0060b8fb63cce2a231f253a434",
+    "tests/Game.Core.Tests/Game.Core.Tests.csproj": "0b44d538e6ab0d0b229e3f74e25b8364547b692dfc2db6fb6ed105b67dfb35c0",
+    "tests/Game.Core.Tests/WorldtreeResearchTests.cs": "499bb882a5d89acd695d9c9183fd99185523b56dc98d00ba3df7591904f3bb4f",
+    "tools/DevRunner/EngineTests.cs": "089bcf95fa4049b6ee2282bdf4fc7edc4ada245a258ea522e3fbdf0eb85c1dd4",
+    "tools/DevRunner/Exports.cs": "1aa7e33b916e5c308614c77b500186057b9a18510edd4a3942360f28c73939e9",
+    "tools/DevRunner/Options.cs": "5eae9669ff61a47603d1829b06c504ba3a04093fb3dabbcaca11616add7bfefb",
+    "tools/DevRunner/ResearchUiTests.cs": "fec3d2fb39ccad5794f9660506327d21ada6eedc203ad73334b42f89eccb98e2",
+    "tools/DevRunner/Runner.cs": "dd4460f61cd6e4e0089a31e94e2a065b3b8881fbd68c3f0edb7305f24861d51e",
+    "tools/DevRunner/WindowsChecks.cs": "27b5b2535b5296d205c5126bde605a289d973c066252296320e28c1d0570c173"
+  },
+  "importContract": {
+    "manifest": "src/Game/Assets/Authored/manifest.json",
+    "manifestSha256": "1120f6931a4b62c9b05faeb242540a28547003fa616e704ed0e5789b3199aa0e",
+    "sourceRevision": "cadf0373c33dcde6858f59f2873575da8665be2d",
+    "sourceMemberCount": 73,
+    "sourceOwners": {
+      "docs/ui/api.md": "f7e40750a8b074b83b1c6048dbab351f9dcaa631020c55f5f846cf8ff15ea280",
+      "docs/ui/worldtree.md": "d263af79a0add91f94a03eb743fe6bcf4a8a3bc0f900eadb8b1abaad27957861",
+      "docs/ui/worldtree-validation.json": "90b9b744e9c182a209d8d578ebb07377bf96a15e6237a1fde57391f5618a935f",
+      "docs/ui/worldtree-art.json": "596a7907d0f75dc96dd218a1d37c8625a88eae1aaa53a557fbdc907bbe4af76b",
+      "docs/ui/payload.json": "e9983dff6354ebaf09422bc73bafc4a461442f58d2c5fa23b1b5964650ed9217",
+      "exports/ui/ledger-ui.zip": "a01304395166916aaaada1f15af5cffdf88348c45adf86c170657c48d0e9e7ff"
+    },
+    "allSourceMembersCopiedByteIdentically": true,
+    "assetSourceEdited": false,
+    "generatedImportCount": 64,
+    "generatedImportSha256": {
+      "src/Game/UI/art/woodland/branch_frame.svg.import": "dbbb02d262a3f4c598fc570ed5cb16dbf0dd995d6019d86ae3ea516f42abfdec",
+      "src/Game/UI/art/woodland/parchment_button.svg.import": "47e10afdf1cfe31370304a99b1a7635f79d0d96f556ffe6816f4da7dfe4828b7",
+      "src/Game/UI/art/worldtree/branches/edge_to_primary_center.svg.import": "41e4995bb086a3b34da9945e00fbcdd760c5192452e99ff15da03ba13b21f6a1",
+      "src/Game/UI/art/worldtree/branches/edge_to_primary_left.svg.import": "4a3cb0c8cd0e36b77075709c8875a9fbec438bc0940ffa073d6734f84d04d62a",
+      "src/Game/UI/art/worldtree/branches/edge_to_primary_right.svg.import": "3b124f23766ad1d8d2d87b58fa0fe932418901ec51bab7ff7fff9303ec7956cb",
+      "src/Game/UI/art/worldtree/branches/edge_to_secondary_center_a.svg.import": "58bc0bdf585e873a80240048d3348c24136e4a44461b5001f19319c445012cce",
+      "src/Game/UI/art/worldtree/branches/edge_to_secondary_center_b.svg.import": "905586802422512801bfecc7cb0c72f4f6f844209b778161bb0897d8bb0ab1e7",
+      "src/Game/UI/art/worldtree/branches/edge_to_secondary_left_a.svg.import": "fa4d8c1def6a9c9c865b3ff256488ce48a94728fd87823ef3f8d69c391f01e58",
+      "src/Game/UI/art/worldtree/branches/edge_to_secondary_left_b.svg.import": "bb9e34582fc59703d7d12e6ac9466ec77964be52e7e945c88886373f980f54e9",
+      "src/Game/UI/art/worldtree/branches/edge_to_secondary_right_a.svg.import": "0ccec5e7691c7659782cb82d5e7860908cd9eb5a09afde9fb948f73b919d620c",
+      "src/Game/UI/art/worldtree/branches/edge_to_secondary_right_b.svg.import": "582604ad8b04fe4b1c3938a26304023028b559aaf727fba3f99b0163798b0eec",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_center_a_1.svg.import": "3cb2e3b5bc4379b2fd39b5033ab015ea225102ff65a504cc25419e3a18980e0b",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_center_a_2.svg.import": "120e21911b0879d89d450d25fc7743090cd32e01da49880c3ab3d4dc89ed3211",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_center_b_1.svg.import": "e5980836cc572309702d3b1cdc68c07139ecdaaac0e58ccf9e49d118874895bf",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_center_b_2.svg.import": "50bec76585a2163f7a74248243a5c687a4769f23a070ffbdbd2780f01e65ff40",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_left_a_1.svg.import": "db2cd2aaf6a3ff2afca2e0b161d18ceb87d5d1f52b02555e65692e81b830ab86",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_left_a_2.svg.import": "7a5ac37d689ec07c740d6991f6a1206d1025d9cbbb50ce022004bacf5d269ab3",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_left_b_1.svg.import": "c2f25181aa0d165adead716058c79dadad869ae301b22fbfee40e1e5b1855700",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_left_b_2.svg.import": "be7d8044514ac006ce77ba366d1defbfeb490e66829461dba9f2ac9ca7186c08",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_right_a_1.svg.import": "be0338b665139ec5c1a635777d82b4f4383c5b52f13eba0168408e1f75d8d10f",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_right_a_2.svg.import": "bf207deae958b5be4500966487adac79d597795cdd434dc298176055ea2d6416",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_right_b_1.svg.import": "d70729ff6ce79d398071ea5a957f5cbffeb804db5284b82d384adc485d4429a6",
+      "src/Game/UI/art/worldtree/branches/edge_to_terminal_right_b_2.svg.import": "5612b411ed75ebee7704aee73addf00528dd2b9324d04fc1eb024ba26034064a",
+      "src/Game/UI/art/worldtree/branches/edge_to_trunk_1.svg.import": "cca037305d4749e52a6169ed60224f190426ed14ea5be98eda22d6c48432e139",
+      "src/Game/UI/art/worldtree/branches/edge_to_trunk_2.svg.import": "6f74c42903e03d34d40737d083e08cc967fbc29228733378b22b1b29e3e9af2b",
+      "src/Game/UI/art/worldtree/foliage_alive.svg.import": "ecce6f7525043612c1aeb248ea6d9e34050433738a16cca5b3f1e7ad487c42b8",
+      "src/Game/UI/art/worldtree/foliage_dead.svg.import": "52b448ff7712cf1e8eb164b284defac2a894e15be2a4d902178cca8be7a8028c",
+      "src/Game/UI/art/worldtree/forest.svg.import": "e79598aaa9ed77ae615d8417877bc8445091a35660af5890b5e3e61598e53562",
+      "src/Game/UI/art/worldtree/halo.svg.import": "b2c281120de13e73a766c965241a1d8335eed399bc68370c0453a50c99aedf37",
+      "src/Game/UI/art/worldtree/icons/acorn.svg.import": "b4bb807ac6c35b0eb65d9ea338ba14104230e7d726620d63ace4c2e39bcce6e3",
+      "src/Game/UI/art/worldtree/icons/antlers.svg.import": "dd0ba8ae4513966ef88c2c2c1b4a5addf8484f5b197a836a53c26830d3f112aa",
+      "src/Game/UI/art/worldtree/icons/book.svg.import": "b18722d829bbe62537244230ed038f99275e4682247edae9f3b5cd2200641fc5",
+      "src/Game/UI/art/worldtree/icons/boot.svg.import": "94d83c6373541dd41649eabc19bb6b02b2a70f07dd2e35a1677ef8222a94a8bd",
+      "src/Game/UI/art/worldtree/icons/bow.svg.import": "14404fa8a2b14bd4e23cbc8418f5c0f6f8819d7671e54d7c002afcbaceec01b2",
+      "src/Game/UI/art/worldtree/icons/crescent_moon.svg.import": "8ed1739983a27aef3e756994da26f4aa49abe622c0cf626305eb8ba1a723446d",
+      "src/Game/UI/art/worldtree/icons/crossed_swords.svg.import": "7d1771fcf2e0332ef2c0efe9523d66654fc77d4fc0a0216ea6e4a9a13e540d37",
+      "src/Game/UI/art/worldtree/icons/crystal.svg.import": "90890811b458da724ceda9f2a6458b04ab727e4b2efd558d4468fc6f23c9323c",
+      "src/Game/UI/art/worldtree/icons/eye.svg.import": "bd3517eb1ae7929b0c18225f38df010be37a789498313473b9b0be9f26e75f38",
+      "src/Game/UI/art/worldtree/icons/feather.svg.import": "11ddfd694f385cb12c4822f230e3f69e7f248cedcf24f87e8ce886b60b4e6b10",
+      "src/Game/UI/art/worldtree/icons/flame.svg.import": "1e112d158933629ef30e90401fc45787ec2b0157959799d309c894d9051e61cb",
+      "src/Game/UI/art/worldtree/icons/heart.svg.import": "603589b6ac5826c2576c07a46dca83abb849bb8254dd5029ea803d6c2dae32d7",
+      "src/Game/UI/art/worldtree/icons/lantern.svg.import": "c40b24b0203650b5b40c84169459ba728d435f0d0da91f32af5aff7b91e6d56f",
+      "src/Game/UI/art/worldtree/icons/leaf.svg.import": "7c418bfee673393eaf466f856e78a5b1380e6136519a94db1c5ec93bc518592c",
+      "src/Game/UI/art/worldtree/icons/mushroom.svg.import": "55a4f18fbd48c25be8e9b474d88388988ebce1f12646a071f1db2658afaacbf6",
+      "src/Game/UI/art/worldtree/icons/owl.svg.import": "2f4a67ea8993eca6a7b91b498d42e0ae1258d85e8f929b3871ab7c86d13dae73",
+      "src/Game/UI/art/worldtree/icons/paw.svg.import": "665b8fcf439abc9aedb01e18cfe8b3ab269582b465172353550cd491283f9b79",
+      "src/Game/UI/art/worldtree/icons/poison_drop.svg.import": "7100e44c16628514801854bf22b857e44d065a04b368d678f8ce838aeb3e7b9f",
+      "src/Game/UI/art/worldtree/icons/rune.svg.import": "2d5ee26d457b170f19c718f9347ce7b105dbd24d4c9bae623e7608b152f2eea0",
+      "src/Game/UI/art/worldtree/icons/shield.svg.import": "025573a5e72a0052ac789748233d0cac009362eb628adc1570271afe5e4b0cd3",
+      "src/Game/UI/art/worldtree/icons/snowflake.svg.import": "2b43ec4c77ab616c665bdb83fc132e3a69561361f86f350e401e2f2fb42b3e0f",
+      "src/Game/UI/art/worldtree/icons/spark.svg.import": "1ac7dd6d4ea61c7b3ace7c27ceec48743e353740b662ab3294e8c6873c07a288",
+      "src/Game/UI/art/worldtree/icons/spiral.svg.import": "f95a93691eddccab968c4fee6010454503a3e4582fa2cd1b3edb0d9a48a64eff",
+      "src/Game/UI/art/worldtree/icons/squirrel.svg.import": "0f300bc6566ffc02465c49d39d1ac197b066e6b6c386c35ba008d028b9081c1b",
+      "src/Game/UI/art/worldtree/icons/stone.svg.import": "449b1a3a335b6b199c9699edb9850d413325024610971e9137ac4d72af087e91",
+      "src/Game/UI/art/worldtree/icons/thorn_vine.svg.import": "b4aa31fe6851a54c56322be8277a97928a4f9f304a7762d651ac153591385357",
+      "src/Game/UI/art/worldtree/icons/tower.svg.import": "0b118b70e7c6440c8978dae6fb652240a806abf22e9174dd893e481484b04edc",
+      "src/Game/UI/art/worldtree/icons/tree_roots.svg.import": "098098a3f887db1371fb61a1f3dd407dc2e97e6964f8f2281ba0a8738fe3c740",
+      "src/Game/UI/art/worldtree/icons/water_drop.svg.import": "aa33a6d58216c34b2b4dc64bb7528f325009ba20da92a81d838f124f5456a58c",
+      "src/Game/UI/art/worldtree/icons/world_seed.svg.import": "45d28fb8d06e53f15f29f48c0e454e3de7e94c305ad2b846bbeacd837a66c4c8",
+      "src/Game/UI/art/worldtree/roots.svg.import": "ae8bd5035acbe8e2006a9911415e0b6b1adf63e200e3a19efeea9d1af9f017b3",
+      "src/Game/UI/art/worldtree/roots_alive.svg.import": "5b6f27ce5e733c09dadcc2e26e88f32f9e144e13805589e981fb54964e447301",
+      "src/Game/UI/art/worldtree/socket.svg.import": "a4de9b1eacf27cf3174191a8c1a9fde6191450b4063809b3dc642a15935b8be7",
+      "src/Game/UI/art/worldtree/twig.svg.import": "6927909c0fe8e2bb9aabf8bf12809598c09f71a780ae5329af613705fd47ce4e",
+      "src/Game/UI/fonts/DejaVuSerif.ttf.import": "3bf2f88f2d0225d38f2faf866cf9d07909c5ff198aad79d9726cabe09a7e02c4"
+    }
+  },
+  "artifacts": {
+    "src/Game/.godot/mono/temp/bin/Debug/Game.dll": {
+      "sha256": "79a4242446fae9965eb9971398bc4a79654cdc1d6bd5bfe1c7d3946f44771b4e",
+      "bytes": 1211904
+    },
+    "src/Game.Core/bin/Debug/net10.0/Game.Core.dll": {
+      "sha256": "880febe29c279dbd442167f1ae73671dbcd1fff5a7271fe71bc026a7ec3b02a9",
+      "bytes": 440320
+    },
+    "tools/DevRunner/bin/Debug/net10.0/DevRunner.dll": {
+      "sha256": "de3eeb1557fdd7543cc2ffc0ee0ecf2b283d3bfcdfde3930e96dae25a588648a",
+      "bytes": 1490944
+    },
+    "tests/Game.Core.Tests/bin/Debug/net10.0/Game.Core.Tests.dll": {
+      "sha256": "5c458b214ebcd77860c27e0800306c911c127054789e31e44b4191943b906b73",
+      "bytes": 659968
+    },
+    "tests/DevRunner.Tests/bin/Debug/net10.0/DevRunner.Tests.dll": {
+      "sha256": "e2251c13c39d310d2b1ccae87d0cf66277179efa77211e2abb81380c4e8b93b8",
+      "bytes": 513536
+    },
+    "dist/client/odot.x86_64": {
+      "sha256": "d776f83ae09d82cfa1295fb3d70ad7ab8a77fe66a4cc4f9d42244fae3665d8cc",
+      "bytes": 73672920
+    },
+    "dist/client/odot.pck": {
+      "sha256": "8ac256fb3ad98ba994619b202920f0be4b468ab372dd3428054826093fd2f942",
+      "bytes": 51791116
+    },
+    "dist/client/data_Game_linuxbsd_x86_64/Game.dll": {
+      "sha256": "a0daad0e1be18c7e5e8326817827bad0082d7ba5debaec2a5f4006edab6fba38",
+      "bytes": 1095168
+    },
+    "dist/client/data_Game_linuxbsd_x86_64/Game.Core.dll": {
+      "sha256": "4734ac44cf45a3990b5a91d3aaf9ffc05254c8b754a5869e68dfe0f0db235ac4",
+      "bytes": 439296
+    },
+    "dist/client/data_Game_linuxbsd_x86_64/GodotSharp.dll": {
+      "sha256": "2afe2686aacfefac36da6601b59aeb05e560f06e4970cd5036100acd2ca4249d",
+      "bytes": 5928960
+    },
+    "dist/client/data_Game_linuxbsd_x86_64/Game.runtimeconfig.json": {
+      "sha256": "542c92af19efa01d5f899547dda634acddfdd16ff03970f25584a81ebd3f4a3d",
+      "bytes": 360
+    }
+  },
+  "tools": {
+    "godot": {
+      "path": "/home/bart/.local/share/mise/installs/godot-dotnet/4.7.2-stable/godot",
+      "sha256": "fc1bd592b5e771c65d52968f99835b4f2b7fe7b7cbc141e202cb63e01c95ec4d",
+      "version": "4.7.2.stable.mono.official.ed1daf0bf"
+    },
+    "dotnet": {
+      "path": "/home/bart/.local/share/mise/installs/dotnet/10.0.401/dotnet",
+      "sha256": "01d89e0a0191052bfea616cd4ce624c8faf13b05bbddf7f64499c23e2a9d9269",
+      "version": "10.0.401"
+    }
+  },
+  "templates": {
+    "version": "4.7.2.stable.mono",
+    "existingChecksumMarker": "92f8681e349ef1f90891b792da95e3b2b0bd1ed610b78018c58feb2d87e15a9d",
+    "linuxReleaseSha256": "d776f83ae09d82cfa1295fb3d70ad7ab8a77fe66a4cc4f9d42244fae3665d8cc",
+    "downloadedOrInstalled": false
+  },
+  "preparation": {
+    "lockedRestore": "MISE_AUTO_INSTALL=0 mise exec -- dotnet restore Odot.slnx --locked-mode",
+    "format": "MISE_AUTO_INSTALL=0 mise exec -- dotnet format Odot.slnx --no-restore",
+    "build": "MISE_AUTO_INSTALL=0 mise exec -- dotnet build Odot.slnx --no-restore --nologo",
+    "buildResult": "passed; zero warnings/errors",
+    "formatCheck": "MISE_AUTO_INSTALL=0 mise exec -- dotnet format Odot.slnx --no-restore --verify-no-changes",
+    "formatCheckResult": "passed"
+  },
+  "receipts": [
+    {
+      "command": "MISE_AUTO_INSTALL=0 mise exec -- dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-fast",
+      "evidence": "logs/20261011-205600-27f00d55",
+      "summaryPath": "logs/20261011-205600-27f00d55/test-fast-summary.json",
+      "summarySha256": "f8952b08b4b960ca273e5c7b1d46e628bc01b127cccd91d5b7011d2b8e690869",
+      "result": "passed",
+      "seconds": 21.5369388,
+      "engineAssertions": null,
+      "coverage": "fast C# core and runner; excludes Tier=Deep; no Godot",
+      "core": {
+        "passed": 465,
+        "failed": 0,
+        "skipped": 0
+      },
+      "runner": {
+        "passed": 648,
+        "failed": 0,
+        "skipped": 2,
+        "skipScope": "Windows-only original process-argument API on Linux"
+      }
+    },
+    {
+      "command": "MISE_AUTO_INSTALL=0 mise exec -- dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-engine --scenario worldtree",
+      "evidence": "logs/20261011-205621-35246563",
+      "summaryPath": "logs/20261011-205621-35246563/test-engine-summary.json",
+      "summarySha256": "f0dec1ad045964a2ef34fe3b5db77369cffa8ba8425833042ec4bb131c9d44dd",
+      "result": "passed",
+      "seconds": 11.5435075,
+      "engineAssertions": 66,
+      "coverage": "selected: worldtree"
+    },
+    {
+      "command": "MISE_AUTO_INSTALL=0 mise exec -- dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll export-client",
+      "evidence": "logs/20261011-205633-851236e6",
+      "summaryPath": "logs/20261011-205633-851236e6/export-client-summary.json",
+      "summarySha256": "1ddd103be21ab21be91a2cab8c65817a54ab934174df3098135ba670a0d4aa1d",
+      "result": "passed",
+      "seconds": 10.6086175,
+      "engineAssertions": null,
+      "coverage": "command only; no test coverage claimed"
+    },
+    {
+      "command": "MISE_AUTO_INSTALL=0 mise exec -- dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-engine --scenario worldtree --exported",
+      "evidence": "logs/20261011-205643-1ed483b8",
+      "summaryPath": "logs/20261011-205643-1ed483b8/test-engine-summary.json",
+      "summarySha256": "ed2b15b36aaa3c264013a9f11fd772b391aa8f5a164789ad9335b22c779f9407",
+      "result": "passed",
+      "seconds": 6.7068933,
+      "engineAssertions": 66,
+      "coverage": "selected: worldtree"
+    },
+    {
+      "command": "MISE_AUTO_INSTALL=0 mise exec -- dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-network --scenario playing-host-lifecycle",
+      "evidence": "logs/20261011-204844-37fca802",
+      "summaryPath": "logs/20261011-204844-37fca802/test-network-summary.json",
+      "summarySha256": "1c2b8076747d8de1a6e44fe013a13a07bff657cd56b642d5ba00f729517ae4d3",
+      "result": "passed",
+      "seconds": 15.9263962,
+      "engineAssertions": null,
+      "coverage": "selected: playing-host-lifecycle"
+    }
+  ],
+  "earlierPartialCoverage": {
+    "command": "MISE_AUTO_INSTALL=0 mise exec -- dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-core --filter 'FullyQualifiedName~Research'",
+    "evidence": "logs/20261011-203435-d1d9d9fe",
+    "passed": 48,
+    "failed": 0,
+    "seconds": 3.54,
+    "qualification": "Earlier partial research-only inputs; broader final fast run supersedes coverage, not relabeled onto later source"
+  },
+  "preservedFailures": [
+    {
+      "evidence": "original initial compiler console; log subsequently overwritten",
+      "cause": "Initial adapter/test compile errors (Variant casts, removed balance field, nullable decode and method-group inference) and formatting; fixed before first targeted pass",
+      "qualification": "No preserved full initial compiler log claimed"
+    },
+    {
+      "evidence": "logs/20261011-204412-8e3a9d06",
+      "command": "test-engine --scenario worldtree",
+      "result": "failed",
+      "seconds": 11.15,
+      "cause": "Native Enter assertion tested press before release. Production BaseButton activates on complete press/release; test now supplies both, without changing deadlines or production input"
+    },
+    {
+      "evidence": "logs/20261011-204557-f2160aae",
+      "command": "test-engine --scenario worldtree --exported",
+      "result": "failed",
+      "seconds": 0.5,
+      "cause": "Locked release templates forbid scene path overrides. Added early component dispatch before application/session/renderer setup"
+    },
+    {
+      "evidence": "logs/20261011-204722-a24218b6",
+      "command": "test-engine --scenario worldtree --exported",
+      "result": "failed",
+      "seconds": 6.8,
+      "cause": "Direct scene change during Main._Ready emitted busy-parent remove_child error despite assertions passing. Deferred dispatch fixes lifecycle; error was not waived"
+    }
+  ],
+  "unexecuted": [
+    "Full graphical game/Worldtree journeys and screenshots",
+    "Visual/GPU/compositor/performance and physical-input/listening acceptance",
+    "Native Windows execution locally (existing CI owner extended)",
+    "Deep campaign/new-node balance qualification",
+    "Steam paired invitation acceptance",
+    "Durable match save/server restart/host migration (not existing features)",
+    "Tiny-window/localization/RTL/HiDPI acceptance",
+    "Broader settings/animation/assets engine cases locally for unchanged owners (pipeline source CI covers them)"
+  ],
+  "sourceContinuity": "Final source/component/exported-component use the retained current source hashes. Playing-host-lifecycle ran before later isolated adapter feedback/Settings guard additions; Main dispatcher and numerical/transport owners are unchanged relative to that transport pass. No transport rerun for documentation-only inputs.",
+  "delivery": "No push/PR/merge performed by implementation worker. Coherent branch commit and full same-worker no-mistakes handoff follow; final published head/required green CI belong to pipeline evidence."
+}
