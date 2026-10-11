@@ -149,6 +149,7 @@ public partial class EngineTests
         using var saved = new ConfigFile();
         Check(saved.Load("user://settings.cfg") == Error.Ok && saved.GetValue("audio", "master_volume").AsInt32() == 38, "actual settings persist only in owned user data");
         Check(!Godot.FileAccess.FileExists("user://renderer.cfg"), "transient renderer context never creates a renderer preference override");
+        await ReplacementFocus(settings);
         menu.QueueFree(); DestroySettings(settings);
         await Frames();
     }
@@ -215,6 +216,72 @@ public partial class EngineTests
         settings.ReturnRequested = null;
         settings.InSession = false;
         confirmation.Free();
+    }
+    private async Task ReplacementFocus(ClientSettings settings)
+    {
+        var invite = new Button { Text = "Underlying Invite" }; _ui.AddChild(invite);
+        int underlyingActions = 0, cancellations = 0, confirmations = 0, friendsFallbacks = 0, settingsFallbacks = 0;
+        invite.Pressed += () => underlyingActions++;
+        var friends = new SteamFriendsDialog { Theme = _ui.Theme, FocusFallback = () => { friendsFallbacks++; invite.GrabFocus(); } };
+        _ui.AddChild(friends);
+        var replacement = new UiDialog { Title = "Join another lobby?", Confirmation = true, Theme = _ui.Theme };
+        _ui.AddChild(replacement);
+        replacement.Canceled += () => cancellations++;
+        replacement.Confirmed += () => confirmations++;
+        settings.FocusFallback = () => { settingsFallbacks++; return invite; };
+        void OpenReplacement()
+        {
+            replacement.PopupCenteredClamped(new(500, 190));
+            replacement.GetCancelButton().GrabFocus();
+        }
+        async Task ActivateStay(string behavior)
+        {
+            int before = cancellations;
+            PressKey(Key.Enter); await Frames();
+            Check(cancellations == before + 1 && confirmations == 0 && underlyingActions == 0 && !replacement.Visible, behavior);
+        }
+        foreach (bool fallback in new[] { false, true })
+        {
+            Button origin = fallback ? new Button { Text = "Old Friends invoker" } : invite;
+            if (fallback) _ui.AddChild(origin);
+            origin.GrabFocus(); friends.Open(() => [], _ => "Not sent", () => { }); await Frames();
+            if (fallback) origin.Hide();
+            friends.Close(); OpenReplacement(); await Frames();
+            Check(GetViewport().GuiGetFocusOwner() == replacement.GetCancelButton() && friendsFallbacks == 0,
+                "Friends close restoration preserves replacement Stay focus before deferred callbacks drain; fallback=" + fallback);
+            await ActivateStay("Enter activates replacement Stay, not the underlying Invite, after Friends close; fallback=" + fallback);
+            if (fallback) origin.Free();
+        }
+        foreach (bool fallback in new[] { false, true })
+        {
+            Button origin = fallback ? new Button { Text = "Old Settings invoker" } : invite;
+            if (fallback) _ui.AddChild(origin);
+            settings.Open(origin); await Frames();
+            if (fallback) origin.Free();
+            settings.Close(); OpenReplacement(); await Frames();
+            Check(GetViewport().GuiGetFocusOwner() == replacement.GetCancelButton() && settingsFallbacks == 0,
+                "Settings close restoration preserves replacement Stay focus before deferred callbacks drain; fallback=" + fallback);
+            await ActivateStay("Enter activates replacement Stay after Settings close without underlying activation; fallback=" + fallback);
+        }
+        invite.GrabFocus(); friends.Open(() => [], _ => "Not sent", () => { }); await Frames();
+        friends.Close(); await Frames();
+        Check(GetViewport().GuiGetFocusOwner() == invite && friendsFallbacks == 0, "ordinary Friends close still restores its live invoker");
+        var hidden = new Button { Text = "Hidden invoker" }; _ui.AddChild(hidden);
+        hidden.GrabFocus(); friends.Open(() => [], _ => "Not sent", () => { }); await Frames();
+        hidden.Hide(); friends.Close(); await Frames();
+        Check(GetViewport().GuiGetFocusOwner() == invite && friendsFallbacks == 1, "ordinary Friends close still invokes fallback for a hidden invoker");
+        hidden.Show(); settings.Open(hidden); await Frames();
+        hidden.Hide(); settings.Close(); await Frames();
+        Check(GetViewport().GuiGetFocusOwner() == invite && settingsFallbacks == 1, "ordinary Settings close still restores through its fallback");
+        settings.Open(invite); await Frames(); settings.Close(); await Frames();
+        Check(GetViewport().GuiGetFocusOwner() == invite && settingsFallbacks == 1, "ordinary Settings close still restores its live invoker");
+        OpenReplacement(); invite.GrabFocus();
+        await ActivateStay("foreground receiving boundary repairs external keyboard focus before Enter can activate Invite");
+        OpenReplacement(); GetViewport().GuiReleaseFocus();
+        await ActivateStay("foreground receiving boundary restores missing keyboard focus to Stay before activation");
+        settings.FocusFallback = null;
+        hidden.Free(); replacement.Free(); friends.Free(); invite.Free();
+        await Frames();
     }
     private static void Click(Vector2 point)
     {

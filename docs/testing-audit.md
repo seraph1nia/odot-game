@@ -131,6 +131,17 @@ preferences and bounded frame waits; incremental cost is estimated, not measured
 against a matched baseline. Embedded headless popup input is not native-window or
 desktop focus qualification. No production payload bytes or gameplay rules change.
 
+Replacement-focus coverage uses actual SteamFriendsDialog and ClientSettings,
+closing each then opening a confirmation before deferred callbacks drain. Live
+return targets and hidden/freed targets requiring fallback must not steal the new
+Stay focus; Enter must cancel only that confirmation. Ordinary invoker/fallback
+restoration remains exercised, and external/missing keyboard focus must be
+repaired by the foreground receiving adapter before activation. Earlier cases
+placed focus inside the modal and missed this deferred ordering defect; pure C#
+cannot exercise Godot focus dispatch. This remains B in the existing settings
+selection with owned state, real controls and bounded frame waits. Added cost is
+estimated at a few frame waits, not matched timing or graphical qualification.
+
 ## Failure history
 
 | Evidence | Initiator / symptom / disconfirming evidence | Action and remaining uncertainty |

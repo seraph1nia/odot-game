@@ -172,6 +172,19 @@ production kit bytes were untouched. This is review-fix worktree evidence, not
 final-head full-suite/package/CI or graphical acceptance; those checks were not
 run in this round.
 
+The replacement-focus review fix, based on `2e80c0b`, passed that focused
+headless selection with **89 assertions**, component 2.14s and runner including
+locked preparation 17.54s:
+`logs/20261011-105747-25ca250e/test-engine-summary.json` and its
+`engine-settings/engine.log`. All earlier 75 checks remain. The added checks close
+actual Friends/Settings components and open a replacement before deferred
+restoration drains, cover live and fallback targets, require Enter to activate
+Stay without underlying activation, retain ordinary restoration, and test the
+receiving boundary with external/missing keyboard focus. Changed C# was formatted;
+kit bytes were unchanged. This remains partial review-fix worktree evidence, not
+final-head full-suite, package, CI, Steam-pair or graphical acceptance; none of
+those checks ran in this round.
+
 Final village/building/army/research/combat/multiplayer live-game journeys and
 refreshed screenshots, native GPU/compositor/performance/physical input/listening,
 exported presentation, paired Steam delivery, HiDPI/localization/RTL/tiny-window/

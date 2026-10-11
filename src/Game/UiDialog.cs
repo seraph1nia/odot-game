@@ -62,6 +62,8 @@ internal partial class UiDialog : Control
     internal Button GetCancelButton() => _shell.GetNode<Button>("Center/Panel/Body/Footer/Stay");
     internal Control? GuiGetFocusOwner() => GetViewport().GuiGetFocusOwner();
     internal void SetInputScope(bool enabled) => _shell.SetProcessInput(enabled && Visible);
+    private UiDialog? ForegroundDialog() => GetParent().GetChildren().OfType<UiDialog>().LastOrDefault(dialog => dialog.IsVisibleInTree());
+    internal bool CanRestoreFocus() => GodotObject.IsInstanceValid(this) && IsInsideTree() && !IsQueuedForDeletion() && ForegroundDialog() is null;
     internal void PopupCenteredClamped(Vector2I minimum, float ratio = .9f)
     {
         Control? invoker = Invoker ?? GetViewport().GuiGetFocusOwner();
@@ -81,9 +83,14 @@ internal partial class UiDialog : Control
     }
     public override void _Input(InputEvent @event)
     {
-        if (!IsVisibleInTree() || !_shell.IsProcessingInput() || _shell.Call("owns_popup", _shell).AsBool()) return;
+        if (!IsVisibleInTree() || !_shell.IsProcessingInput() || ForegroundDialog() != this || _shell.Call("owns_popup", _shell).AsBool()) return;
         Control? focus = GuiGetFocusOwner();
-        if (focus is null || !IsAncestorOf(focus)) return;
+        if (focus is null || !IsAncestorOf(focus))
+        {
+            if (@event is not InputEventKey) return;
+            focus = Confirmation ? GetCancelButton() : GetOkButton();
+            focus.GrabFocus();
+        }
         foreach (var (action, side) in new[] { ("ui_left", Side.Left), ("ui_right", Side.Right), ("ui_up", Side.Top), ("ui_down", Side.Bottom) })
         {
             if (!@event.IsActionPressed(action, allowEcho: true)) continue;

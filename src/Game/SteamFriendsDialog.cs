@@ -39,11 +39,12 @@ internal sealed partial class SteamFriendsDialog : UiDialog
         {
             if (Visible) return;
             _opening++; _query = null; _send = null; _busy = false;
-            Action? closed = _closed; _closed = null; closed?.Invoke();
             Control? focus = _returnFocus; _returnFocus = null;
+            Action? closed = _closed; _closed = null; closed?.Invoke();
             Callable.From(() =>
             {
-                if (focus is not null && GodotObject.IsInstanceValid(focus) && focus.IsVisibleInTree()) focus.GrabFocus();
+                if (!CanRestoreFocus()) return;
+                if (focus is not null && GodotObject.IsInstanceValid(focus) && !focus.IsQueuedForDeletion() && focus.IsInsideTree() && focus.IsVisibleInTree()) focus.GrabFocus();
                 else FocusFallback?.Invoke();
             }).CallDeferred();
         };
