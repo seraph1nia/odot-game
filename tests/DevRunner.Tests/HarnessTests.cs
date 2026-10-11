@@ -379,6 +379,10 @@ public sealed class HarnessTests
     [InlineData("test-network", "--jobs", "0")]
     [InlineData("test-network", "--jobs", "-1")]
     [InlineData("test-network", "--scenario", "unknown")]
+    [InlineData("test-network", "--host", "192.0.2.1")]
+    [InlineData("test-network", "--bind", "0.0.0.0")]
+    [InlineData("test-deep", "--host", "192.0.2.1")]
+    [InlineData("test-deep", "--bind", "0.0.0.0")]
     [InlineData("test-ui", "--scenario", "unknown")]
     [InlineData("ci", "--scenario", "economy")]
     [InlineData("test-ui", "--engine-arg", "--headless")]
@@ -392,6 +396,16 @@ public sealed class HarnessTests
         Assert.Equal(2, Options.Parse(["test-network"]).Jobs);
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-network", "--scenario", "defeat", "--port", "7001"]));
         Assert.Equal(7001, Options.Parse(["test-network", "--scenario", "authority-resume-victory", "--port", "7001"]).Port);
+        Options deep = Options.Parse(["test-deep", "--host", "127.0.0.1", "--bind", "127.0.0.1", "--port", "7001"]);
+        Assert.Equal(Options.Parse(["test-deep"]).Host, deep.Host);
+        Assert.Equal(Options.Parse(["test-deep"]).Bind, deep.Bind);
+        Assert.Equal(7001, deep.Port);
+        foreach (string command in new[] { "dev", "client", "server", "play" })
+        {
+            Options interactive = Options.Parse([command, "--host", "192.0.2.1", "--bind", "0.0.0.0"]);
+            Assert.Equal("192.0.2.1", interactive.Host);
+            Assert.Equal("0.0.0.0", interactive.Bind);
+        }
     }
     [Fact]
     public void MissingDisplayPrerequisitesFailWithoutFallback()

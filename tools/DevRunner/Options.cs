@@ -132,7 +132,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             throw new ArgumentException("--renderer forward-plus|compatibility belongs to graphical desktop launches; ordinary CI always owns Compatibility.");
         if (renderer is not null && engineArgs.Any(a => a is "--rendering-method" or "--rendering-driver")) throw new ArgumentException("Use --renderer or raw engine renderer flags, not both.");
         if (engineArgs.Count > 0 && command is not ("dev" or "client" or "play")) throw new ArgumentException("--engine-arg belongs to desktop dev/client/play tasks.");
-        if (command is "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows" && (host != "127.0.0.1" || bind != "127.0.0.1"))
+        if (command is "test-network" or "test-deep" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows" && (host != "127.0.0.1" || bind != "127.0.0.1"))
             throw new ArgumentException("Verification owns loopback peers; use dev/client/server for other endpoints.");
         if (releaseTag is not null)
         {
