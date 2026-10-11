@@ -116,7 +116,12 @@ public partial class ClientSettings : Node
         _saveFeedback = Label(_dialog.FooterContent, "");
         _dialog.VisibilityChanged += () =>
         {
-            if (!_dialog.Visible) { CancelGraphics(); Save(); if (_restoreFocusOnClose) Callable.From(RestoreFocus).CallDeferred(); }
+            if (!_dialog.Visible)
+            {
+                CancelGraphics(); Save();
+                Control? focus = _returnFocus; _returnFocus = null;
+                if (_restoreFocusOnClose) Callable.From(() => RestoreFocus(focus)).CallDeferred();
+            }
         };
         _window.SizeChanged += WindowResized;
         RefreshDisplay();
@@ -209,7 +214,6 @@ public partial class ClientSettings : Node
         _restoreFocusOnClose = restoreFocus;
         if (IsOpen) _dialog.Hide();
         _restoreFocusOnClose = true;
-        if (!restoreFocus) _returnFocus = null;
     }
     private async void CheckUpdates()
     {
@@ -229,12 +233,11 @@ public partial class ClientSettings : Node
         UpdateCheckStatus result = _updates.OpenUpdate();
         _updateStatus.Text = result.Message;
     }
-    private void RestoreFocus()
+    private void RestoreFocus(Control? target)
     {
-        Control? target = _returnFocus;
+        if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || !_dialog.CanRestoreFocus()) return;
         if (target is null || !GodotObject.IsInstanceValid(target) || target.IsQueuedForDeletion() || !target.IsVisibleInTree()) target = FocusFallback?.Invoke();
-        if (target is not null && GodotObject.IsInstanceValid(target) && target.IsInsideTree() && target.IsVisibleInTree()) target.GrabFocus();
-        _returnFocus = null;
+        if (target is not null && GodotObject.IsInstanceValid(target) && !target.IsQueuedForDeletion() && target.IsInsideTree() && target.IsVisibleInTree()) target.GrabFocus();
     }
     private void SelectMode(long index)
     {
