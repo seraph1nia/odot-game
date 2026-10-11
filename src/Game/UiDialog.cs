@@ -79,6 +79,19 @@ internal partial class UiDialog : Control
         _shell.Call("popup_centered_clamped", (Vector2I)Panel.CustomMinimumSize, ratio);
         GetCancelButton().Visible = Confirmation;
     }
+    public override void _Input(InputEvent @event)
+    {
+        if (!IsVisibleInTree() || !_shell.IsProcessingInput() || _shell.Call("owns_popup", _shell).AsBool()) return;
+        Control? focus = GuiGetFocusOwner();
+        if (focus is null || !IsAncestorOf(focus)) return;
+        foreach (var (action, side) in new[] { ("ui_left", Side.Left), ("ui_right", Side.Right), ("ui_up", Side.Top), ("ui_down", Side.Bottom) })
+        {
+            if (!@event.IsActionPressed(action, allowEcho: true)) continue;
+            if (focus.GetFocusNeighbor(side).ToString() == ".") focus.SetFocusNeighbor(side, "");
+            Control? neighbor = focus.FindValidFocusNeighbor(side);
+            if (neighbor is not null && !IsAncestorOf(neighbor)) focus.SetFocusNeighbor(side, ".");
+        }
+    }
     internal void ReflowCenteredClamped(Vector2I minimum, float ratio = .9f)
     {
         Vector2 bound = ((Vector2)minimum).Min(GetViewportRect().Size * ratio);
