@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="112" viewBox="0 0 240 112">
+<!-- Original reusable corner vignette: owl, leaves, violet fungi/crystals and hanging lantern. Transparent, no UI labels. -->
+<defs>
+ <linearGradient id="wood" x2=".3" y2="1"><stop stop-color="#a87346"/><stop offset=".6" stop-color="#654333"/><stop offset="1" stop-color="#33282c"/></linearGradient>
+ <linearGradient id="feather" x2=".8" y2="1"><stop stop-color="#c58a58"/><stop offset=".6" stop-color="#79554a"/><stop offset="1" stop-color="#49394d"/></linearGradient>
+ <linearGradient id="leaf" x2=".5" y2="1"><stop stop-color="#c5b668"/><stop offset=".5" stop-color="#638346"/><stop offset="1" stop-color="#264738"/></linearGradient>
+ <linearGradient id="magic" x2=".7" y2="1"><stop stop-color="#e1c7ff"/><stop offset=".3" stop-color="#a667dc"/><stop offset="1" stop-color="#424081"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#ffc67a" stop-opacity=".6"/><stop offset="1" stop-color="#ec9b37" stop-opacity="0"/></radialGradient>
+ <linearGradient id="flame" x2="0" y2="1"><stop stop-color="#fff3bb"/><stop offset=".5" stop-color="#ffd05b"/><stop offset="1" stop-color="#d76a20"/></linearGradient>
+</defs>
+<path d="M8 88 C43 79 62 89 86 80 S130 67 166 77 S217 78 233 59" fill="none" stroke="#28232a" stroke-width="12" stroke-linecap="round"/>
+<path d="M8 86 C43 77 62 87 86 78 S130 65 166 75 S217 76 233 57" fill="none" stroke="url(#wood)" stroke-width="8" stroke-linecap="round"/>
+<path d="M12 84Q37 78 59 82 M85 76Q128 67 155 73 M177 76Q213 78 229 61" fill="none" stroke="#cc9b67" stroke-width="1.3" opacity=".65"/>
+<g fill="url(#leaf)" stroke="#2b4b32" stroke-width="1"><path d="M18 81 Q7 63 20 53 Q31 68 18 81Z"/><path d="M23 82 Q34 60 49 68 Q48 83 23 82Z"/><path d="M28 83 Q32 97 44 100 Q50 84 28 83Z"/><path d="M150 72 Q142 48 153 42 Q167 60 150 72Z"/><path d="M160 73 Q174 51 187 57 Q185 73 160 73Z"/><path d="M180 77 Q188 90 204 88 Q204 73 180 77Z"/><path d="M213 72 Q202 48 215 46 Q225 58 213 72Z"/><path d="M220 69Q228 47 238 48Q240 63 220 69Z"/></g>
+<g stroke="#c7c57a" stroke-width="1" opacity=".6"><path d="M18 78L20 59 M27 79L44 71 M151 67L154 49 M162 70L180 59 M215 67L215 52"/></g>
+<!-- Broad, shaded feather planes: no trace of the reference owl. -->
+<path d="M73 72Q60 62 60 41L58 15L72 27Q84 19 96 27L108 13L106 44Q111 69 93 77Z" fill="url(#feather)" stroke="#302633" stroke-width="2"/>
+<path d="M65 48Q68 72 82 74Q100 66 101 47Q85 39 65 48Z" fill="#c69b6a"/>
+<path d="M61 42Q52 60 65 71L72 63Z M103 42Q116 58 101 71L95 61Z" fill="#604951" stroke="#332b37"/>
+<path d="M67 35Q72 27 80 34L85 42L91 32Q99 28 103 36L100 49Q90 55 84 46Q75 55 65 47Z" fill="#e2cba0"/>
+<g fill="#358bb0" stroke="#283247" stroke-width="1.8"><ellipse cx="75" cy="41" rx="6" ry="8"/><ellipse cx="95" cy="41" rx="6" ry="8"/></g>
+<g fill="#142239"><ellipse cx="76" cy="41" rx="3" ry="5"/><ellipse cx="94" cy="41" rx="3" ry="5"/></g><g fill="#e9f2eb"><circle cx="77" cy="38" r="1.8"/><circle cx="95" cy="38" r="1.8"/></g>
+<path d="M80 47L88 47L84 55Z" fill="#e0af4d"/><path d="M75 58L79 62 M85 58L89 62 M78 66L82 69 M91 65L94 67" stroke="#836249" stroke-width="1.2"/>
+<path d="M73 77L70 81L80 80 M92 77L88 81L99 79" fill="none" stroke="#d6a14e" stroke-width="2"/>
+<!-- Hanging lantern: local watercolor-like halo, not directional UI shading. -->
+<circle cx="128" cy="90" r="22" fill="url(#glow)"/>
+<path d="M128 72L128 78" stroke="#b38c4c" stroke-width="2"/><circle cx="128" cy="79" r="3" fill="none" stroke="#c69549"/>
+<path d="M116 86L128 81L140 86L137 105L119 105Z" fill="#7e4626" stroke="#d09c4f" stroke-width="1.5"/>
+<path d="M121 88L135 88L133 101L123 101Z" fill="url(#flame)"/>
+<path d="M128 88L128 103M117 86L139 86M119 105L137 105" stroke="#8c5f2e" stroke-width="2"/><path d="M124 96Q122 91 128 88Q132 97 127 100Z" fill="#fff2be"/>
+<!-- Violet mushrooms and flat-facet blue/violet crystals. -->
+<path d="M9 79Q11 70 11 62L16 62Q15 74 20 80Z" fill="#b49eca"/>
+<path d="M1 64Q4 44 17 47Q27 49 29 65Q16 70 1 64Z" fill="url(#magic)" stroke="#4d326c"/><path d="M3 64Q18 68 27 64" stroke="#edcaff" fill="none"/><g fill="#efdafa"><ellipse cx="13" cy="52" rx="3" ry="1.5"/><ellipse cx="22" cy="60" rx="2" ry="1"/></g>
+<path d="M223 58L218 37L226 21L232 38L232 57Z" fill="#6654b2" stroke="#2e3559"/><path d="M226 21L226 51L232 57L232 38Z" fill="#99a9ed"/><path d="M218 37L226 51L226 21Z" fill="#ccadf8"/>
+<path d="M210 65L204 52L211 43L217 57L216 66Z" fill="url(#magic)" stroke="#403565"/>
+<g fill="#79badd"><circle cx="197" cy="67" r="2"/><circle cx="235" cy="29" r="1.5"/></g>
+</svg>

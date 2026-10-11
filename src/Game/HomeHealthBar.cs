@@ -11,8 +11,9 @@ internal sealed partial class HomeHealthBar : Control
     internal HomeHealthBar()
     {
         MouseFilter = MouseFilterEnum.Ignore; Size = new(100, 18);
-        _bar.AddThemeStyleboxOverride("background", new StyleBoxTexture { Texture = UiAssets.Texture("derived/health_track.svg") });
-        _bar.AddThemeStyleboxOverride("fill", new StyleBoxTexture { Texture = UiAssets.Texture("derived/health_fill.svg") });
+        Theme theme = ApplicationTheme.Create();
+        _bar.AddThemeStyleboxOverride("background", theme.GetStylebox("background", "ProgressBar"));
+        _bar.AddThemeStyleboxOverride("fill", theme.GetStylebox("fill", "ProgressBar"));
         _text.AddThemeFontSizeOverride("font_size", 12);
         _text.AddThemeColorOverride("font_color", Colors.White); _text.AddThemeColorOverride("font_outline_color", new("182d36")); _text.AddThemeConstantOverride("outline_size", 3);
         AddChild(_bar); AddChild(_text);

@@ -42,6 +42,22 @@ engine diagnostics; absent files warn rather than causing a second CI error.
 Other child logs/evidence remain under ignored `logs/<run-id>/`; credentials and
 temporary owned runtime state must not be uploaded.
 
+## Woodland UI migration evidence
+
+The [woodland UI migration](ui-migration.md) replaces the live Trio pack with
+native resources and production service bindings. The former pack's notices and
+derivation records are preserved in [the Trio archive](asset-history/trio-ui/README.md)
+and its `manifest.json`; older Trio receipts are not acceptance for this replacement.
+
+The selected `test-ui-resources` fixture uses the existing runner's `Child` and
+`ScenarioScope` ownership with a headless SceneTree, isolated preferences and a
+bounded child, not the main scene, a match, a display or screenshots. Its recorded
+**38-check** input/resource/modal/settings-service pass predates this rebase and
+is historical component evidence, not current-head or rendered acceptance. See
+the migration document for exact receipts and remaining coverage; current-head
+verification belongs to the outer validation phases. The landed testing strategy,
+commands, engine component tier and headless CI selections remain authoritative.
+
 ## Overhaul measurements (2026-10-11)
 
 Baseline source: `d7f1728` (the actual `origin/main` head when audited).

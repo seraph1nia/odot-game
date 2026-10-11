@@ -10,7 +10,7 @@ public partial class ClientSettings : Node
     private static readonly Vector2I DefaultSize = new(1100, 820);
     private static readonly Vector2I[] Presets = [DefaultSize, new(1280, 720), new(1600, 900), new(1920, 1080)];
     private Window _window = null!;
-    private AcceptDialog _dialog = null!;
+    private UiDialog _dialog = null!;
     private Button _button = null!;
     private OptionButton _mode = null!, _resolution = null!;
     private HSlider _volume = null!;
@@ -34,7 +34,7 @@ public partial class ClientSettings : Node
 
     public bool IsOpen => _dialog.Visible;
     internal Button SettingsButton => _button;
-    internal AcceptDialog Dialog => _dialog;
+    internal UiDialog Dialog => _dialog;
     internal TabContainer Categories { get; private set; } = null!;
     internal HSlider VolumeSlider => _volume;
     internal OptionButton DisplaySelector => _mode;
@@ -62,12 +62,12 @@ public partial class ClientSettings : Node
         UiAssets.Decorate(_button, "Settings");
         ui.AddChild(_button);
         _button.Pressed += Open;
-        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Apply & close", DialogHideOnOk = false, DialogCloseOnEscape = true };
+        _dialog = new UiDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, OkButtonText = "Apply & close" };
         // Let Godot route modal input and dropdown focus within the parent viewport.
         _window.GuiEmbedSubwindows = true;
-        AddChild(_dialog);
+        ui.AddChild(_dialog);
         UiAssets.Decorate(_dialog.GetOkButton(), "Back");
-        var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 12); _dialog.AddChild(content);
+        var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 12); _dialog.Content.AddChild(content);
         var tabs = new TabContainer { Name = "Categories", SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 180) }; content.AddChild(tabs);
         Categories = tabs;
         var graphics = Page(tabs, "Graphics");
@@ -85,7 +85,7 @@ public partial class ClientSettings : Node
         _resolution.GetPopup().ForceNative = true;
         _resolution.ItemSelected += SelectResolution;
         Label(graphics, "Fullscreen uses your monitor's native size.");
-        BuildGraphicsControls(graphics, content);
+        BuildGraphicsControls(graphics, _dialog.FooterContent);
         var audio = Page(tabs, "Audio");
         _value = Label(audio, $"Master volume: {_masterVolume}");
         _volume = new HSlider { Name = "MasterVolume", MinValue = 0, MaxValue = 100, Step = 1, Value = _masterVolume, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 32) }; audio.AddChild(_volume);
@@ -111,9 +111,9 @@ public partial class ClientSettings : Node
         _checkUpdate.Pressed += CheckUpdates;
         _downloadUpdate.Pressed += OpenUpdate;
         ReturnButton = new Button { Name = "ReturnToMenu", Text = "Return to menu", Visible = false };
-        content.AddChild(ReturnButton);
+        _dialog.FooterContent.AddChild(ReturnButton);
         ReturnButton.Pressed += () => ReturnRequested?.Invoke();
-        _saveFeedback = Label(content, "");
+        _saveFeedback = Label(_dialog.FooterContent, "");
         _dialog.VisibilityChanged += () =>
         {
             if (!_dialog.Visible) { CancelGraphics(); Save(); if (_restoreFocusOnClose) Callable.From(RestoreFocus).CallDeferred(); }
@@ -199,6 +199,7 @@ public partial class ClientSettings : Node
         _returnFocus = returnFocus ?? GetViewport().GuiGetFocusOwner() ?? _button;
         RefreshDisplay();
         BeginGraphicsEdit();
+        _dialog.Invoker = _returnFocus;
         _dialog.PopupCenteredClamped(new(620, 650), 0.9f);
     }
     public void Close(bool restoreFocus = true)

@@ -45,6 +45,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     await new Runner(options with { Command = "test-campaign" }, cancellation, _evidence, root: _root).CheapTests();
                     await NetworkTests(deep: true);
                     break;
+                case "test-ui-resources": await Prepare(); await UiResources(); break;
                 case "test-assets": await Prepare(); await AssetFidelity(); break;
                 case "test-native-pump": await Prepare(); await NativePump(); break;
                 case "inspect-admission-timing": MeleeTimingReport.Write(options.EvidenceDirectory ?? throw new ArgumentException("Missing owned --evidence-directory.")); break;
@@ -110,6 +111,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                 "test-campaign" => "deep C# campaigns; filter: " + (options.Filter ?? "all deep"),
                 "test-engine" => "focused headless production components; no game session",
                 "test-deep" => "deep C# campaigns and all headless network journeys; no graphics",
+                "test-ui-resources" => "focused headless native resources/modal/input/intent/settings service fixtures; no full game or graphical acceptance",
                 "test-assets" => "owned headless static rendering buffers and corruption regressions; optional unsafe consolidation deferred",
                 "test-native-pump" => "owned native reliable snapshot/event-cursor/receipt conservation under ordinary and delayed polling, cancellation drain and cleanup; no graphical acceptance",
                 "inspect-admission-timing" => "read-only inspection of retained owned timing evidence; no Godot or new game acceptance",

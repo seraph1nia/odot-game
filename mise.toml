@@ -175,6 +175,11 @@ depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-network"
 raw_args = true
 
+[tasks.test-ui-resources]
+description = "Focused headless native UI resource/modal/input/settings fixture; never starts the game or a display"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-ui-resources"
+
 [tasks.test-ui]
 description = "Explicit graphical acceptance ONLY (not headless/default CI); --scenario required"
 depends = ["runner"]

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "path": "docs/ui/references/hud.png",
+    "supplied_source": "/home/bart/Downloads/hud.png",
+    "sha256": "c471bcf4be7d980566a2e4bcecb161830cf36f5dc79d67a627fdbad829eaf28c",
+    "width": 1672,
+    "height": 941,
+    "role": "Supplied design reference, creator/license unestablished; not newly authored art, a screenshot crop, runtime texture or game scene requirement",
+    "original_untouched": true
+  },
+  "artwork": [
+    {"source": "sources/ui/woodland/branch_frame.svg", "output": "ui/preview/UI/art/woodland/branch_frame.svg", "sha256": "cb0aca39770e057cd90ec6fc021e80cc9a9961ea515cefeee34166684b5d91c0", "role": "Original editable branch/leaf/mushroom/crystal frame; native 40px protected corners and 16px content margins"},
+    {"source": "sources/ui/woodland/parchment_button.svg", "output": "ui/preview/UI/art/woodland/parchment_button.svg", "sha256": "98398d1e0bc3f811bcc205a61726e30c2162d3159368e146f542203bfc674e5e", "role": "Original editable parchment/amber gradient; native 24px horizontal and 16px vertical corners"},
+    {"source": "sources/ui/woodland/resource_icons.svg", "output": "ui/preview/UI/art/woodland/resource_icons.svg", "sha256": "5c6506c29d9b111f4c78633fcbf422fd28c15aea961d8aac36a578bd950138cd", "role": "Original transparent six-cell atlas: gold/food/wood/stone/metal/cloth, always paired with native names"},
+    {"source": "sources/ui/woodland/woodland_corners.svg", "output": "ui/preview/UI/art/woodland/woodland_corners.svg", "sha256": "bd285cb4c35641833689bbdf64364ff345ac0a9b9a8ee6715656a0c4839c6753", "role": "Original transparent owl/branch/leaf/fungi/crystal/lantern vignette; fixed aspect, no input ownership or slice/stretch"}
+  ],
+  "authoring": "Manual editable SVG paths/gradients; runtime copies are byte-identical. No traced reference pixels, baked labels, terrain, generated 3D models or new asset pipeline.",
+  "font": {
+    "path": "ui/preview/UI/fonts/DejaVuSerif.ttf",
+    "installed_source": "/usr/share/fonts/TTF/DejaVuSerif.ttf",
+    "sha256": "ae665174c5b7fdb9b457d112db098cbe651dff847bfcf8bcb711172856d0c6b1",
+    "license": "ui/preview/UI/fonts/LICENSE-DejaVu.txt",
+    "license_sha256": "7a083b136e64d064794c3419751e5c7dd10d2f64c108fe5ba161eae5e5958a93",
+    "role": "Unmodified redistributable installed DejaVu Serif, copied with its complete license; not original artwork or a runtime install dependency"
+  },
+  "preserved_identity": "docs/ui/exploration-assets.json still owns the unchanged editable Blender menu seal and exact 192px PNG, displayed at 48px",
+  "runtime_boundary": "Only UI/ is portable. Reference and editable sources are repository design/authoring content, not runtime ZIP dependencies. Godot imports SVG/font resources independently."
+}

@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://UI/components/session_feedback.gd" id="1"]
+[ext_resource type="Theme" path="res://UI/theme/ledger.tres" id="2"]
+[node name="SessionFeedback" type="VBoxContainer"]
+theme = ExtResource("2")
+script = ExtResource("1")
+[node name="Status" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 3
+[node name="Message" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "ContextLabel"
+[node name="Actions" type="VBoxContainer" parent="."]
+layout_mode = 2
+[node name="Reconnect" type="Button" parent="Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Reconnect to my city"
+[node name="Fresh" type="Button" parent="Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Join lobby · fresh session"

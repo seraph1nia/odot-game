@@ -1,0 +1,66 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://UI/components/modal.gd" id="1"]
+[ext_resource type="Theme" path="res://UI/theme/ledger.tres" id="2"]
+[node name="Modal" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+z_index = 100
+theme = ExtResource("2")
+script = ExtResource("1")
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.1, 0.09, 0.28)
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_mode = 2
+[node name="Body" type="VBoxContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+[node name="Header" type="HBoxContainer" parent="Center/Panel/Body"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Center/Panel/Body/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "HeadingLabel"
+[node name="Cancel" type="Button" parent="Center/Panel/Body/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(36, 36)
+text = "×"
+tooltip_text = "Close dialog (Esc)"
+[node name="Scroll" type="ScrollContainer" parent="Center/Panel/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+follow_focus = true
+[node name="Content" type="VBoxContainer" parent="Center/Panel/Body/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Footer" type="HBoxContainer" parent="Center/Panel/Body"]
+layout_mode = 2
+alignment = 2
+[node name="Stay" type="Button" parent="Center/Panel/Body/Footer"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Cancel"
+[node name="Close" type="Button" parent="Center/Panel/Body/Footer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Close"

@@ -27,7 +27,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private Button _previousCity = null!, _nextCity = null!, _detailsButton = null!;
     private Label _cityName = null!, _counters = null!, _rosterDetails = null!;
     private PanelContainer _resources = null!;
-    private AcceptDialog _detailsDialog = null!;
+    private UiDialog _detailsDialog = null!;
     private readonly List<Control> _emptyBuildCells = [];
     private readonly List<Label> _phaseRows = [];
     private Label _phase = null!;
@@ -97,6 +97,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _settings = application.Settings;
         CreateHud(root);
     }
+    public override void _ExitTree()
+    {
+        foreach (UiDialog? dialog in new[] { _detailsDialog, _researchDialog, _hallDialog })
+            if (dialog is not null && IsInstanceValid(dialog)) { dialog.Hide(); dialog.QueueFree(); }
+    }
     private void ContextAction(string action, Building building = Building.Empty, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, ConstructionPayment payment = ConstructionPayment.Standard)
     {
         if (_slot < 0 || !CanEdit()) return;
@@ -120,7 +125,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
     internal bool DetailsOpen => _detailsDialog?.Visible == true || _researchDialog?.Visible == true || _hallDialog?.Visible == true;
-    internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GrabFocus(); else if (_researchDialog.Visible) _researchDialog.GrabFocus(); else _detailsDialog.GrabFocus(); }
+    internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GetOkButton().GrabFocus(); else if (_researchDialog.Visible) _researchDialog.GetOkButton().GrabFocus(); else _detailsDialog.GetOkButton().GrabFocus(); }
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
@@ -197,7 +202,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         fields["ConstructionGroup"] = _constructionGroup;
         fields["StatusText"] = _status.Text;
         fields["StatsText"] = _stats.Text + "\n" + string.Join("    ", _values.Values.Select(v => v.Text));
-        fields["ResourceIcons"] = _values.Keys.ToDictionary(name => name, _ => "");
+        fields["ResourceIcons"] = _values.Keys.ToDictionary(name => name, _ => UiAssets.Root + "art/woodland/resource_icons.svg");
         fields["ResourceBalances"] = _values.ToDictionary(pair => pair.Key, pair => int.Parse(pair.Value.Text, System.Globalization.CultureInfo.InvariantCulture));
         fields["ResourceIncome"] = _incomes.ToDictionary(pair => pair.Key, pair => pair.Value.Text);
         fields["IncomeLabel"] = _incomeHeading.Text; fields["IncomeContext"] = _incomeContext.Text;
@@ -323,6 +328,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             _incomeHeading.Text = economy.IncomeLabel; _incomeContext.Text = economy.Context; _incomeContext.Visible = economy.Context.Length > 0;
             foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>()) _incomes[resource.ToString()].Text = ProgressionPresentation.Income(focus?.ProductionIncome, resource);
             _upkeepLabel.Text = economy.UpkeepLabel; _upkeepValue.Text = economy.UpkeepValue;
+            Callable.From(_resources.ResetSize).CallDeferred();
             _balanceLabel.Text = economy.BalanceLabel; _balanceValue.Text = economy.BalanceValue;
             _upkeep.Text = progression!.Food; _reward.Text = progression.Reward;
             _armyDetails.Text = progression.Army + "\nEnemy allocation:\n" + string.Join("\n", s?.Enemies.Where(u => u.Destination == _focus).Select(u => $"#{u.Id} {AssetCatalog.UnitName(u.Type, u.Faction)} · {(u.Deployed ? "deployed" : "queued")} · {ProgressionPresentation.StatusText(u.Statuses, s.Tick)}") ?? []);
