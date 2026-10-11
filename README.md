@@ -19,7 +19,7 @@ Odot's original code and documentation are licensed under the [GNU General Publi
 
 Development is maintainer-led, and external contributions and pull requests are not accepted. Write access, including branch creation in this repository, is limited to authorized maintainers. You may fork the project and develop your own branches under the applicable licenses.
 
-Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
+Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), [Worldtree UI and font notices](src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
 
 ## Setup
 

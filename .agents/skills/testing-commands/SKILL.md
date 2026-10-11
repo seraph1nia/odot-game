@@ -49,6 +49,8 @@ mise run test-engine
 mise run test-engine --scenario settings
 mise run test-engine --scenario animation
 mise run test-engine --scenario assets
+mise run test-engine --scenario worldtree
+mise run test-engine --scenario worldtree --exported # existing native client; no source preparation/export
 mise run test-network                      # failure-cases, solo-session, playing-host-lifecycle
 mise run test-network --scenario failure-cases
 mise run test-network --scenario playing-host-lifecycle
@@ -56,12 +58,15 @@ mise run test-network --scenario redistribution  # explicit deeper paid transfer
 mise run test-network --jobs 1             # same default cases, serial
 ```
 
-Standalone engine/network tasks prepare source once (locked restore/build/import).
-CI shares that preparation before overlapping completed C# binaries and headless
-network workers. Engine cases run separately and serially, each with fresh owned
-preferences. The three engine cases instantiate production components in a
-minimal scene, never the full application's menu or match. Network scenarios use
-real headless application peers; they are integration, not component tests.
+Standalone source engine/network tasks prepare once (locked restore/build/import).
+The exported engine selection requires `--scenario worldtree` and an existing
+native client package; it does not prepare source or implicitly export. CI shares
+source preparation before overlapping completed C# binaries and headless network
+workers. Engine cases run separately and serially, each with fresh owned
+preferences. The four engine cases instantiate production components in a
+minimal scene, never the full application's menu or match. [Worldtree coverage](../../../docs/worldtree.md#verification-and-limits)
+describes its source/package probe boundary. Network scenarios use real headless
+application peers; they are integration, not component tests.
 
 One worker owns each child's ordered event reader. Ports use cross-process lease
 handles plus ordinary bind-failure detection; unrelated endpoint owners are never

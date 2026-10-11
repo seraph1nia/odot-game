@@ -15,8 +15,8 @@ component itself still supports native traversal into/out of its host.
 
 `ResearchPanel.cs` binds the game session to `WorldtreeDialog` and
 `WorldtreeResearch.cs`. The native Control overlay is outside the city layout
-containers. `GameApplication.IsModalOpen` already incorporates
-`Tabletop.DetailsOpen`, so this panel also interrupts held movement and blocks
+containers. `GameApplication.IsModalOpen` selects among the application's dialogs and
+`Tabletop.DetailModals`, so this panel also interrupts held movement and blocks
 world picking/drag/zoom. Application input consumption is restricted to embedded
 Window dialogs, allowing this in-viewport overlay to receive native GUI events.
 The panel does not pause the cooperative match. A bounded
@@ -28,13 +28,8 @@ Physical control/branch identities survive selection, snapshots and resize.
 This is an extension of existing **personal city research**, not a new skill-point
 economy, hero class, respec system or generalized progression framework. The
 existing 15 combat technology IDs, prices, prerequisites, exclusive choices and
-benefits remain intact. Foundations cost 3 research points, specializations 6,
-and masteries 9 by default. Foundations grant +5% health/direct damage to their
-class. Guardian reduces incoming damage 10%/20%, Assault and Precision increase
-direct damage 10%/20%, Fire burns at 20%/30% captured damage per tick, Venom
-poisons at 10%/15% per stack tick, and Frost adds 20%/40% to future action duration.
-Masteries replace their specialization's potency, rather than stacking it twice.
-Research does not heal wounds or change unit levels.
+benefits remain intact; [personal research and temporary statuses](gameplay.md#personal-research-and-temporary-statuses)
+owns their costs, effects and income rules.
 
 Three optional village improvements occupy existing extra terminal slots:
 
@@ -106,7 +101,8 @@ exclusive combinations are rejected; new bits append to the existing ulong
 without renumbering historical IDs. Production remains an atomic preflight in
 `Match`, with the same checked whole-resource arithmetic and overflow behavior.
 `EconomyConfiguration.Production` applies the actual acquired per-producer
-bonuses; `City.Snapshot.ProductionIncome` calls that same owner. Old combat
+bonuses; `City.Snapshot.ProductionIncome` and the selected/construction/recovery/
+upgrade/details producer labels use that same per-producer calculation. Old combat
 capabilities remain unchanged by production purchases. The economic fingerprint
 includes new prices and effects; production-only nodes do not alter combat
 fingerprinting/seed rules. No wire shape replacement, new RPC or new currency.
@@ -117,9 +113,9 @@ state; no migration resets or wipes progress. Reconnecting to the same running
 authority restores the complete city snapshot. **There is still no durable match
 save, server-restart recovery or host migration**; only existing client session
 credentials/preferences are saved. Serialization restoration tests are not a
-claim of a new disk-save feature or mixed-version peer certification. Protocol 12
-rejects protocol-11 peers before delivering the new catalog, both at authority
-admission and Steam invitation matching.
+claim of a new disk-save feature or mixed-version peer certification. The
+[session compatibility contract](sessions.md) owns the protocol boundary for
+these new catalog IDs.
 
 A newly acknowledged acquisition animates only its incoming module, with sap
 before socket/foliage. Other modules and other tree instances retain independent
@@ -131,13 +127,12 @@ foliage remain the original native component, not a painted background substitut
 
 ## Immutable import contract
 
-Source: `https://github.com/seraph1nia/odot-game-assets.git`, actual merged main
-`cadf0373c33dcde6858f59f2873575da8665be2d`, inspected read-only at
-`/home/bart/.treehouse/odot-game-assets-86a3a5/1/odot-game-assets`.
 The game's existing [authored manifest](../src/Game/Assets/Authored/manifest.json)
-owns the separate `worldtree` pin, all 73 exact copied member SHA-256/byte counts,
-and hashes of source API, Worldtree docs/validation, original art provenance,
-portable payload inventory and current portable ZIP. All copied source members
+owns the separate `worldtree` source URL, actual merged-main pin, complete copied
+member inventory and exact SHA-256/byte counts, plus hashes of source API,
+Worldtree docs/validation, original art provenance, portable payload inventory and
+portable ZIP. [The import receipt](worldtree-validation.json) records the read-only
+source inspection. All copied source members
 are byte-identical; no asset repository edits or art rebuilds occurred.
 
 Imported only the component scene/two scripts/UIDs, canonical JSON, 23 original
@@ -167,7 +162,8 @@ pipeline must bind fresh checks to its actual published head; the initial dirty
 worktree receipts are not relabeled as later-head qualification.
 
 - Tier A: `WorldtreeResearchTests` exercises actual per-producer forecasts,
-  income and researched level/upgrade labels, purchases, duplicates, stale phase/turn, affordability, prerequisites,
+  income and researched level/upgrade labels, purchases, duplicates, stale
+  phase/turn, affordability, prerequisites,
   exclusive locks, invalid state/overflow, all three authority policies, retained
   authority reconnect, JSON/Brotli restoration and fixed projection gates.
 - Tier B: `test-engine --scenario worldtree` uses the existing minimal owned
@@ -192,7 +188,7 @@ native GPU/compositor/performance, listening, tiny windows, localization/RTL/HiD
 Steam paired invites, durable save/restart, deep twenty-wave balance and native
 Windows execution locally. Settings itself retains its separate production
 headless test owner; the research component case does not instantiate the full
-application or qualify rendered window stacking. The retained optional graphical research
-checkpoint's selectors follow this native panel, but it was not run. Standalone
+application or qualify rendered window stacking. The retained optional graphical
+research checkpoint's selectors follow this native panel, but it was not run. Standalone
 asset captures and previous game's graphical receipts do not certify this game
 integration.

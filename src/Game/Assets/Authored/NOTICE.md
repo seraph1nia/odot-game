@@ -28,13 +28,14 @@ or protocol identity.
 ## Living Worldtree UI
 
 The separately pinned `worldtree` section in `manifest.json` records the requested
-integration from the same owner's actual merged asset source. Its 73 runtime
-members (native component/scripts, canonical JSON, original editable modular SVG
-artwork and required Theme/font dependencies) are copied byte-for-byte. Original
+integration from the same owner's actual merged asset source. The manifest owns
+the exact runtime-member inventory: native component/scripts, canonical JSON,
+original editable modular SVG artwork and required Theme/font dependencies,
+all copied byte-for-byte. Original
 SVG illustrations were authored in odot-game-assets; supplied AI-generated concept
 boards are reference-only and are not copied. No reference pack, generator,
 prototype, showcase/test payload or cache is imported. No new open-source license
 is asserted for owner-authored illustrations. The unmodified DejaVu Serif font
-retains `res://UI/fonts/LICENSE-DejaVu.txt`. See `docs/worldtree.md` for gameplay
-mapping, exact source pin, separate game headless qualification and graphical
-acceptance limits. The old compact asset-library tree remains untouched.
+retains `res://UI/fonts/LICENSE-DejaVu.txt`. See [Worldtree integration](../../../../docs/worldtree.md)
+for gameplay mapping, import contract, separate game headless qualification and
+graphical acceptance limits. The old compact asset-library tree remains untouched.
