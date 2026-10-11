@@ -60,7 +60,11 @@ public partial class EngineTests
         _ui.AddChild(behind);
         behind.GrabFocus();
         dialog.Confirmed += () => confirmations++;
-        dialog.Content.AddChild(new Button { Text = "Body action" });
+        var bodyAction = new Button { Text = "Body action" };
+        dialog.Content.AddChild(bodyAction);
+        var choice = new OptionButton();
+        choice.AddItem("First choice"); choice.AddItem("Second choice");
+        dialog.Content.AddChild(choice);
         dialog.PopupCenteredClamped(new(560, 420));
         await Frames();
         Check(_ui.GetChild(_ui.GetChildCount() - 1) == dialog, "active modal is front sibling for native GUI hit testing");
@@ -68,6 +72,14 @@ public partial class EngineTests
         Check(dialog.Visible && behindClicks == 0, "outside click neither dismisses modal nor reaches underlying menu");
         PressKey(Key.Tab); await Frames();
         Check(dialog.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "native Tab stays within visible modal scope");
+        bodyAction.FocusNeighborRight = bodyAction.GetPathTo(choice);
+        bodyAction.GrabFocus(); PressKey(Key.Right); await Frames();
+        Check(GetViewport().GuiGetFocusOwner() == choice, "native directional focus still traverses within modal content");
+        Click(choice.GetGlobalRect().GetCenter()); await Frames();
+        Check(choice.GetPopup().Visible && dialog.Visible, "native dropdown opens within active modal");
+        choice.GetPopup().SetFocusedItem(0);
+        PressKey(Key.Down); PressKey(Key.Enter); await Frames();
+        Check(choice.Selected == 1 && !choice.GetPopup().Visible && dialog.Visible, "native dropdown retains directional selection and acceptance");
         Click(dialog.GetOkButton().GetGlobalRect().GetCenter()); await Frames();
         Check(confirmations == 1 && !dialog.Visible && behindClicks == 0, "actual headless native pointer routes footer intent before close");
         dialog.PopupCenteredClamped(new(560, 420)); await Frames();
@@ -111,6 +123,10 @@ public partial class EngineTests
         TabBar tabs = settings.Categories.GetTabBar();
         Click(tabs.GetGlobalTransformWithCanvas() * tabs.GetTabRect(1).GetCenter()); await Frames();
         Check(settings.Categories.CurrentTab == 1, "actual Settings native Audio tab receives pointer ahead of later menu sibling");
+        tabs.GrabFocus(); PressKey(Key.Right); await Frames();
+        Check(settings.Categories.CurrentTab == 2, "native Settings tab consumes Right without escaping modal");
+        PressKey(Key.Left); await Frames();
+        Check(settings.Categories.CurrentTab == 1, "native Settings tab consumes Left without escaping modal");
         settings.VolumeSlider.Value = 37;
         settings.VolumeSlider.GrabFocus(); PressKey(Key.Right); await Frames();
         Check(settings.MasterVolume == 38 && Math.Abs(AudioServer.GetBusVolumeLinear(AudioServer.GetBusIndex("Master")) - .38f) < .001f, "actual volume service applies native slider keyboard input");
@@ -165,6 +181,37 @@ public partial class EngineTests
         PressKey(Key.Escape); await Frames();
         Check(cancellations == 1 && confirmations == 0 && !confirmation.Visible && settings.IsOpen
             && settings.Dialog.GetChild(0).IsProcessingInput(), "Escape cancels only nested confirmation and resumes Settings scope");
+        settings.Categories.CurrentTab = 0;
+        int appliedQuality = settings.Graphics["quality"];
+        OptionButton quality = settings.Dialog.Content.FindChildren("Graphics_quality", "OptionButton", true, false).OfType<OptionButton>().Single();
+        quality.EmitSignal(OptionButton.SignalName.ItemSelected, 2L);
+        Button apply = settings.Dialog.FooterContent.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single();
+        Button cancel = settings.Dialog.FooterContent.FindChildren("CancelGraphics", "Button", true, false).OfType<Button>().Single();
+        int applyIntents = 0, cancelIntents = 0;
+        apply.Pressed += () => applyIntents++;
+        cancel.Pressed += () => cancelIntents++;
+        settings.ReturnButton.EmitSignal(BaseButton.SignalName.Pressed); await Frames();
+        confirmation.GetOkButton().GrabFocus(); PressKey(Key.Down); await Frames();
+        Check(confirmation.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "native Down from confirmation footer cannot escape into Settings");
+        PressKey(Key.Enter); await Frames();
+        Check(confirmations == 1 && !confirmation.Visible && settings.IsOpen && applyIntents == 0 && cancelIntents == 0
+            && settings.Graphics["quality"] == appliedQuality && settings.GraphicsDraft["quality"] == 2,
+            "Down and Enter confirm only the foreground modal, leaving the Settings draft untouched");
+        foreach (var (key, side, target) in new[] { (Key.Left, Side.Left, apply), (Key.Right, Side.Right, cancel), (Key.Up, Side.Top, apply), (Key.Down, Side.Bottom, cancel) })
+        {
+            settings.ReturnButton.EmitSignal(BaseButton.SignalName.Pressed); await Frames();
+            Button source = confirmation.GetOkButton();
+            source.SetFocusNeighbor(side, source.GetPathTo(target));
+            source.GrabFocus();
+            Check(source.FindValidFocusNeighbor(side) == target, "fixture exposes an outgoing native " + key + " focus path to suspended Settings");
+            PressKey(key); await Frames();
+            Check(confirmation.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "modal contains native " + key + " focus traversal");
+            int before = confirmations;
+            PressKey(Key.Enter); await Frames();
+            Check(confirmations == before + 1 && !confirmation.Visible && settings.IsOpen && applyIntents == 0 && cancelIntents == 0
+                && settings.Graphics["quality"] == appliedQuality && settings.GraphicsDraft["quality"] == 2,
+                key + " and Enter cannot activate suspended Settings Apply or Cancel");
+        }
         settings.ReturnRequested = null;
         settings.InSession = false;
         confirmation.Free();

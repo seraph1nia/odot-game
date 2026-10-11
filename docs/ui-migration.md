@@ -160,6 +160,18 @@ marshalling, corrected before the passing run. Animation/assets, full C#/lint,
 transport/package/CI and graphical checks were not run in this review-fix round;
 those required outer gates remain separate from this partial component receipt.
 
+The subsequent directional-scope review fix, based on `5302dce`, passed the same
+focused headless selection with **75 assertions**, component 1.56s and runner
+including locked preparation 15.29s:
+`logs/20261011-104104-f0a858c3/test-engine-summary.json` and its
+`engine-settings/engine.log`. It retains the earlier 56 checks and adds native
+internal traversal, embedded dropdown selection, Settings TabBar arrows, the
+ordinary confirmation Down/Enter path, and all four outgoing directional paths
+with attempted suspended Apply/Cancel activation. Changed C# was formatted;
+production kit bytes were untouched. This is review-fix worktree evidence, not
+final-head full-suite/package/CI or graphical acceptance; those checks were not
+run in this round.
+
 Final village/building/army/research/combat/multiplayer live-game journeys and
 refreshed screenshots, native GPU/compositor/performance/physical input/listening,
 exported presentation, paired Steam delivery, HiDPI/localization/RTL/tiny-window/

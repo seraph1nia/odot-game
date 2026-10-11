@@ -119,6 +119,18 @@ cost is estimated at a few frame waits, not a measured full-game journey. The
 historical 38-check receipt is not current-head proof. No graphical readability,
 desktop focus, physical input, audio listening or transport claim is added.
 
+Directional-scope coverage strengthens that same B fixture: native Down/Enter
+from the confirmation footer and explicit outgoing Left/Right/Up/Down neighbors
+must not focus or activate the suspended Settings Apply/Cancel controls, commit
+preferences or discard the pending draft. Internal directional traversal, native
+TabBar arrows and an embedded OptionButton popup retain their input behavior;
+the existing real audio-slider keyboard check remains. The earlier Tab/Escape/
+resize checks missed viewport directional fallback, and cheaper C# cannot route
+Godot GUI events. This uses the same deterministic modal/Settings controls, owned
+preferences and bounded frame waits; incremental cost is estimated, not measured
+against a matched baseline. Embedded headless popup input is not native-window or
+desktop focus qualification. No production payload bytes or gameplay rules change.
+
 ## Failure history
 
 | Evidence | Initiator / symptom / disconfirming evidence | Action and remaining uncertainty |
