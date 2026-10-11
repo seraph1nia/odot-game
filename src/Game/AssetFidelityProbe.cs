@@ -162,6 +162,7 @@ internal static class AssetFidelityProbe
             using Image image = texture.GetImage();
             if (image.GetWidth() != 512 || image.GetHeight() != 512)
                 throw new InvalidOperationException("Forest decal imported dimensions changed: " + path);
+            if (!image.HasMipmaps()) throw new InvalidOperationException("Forest decal imported mipmaps missing: " + path);
             float peak = 0;
             int translucent = 0;
             for (int y = 0; y < 512; y++)
@@ -175,9 +176,10 @@ internal static class AssetFidelityProbe
                 }
             if (peak is <= 0 or > .42f || translucent == 0)
                 throw new InvalidOperationException("Forest decal lost bounded coverage alpha: " + path);
-            textures.Add(new { Path = path, Width = 512, Height = 512, PeakAlpha = peak, TranslucentPixels = translucent });
+            textures.Add(new { Path = path, Width = 512, Height = 512, PeakAlpha = peak, TranslucentPixels = translucent, MipmapCount = image.GetMipmapCount() });
         }
         var channels = new List<object>();
+        var maps = new List<object>();
         foreach (string path in new[] { "environment/components/forest_fern.glb", "environment/components/forest_leaf_clump.glb",
             "environment/components/forest_moss.glb", "environment/components/forest_mushroom_small.glb",
             "environment/components/forest_spiral_tree.glb", AssetCatalog.Bridge })
@@ -190,6 +192,17 @@ internal static class AssetFidelityProbe
                     .OfType<StandardMaterial3D>().DistinctBy(m => m.GetInstanceId());
                 foreach (StandardMaterial3D material in materials)
                 {
+                    foreach (var (channel, texture) in new (string, Texture2D?)[] {
+                        ("albedo", material.AlbedoTexture), ("roughness", material.RoughnessTexture),
+                        ("normal", material.NormalTexture), ("emission", material.EmissionTexture),
+                        ("metallic", material.MetallicTexture), ("ao", material.AOTexture) })
+                    {
+                        if (texture is null) continue;
+                        using Image image = texture.GetImage();
+                        if (!image.HasMipmaps())
+                            throw new InvalidOperationException("Forest imported mipmaps missing: " + path + "/" + material.ResourceName + "/" + channel);
+                        maps.Add(new { Path = path, Material = material.ResourceName, Channel = channel, Texture = texture.ResourcePath, MipmapCount = image.GetMipmapCount() });
+                    }
                     string name = material.ResourceName.Split('.')[0];
                     if (name is not ("forest_leaf" or "forest_leaf_light" or "forest_leaf_teal" or "forest_leaf_lilac" or "moss"
                         or "mushroom_blue" or "mushroom_purple" or "gill_glow")) continue;
@@ -233,7 +246,7 @@ internal static class AssetFidelityProbe
             finally { scene.Free(); }
         }
         if (channels.Count == 0) throw new InvalidOperationException("No imported forest material channels observed.");
-        return new { Textures = textures, Materials = channels };
+        return new { Textures = textures, Materials = channels, Maps = maps };
     }
 
     private static void RunGlyphDuplicateRegression()

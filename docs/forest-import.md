@@ -51,7 +51,9 @@ roughness PNG is required: the GLB carries its portable packed roughness in
 **G**, and that exact image is extracted. Original source scalar maps were
 verified against accepted resource/channel receipts, not substituted for the
 packed consumer image. BaseColor/normal/emission pixels, factors, sampler/UV
-bindings and source provenance remain intact.
+bindings and source provenance remain intact. All 36 refreshed embedded-map
+import sidecars explicitly generate mipmaps, preserving the selected GLBs'
+authored `LINEAR_MIPMAP_LINEAR` minification through headless imports and exports.
 
 The whole existing inventory is now **57 GLBs / 327 derived PNGs**, plus four
 standalone textures. The map refresh introduces 36 image paths, removes 31
@@ -106,7 +108,14 @@ without runtime resource mutation or access to the source repository.
 The existing headless asset proof now decodes the four imported texture resources,
 checks dimensions/real coverage/borders, and inspects actual imported leaf normals,
 G-channel roughness, nonemitting bodies and both black/lit gill-mask pixels. It
-truthfully checks absent normals on moss/caps/gills. Source and existing client
+truthfully checks absent normals on moss/caps/gills. The mipmap regression guard
+checks actual loaded image mip availability and records mip counts for all bound
+albedo/roughness/normal/emission/metallic/AO textures across the six selected scenes,
+including ground materials and retained unused emission textures, plus the four
+decals. This extends the existing tier-B resource proof because tier-A container
+checks cannot observe Godot's imported texture mip levels; it adds no process or
+session and only bounded image reads to the existing component check.
+Source and existing client
 packages use the same proof:
 
 ```sh
@@ -137,6 +146,13 @@ accent lights, fauna/effects, shaders and UI-package migration remain separate.
 
 ## Evidence and current policy boundary
 
+The receipts in this section are historical evidence from before rebasing onto
+`c2775a3a977513bc04e3b5c1541997e07c2fce83` and before the mipmap review fix.
+They do not qualify the current source, imported resources or packages.
+Fresh affected source/import/export/package bindings and broader headless checks
+belong to the outer validation phases; old bindings must not be reused for changed
+inputs.
+
 Before-import full CI passed at `logs/20261011-071721-071b3a1e/ci-summary.json`,
 1111.12s runner / 1117.72s command, unchanged declared admission and complete
 source/network/UI/sequential-export/package coverage. The pre-policy native source
@@ -157,7 +173,8 @@ Xvfb PIDs and runtime roots were confirmed gone; those displays' windows were
 therefore gone. `logs/dreamlike-import/captain-stop-cleanup.json` records cleanup.
 That run is cancelled/partial, not an after-CI pass. Earlier native evidence is
 historical and does not certify final headless-only input changes or exports.
-Final headless results on the narrowed component-only implementation:
+Pre-rebase headless results on the narrowed component-only implementation
+(before mipmap restoration):
 
 | Check | Result / retained evidence |
 | --- | --- |
@@ -167,17 +184,24 @@ Final headless results on the narrowed component-only implementation:
 | Existing fresh client headless component proof | Passed 6.28s, `logs/20261011-080143-1e6fdb9b` |
 | Fresh Linux server export | Passed 12.51s, `logs/20261011-080158-4ccb6c26` |
 
-The source and real exported-client fidelity JSON both witness nonemitting caps
+The historical source and real exported-client fidelity JSON both witness nonemitting caps
 with retained unused textures, positive localized gills, correct PBR presence /
 absence, decoded transparent PNG coverage, and existing geometry/ground checks.
-Source→destination hashes match all 57 GLBs, 327 embedded extractions and four
-standalone PNGs in `logs/dreamlike-import/final-source-destination.json`.
-Executable/PCK/DLL and relevant source/import bindings are retained separately
-in `logs/dreamlike-import/final-artifact-bindings.json`. Formatting and whitespace
-checks pass. No extra graphical view or whole-game session ran after revocation.
-These focused checks do not establish full CI or waive publication gates.
-Publication-policy reconciliation remains pending: the current required workflow
-still invokes graphical game journeys, and this import does not modify it.
+Historical source→destination hashes matched all 57 GLBs, 327 embedded extractions
+and four standalone PNGs in `logs/dreamlike-import/final-source-destination.json`.
+Historical executable/PCK/DLL and relevant source/import bindings are retained
+separately in `logs/dreamlike-import/final-artifact-bindings.json`; despite their
+`final` filenames, these are not current-head receipts. Formatting and whitespace
+checks passed on those earlier inputs. No extra graphical view or whole-game
+session ran after revocation. These focused checks do not establish current CI
+or waive publication gates.
+
+The landed [required workflow](../.github/workflows/ci.yml) now selects
+`ci-source`, `ci-linux-package` and `ci-windows`, all headless, as described in
+[verification](verification.md). The earlier publication-policy conflict is
+resolved by that landed testing overhaul, not by this resource import.
+Current source/package checks and forge publication results remain the outer
+pipeline's responsibility.
 
 Other retained failures: stale generated UIDs after renamed maps required moving
 owned `.godot` aside (preserved, not deleted); the first channel fixture incorrectly
@@ -190,6 +214,6 @@ None of these failures is silently relabeled. No new runner crash occurred.
 
 Software/headless proof is not native aesthetic/performance/compositor/input/audio
 qualification. Final exported graphical views and complete graphical CI are
-**unexecuted under current policy**, not waived by passing headless checks. The
-separate test-infrastructure change owns reconciliation before publication; this
-import must not secretly invoke old graphical CI or skip no-mistakes gates.
+**unexecuted under current policy**, not waived by passing headless checks.
+Ordinary required CI is headless and makes no graphical qualification claim;
+this import must not invoke old graphical CI or skip no-mistakes gates.
