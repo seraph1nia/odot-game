@@ -19,7 +19,7 @@ Odot's original code and documentation are licensed under the [GNU General Publi
 
 Development is maintainer-led, and external contributions and pull requests are not accepted. Write access, including branch creation in this repository, is limited to authorized maintainers. You may fork the project and develop your own branches under the applicable licenses.
 
-Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
+Third-party materials retain their own terms and are excluded from Odot's GPL grant. See [authored 3D provenance](docs/assets.md), the [historical KayKit notices](src/Game/Assets/KayKit/README.md), [GodotSteam and Valve runtime notices](src/Game/addons/godotsteam/README.odot.md), [Worldtree UI and font notices](src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui), and [music provenance](src/Game/Assets/Music/README.md). The supplied music has no documented redistribution license; its inclusion does not grant permission to reuse or redistribute it.
 
 ## Setup
 
@@ -77,7 +77,7 @@ The game keeps separate Debug and ExportRelease NuGet locks because Godot includ
 
 Read [the rules and tested campaign strategies](docs/gameplay.md). Six resources fund the city: gold, wood, food, stone, metal and cloth. Recruitment spends equipment materials; food is paid once before each battle, with unfed veterans kept in reserve. Recruitment buildings reach level five, producers and defenses level two, and Markets level one. Purchase locked plots for gold, sell buildings for half their actual investment, or build a Market to sell resource bundles. All connected living players click Ready for each of three productions, then Ready again in income-free Preparation to begin battle. Unit levels, wounds, city damage and research persist. Fallen cities transfer living attackers and retain their share of future enemy pressure. Clear all twenty waves, including bosses at ten and twenty, to win.
 
-Each city earns one personal research point per shared wave clear. Research Towers add +1/+2 per full three-production cycle, retaining partial progress; multiple towers add together. Open **Research** without selecting a plot to buy 3/6/9-point foundations, exclusive specializations and masteries. Points and choices reset each match; sale preserves them. Fire gives burn, Venom poison, and Frost slows future actions. Inspector text and status badges show current effects. Freeze/stun are deferred; incompatible older peers are refused.
+Each city earns one personal research point per shared wave clear. Research Towers add +1/+2 per full three-production cycle, retaining partial progress; multiple towers add together. Open **Worldtree** without selecting a plot to inspect the native living tree and buy 3/6/9-point foundations, exclusive specializations and masteries, plus the [three functional village production offshoots](docs/worldtree.md#bounded-node-design). Points and choices reset each match; sale preserves them. Fire gives burn, Venom poison, and Frost slows future actions. Inspector text and status badges show current effects. Freeze/stun are deferred; incompatible older peers are refused.
 
 The graphical client uses owner-permitted immutable exports from `odot-game-assets` in a detailed woodland hex landscape with a lower angled view. [Asset mappings](docs/assets.md) document honest cosmetic substitutes (Bakery, Woodcutter hut, Knight and Archer) while canonical rule/save/protocol identities remain unchanged. Click a plot or visible building, then use the bottom panel to Build, Upgrade or Recruit. Scenery is decorative; the nine slots and automatic battles keep the same rules. Roster tabs inspect any city; only your own can be edited. Ready locks editing until Unready. Any connected member, including an eliminated observer, can pause/resume the entire match. Costs and unavailable-action explanations come from authoritative state.
 
@@ -138,7 +138,7 @@ filter syntax, preparation and cleanup. A filtered pass is partial coverage.
 | Numerical rules / subsystem | `mise run test-core --filter 'FullyQualifiedName~Research'` |
 | Runner ownership / cancellation | `mise run test-runner` |
 | Coherent implementation | `mise run test-fast`, formatting |
-| Godot controls / resources / animation | `mise run test-engine --scenario settings` (or `animation` / `assets`) |
+| Godot controls / resources / animation | `mise run test-engine --scenario settings` (or `animation` / `assets` / `worldtree`) |
 | Real transport / session lifetime | `mise run test-network --scenario playing-host-lifecycle` |
 | Export/package boundary | `mise run ci-linux-package` / native Windows `ci-windows` |
 | Explicit campaign qualification | `mise run test-campaign` |

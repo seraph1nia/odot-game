@@ -120,8 +120,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
         _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
-    internal bool DetailsOpen => _detailsDialog?.Visible == true || _researchDialog?.Visible == true || _hallDialog?.Visible == true;
-    internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GrabFocus(); else if (_researchDialog.Visible) _researchDialog.GrabFocus(); else _detailsDialog.GrabFocus(); }
+    internal Node?[] DetailModals => [_hallDialog, _detailsDialog, _researchDialog];
+    internal bool DetailsOpen => GameApplication.SelectModal(DetailModals) is not null;
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
@@ -135,7 +135,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         ObserveResearch(targets);
         ObserveArmy(fields, targets);
         fields["StatusBadges"] = _units.Values.Where(v => v.Visible && v.StatusBadge.Length > 0).ToDictionary(v => v.State.Id, v => v.StatusBadge);
-        fields["ResearchText"] = _researchBalance.Text;
+        fields["ResearchText"] = _researchDialog.Research.Description.Text;
         fields["DetailsText"] = _inspectionRoster.Text + "\n" + _upkeep.Text + "\n" + _reward.Text + "\n" + _armyDetails.Text + "\n" + _quoteDetails.Text;
         fields["ResourceOrder"] = _values.Keys.ToArray();
         _inspector.Observe(application, fields, targets);
@@ -340,7 +340,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             SlotState slot = _slot >= 0 && focus is not null ? focus.Slots[_slot] : new(Building.Empty, 0);
             TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
             BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
-            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
+            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level, research: focus!.Research, technologies: s!.TechnologyCatalog) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
             string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
             if (explanation.Length != 0) _detail.Text += "\n" + explanation;
             _buildActions.Visible = _slot >= 0 && slot.Purchased && slot.Type == Building.Empty;
@@ -360,7 +360,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             {
                 button.Visible = BuildingGroup(type) == _constructionGroup;
                 BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
-                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build) : "") + "\n ";
+                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog) : "") + "\n ";
                 button.AddThemeFontSizeOverride("font_size", 11);
                 button.Disabled = !edit || slot.Type != Building.Empty || build is null || !slot.Purchased || !me!.Resources.TryPay(build.Construction, out _);
                 UiAssets.Cost(button, build?.Construction ?? default);
@@ -369,11 +369,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             BuildingDefinition? lumbermill = s?.BuildingCatalog.FirstOrDefault(b => b.Type == Building.Lumbermill);
             _recovery.Visible = _buildActions.Visible && _constructionGroup == "Production" && focus?.Wood == 0 && lumbermill?.RecoveryConstruction is not null;
             ResourceCost recoveryCost = lumbermill?.RecoveryConstruction ?? default;
-            _recovery.Text = $"{BuildingName(Building.Lumbermill)} · gold recovery · {ResourceText(recoveryCost)} · {(lumbermill is null ? "" : ProgressionPresentation.ProducerBenefit(lumbermill))}";
+            _recovery.Text = $"{BuildingName(Building.Lumbermill)} · gold recovery · {ResourceText(recoveryCost)} · {(lumbermill is null ? "" : ProgressionPresentation.ProducerBenefit(lumbermill, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog))}";
             _recovery.Disabled = !edit || !_recovery.Visible || !me!.Resources.TryPay(recoveryCost, out _);
             _recovery.TooltipText = explanation.Length > 0 ? explanation : focus is null ? "" : "Explicit recovery at zero wood.\n" + CostExplanation(recoveryCost, focus.Resources);
             _upgrade.Visible = slot.Type != Building.TownHall;
-            _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true) : "")}\n ";
+            _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true, research: focus!.Research, technologies: s!.TechnologyCatalog) : "")}\n ";
             _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
             UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
             _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {AssetCatalog.UnitName(q.Type)} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";

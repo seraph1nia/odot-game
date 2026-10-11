@@ -30,7 +30,8 @@ public partial class GameApplication(Main session) : Node
     public ClientSettings Settings { get; private set; } = null!;
     internal SteamFriendsDialog Friends { get; private set; } = null!;
     public string Screen { get; private set; } = "menu";
-    public bool IsModalOpen => Settings.IsOpen || _join.Visible || _leave.Visible || Friends.IsOpen || _tabletop?.DetailsOpen == true;
+    private Node?[] ModalCandidates => [_leave, _join, Friends, Settings.Dialog, .. _tabletop?.DetailModals ?? []];
+    public bool IsModalOpen => SelectModal(ModalCandidates) is not null;
 
     public override void _Ready()
     {
@@ -261,11 +262,20 @@ public partial class GameApplication(Main session) : Node
         // Embedded subwindows receive their own input before this root viewport.
         // Consume only events routed outside the dialog, keeping native focus inside.
         // Nonexclusive dialogs let the main window deliver native close requests.
-        if (!IsModalOpen) return;
-        if (_tabletop?.DetailsOpen == true) { _tabletop.FocusDetails(); GetViewport().SetInputAsHandled(); return; }
-        if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true })
-            (_leave.Visible ? _leave : _join.Visible ? _join : Friends.IsOpen ? Friends : Settings.Dialog).GrabFocus();
-        GetViewport().SetInputAsHandled();
+        RouteModalInput(@event, GetViewport(), ModalCandidates);
+    }
+    internal static Node? SelectModal(params Node?[] candidates)
+        => candidates.FirstOrDefault(node => node switch
+        {
+            Window window => window.Visible,
+            Control control => control.IsVisibleInTree(),
+            _ => false
+        });
+    internal static void RouteModalInput(InputEvent @event, Viewport viewport, params Node?[] candidates)
+    {
+        if (SelectModal(candidates) is not Window modal) return;
+        if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true }) modal.GrabFocus();
+        viewport.SetInputAsHandled();
     }
     public override void _UnhandledInput(InputEvent @event)
     {

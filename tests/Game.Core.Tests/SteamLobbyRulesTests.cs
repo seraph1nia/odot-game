@@ -21,6 +21,7 @@ public sealed class SteamLobbyRulesTests
     [Theory]
     [InlineData("game", "different-game")]
     [InlineData("protocol", "-1")]
+    [InlineData("protocol", "11")]
     [InlineData("application", "123")]
     [InlineData("original_host", "0")]
     [InlineData("match", "not-a-match")]

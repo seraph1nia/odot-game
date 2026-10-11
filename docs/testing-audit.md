@@ -25,7 +25,7 @@ where unambiguous. Costs are qualitative unless an actual receipt is named.
 | --- | --- | --- |
 | Resource, EconomyCatalog, BuildingTransaction, SettlementCommand, CommandConstruction, World | Atomic six-resource payments/refunds, overflow, producer/recruit quotes, editing guards, stale generation/turn, ready/pause/retry | Small deterministic Match/Authority inputs. Keep A. Exact authored default prices are intentional product contract, not merely test counts. Replace graphical arithmetic coverage with these existing assertions, not copied implementations. |
 | ArmyRoster, ArmyRecovery, ArmyProgression, ArmyCommand, ArmyPresentation, ArmyProgression's fixtures | First-fit homes, capacity, hall storage/healing, paid food, veteran identity/wounds, reconnect retry | Keep A: boundaries and serialized authority results detect actual resource grants, early healing, duplicate spend and ownership regressions. Not equivalent to a native roster button. |
-| CityResearch, ResearchLifecycle, ResearchWitness, ResearchedRole | Earned points, exclusive paths, persistent effects/statuses and resolved future actions | Keep A including earned early-game witness; no new graphical campaign. Small deterministic effect inputs plus bounded ordinary setup. |
+| CityResearch, ResearchLifecycle, ResearchWitness, ResearchedRole, WorldtreeResearch | Earned points, exclusive paths, persistent effects/statuses, resolved future actions, actual village output/overflow, additive state/codec, all authority modes and canonical Worldtree mapping | Keep A including earned early-game witness; no new graphical campaign. Small deterministic effect inputs plus bounded ordinary setup. |
 | CombatAction, CombatConfiguration, CombatDecisionRegression, CombatLifecycle, CombatLimit, CombatPolicy, Combat, CombatFixture, DefensePolicy, SplashTower, StatusEffect, UnitSize | Impact/movement deadlines, target locks, splash/status ordering, death reservation release, transfer/admission, stall limits, faction/size/overflow | Keep A: deterministic ECS actions/outcomes and negative paths. CrowdedBattle rows are slower (~3s each in first new source run) but enforce progress/separation/determinism; not deleted just for cost. Core in-process parallelism remains disabled for static Arch registries. |
 | HexBattle, HexBoard, HexOccupancy, HexRouting, RoutingScoreEfficiency, DecisionEfficiency, SeededDecision | Routing/topology/occupancy, feasible targets, stable seeded ties, search work bounds | Keep A. Malformed/boundary cases and stable mixer vectors are valuable small tests. Independent algorithm oracle used only for well-defined bounded graph behavior. |
 | AuthoritySession, AuthorityCombat, VillageAuthority, AuthoritativeQuery | Local/dedicated/host permissions, protocol/rate/malformed/credential failures, detached snapshots/current units | Keep A. Real transport not proven here; essential C cases remain. Serialization/insertion-order outcomes protect more than fixture construction. |
@@ -66,7 +66,7 @@ All runner sources are covered by these responsibilities (relative to
 | UiTests, MenuUiTests, EconomyUiTests, ArmyUiTests, CombatUiTests, ResearchUiTests, FriendsUiTests, GraphicsUiTests, CameraUiTests, InspectionUiTests, MeleeUiTests, CoordinatedMelee, CombatReplayFixture | Legacy giant graphical journeys mostly repeat core arithmetic and early battles. Retain explicit `deep` economy/launcher/packed routes; default launcher/economy/packed becomes one new UiSmoke application with real controls, one production, no battle/server/observer, one frame. Remove appended research + fresh-solo journey from full combat: research is independently selected; solo freshness already A/C and launcher. Graphical correctness NOT requalified here. |
 | BurnAdmission, CasualtyAdmission, CameraPanExpectation, CombatFailureEvidence, CombatPoseDiagnostic, CombatProgressionProof, CombatRecoveryObservation, CombatRecoveryTrace, MeleeAdmission, MeleeVisualProof | Keep finite receipt/current-state guards and bounded failure evidence; existing cheap fault tests protect their interfaces. They service explicit E rather than PR. Do not remove ownership/negative assertions to make an expensive journey appear faster. |
 | AtmosphereReturnDiagnostic, CameraTravelDiagnostic, MeleeAdmissionDiagnostic, MeleeTimingReport, PopupLifecycleDiagnostic, StartupObservationDiagnostic, VanillaPopupDiagnostic | Explicit diagnostic experiments only, not acceptance/default CI. No additional live diagnosis was started. Historical findings remain historical, no speculative runtime/host repairs. |
-| New EngineTests and src/Game/Verification/EngineTests | Three selectable minimal headless cases against production ClientSettings, UnitAssets/AnimationPlayer/Skeleton and AssetFidelityProbe. Each owns user state/logs/marker and a 60s process bound; real signal/persistence and pose outcomes, no GameApplication/Main session. |
+| New EngineTests and src/Game/Verification/EngineTests | Four selectable minimal headless cases against production ClientSettings, UnitAssets/AnimationPlayer/Skeleton, AssetFidelityProbe and the imported Worldtree/game adapter (also loaded from actual client exports). Each owns user state/logs/marker and a 60s process bound; real signal/persistence and pose outcomes, no GameApplication/Main session. |
 
 ## Significant coverage changes
 
@@ -97,6 +97,34 @@ qualification; do not update receipt counts without executing their owner suites
 - Shared builds/import/exports remain serialized. Already-built core/runner
   processes overlap; network admission defaults to two. No global test selector
   registry, new framework, fleet manager, retries or desktop automation introduced.
+
+## Worldtree review coverage adjustments
+
+The existing Tier A Worldtree production fixture now also checks independent
+expected researched labels at both levels and for upgrades (farm +7 and 7 → 10;
+stone/wood +2 and 2 → 3). Income-only assertions could miss stale producer labels.
+The native-client prerequisite fixture covers the exported component caller and
+selects the current OS layout; fixture files do not qualify Windows execution.
+
+The existing Tier A authority admission fixture rejects the concrete previous
+protocol 11 at fresh and resume admission with no snapshot, credential or city
+allocation, then admits/resumes a current-version guest with all three new catalog IDs. Steam invitation
+coverage also rejects protocol-11 metadata. Relative-version rejection alone
+could pass without advancing the compatibility boundary. These strengthen small
+existing fixtures with negligible estimated incremental cost.
+
+The existing Tier B Worldtree case passes real visible/hidden research and
+embedded Window candidates through the same GameApplication modal selection and
+input routing used in production. The earlier always-null routing fixture missed
+the selection decision. Native mouse/wheel/keyboard GUI outcomes, embedded-window
+outside-event consumption and the shared world-blocking predicate are exercised,
+including world input resuming after close. Fixed small controls, one owned
+embedded dialog and process-frame synchronization replace no journey; estimated
+incremental cost is a few frames, not a new process. Nested Settings
+callback/guard assertions are removed with that unrequired product route. The
+normal Settings component owner and research authority/disconnection/teardown
+negative paths remain. Full application, physical input, pixels and native Windows
+package qualification are not established by these focused fixtures.
 
 ## Failure history
 

@@ -30,7 +30,10 @@ Blender sources, reference archives, catalog files or source-repository caches.
 UI/audio retain their independent notices. The user separately approved
 continued existing third-party UI use with the exact words **yes, 3rd party ui is
 fine too**. This is user approval, not independent verification of creator-granted
-redistribution rights or a new license; no UI/audio replacement is included.
+redistribution rights or a new license. The separately imported living research
+UI retains the [Worldtree import contract](worldtree.md#immutable-import-contract)
+and [notice](../src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui); its required
+Ledger Theme dependencies do not replace the application-wide UI or audio.
 
 ## Earlier quality refresh (2026-10-08)
 

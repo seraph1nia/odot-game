@@ -2,10 +2,10 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
-    private async Task EngineTests()
+    private async Task EngineTests(bool exported = false)
     {
         int timeout = options.ExplicitTimeout ? options.Timeout : 60000;
-        string[] selected = options.Scenario is null ? ["settings", "animation", "assets"] : [options.Scenario];
+        string[] selected = exported ? ["worldtree"] : options.Scenario is null ? ["settings", "animation", "assets", "worldtree"] : [options.Scenario];
         foreach (string scenario in selected)
             await _evidence.Measure("engine-" + scenario, "engine", async () =>
             {
@@ -19,8 +19,11 @@ internal sealed partial class Runner
                 environment["ODOT_VERIFICATION_MARKER"] = marker;
                 environment["ODOT_VERIFICATION_TOKEN"] = token;
                 environment["ODOT_STEAM_DISABLED"] = "1";
-                await using var child = owned.Own(new Child("engine-" + scenario, "godot",
-                    ["--headless", "--audio-driver", "Dummy", "--path", GameDirectory, "res://Verification/EngineTests.tscn", "--", "--scenario", scenario],
+                string executable = exported ? AtmosphereClientPackage() : "godot";
+                string[] arguments = exported
+                    ? ["--headless", "--audio-driver", "Dummy", "--", "--supervised", "--engine-component-probe", scenario]
+                    : ["--headless", "--audio-driver", "Dummy", "--path", GameDirectory, "res://Verification/EngineTests.tscn", "--", "--scenario", scenario];
+                await using var child = owned.Own(new Child("engine-" + scenario, executable, arguments,
                     _root, game: true, environment: environment, evidenceDirectory: owned.EvidenceDirectory,
                     engineLogPath: Path.Combine(owned.EvidenceDirectory, "engine.log")));
                 await child.WaitFor(e => e.Type == "engine-ready", scenario + " component readiness", options.StartupTimeout, deadline.Token);

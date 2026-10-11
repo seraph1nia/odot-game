@@ -98,7 +98,7 @@ public partial class Tabletop
             _recruitment[type].Name = type switch { UnitType.Swordsman => "Recruit", UnitType.Crossbowman => "RecruitRanged", _ => "Recruit" + type };
         }
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
-        CreateResearch(city);
+        CreateResearch(city, root);
         CreateArmyControls(city, context, details);
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = .22f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 12);
