@@ -87,6 +87,15 @@ import handling. Its current test policy and qualification boundary are separate
 from the historical native campaigns below; Dreaming Forest styling is not part
 of that import.
 
+## Forest art direction
+
+The [forest art pass](forest-art.md) extends this same environment owner with
+Natural / Enchanted / Dreaming themes, native 3D LUT correction and one bounded
+optional magic rig. Art Style preferences use the existing graphics transaction;
+weather/quality remain independent. Current headless checks establish resource
+and lifecycle behavior, **not** new native scenic appearance. See the separate
+[headless verification plan](forest-art-verification-plan.md).
+
 ## Renderer selection
 
 First-run desktop play/dev/client use Godot's native **Forward+ / Vulkan**. No
@@ -211,8 +220,9 @@ roughness/normal on cool water-colored pixels: no moving shoreline, UV scroll or
 terrain displacement. Source/imported resources remain immutable; geometry is
 reused. Only three shared shader uniforms are uploaded per frame; diagnostics
 retain the last uploaded wind value rather than performing a forbidden runtime
-global-uniform/GPU readback. Automatic weather progression and thematic/art-pack
-changes are intentionally outside this implementation.
+global-uniform/GPU readback. Automatic weather progression is intentionally outside this implementation.
+The later [forest art pass](forest-art.md) layers themes and optional magic on
+this owner without changing authored art or weather ownership.
 
 ## Verification and visual evidence
 

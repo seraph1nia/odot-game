@@ -30,7 +30,7 @@ without starting Godot. See
 [gameplay rules and compatibility](docs/gameplay.md#deterministic-hex-combat) and
 [verification evidence](docs/verification.md).
 
-Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Desktop clients default to native Forward+ / Vulkan on supported GPUs/drivers; Compatibility / OpenGL 3.3 remains the fallback. A display is required for play. Default tests and PR/main CI are headless. Graphical qualification is explicitly selected and gated, not a prerequisite for routine development. See [renderer, atmosphere and graphics settings](docs/atmosphere.md) for switching, restart-later preferences and the separate optional native Vulkan smoke.
+Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Desktop clients default to native Forward+ / Vulkan on supported GPUs/drivers; Compatibility / OpenGL 3.3 remains the fallback. A display is required for play. Default tests and PR/main CI are headless. Graphical qualification is explicitly selected and gated, not a prerequisite for routine development. See [renderer, atmosphere and graphics settings](docs/atmosphere.md) for switching, restart-later preferences and the separate optional native Vulkan smoke. [Forest art direction](docs/forest-art.md) documents Dreaming/Enchanted/Natural themes and Off/Subtle/Full magical accents; these local settings are independent of weather and quality.
 
 ```sh
 mise trust

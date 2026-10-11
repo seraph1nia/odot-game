@@ -465,5 +465,6 @@ public partial class GameApplication(Main session) : Node
         if (_leave.Visible && (Screen != "session" || _leaveGeneration != session.SessionGeneration)) CancelReturn();
         if (_scenery.Visible) _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);
         _atmosphere.VillageOrigin = _scenery.Visible ? Vector3.Zero : _tabletop?.AtmosphereOrigin ?? Vector3.Zero;
+        _atmosphere.ViewLandscape(_scenery.Visible ? _landscape : _tabletop?.AtmosphereLandscape);
     }
 }

@@ -26,6 +26,8 @@ internal sealed class GraphicsPreferences
         new("wind", "Wind strength", "Atmosphere and weather", ["Off", "Gentle", "Moderate", "Strong"], 1),
         new("foliage", "Foliage animation", "Atmosphere and weather", ["Off", "On"], 1),
         new("glow", "Bloom / glow", "Atmosphere and weather", ["Off", "Subtle", "Normal"], 1),
+        new("forest_theme", "Forest theme", "Art Style", ["Natural Woodland", "Enchanted Forest", "Dreaming Forest"], 2),
+        new("magic", "Magical effects", "Art Style", ["Off", "Subtle", "Full"], 1),
         new("reduce_motion", "Reduce environmental motion", "Accessibility and comfort", ["Off", "On"], 0),
         new("reduce_weather", "Reduce weather effects", "Accessibility and comfort", ["Off", "On"], 0),
         new("reduce_effects", "Reduced visual effects", "Accessibility and comfort", ["Off", "On"], 0)
@@ -95,9 +97,9 @@ internal sealed class GraphicsPreferences
             else if (result["aa"] == 2) result._values["aa"] = 3;
         }
         if (this["atmosphere"] == 0)
-            foreach (string key in new[] { "fog", "volumetric", "particles", "wind", "foliage", "glow" }) result._values[key] = 0;
+            foreach (string key in new[] { "fog", "volumetric", "particles", "wind", "foliage", "glow", "magic" }) result._values[key] = 0;
         if (this["reduce_motion"] == 1) { result._values["wind"] = 0; result._values["foliage"] = 0; }
-        if (this["reduce_effects"] == 1) { result._values["glow"] = 0; result._values["indirect"] = 0; }
+        if (this["reduce_effects"] == 1) { result._values["glow"] = 0; result._values["indirect"] = 0; result._values["magic"] = Math.Min(result["magic"], 1); }
         return result;
     }
 }

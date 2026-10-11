@@ -46,6 +46,31 @@ public sealed class GraphicsTests
         Assert.Equal(ao, preferences["ao"]); Assert.Equal(volumetric, preferences["volumetric"]); Assert.Equal(indirect, preferences["indirect"]);
         Assert.Equal(1, preferences["renderer"]); Assert.Equal(4, preferences["weather"]); Assert.Equal(1, preferences["reduce_motion"]); Assert.Equal(2, preferences["fps"]);
     }
+    // Tier A catches preference coupling/lost desired art choices without Godot.
+    // Existing validation loop covers wrong types/ranges for these fields too.
+    [Fact]
+    public void ForestArtIsIndependentAndComfortKeepsDesiredChoices()
+    {
+        var settings = new GraphicsPreferences();
+        Assert.Equal(2, settings["forest_theme"]); Assert.Equal(1, settings["magic"]);
+        foreach (int theme in new[] { 0, 1, 2 })
+            foreach (int magic in new[] { 0, 1, 2 })
+            {
+                settings.Edit("forest_theme", theme); settings.Edit("magic", magic);
+                settings.Edit("weather", 3);
+                foreach (int tier in new[] { 0, 1, 2, 3 })
+                {
+                    settings.Edit("quality", tier);
+                    Assert.Equal(theme, settings["forest_theme"]); Assert.Equal(magic, settings["magic"]);
+                    Assert.Equal(tier, settings["quality"]); Assert.Equal(3, settings["weather"]);
+                    Assert.Equal(theme, settings.Effective(false)["forest_theme"]);
+                }
+            }
+        settings.Edit("magic", 2); settings.Edit("reduce_effects", 1);
+        Assert.Equal(1, settings.Effective(false)["magic"]); Assert.Equal(2, settings["magic"]);
+        settings.Edit("atmosphere", 0);
+        Assert.Equal(0, settings.Effective(false)["magic"]); Assert.Equal(2, settings["magic"]);
+    }
     [Fact]
     public void IndividualEditsSelectCustomWithoutResettingOtherCurrentValues()
     {
