@@ -72,6 +72,14 @@ failure/cancellation before runtime removal. `--startup-timeout-ms` is readiness
 Engine components default to 60000 ms each; an explicit `--timeout-ms` replaces
 that budget, including readiness and process exit. Their `--startup-timeout-ms`
 wait ends at the minimal component scene's readiness event.
+For C# and network phases the default budget is 180000 ms and 300000 ms,
+respectively; `ci-source`, `ci` and `test-deep` use 300000 ms per C#/network
+phase, not one end-to-end command deadline. Preparation and cleanup are separate.
+Readiness defaults to 15000 ms; hosted commands explicitly use 60000 ms.
+Network/deep verification rejects non-loopback host and bind addresses.
+Owned network setup accepts `--simulation-speed 1..8` (default 4); `--trace`
+retains full protocol diagnostics at greater disk cost. These options are not
+accepted by `test-deep`; select `test-network` for such diagnosis.
 Never run two preparation/export tasks concurrently in one worktree.
 
 ## Explicit deep, CI and packages (headless)
@@ -123,6 +131,14 @@ selection uses existing packages without rebuilding. Private Linux displays own
 Xvfb/Xauthority/Openbox, Compatibility/software OpenGL and Dummy audio; never use
 a desktop fallback. Optional atmosphere/Vulkan/presentation profiles also require
 the explicit graphical gate. Do not set it under headless-only authorization.
+
+Other retained specialist entry points are `test-assets` (the legacy headless
+asset probe), `test-native-pump` ([native diagnostic](../../../docs/native-pump-timing.md)),
+`check-steam-extension` / `test-steam` ([Steam usage](../../../README.md#steam-development-and-acceptance)),
+and `test-atmosphere` / `test-vulkan` ([renderer qualification](../../../docs/atmosphere.md#verification-and-visual-evidence)).
+`check-ui-prerequisites` checks executable availability without launching Godot or
+a display. Profiling/stress selections are documented in
+[simulation performance](../../../docs/simulation-performance.md), not default tests.
 
 For actual execution receipts and timing scope see
 [verification](../../../docs/verification.md), not these copy-paste examples.

@@ -1,5 +1,9 @@
 # Proposal
 
+> Historical completed change, not current execution policy. The later headless
+> overhaul supersedes its routine campaign/graphical selections; see the
+> [current testing strategy](../../../.agents/skills/testing-strategy/SKILL.md).
+
 ## Why
 
 Verification repeats game flows through expensive real-time processes and graphical input: the recorded warm full gate took 780 seconds, including about 580 seconds of graphics, and retained 4 GB of evidence. Make C# acceptance tests the primary owner of game flows, preserving focused transport, rendering and package witnesses while reducing elapsed time and diagnostic overhead.

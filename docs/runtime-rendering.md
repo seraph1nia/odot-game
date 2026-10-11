@@ -139,7 +139,8 @@ not a claim that a building became faster or a walking action changed duration.
 The selected static cost command now compares standard/live admission on original scenes only:
 
 ```sh
-mise run test-ui --scenario launcher --checkpoint assets --jobs 1
+# Requires explicit graphical authorization:
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario launcher --checkpoint assets --jobs 1
 ```
 
 `LandscapeAssets` also retains a small source/import/engine/backend/version-aware **in-memory**

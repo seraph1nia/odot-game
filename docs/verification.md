@@ -45,6 +45,9 @@ temporary owned runtime state must not be uploaded.
 ## Overhaul measurements (2026-10-11)
 
 Baseline source: `d7f1728` (the actual `origin/main` head when audited).
+After receipts below describe implementation `70ba7e3`, before the later
+component-deadline and deep-endpoint review fixes; they are not final-head test
+counts or qualification. The audit links targeted selection receipts separately.
 Locked .NET SDK 10.0.401, Godot .NET 4.7.2, Linux x86_64. Local timings include
 warm dependency/build state; hosted historical timings have different machines
 and cache state. They are **not** a matched end-to-end speedup measurement.
@@ -54,14 +57,14 @@ and cache state. They are **not** a matched end-to-end speedup measurement.
 | Local original `mise run test` | 504 core passed; 636 runner passed + 2 Windows skips; 4 partitions, max 2 processes | 44.87s including preparation; runner suite 39.24s |
 | New default `mise run test` | 457 core + 633 runner passed, 2 Windows skips; max 2 completed binaries | 20.42s suite; 22.31s task |
 | New `test-fast --jobs 1` | same counts, serial completed binaries | 29.87s runner; 31.83s task |
-| Final headless source gate | same fast C#; settings/animation/assets; failure/solo/playing-host transport | 56.10s runner; 58.43s task including runner build |
+| Implementation headless source gate | same fast C#; settings/animation/assets; failure/solo/playing-host transport | 56.10s runner; 58.43s task including runner build |
 | Explicit headless `test-deep` | all 43 deep C# rows + all 6 retained headless network cases | 81.20s runner; 83.57s task; network suite 42.55s |
 | New headless Linux package gate | ordered client/server exports, normal connected build/production/recruit smoke, offline native extension | 20.32s runner; 21.65s task |
 | Current-main historical hosted source run `38120639473` | old C# + all 6 network + all 5 graphical cases | 1132.17s source; C# 53.03s; network 428.00s; UI 1066.59s |
 
 The first coherent source run (57.35s, 461 core) preceded removal of four
-fixture-self-check rows and shared immutable GLB parse. Final receipts above
-include those changes. Default local C# task changed from 44.87s to 22.31s with
+fixture-self-check rows and shared immutable GLB parse. Implementation receipts
+above include those changes. Default local C# task changed from 44.87s to 22.31s with
 **deliberately narrower routine coverage**, not faster production simulation.
 Initial stale timeout-policy assertions failed during refactor and were updated
 to the new bounded/explicit behavior, not suppressed. No graphical/local desktop/Vulkan
@@ -69,7 +72,7 @@ baseline or after run was executed. Graphics smoke/deep code is selectable but
 unqualified under this task's headless-only boundary. Native Windows/release/
 installer/real Steam verification was not locally executed.
 
-Final source evidence: `logs/20261011-083602-cc8c8d0b/ci-source-summary.json`.
+Implementation source evidence: `logs/20261011-083602-cc8c8d0b/ci-source-summary.json`.
 Default C# evidence: `logs/20261011-084125-249c70c1/test-fast-summary.json`.
 Serial C# evidence: `logs/20261011-083745-8a8614b7/test-fast-summary.json`.
 Deep evidence: `logs/20261011-082802-40cee91b/test-deep-summary.json`.
@@ -95,4 +98,5 @@ preserve their owner. Owned data, cancellation and shutdown protections remain.
 Shared preparation/export commands are never safe to parallelize in one worktree;
 use one prepared runner invocation, not concurrent `mise` invocations.
 
-See the audit for final executed vs unexecuted coverage and remaining risks.
+See the audit for implementation-time selected receipts and remaining risks;
+final-head verification belongs to the outer validation phases.

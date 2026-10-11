@@ -151,34 +151,11 @@ See [current verification and measurements](docs/verification.md).
 
 ### Verification command details
 
-`test` aliases `test-fast`: C# rules/runner tests excluding `Tier=Deep`, no Godot
-process. `test-core` / `test-runner` support standard .NET `--filter`; zero-match
-selection fails. `test-engine` uses a minimal owned headless scene for production
-settings signal/persistence, imported rig playback and asset buffer fidelity.
-`test-network` defaults to `failure-cases`, `solo-session`, `playing-host-lifecycle`;
-all six stable ids remain individually selectable. Deeper dedicated research/resume,
-redistribution and defeat journeys run with `test-deep`, not routine PR coverage.
-
-Graphical tests are explicit only: select one `test-ui --scenario NAME` and obtain
-authorization before setting `ODOT_ALLOW_GRAPHICAL_TESTS=1`. Launcher/economy/packed
-defaults now use one offline smoke; `--checkpoint deep` selects legacy journeys.
-Other retained selectors/checkpoints remain in runner help. None were executed in
-the headless-only overhaul; supporting code is not a graphical pass.
-
-Standalone checks prepare once before execution. Do not run simultaneous tasks
-that mutate shared build/import/export outputs. CI overlaps isolated completed
-core/runner binaries with bounded headless network workers (`--jobs 2`, serial
-`--jobs 1` for debugging); engine cases own fresh runtime state. Headless source
-CI is bounded at 300 seconds by default, readiness at 15 seconds (hosted commands
-explicitly use 60 seconds). Overrides remain explicit, not blind retries.
-
-`ci` gates sequential Linux client/server exports on source success, followed by
-headless connected-role and native extension probes. PR/main workflow retains
-`source`, `linux-package`, `windows-package` job identities on independent runners.
-No graphical launches or Xvfb installation. Weekly/manual `deep.yml` selects
-headless deep qualification only. Non-secret timing summaries may be uploaded;
-no publication/deployment occurs in ordinary CI. See [verification](docs/verification.md)
-for exact coverage, historical comparisons and limits.
+For exact default selections, filters, deadlines, serial debugging and explicitly
+authorized graphical checkpoints, use the [testing command reference](.agents/skills/testing-commands/SKILL.md).
+Do not run simultaneous tasks that mutate shared build/import/export outputs.
+[Current verification](docs/verification.md#ci-coverage) owns CI job coverage,
+artifact policy and the separate weekly/manual headless deep workflow.
 
 ```sh
 mise run prepare-templates
@@ -190,7 +167,7 @@ mise run ci-linux-package
 
 Matching .NET export templates are downloaded explicitly, checksum-verified and installed in Godot's user template directory. This is engine data, separate from mise tools and NuGet dependencies. Repeating preparation is safe. Linux exports go to ignored `dist/client` and `dist/server`; Windows desktop exports go to `dist/windows-client`. Individual export tasks are available for local iteration; local `mise run ci` applies the test gate before invoking them. Linux can cross-export Windows for inventory inspection; native launch verification requires Windows x86_64.
 
-On native Windows, `mise run ci-windows --startup-timeout-ms 60000` performs locked restore, formatting, build/import, offline native Steam source/export probes, package/runtime inventory checks and a bounded standalone solo launch. It uses isolated APPDATA/LOCALAPPDATA and removes SDK discovery from exported processes. The ordinary `Verify and build` workflow runs `ci-source`, `ci-linux-package` and native Windows checks in parallel on separate runners at the same commit. All three jobs must pass for workflow success. Local `mise run ci` retains its complete Linux checks with one source preparation. This ordinary workflow uploads only optional non-secret timing summaries, never release assets or player state.
+On native Windows, `mise run ci-windows --startup-timeout-ms 60000` performs locked restore, formatting, build/import, offline native Steam source/export probes, package/runtime inventory checks and a bounded standalone solo launch. It uses isolated APPDATA/LOCALAPPDATA and removes SDK discovery from exported processes. Local `mise run ci` gates sequential Linux exports/package checks on headless source success with one source preparation; `ci-linux-package` alone does not run the source gates. See [CI coverage](docs/verification.md#ci-coverage) for hosted job selection and uploaded evidence.
 
 The separate `Build published release` workflow distributes packages only when the owner publishes an existing GitHub release; release-automation/package PRs also exercise its same build/transfer/assembly path with ephemeral local tags and no release publication. It checks the exact SemVer tag and public repository, then builds native Linux/Windows packages in parallel without rerunning the test suites. Its final job alone checks package identities/checksums and attaches the installer, archive, install script, checksum manifest and public build metadata. Release runs never publish logs or player state and never overwrite an existing version. See [distribution documentation](docs/distribution.md) for friend-facing installation, manual updates, supported Linux systems and the release procedure.
 
@@ -300,18 +277,9 @@ repeatable diagnostics; guests cannot select the seed. Without it, a match
 generates its seed once. No seed editor is added to the interface.
 
 
-Fast C# verification (`mise run test` / `test-fast`) prepares once, then runs
-isolated core and runner binaries concurrently. Core stays serialized inside its
-process to protect Arch's static registry. Twenty-wave strategy/calibration and
-reference replay tests use `Tier=Deep` and `test-campaign`, not routine A.
-`test-in-process` is an explicit unfiltered all-C# socketless fallback including
-deep tests. Session flows use bounded deterministic ticks, not wall-clock sleeps.
-
-Owned headless authority setup accepts `--simulation-speed 1..8` (default 4);
-interactive launches remain speed 1. Use `mise run test-network --jobs 1` or
-`mise run test-fast --jobs 1` for serial debugging, not as a workaround for unsafe
-parallel state. Selected graphical slices always own one worker and require
-`ODOT_ALLOW_GRAPHICAL_TESTS=1` plus authorization.
+The [testing command reference](.agents/skills/testing-commands/SKILL.md) owns
+fast/deep selection, the socketless fallback, concurrency and setup pacing.
+Interactive launches remain at ordinary simulation speed.
 
 Routine transcripts contain compact revision/tick/phase results, buffered writes, a recent full-state ring capped at 16 snapshots/16 MiB, and engine diagnostics capped at 8 MiB per child. Failure, timeout, cancellation and cleanup retain redacted state checkpoints; truncation is explicit. `--trace` retains full protocol output for diagnosis with greater disk cost. Summaries report evidence bytes; child checkpoint reports include ticks, pacing and transcript bytes. The default explicitly selected packed graphical smoke uses one offline application, build/recruit, return/Exit and one frame; legacy packed/installed journeys remain deep qualification. Headless package/runtime probes remain required; neither they nor silent Dummy audio establish rendered or listening quality.
 

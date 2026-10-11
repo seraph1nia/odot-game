@@ -1,5 +1,9 @@
 # Tasks
 
+> Completed historical checklist, not commands required for today's development.
+> See [current testing strategy](../../../.agents/skills/testing-strategy/SKILL.md)
+> and [original coverage record](../../../docs/verification-history.md#verification-speed-implementation-coverage-ownership).
+
 ## 1. Coverage ownership and baseline evidence
 
 - [x] 1.1 Add the assertion ownership/migration table to `docs/verification.md`, naming current helpers, C# replacements and retained transport/rendered witnesses; verify all six network and five source UI selectors, packed coverage and cooperative assertions are accounted for before deleting checks.

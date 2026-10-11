@@ -70,6 +70,10 @@ All runner sources are covered by these responsibilities (relative to
 
 ## Significant coverage changes
 
+Counts in this ledger are the executed implementation snapshot `70ba7e3`, before
+later review regression rows were added. They are not current-head discovery or
+qualification; do not update receipt counts without executing their owner suites.
+
 - Default A excludes **43** existing deep rows: 21 strategy, 1 serialized campaign,
   19 balance and 2 golden/reference replay rows. All remain executable with
   `test-campaign`; direct boss/victory/defeat/reward/transfer and early deterministic
@@ -108,29 +112,20 @@ headless component persistence/animation and bounded transport, not forbidden
 live graphical reruns. Repeat only changed relevant inputs or an unresolved
 concern, never blind retry to green.
 
-## Measurements and final execution receipt
+## Implementation selection receipts
 
-Original warmed local test task: **44.87s**, suite **39.24s**; new first coherent
-source gate **57.35s** including formatting/import/native/component/transport,
-with C# suite **21.04s**. These different coverage sets are not a matched speedup.
-Original hosted main source: **1132.17s**, UI **1066.59s**, network **428.00s**;
-new local headless source is a different environment/cache state, not a measured
-~20-minute CI reduction. Historical economy **767.20s**, launcher **380.86s**,
-combat **270.27s** in that successful main run support moving them off routine CI.
-
-Executed headless package gate: **20.32s** (both Linux exports, real connected
-build/production/recruit, offline native extension). Executed explicit headless
-deep: **81.20s** total / **42.55s** all-six network, evidence
-`logs/20261011-082802-40cee91b/`. No graphical, native Windows, real Steam, actual
+[Verification measurements](verification.md#overhaul-measurements-2026-10-11)
+owns the baseline, default/serial/source/deep/package timings, evidence paths and
+comparison limits. Historical economy **767.20s**, launcher **380.86s**, combat
+**270.27s** in hosted run `38120639473` support moving them off routine CI, not a
+portable speedup claim. No graphical, native Windows, real Steam, actual
 installer release or release-publishing qualification executed locally.
 
-Final execution receipts (all prepared .NET selectors use checked-in runner commands):
+Targeted receipts at implementation `70ba7e3` (prepared .NET selectors use
+checked-in runner commands):
 
 | Command / selection | Actual outcome and count | Runner / task timing |
 | --- | --- | --- |
-| `mise run test` | Passed 457 core + 633 runner, 2 Windows skips; budget 2 | 20.42s / 22.31s |
-| `mise run test-fast --jobs 1` | Identical coverage; serial process option works | 29.87s / 31.83s |
-| `mise run ci-source --startup-timeout-ms 60000` | Passed same fast counts + 3 engine + 3 network; locked build/import, native offline probe/identity and format verification | 56.10s / 58.43s |
 | `test-core --filter 'FullyQualifiedName~HexRoutingTests.OccupiedDirectApproach'` | 1 passed | 1.30s |
 | `test-core --filter 'FullyQualifiedName~HexRoutingTests'` | 4 passed | 1.31s |
 | `test-core --filter 'FullyQualifiedName~Research'` | 40 passed | 3.32s |
@@ -140,20 +135,15 @@ Final execution receipts (all prepared .NET selectors use checked-in runner comm
 | `test-runner --timeout-ms 1` | **Expected negative: exit 1**, bounded deadline before test admission; not a gameplay failure | 0.04s |
 | `test-ui --scenario launcher` without permission | **Unexecuted exit 2** before any preparation/Godot/display launch | 0.00s |
 
-Default receipt `logs/20261011-084125-249c70c1/`; final source
-`logs/20261011-083602-cc8c8d0b/`; serial `logs/20261011-083745-8a8614b7/`.
 Selectors use `dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll` after shared
 preparation; their full logs/JSON are under `logs/testing-overhaul/selections/`.
 The first refactor fast run failed two stale 900s allowance assertions; corrected
 to enforce bounded headless routing/explicit deep exceptions, not suppressed.
 Final source formatting and later final build passed with zero warnings/errors.
 
-These local warmed default tasks decreased from **44.87s to 22.31s**, by removing
-redundant rows and deliberately selecting a fast subset, not changing production
-performance. Deep has no current graphical execution. The deep receipt's old
-`Jobs=1` was a summary-only bug (actual phase starts overlap two network cases);
-current command reporting was corrected and the obsolete fixed RuleProcessBudget
-metadata removed. No expensive repeat needed for that reporting-only change.
+The deep receipt's summary-only reporting correction is recorded with its
+[measurement](verification.md#overhaul-measurements-2026-10-11); no expensive
+repeat was required for that reporting-only change.
 
 Source/export once-only preparation and cleanup evidence stays under ignored local
 logs; checked-in documents contain no credentials. At final pre-delivery read,
