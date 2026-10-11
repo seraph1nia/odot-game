@@ -39,6 +39,7 @@ rename_exe = { "Godot" = "godot" }
 lockfile = true
 lockfile_platforms = ["linux-x64", "windows-x64", "macos-arm64", "macos-x64"]
 task.run_auto_install = false
+exec_auto_install = false
 
 [env]
 DOTNET_CLI_TELEMETRY_OPTOUT = "1"

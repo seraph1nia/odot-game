@@ -1,8 +1,8 @@
 # Tasks
 
 > Completed historical checklist, not commands required for today's development.
-> See [current testing strategy](../../../.agents/skills/testing-strategy/SKILL.md)
-> and [original coverage record](../../../docs/verification-history.md#verification-speed-implementation-coverage-ownership).
+> See [current testing strategy](../../../../.agents/skills/testing-strategy/SKILL.md)
+> and [original coverage record](../../../../docs/verification-history.md#verification-speed-implementation-coverage-ownership).
 
 ## 1. Coverage ownership and baseline evidence
 
