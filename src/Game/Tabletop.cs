@@ -120,8 +120,8 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
         _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
-    internal bool DetailsOpen => _detailsDialog?.Visible == true || _researchDialog?.Visible == true || _hallDialog?.Visible == true;
-    internal Window? DetailsWindow => _hallDialog?.Visible == true ? _hallDialog : _detailsDialog?.Visible == true ? _detailsDialog : null;
+    internal Node?[] DetailModals => [_hallDialog, _detailsDialog, _researchDialog];
+    internal bool DetailsOpen => GameApplication.SelectModal(DetailModals) is not null;
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)

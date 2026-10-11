@@ -106,11 +106,21 @@ stone/wood +2 and 2 → 3). Income-only assertions could miss stale producer lab
 The native-client prerequisite fixture covers the exported component caller and
 selects the current OS layout; fixture files do not qualify Windows execution.
 
-The existing Tier B Worldtree case routes native mouse, wheel and keyboard events
-through the same GameApplication input handler used in production. Detached
-component intent calls missed root-viewport consumption. Fixed small controls,
-owned SceneTree state and process-frame synchronization replace no journey;
-estimated incremental cost is a few frames, not a new process. Nested Settings
+The existing Tier A authority admission fixture rejects the concrete previous
+protocol 11 at fresh and resume admission with no snapshot, credential or city
+allocation, then admits/resumes a current-version guest with all three new catalog IDs. Steam invitation
+coverage also rejects protocol-11 metadata. Relative-version rejection alone
+could pass without advancing the compatibility boundary. These strengthen small
+existing fixtures with negligible estimated incremental cost.
+
+The existing Tier B Worldtree case passes real visible/hidden research and
+embedded Window candidates through the same GameApplication modal selection and
+input routing used in production. The earlier always-null routing fixture missed
+the selection decision. Native mouse/wheel/keyboard GUI outcomes, embedded-window
+outside-event consumption and the shared world-blocking predicate are exercised,
+including world input resuming after close. Fixed small controls, one owned
+embedded dialog and process-frame synchronization replace no journey; estimated
+incremental cost is a few frames, not a new process. Nested Settings
 callback/guard assertions are removed with that unrequired product route. The
 normal Settings component owner and research authority/disconnection/teardown
 negative paths remain. Full application, physical input, pixels and native Windows

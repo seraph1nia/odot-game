@@ -14,6 +14,10 @@ public partial class EngineTests
         var outside = new Button { Text = "Outside", Name = "OutsideResearch" }; host.AddChild(outside);
         int outsideClicks = 0; outside.Pressed += () => outsideClicks++;
         var dialog = new WorldtreeDialog { Invoker = outside }; host.AddChild(dialog);
+        GetWindow().GuiEmbedSubwindows = true;
+        var embedded = new AcceptDialog { Name = "EmbeddedModal", Position = new(700, 700), Size = new(240, 100), Transient = true, Exclusive = false, Visible = false };
+        host.AddChild(embedded);
+        host.ModalCandidates = [embedded, dialog];
         var second = new WorldtreeResearch(); host.AddChild(second); second.Hide();
         try
         {
@@ -41,8 +45,25 @@ public partial class EngineTests
                 GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = true }, true);
                 GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = false }, true);
             }
+            void WorldKey()
+            {
+                GetViewport().PushInput(new InputEventKey { Keycode = Key.F9, Pressed = true }, true);
+                GetViewport().PushInput(new InputEventKey { Keycode = Key.F9, Pressed = false }, true);
+            }
             Refresh(); dialog.Open();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Check(GameApplication.SelectModal(host.ModalCandidates) == dialog, "visible research is selected over hidden embedded window");
+            WorldKey();
+            Check(!host.ConsumedBeforeGui && host.WorldActions == 0, "research selection allows GUI dispatch while blocking unhandled world actions");
+            embedded.Show();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Check(GameApplication.SelectModal(host.ModalCandidates) == embedded, "visible embedded window takes priority over research");
+            Click(buttons["primary_left"].As<Button>());
+            Check(host.ConsumedBeforeGui && tree.Get("snapshot").AsGodotDictionary()["selected"].AsString() == "root", "embedded-window outside mouse events are consumed before native research selection");
+            WorldKey();
+            Check(host.WorldActions == 0, "embedded-window selection blocks underlying world actions");
+            embedded.Hide();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Click(outside);
             Check(outsideClicks == 0, "research scrim blocks native clicks on underlying controls");
@@ -97,6 +118,9 @@ public partial class EngineTests
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Click(dialog.CloseButton);
             Check(!dialog.Visible, "native Close click reaches GUI through application input boundary");
+            Check(GameApplication.SelectModal(host.ModalCandidates) is null, "closed research and embedded window leave no active modal");
+            WorldKey();
+            Check(host.WorldActions == 1, "world actions resume only after the modal closes");
             dialog.Open(); tree.Call("select_node", "primary_center");
             tree.Get("action").As<Button>().GrabFocus();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -176,5 +200,16 @@ public partial class EngineTests
 
 internal sealed partial class WorldtreeInputHost : Control
 {
-    public override void _Input(InputEvent @event) => GameApplication.RouteModalInput(@event, GetViewport(), null);
+    public Node?[] ModalCandidates { get; set; } = [];
+    public bool ConsumedBeforeGui { get; private set; }
+    public int WorldActions { get; private set; }
+    public override void _Input(InputEvent @event)
+    {
+        GameApplication.RouteModalInput(@event, GetViewport(), ModalCandidates);
+        ConsumedBeforeGui = GetViewport().IsInputHandled();
+    }
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (GameApplication.SelectModal(ModalCandidates) is null && @event is InputEventKey { Keycode: Key.F9, Pressed: true }) WorldActions++;
+    }
 }

@@ -117,7 +117,9 @@ state; no migration resets or wipes progress. Reconnecting to the same running
 authority restores the complete city snapshot. **There is still no durable match
 save, server-restart recovery or host migration**; only existing client session
 credentials/preferences are saved. Serialization restoration tests are not a
-claim of a new disk-save feature or mixed-version peer certification.
+claim of a new disk-save feature or mixed-version peer certification. Protocol 12
+rejects protocol-11 peers before delivering the new catalog, both at authority
+admission and Steam invitation matching.
 
 A newly acknowledged acquisition animates only its incoming module, with sap
 before socket/foliage. Other modules and other tree instances retain independent
@@ -173,7 +175,9 @@ worktree receipts are not relabeled as later-head qualification.
   native selection/action signals, independent child awakening, unchanged-tick
   tween preservation, native Tab/Enter host escape/re-entry and modal confinement,
   socket/purchase/Close clicks and scrolling through the shared GameApplication
-  input-routing boundary, resize, disconnection and free-during-awakening.
+  modal-selection/input-routing boundary with real visible research and embedded
+  Window candidates. It checks outside-event consumption, world-input blocking
+  and resumption on close, resize, disconnection and free-during-awakening.
 - Package: `test-engine --scenario worldtree --exported` loads that same component
   owner from the newly exported client. Locked release templates prohibit scene
   overrides, so an early deferred `--engine-component-probe worldtree` dispatch

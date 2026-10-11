@@ -299,8 +299,25 @@ public sealed class AuthoritySessionTests
     public void ProtocolMalformedOversizedAndRateFailuresLeaveOtherControllersUsable()
     {
         using var session = new AuthoritySession(AuthorityPolicy.PlayingHost);
-        Assert.False(session.Admit(2, WireJson.ProtocolVersion - 1, "", 0).Accepted);
-        Assert.True(session.Admit(3, WireJson.ProtocolVersion, "", 0).Accepted);
+        string lobby = State(session);
+        AdmissionResult incompatible = session.Admit(2, 11, "", 0);
+        Assert.False(incompatible.Accepted); Assert.False(incompatible.Ignored);
+        Assert.Equal("Protocol version mismatch.", incompatible.Message);
+        Assert.Null(incompatible.State); Assert.Empty(incompatible.Credential); Assert.Equal(0, incompatible.PlayerId);
+        Assert.Equal(lobby, State(session));
+        AdmissionResult current = session.Admit(3, WireJson.ProtocolVersion, "", 0);
+        Assert.True(current.Accepted);
+        Assert.Contains(current.State!.TechnologyCatalog, node => node.Id == TechnologyId.Stonecraft);
+        Assert.Contains(current.State.TechnologyCatalog, node => node.Id == TechnologyId.ManagedForestry);
+        Assert.Contains(current.State.TechnologyCatalog, node => node.Id == TechnologyId.Irrigation);
+        session.Disconnect(3);
+        lobby = State(session);
+        incompatible = session.Admit(2, 11, current.Credential, 0);
+        Assert.False(incompatible.Accepted); Assert.Equal("Protocol version mismatch.", incompatible.Message);
+        Assert.Null(incompatible.State); Assert.Empty(incompatible.Credential); Assert.Equal(lobby, State(session));
+        AdmissionResult resumed = session.Admit(3, WireJson.ProtocolVersion, current.Credential, 0);
+        Assert.True(resumed.Accepted); Assert.Equal(current.PlayerId, resumed.PlayerId);
+        Assert.Equal(current.Credential, resumed.Credential);
         Assert.True(session.ExecuteLocal(Cmd(session, 1, 1, "start")).Accepted);
         string before = State(session);
         Assert.False(session.Request(3, "{", 0)!.Accepted);

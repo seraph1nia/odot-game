@@ -39,8 +39,9 @@ Use the requested Pi profile `openai/gpt-6.1-sol`, effort `high`.
    unchanged tick/feedback preserving a child tween, independent sap-before-leaves
    awakening and second-instance state, selection, real native Tab/Enter and
    host-boundary escape/re-entry, modal confinement, socket/purchase/Close clicks
-   and scrolling through the shared application input boundary, Escape, resize,
-   disconnect and free-during-awakening. The component case does not qualify
+   and scrolling through the shared application modal-selection/input boundary,
+   embedded-window outside-event consumption, world-input blocking/resumption,
+   Escape, resize, disconnect and free-during-awakening. The component case does not qualify
    rendered window stacking or pixels.
 4. Existing headless source gate: `mise run ci-source --startup-timeout-ms 60000`
    includes broader A, all four minimal engine cases, and the bounded default
