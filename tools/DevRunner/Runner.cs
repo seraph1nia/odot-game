@@ -45,7 +45,9 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     await new Runner(options with { Command = "test-campaign" }, cancellation, _evidence, root: _root).CheapTests();
                     await NetworkTests(deep: true);
                     break;
-                case "test-assets": await Prepare(); await AssetFidelity(); break;
+                case "test-assets":
+                    if (options.Exported) _ = AtmosphereClientPackage(); else await Prepare();
+                    await AssetFidelity(); break;
                 case "test-native-pump": await Prepare(); await NativePump(); break;
                 case "inspect-admission-timing": MeleeTimingReport.Write(options.EvidenceDirectory ?? throw new ArgumentException("Missing owned --evidence-directory.")); break;
                 case "check-steam-extension": await CheckSteamExtension(); break;

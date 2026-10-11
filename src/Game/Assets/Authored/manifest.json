@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/seraph1nia/odot-game-assets.git",
-  "revision": "ae7f76a28f7bdd8471aeacb8bb40596aec758bfe",
+  "revision": "12bc5ef02765c1d4b725013791f7420918aacd64",
   "permission": "the repo is my own work, so yes, use it",
-  "permissionScope": "Required authored game-ready exports and embedded maps for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
+  "permissionScope": "Required authored game-ready exports, embedded maps and four standalone forest decal textures for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
   "files": [
     {
       "path": "buildings/archery_range.glb",
@@ -289,9 +289,9 @@
     {
       "path": "environment/components/forest_fern.glb",
       "sourcePath": "exports/environment/components/forest_fern.glb",
-      "sha256": "4758429b9344dd459518dccb51807a63353b5cce8d48b3ef97dbf905514d5ec9",
-      "bytes": 414796,
-      "embeddedImages": 4,
+      "sha256": "5f4f3ef964544244a373edda958872bb461943bc572a4c4a018dfa62d0c0ac4d",
+      "bytes": 468244,
+      "embeddedImages": 5,
       "materials": 2,
       "animationNames": []
     },
@@ -325,17 +325,17 @@
     {
       "path": "environment/components/forest_leaf_clump.glb",
       "sourcePath": "exports/environment/components/forest_leaf_clump.glb",
-      "sha256": "3b41297dc9e70d3d111b13c911bd272aa58e808531b8d59ef54ad3fccad86a09",
-      "bytes": 334612,
-      "embeddedImages": 4,
+      "sha256": "e13fed25e5e74e8522b972d46d12d38abf2fa986f5e7dedbe89315c182494417",
+      "bytes": 388060,
+      "embeddedImages": 5,
       "materials": 2,
       "animationNames": []
     },
     {
       "path": "environment/components/forest_moss.glb",
       "sourcePath": "exports/environment/components/forest_moss.glb",
-      "sha256": "12ddfecd05b27bd16faeaf73b0965d381a81428567341f762d8ec625205d8469",
-      "bytes": 344188,
+      "sha256": "65129605918db3b06d3d6ea958418aed12da81656b6203e2650ffa4a924a0c34",
+      "bytes": 365340,
       "embeddedImages": 4,
       "materials": 2,
       "animationNames": []
@@ -343,8 +343,8 @@
     {
       "path": "environment/components/forest_mushroom_small.glb",
       "sourcePath": "exports/environment/components/forest_mushroom_small.glb",
-      "sha256": "c98d4556cb00aafd690419a9a1298bd6b5aa01cc25dd02a56d107e212aec2f27",
-      "bytes": 1619876,
+      "sha256": "43defa810c9771fe5cae5054539811aea96a108cc501eaae906440d2a3be2ca5",
+      "bytes": 1614404,
       "embeddedImages": 9,
       "materials": 5,
       "animationNames": []
@@ -361,9 +361,9 @@
     {
       "path": "environment/components/forest_spiral_tree.glb",
       "sourcePath": "exports/environment/components/forest_spiral_tree.glb",
-      "sha256": "c49a9dfd4cd1ebd52a05c04eddeeb72c88fb83eee599410764fe1c2981b82260",
-      "bytes": 1038932,
-      "embeddedImages": 11,
+      "sha256": "023aebf03aeb2f5b93d5f2a5e3fe6ea72122984bd4fff8a3914a36abfb075d44",
+      "bytes": 1053088,
+      "embeddedImages": 12,
       "materials": 5,
       "animationNames": []
     },
@@ -487,9 +487,9 @@
     {
       "path": "environment/hex_woodland_bridge.glb",
       "sourcePath": "exports/environment/hex_woodland_bridge.glb",
-      "sha256": "f61bc6212b37fc0c41a372b906520e8c18d9d52ef330365e963f5f7ee83eb118",
-      "bytes": 7808052,
-      "embeddedImages": 47,
+      "sha256": "361f2412a8ec1d022335319406927f5cb98b687209af17558522dc1eca7846cf",
+      "bytes": 7896016,
+      "embeddedImages": 49,
       "materials": 57,
       "animationNames": []
     },
@@ -1732,18 +1732,32 @@
       "bytes": 22819
     },
     {
-      "path": "environment/components/forest_fern_painted_forest_leaf_color.png",
+      "path": "environment/components/forest_fern_dreamlike_forest_v1_forest_leaf_color.png",
       "parent": "environment/components/forest_fern.glb",
-      "imageName": "painted_forest_leaf_color",
-      "sha256": "ce0357ecd0b48ac6d270684ae13ded39a4af9ae3b029b0a7b23d8c0e73ea8ae4",
-      "bytes": 86523
+      "imageName": "dreamlike_forest_v1_forest_leaf_color",
+      "sha256": "d615824001c077af287d91914ae5d6e6c0364be278ce058edb59d8f68f896dc7",
+      "bytes": 107675
     },
     {
-      "path": "environment/components/forest_fern_painted_forest_leaf_light_color.png",
+      "path": "environment/components/forest_fern_dreamlike_forest_v1_forest_leaf_light_color.png",
       "parent": "environment/components/forest_fern.glb",
-      "imageName": "painted_forest_leaf_light_color",
-      "sha256": "715321310140ca9892aeb59705ff9a0fd1c1d555adba5ffc49e801203813eada",
-      "bytes": 97955
+      "imageName": "dreamlike_forest_v1_forest_leaf_light_color",
+      "sha256": "1e71cacd7c695fb32f38a09a197c7aa0e55239a4d06f923f90c83fa3ddd14a81",
+      "bytes": 110416
+    },
+    {
+      "path": "environment/components/forest_fern_dreamlike_forest_v1_forest_leaf_light_roughness.png",
+      "parent": "environment/components/forest_fern.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_light_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
+    },
+    {
+      "path": "environment/components/forest_fern_dreamlike_forest_v1_forest_leaf_roughness.png",
+      "parent": "environment/components/forest_fern.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
     },
     {
       "path": "environment/components/forest_fern_painted_leaf_normal.png",
@@ -1751,13 +1765,6 @@
       "imageName": "painted_leaf_normal",
       "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
       "bytes": 128018
-    },
-    {
-      "path": "environment/components/forest_fern_painted_leaf_roughness.png",
-      "parent": "environment/components/forest_fern.glb",
-      "imageName": "painted_leaf_roughness",
-      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
-      "bytes": 14858
     },
     {
       "path": "environment/components/forest_hex_meadow_painted_grass_color.png",
@@ -1900,18 +1907,32 @@
       "bytes": 22819
     },
     {
-      "path": "environment/components/forest_leaf_clump_painted_forest_leaf_color.png",
+      "path": "environment/components/forest_leaf_clump_dreamlike_forest_v1_forest_leaf_color.png",
       "parent": "environment/components/forest_leaf_clump.glb",
-      "imageName": "painted_forest_leaf_color",
-      "sha256": "ce0357ecd0b48ac6d270684ae13ded39a4af9ae3b029b0a7b23d8c0e73ea8ae4",
-      "bytes": 86523
+      "imageName": "dreamlike_forest_v1_forest_leaf_color",
+      "sha256": "d615824001c077af287d91914ae5d6e6c0364be278ce058edb59d8f68f896dc7",
+      "bytes": 107675
     },
     {
-      "path": "environment/components/forest_leaf_clump_painted_forest_leaf_light_color.png",
+      "path": "environment/components/forest_leaf_clump_dreamlike_forest_v1_forest_leaf_light_color.png",
       "parent": "environment/components/forest_leaf_clump.glb",
-      "imageName": "painted_forest_leaf_light_color",
-      "sha256": "715321310140ca9892aeb59705ff9a0fd1c1d555adba5ffc49e801203813eada",
-      "bytes": 97955
+      "imageName": "dreamlike_forest_v1_forest_leaf_light_color",
+      "sha256": "1e71cacd7c695fb32f38a09a197c7aa0e55239a4d06f923f90c83fa3ddd14a81",
+      "bytes": 110416
+    },
+    {
+      "path": "environment/components/forest_leaf_clump_dreamlike_forest_v1_forest_leaf_light_roughness.png",
+      "parent": "environment/components/forest_leaf_clump.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_light_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
+    },
+    {
+      "path": "environment/components/forest_leaf_clump_dreamlike_forest_v1_forest_leaf_roughness.png",
+      "parent": "environment/components/forest_leaf_clump.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
     },
     {
       "path": "environment/components/forest_leaf_clump_painted_leaf_normal.png",
@@ -1921,11 +1942,18 @@
       "bytes": 128018
     },
     {
-      "path": "environment/components/forest_leaf_clump_painted_leaf_roughness.png",
-      "parent": "environment/components/forest_leaf_clump.glb",
-      "imageName": "painted_leaf_roughness",
-      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
-      "bytes": 14858
+      "path": "environment/components/forest_moss_dreamlike_forest_v1_moss_color.png",
+      "parent": "environment/components/forest_moss.glb",
+      "imageName": "dreamlike_forest_v1_moss_color",
+      "sha256": "468bb91f47c29e01be7d394f0ea9b793ac14b526b72ffe8d59cd60b9717070d9",
+      "bytes": 106249
+    },
+    {
+      "path": "environment/components/forest_moss_dreamlike_forest_v1_moss_roughness.png",
+      "parent": "environment/components/forest_moss.glb",
+      "imageName": "dreamlike_forest_v1_moss_roughness",
+      "sha256": "b2456f67e345918fa5b72e2eb127cec3e0539b130a693a5cadad9e606e1b0b21",
+      "bytes": 16967
     },
     {
       "path": "environment/components/forest_moss_painted_grass_light_color.png",
@@ -1942,18 +1970,39 @@
       "bytes": 28235
     },
     {
-      "path": "environment/components/forest_moss_painted_moss_color.png",
-      "parent": "environment/components/forest_moss.glb",
-      "imageName": "painted_moss_color",
-      "sha256": "a6535d3b1c299b9a2dd1bb027256e7f3fe8b147d37dc8b3ed5b197798c6df430",
-      "bytes": 87270
+      "path": "environment/components/forest_mushroom_small_dreamlike_forest_v1_gill_glow_color.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_color",
+      "sha256": "78671505d2af73483c31edad882276a4cf054076849664bbdcd705064049aa46",
+      "bytes": 90376
     },
     {
-      "path": "environment/components/forest_moss_painted_moss_roughness.png",
-      "parent": "environment/components/forest_moss.glb",
-      "imageName": "painted_moss_roughness",
-      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
-      "bytes": 14858
+      "path": "environment/components/forest_mushroom_small_dreamlike_forest_v1_gill_glow_emission.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_emission",
+      "sha256": "7caa724e8b3698d2ba35ae4766cc41cc734c110fec15f8ad80cbace4d23844df",
+      "bytes": 55167
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_dreamlike_forest_v1_gill_glow_roughness.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_roughness",
+      "sha256": "cd20a460c335cca189b74be75a2cfce701390a2fc506c63c79a47fa9700190ae",
+      "bytes": 12035
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_dreamlike_forest_v1_mushroom_blue_color.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "dreamlike_forest_v1_mushroom_blue_color",
+      "sha256": "f707f485c6c31c6111817e9b73f3c400529aae89601a0f6b6c791e47b311a14a",
+      "bytes": 86568
+    },
+    {
+      "path": "environment/components/forest_mushroom_small_dreamlike_forest_v1_mushroom_blue_roughness.png",
+      "parent": "environment/components/forest_mushroom_small.glb",
+      "imageName": "dreamlike_forest_v1_mushroom_blue_roughness",
+      "sha256": "296e97a4c42eaf5aff24cb53ba6ddacf8709cee60906eb0377a7cbb15426ff7c",
+      "bytes": 11669
     },
     {
       "path": "environment/components/forest_mushroom_small_painted_crystal_light_color.png",
@@ -1977,46 +2026,11 @@
       "bytes": 61077
     },
     {
-      "path": "environment/components/forest_mushroom_small_painted_gill_glow_color.png",
-      "parent": "environment/components/forest_mushroom_small.glb",
-      "imageName": "painted_gill_glow_color",
-      "sha256": "8072479a7cc048e0e442e02915e417caa409a75abe100bfe889815a53111651c",
-      "bytes": 77326
-    },
-    {
-      "path": "environment/components/forest_mushroom_small_painted_gill_glow_emission.png",
-      "parent": "environment/components/forest_mushroom_small.glb",
-      "imageName": "painted_gill_glow_emission",
-      "sha256": "f6ff5550fe7d78c234f2514f0a51f7a64bd3dde2c52c591f14c5c6edecf3b4cf",
-      "bytes": 97414
-    },
-    {
-      "path": "environment/components/forest_mushroom_small_painted_gill_roughness.png",
-      "parent": "environment/components/forest_mushroom_small.glb",
-      "imageName": "painted_gill_roughness",
-      "sha256": "c47bcb7bb50411a475bedec4c5062f3b01bb9aefb9aa8e11a10ed115b9d08ca4",
-      "bytes": 10983
-    },
-    {
-      "path": "environment/components/forest_mushroom_small_painted_mushroom_blue_color.png",
-      "parent": "environment/components/forest_mushroom_small.glb",
-      "imageName": "painted_mushroom_blue_color",
-      "sha256": "61f77c57ac8bf711dec0f7bbbf128ca9f68411fe845bfda9cfe7719ed7a1677d",
-      "bytes": 65388
-    },
-    {
       "path": "environment/components/forest_mushroom_small_painted_mushroom_blue_emission.png",
       "parent": "environment/components/forest_mushroom_small.glb",
       "imageName": "painted_mushroom_blue_emission",
       "sha256": "6d91df2547d38cf2a41185db6b528883b8cd1df613595e1ac679f5bd2a359834",
       "bytes": 85148
-    },
-    {
-      "path": "environment/components/forest_mushroom_small_painted_mushroom_roughness.png",
-      "parent": "environment/components/forest_mushroom_small.glb",
-      "imageName": "painted_mushroom_roughness",
-      "sha256": "c881f6e5689b943be545aa26487d2a1a22fa233b416c7314f7b1e81d0358d13a",
-      "bytes": 10202
     },
     {
       "path": "environment/components/forest_shrine_plinth_painted_stone_dark_color.png",
@@ -2047,6 +2061,55 @@
       "bytes": 19983
     },
     {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_forest_leaf_lilac_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_lilac_color",
+      "sha256": "ae80e9b50b4eaf941a7ccba3da27ac5f5504d0e8f6bed8347cc40cbcf3227543",
+      "bytes": 114915
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_forest_leaf_lilac_roughness.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_lilac_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_forest_leaf_teal_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_teal_color",
+      "sha256": "95840cfff724980bf403f8a0611b92c45700a7b5e3f74057e4e8dae5eac344dc",
+      "bytes": 110232
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_forest_leaf_teal_roughness.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_teal_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_gill_glow_color.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_color",
+      "sha256": "78671505d2af73483c31edad882276a4cf054076849664bbdcd705064049aa46",
+      "bytes": 90376
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_gill_glow_emission.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_emission",
+      "sha256": "7caa724e8b3698d2ba35ae4766cc41cc734c110fec15f8ad80cbace4d23844df",
+      "bytes": 55167
+    },
+    {
+      "path": "environment/components/forest_spiral_tree_dreamlike_forest_v1_gill_glow_roughness.png",
+      "parent": "environment/components/forest_spiral_tree.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_roughness",
+      "sha256": "cd20a460c335cca189b74be75a2cfce701390a2fc506c63c79a47fa9700190ae",
+      "bytes": 12035
+    },
+    {
       "path": "environment/components/forest_spiral_tree_painted_bark_color.png",
       "parent": "environment/components/forest_spiral_tree.glb",
       "imageName": "painted_bark_color",
@@ -2061,53 +2124,11 @@
       "bytes": 113960
     },
     {
-      "path": "environment/components/forest_spiral_tree_painted_forest_leaf_lilac_color.png",
-      "parent": "environment/components/forest_spiral_tree.glb",
-      "imageName": "painted_forest_leaf_lilac_color",
-      "sha256": "b4dab5300358aaf52f74b859b7c2beceb587df011af3e64cda4d9fad8e4e8a72",
-      "bytes": 109864
-    },
-    {
-      "path": "environment/components/forest_spiral_tree_painted_forest_leaf_teal_color.png",
-      "parent": "environment/components/forest_spiral_tree.glb",
-      "imageName": "painted_forest_leaf_teal_color",
-      "sha256": "6d63f4991e4a133c4482b643824fc1d0bbe0c6f2a82353c5af12d4bffbc77882",
-      "bytes": 92812
-    },
-    {
-      "path": "environment/components/forest_spiral_tree_painted_gill_glow_color.png",
-      "parent": "environment/components/forest_spiral_tree.glb",
-      "imageName": "painted_gill_glow_color",
-      "sha256": "8072479a7cc048e0e442e02915e417caa409a75abe100bfe889815a53111651c",
-      "bytes": 77326
-    },
-    {
-      "path": "environment/components/forest_spiral_tree_painted_gill_glow_emission.png",
-      "parent": "environment/components/forest_spiral_tree.glb",
-      "imageName": "painted_gill_glow_emission",
-      "sha256": "f6ff5550fe7d78c234f2514f0a51f7a64bd3dde2c52c591f14c5c6edecf3b4cf",
-      "bytes": 97414
-    },
-    {
-      "path": "environment/components/forest_spiral_tree_painted_gill_roughness.png",
-      "parent": "environment/components/forest_spiral_tree.glb",
-      "imageName": "painted_gill_roughness",
-      "sha256": "c47bcb7bb50411a475bedec4c5062f3b01bb9aefb9aa8e11a10ed115b9d08ca4",
-      "bytes": 10983
-    },
-    {
       "path": "environment/components/forest_spiral_tree_painted_leaf_normal.png",
       "parent": "environment/components/forest_spiral_tree.glb",
       "imageName": "painted_leaf_normal",
       "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
       "bytes": 128018
-    },
-    {
-      "path": "environment/components/forest_spiral_tree_painted_leaf_roughness.png",
-      "parent": "environment/components/forest_spiral_tree.glb",
-      "imageName": "painted_leaf_roughness",
-      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
-      "bytes": 14858
     },
     {
       "path": "environment/components/forest_spiral_tree_painted_wood_normal.png",
@@ -2502,6 +2523,104 @@
       "bytes": 5387
     },
     {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_forest_leaf_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_color",
+      "sha256": "d615824001c077af287d91914ae5d6e6c0364be278ce058edb59d8f68f896dc7",
+      "bytes": 107675
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_forest_leaf_light_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_light_color",
+      "sha256": "1e71cacd7c695fb32f38a09a197c7aa0e55239a4d06f923f90c83fa3ddd14a81",
+      "bytes": 110416
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_forest_leaf_light_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_light_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_forest_leaf_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_forest_leaf_roughness",
+      "sha256": "6d92886185b9212fc1050fcd9c21c41dde34103c8a87da1390ae6c34711892a4",
+      "bytes": 17212
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_gill_glow_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_color",
+      "sha256": "78671505d2af73483c31edad882276a4cf054076849664bbdcd705064049aa46",
+      "bytes": 90376
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_gill_glow_emission.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_emission",
+      "sha256": "7caa724e8b3698d2ba35ae4766cc41cc734c110fec15f8ad80cbace4d23844df",
+      "bytes": 55167
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_gill_glow_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_gill_glow_roughness",
+      "sha256": "cd20a460c335cca189b74be75a2cfce701390a2fc506c63c79a47fa9700190ae",
+      "bytes": 12035
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_moss_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_moss_color",
+      "sha256": "468bb91f47c29e01be7d394f0ea9b793ac14b526b72ffe8d59cd60b9717070d9",
+      "bytes": 106249
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_moss_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_moss_roughness",
+      "sha256": "b2456f67e345918fa5b72e2eb127cec3e0539b130a693a5cadad9e606e1b0b21",
+      "bytes": 16967
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_mushroom_blue_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_mushroom_blue_color",
+      "sha256": "f707f485c6c31c6111817e9b73f3c400529aae89601a0f6b6c791e47b311a14a",
+      "bytes": 86568
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_mushroom_blue_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_mushroom_blue_roughness",
+      "sha256": "296e97a4c42eaf5aff24cb53ba6ddacf8709cee60906eb0377a7cbb15426ff7c",
+      "bytes": 11669
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_mushroom_purple_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_mushroom_purple_color",
+      "sha256": "9b0603bcce25cf9e9e4971650a930bd8420c148a8d0007cd570e295c7a339fde",
+      "bytes": 92457
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_mushroom_purple_roughness.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_mushroom_purple_roughness",
+      "sha256": "296e97a4c42eaf5aff24cb53ba6ddacf8709cee60906eb0377a7cbb15426ff7c",
+      "bytes": 11669
+    },
+    {
+      "path": "environment/hex_woodland_bridge_dreamlike_forest_v1_painted_hex_woodland_bridge_ground_color.png",
+      "parent": "environment/hex_woodland_bridge.glb",
+      "imageName": "dreamlike_forest_v1_painted_hex_woodland_bridge_ground_color",
+      "sha256": "dc5d8732675857792ff9a0f2092543553417b2f2fd03d45d79027f791cd6494d",
+      "bytes": 477576
+    },
+    {
       "path": "environment/hex_woodland_bridge_painted_crystal_blue_color.png",
       "parent": "environment/hex_woodland_bridge.glb",
       "imageName": "painted_crystal_blue_color",
@@ -2551,41 +2670,6 @@
       "bytes": 61077
     },
     {
-      "path": "environment/hex_woodland_bridge_painted_forest_leaf_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_forest_leaf_color",
-      "sha256": "ce0357ecd0b48ac6d270684ae13ded39a4af9ae3b029b0a7b23d8c0e73ea8ae4",
-      "bytes": 86523
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_forest_leaf_light_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_forest_leaf_light_color",
-      "sha256": "715321310140ca9892aeb59705ff9a0fd1c1d555adba5ffc49e801203813eada",
-      "bytes": 97955
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_gill_glow_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_gill_glow_color",
-      "sha256": "8072479a7cc048e0e442e02915e417caa409a75abe100bfe889815a53111651c",
-      "bytes": 77326
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_gill_glow_emission.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_gill_glow_emission",
-      "sha256": "f6ff5550fe7d78c234f2514f0a51f7a64bd3dde2c52c591f14c5c6edecf3b4cf",
-      "bytes": 97414
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_gill_roughness.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_gill_roughness",
-      "sha256": "c47bcb7bb50411a475bedec4c5062f3b01bb9aefb9aa8e11a10ed115b9d08ca4",
-      "bytes": 10983
-    },
-    {
       "path": "environment/hex_woodland_bridge_painted_grass_dark_color.png",
       "parent": "environment/hex_woodland_bridge.glb",
       "imageName": "painted_grass_dark_color",
@@ -2607,13 +2691,6 @@
       "bytes": 28235
     },
     {
-      "path": "environment/hex_woodland_bridge_painted_hex_woodland_bridge_ground_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_hex_woodland_bridge_ground_color",
-      "sha256": "dd8afbf93af21599e6cab529be29a2a280145382a9ed359d934c52e7599817a3",
-      "bytes": 492795
-    },
-    {
       "path": "environment/hex_woodland_bridge_painted_hex_woodland_bridge_ground_emission.png",
       "parent": "environment/hex_woodland_bridge.glb",
       "imageName": "painted_hex_woodland_bridge_ground_emission",
@@ -2628,34 +2705,6 @@
       "bytes": 128018
     },
     {
-      "path": "environment/hex_woodland_bridge_painted_leaf_roughness.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_leaf_roughness",
-      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
-      "bytes": 14858
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_moss_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_moss_color",
-      "sha256": "a6535d3b1c299b9a2dd1bb027256e7f3fe8b147d37dc8b3ed5b197798c6df430",
-      "bytes": 87270
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_moss_roughness.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_moss_roughness",
-      "sha256": "c35a68e25871c4868100c0725344689f981caab368c587758d6e574f9afc30b5",
-      "bytes": 14858
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_mushroom_blue_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_mushroom_blue_color",
-      "sha256": "61f77c57ac8bf711dec0f7bbbf128ca9f68411fe845bfda9cfe7719ed7a1677d",
-      "bytes": 65388
-    },
-    {
       "path": "environment/hex_woodland_bridge_painted_mushroom_blue_emission.png",
       "parent": "environment/hex_woodland_bridge.glb",
       "imageName": "painted_mushroom_blue_emission",
@@ -2663,25 +2712,11 @@
       "bytes": 85148
     },
     {
-      "path": "environment/hex_woodland_bridge_painted_mushroom_purple_color.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_mushroom_purple_color",
-      "sha256": "c387cd04962bef57d647686fb8b22a7dd01303038af412885ff1f96f10909acd",
-      "bytes": 70330
-    },
-    {
       "path": "environment/hex_woodland_bridge_painted_mushroom_purple_emission.png",
       "parent": "environment/hex_woodland_bridge.glb",
       "imageName": "painted_mushroom_purple_emission",
       "sha256": "46b596b63a313fda8492f8a55b0279f68c8001ed75edec39c149d7ea96b1bc78",
       "bytes": 90127
-    },
-    {
-      "path": "environment/hex_woodland_bridge_painted_mushroom_roughness.png",
-      "parent": "environment/hex_woodland_bridge.glb",
-      "imageName": "painted_mushroom_roughness",
-      "sha256": "c881f6e5689b943be545aa26487d2a1a22fa233b416c7314f7b1e81d0358d13a",
-      "bytes": 10202
     },
     {
       "path": "environment/hex_woodland_bridge_painted_stone_color.png",
@@ -2829,6 +2864,32 @@
       "imageName": "painted_wood_roughness",
       "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
       "bytes": 22819
+    }
+  ],
+  "textures": [
+    {
+      "path": "environment/decals/forest_decal_fairy_ring.png",
+      "sourcePath": "exports/environment/decals/forest_decal_fairy_ring.png",
+      "sha256": "ea338339c57034a4f7bdb523fabf6d4529a11debd999aa54544ceb3ef2b18a74",
+      "bytes": 22863
+    },
+    {
+      "path": "environment/decals/forest_decal_moss_wash.png",
+      "sourcePath": "exports/environment/decals/forest_decal_moss_wash.png",
+      "sha256": "a7c6416be09c0ea7d9a7847f622c916cec6d5a2638303f6fdd41fec3d0bccad4",
+      "bytes": 25778
+    },
+    {
+      "path": "environment/decals/forest_decal_rune_circle.png",
+      "sourcePath": "exports/environment/decals/forest_decal_rune_circle.png",
+      "sha256": "8d16aee6a1397271e5b37e25d12ac430f372a327e0b956f32b8b8720a0a86176",
+      "bytes": 29364
+    },
+    {
+      "path": "environment/decals/forest_decal_spore_growth.png",
+      "sourcePath": "exports/environment/decals/forest_decal_spore_growth.png",
+      "sha256": "b75d2718063b6109b698a9aa96d2570771aca6d1a58c2df5384055e18aad062f",
+      "bytes": 19671
     }
   ]
 }

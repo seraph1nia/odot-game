@@ -1,0 +1,189 @@
+{
+  "sourceRevision": "12bc5ef02765c1d4b725013791f7420918aacd64",
+  "acceptedForestHead": "cc723f4de0b988c32c9a38178cb9ded580dd28b8",
+  "receipts": {
+    "docs/dreamlike-forest/README.md": "a34566a357af5924ccc7cb91cef63d98c03e0764336a6b6d6c177c18b3580d38",
+    "docs/dreamlike-forest/scope.json": "78bc912438188d0f62944b32ed9f8092b5ae3585a8a720f626b3e65a01e84508",
+    "docs/dreamlike-forest/resources.json": "de35de43d6c6346128e609f84747ff71a5e74976950ae1b65348699e7f11b99b",
+    "docs/dreamlike-forest/channels.json": "f929ffc29bd50a0f8beabf03093d1a8d1fd268023d303f70bbbe5dae06383622",
+    "docs/dreamlike-forest/decals.json": "c81c0e62f7146197e66318437139f1a809234311adb0ee4ad25ce2b04b5f7919",
+    "docs/dreamlike-forest/validation.json": "81ab48d4ac1f137eafa83ea2f97d5db19609cc42aa9965d3e4b9e24b0611efbf"
+  },
+  "selected": [
+    {
+      "id": "environment/components/forest_fern",
+      "source": "sources/environment/shared_forest_kit.blend",
+      "sourceSha256": "82b704e1165522adee33b1919c30cd2d20687c835d59b5657c6058e33dd62bd7",
+      "selector": {
+        "id": "environment/components/forest_fern",
+        "source": "sources/environment/shared_forest_kit.blend",
+        "collection": "forest_fern",
+        "object": null
+      },
+      "exportSha256": "5f4f3ef964544244a373edda958872bb461943bc572a4c4a018dfa62d0c0ac4d",
+      "oldGameSha256": "4758429b9344dd459518dccb51807a63353b5cce8d48b3ef97dbf905514d5ec9",
+      "bytes": 468244,
+      "deltaBytes": 53448,
+      "geometry": "exact numeric attributes/indices, primitive material slots and complete node/scene identities equal to current game"
+    },
+    {
+      "id": "environment/components/forest_leaf_clump",
+      "source": "sources/environment/shared_forest_kit.blend",
+      "sourceSha256": "82b704e1165522adee33b1919c30cd2d20687c835d59b5657c6058e33dd62bd7",
+      "selector": {
+        "id": "environment/components/forest_leaf_clump",
+        "source": "sources/environment/shared_forest_kit.blend",
+        "collection": "forest_leaf_clump",
+        "object": null
+      },
+      "exportSha256": "e13fed25e5e74e8522b972d46d12d38abf2fa986f5e7dedbe89315c182494417",
+      "oldGameSha256": "3b41297dc9e70d3d111b13c911bd272aa58e808531b8d59ef54ad3fccad86a09",
+      "bytes": 388060,
+      "deltaBytes": 53448,
+      "geometry": "exact numeric attributes/indices, primitive material slots and complete node/scene identities equal to current game"
+    },
+    {
+      "id": "environment/components/forest_moss",
+      "source": "sources/environment/shared_forest_kit.blend",
+      "sourceSha256": "82b704e1165522adee33b1919c30cd2d20687c835d59b5657c6058e33dd62bd7",
+      "selector": {
+        "id": "environment/components/forest_moss",
+        "source": "sources/environment/shared_forest_kit.blend",
+        "collection": "forest_moss",
+        "object": null
+      },
+      "exportSha256": "65129605918db3b06d3d6ea958418aed12da81656b6203e2650ffa4a924a0c34",
+      "oldGameSha256": "12ddfecd05b27bd16faeaf73b0965d381a81428567341f762d8ec625205d8469",
+      "bytes": 365340,
+      "deltaBytes": 21152,
+      "geometry": "exact numeric attributes/indices, primitive material slots and complete node/scene identities equal to current game"
+    },
+    {
+      "id": "environment/components/forest_mushroom_small",
+      "source": "sources/environment/shared_forest_kit.blend",
+      "sourceSha256": "82b704e1165522adee33b1919c30cd2d20687c835d59b5657c6058e33dd62bd7",
+      "selector": {
+        "id": "environment/components/forest_mushroom_small",
+        "source": "sources/environment/shared_forest_kit.blend",
+        "collection": "forest_mushroom_small",
+        "object": null
+      },
+      "exportSha256": "43defa810c9771fe5cae5054539811aea96a108cc501eaae906440d2a3be2ca5",
+      "oldGameSha256": "c98d4556cb00aafd690419a9a1298bd6b5aa01cc25dd02a56d107e212aec2f27",
+      "bytes": 1614404,
+      "deltaBytes": -5472,
+      "geometry": "exact numeric attributes/indices, primitive material slots and complete node/scene identities equal to current game"
+    },
+    {
+      "id": "environment/components/forest_spiral_tree",
+      "source": "sources/environment/shared_enchanted_kit.blend",
+      "sourceSha256": "ec40594387cb22a9aa1a510c8e5a90a6d2e9664c7b9b562159f5ea50cb587a0b",
+      "selector": {
+        "id": "environment/components/forest_spiral_tree",
+        "source": "sources/environment/shared_enchanted_kit.blend",
+        "collection": "forest_spiral_tree",
+        "object": null
+      },
+      "exportSha256": "023aebf03aeb2f5b93d5f2a5e3fe6ea72122984bd4fff8a3914a36abfb075d44",
+      "oldGameSha256": "c49a9dfd4cd1ebd52a05c04eddeeb72c88fb83eee599410764fe1c2981b82260",
+      "bytes": 1053088,
+      "deltaBytes": 14156,
+      "geometry": "exact numeric attributes/indices, primitive material slots and complete node/scene identities equal to current game"
+    },
+    {
+      "id": "environment/hex_woodland_bridge",
+      "source": "sources/environment/hex_woodland_bridge.blend",
+      "sourceSha256": "0b45d82d64103719e23bc18064f235e742d4550434efba1415168ade25d7403b",
+      "selector": {
+        "id": "environment/hex_woodland_bridge",
+        "source": "sources/environment/hex_woodland_bridge.blend",
+        "collection": null,
+        "object": null
+      },
+      "exportSha256": "361f2412a8ec1d022335319406927f5cb98b687209af17558522dc1eca7846cf",
+      "oldGameSha256": "f61bc6212b37fc0c41a372b906520e8c18d9d52ef330365e963f5f7ee83eb118",
+      "bytes": 7896016,
+      "deltaBytes": 87964,
+      "geometry": "exact numeric attributes/indices, primitive material slots and complete node/scene identities equal to current game"
+    }
+  ],
+  "protectedGameExports": [
+    "buildings/archery_range.glb",
+    "buildings/arrow_tower.glb",
+    "buildings/bakery.glb",
+    "buildings/barracks.glb",
+    "buildings/bombarding_tower.glb",
+    "buildings/gold_mine.glb",
+    "buildings/magic_academy.glb",
+    "buildings/metal_mine.glb",
+    "buildings/research_tower.glb",
+    "buildings/stone_cutter.glb",
+    "buildings/town_hall.glb",
+    "buildings/trade_market.glb",
+    "buildings/tree_house.glb",
+    "buildings/weaver.glb",
+    "buildings/woodcutter_hut.glb",
+    "characters/archer.glb",
+    "characters/berserker.glb",
+    "characters/evil_berserker_unit.glb",
+    "characters/evil_mage_unit.glb",
+    "characters/evil_melee_unit.glb",
+    "characters/evil_ranged_unit.glb",
+    "characters/knight.glb",
+    "characters/mage.glb",
+    "environment/components/forest_boulder.glb",
+    "environment/components/forest_bridge_plank.glb",
+    "environment/components/forest_hex_meadow.glb",
+    "environment/components/forest_hex_stream.glb",
+    "environment/components/forest_lantern_post.glb",
+    "environment/components/forest_shrine_plinth.glb",
+    "environment/hex_ground_dirt.glb",
+    "environment/hex_ground_grass.glb",
+    "environment/hex_ground_leaf_litter.glb",
+    "environment/hex_ground_moss.glb",
+    "environment/hex_ground_pine_duff.glb",
+    "environment/hex_path_end.glb",
+    "environment/hex_path_straight.glb",
+    "environment/hex_path_turn_120.glb",
+    "environment/hex_path_turn_60.glb",
+    "environment/hex_river_overlay_end.glb",
+    "environment/hex_river_overlay_straight.glb",
+    "environment/hex_river_overlay_turn_120.glb",
+    "environment/hex_river_overlay_turn_60.glb",
+    "props/arrow.glb",
+    "props/kit_barrel.glb",
+    "props/kit_book.glb",
+    "props/kit_crate.glb",
+    "props/kit_open_barrel.glb",
+    "props/kit_parcel.glb",
+    "props/kit_pine.glb",
+    "props/kit_spear.glb",
+    "props/kit_target.glb"
+  ],
+  "standaloneTextures": [
+    {
+      "path": "environment/decals/forest_decal_fairy_ring.png",
+      "sourcePath": "exports/environment/decals/forest_decal_fairy_ring.png",
+      "sha256": "ea338339c57034a4f7bdb523fabf6d4529a11debd999aa54544ceb3ef2b18a74",
+      "bytes": 22863
+    },
+    {
+      "path": "environment/decals/forest_decal_moss_wash.png",
+      "sourcePath": "exports/environment/decals/forest_decal_moss_wash.png",
+      "sha256": "a7c6416be09c0ea7d9a7847f622c916cec6d5a2638303f6fdd41fec3d0bccad4",
+      "bytes": 25778
+    },
+    {
+      "path": "environment/decals/forest_decal_rune_circle.png",
+      "sourcePath": "exports/environment/decals/forest_decal_rune_circle.png",
+      "sha256": "8d16aee6a1397271e5b37e25d12ac430f372a327e0b956f32b8b8720a0a86176",
+      "bytes": 29364
+    },
+    {
+      "path": "environment/decals/forest_decal_spore_growth.png",
+      "sourcePath": "exports/environment/decals/forest_decal_spore_growth.png",
+      "sha256": "b75d2718063b6109b698a9aa96d2570771aca6d1a58c2df5384055e18aad062f",
+      "bytes": 19671
+    }
+  ]
+}

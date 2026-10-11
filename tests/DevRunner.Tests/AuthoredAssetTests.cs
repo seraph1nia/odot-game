@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 using Game;
 using Game.Core;
 using Xunit;
@@ -21,6 +22,26 @@ public sealed class AuthoredAssetTests
             return Path.Combine(directory?.FullName ?? throw new InvalidOperationException("Repository root not found."), "src", "Game", "Assets", "Authored");
         }
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SourceAndExistingPackageComponentProofUseOnlyOwnedHeadlessArgv(bool exported)
+    {
+        Options options = Options.Parse(exported ? ["test-assets", "--exported"] : ["test-assets"]);
+        Assert.Equal(exported, options.Exported);
+        Assert.False(options.DesktopSurface);
+        var runner = new Runner(options, CancellationToken.None);
+        List<string> args = runner.GameArguments("asset-probe", "menu", true, 0, exported ? "packed-client" : null, "--asset-fidelity-probe");
+        Assert.Contains("--headless", args);
+        Assert.Contains("--asset-fidelity-probe", args);
+        Assert.Equal(!exported, args.Contains("--path"));
+        Assert.DoesNotContain("--rendering-method", args);
+        Assert.DoesNotContain("--client", args);
+        Assert.DoesNotContain("--server", args);
+        Assert.True(Runner.OwnsVerificationCommand(options.Command));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-assets", "--desktop"]));
+    }
+
     [Fact]
     public void RequiredExportDistributionMatchesImmutableProvenanceAndEmbeddedDependencies()
     {
@@ -76,6 +97,49 @@ public sealed class AuthoredAssetTests
         Assert.Equal("A ranged fighter armed with a bow.", AssetCatalog.UnitDescription(UnitType.Crossbowman, Faction.Adventurers));
         Assert.Equal("A ranged fighter armed with a crossbow.", AssetCatalog.UnitDescription(UnitType.Crossbowman, Faction.Skeletons));
     }
+    [Theory]
+    [InlineData("missing-receipt")]
+    [InlineData("duplicate-receipt")]
+    [InlineData("foreign-source")]
+    [InlineData("unsafe-destination")]
+    [InlineData("corrupt-bytes")]
+    [InlineData("wrong-dimensions")]
+    [InlineData("opaque-format")]
+    public void StandaloneTextureAdmissionRejectsInventoryProvenanceAndFormatCorruption(string corruption)
+    {
+        AuthoredTextureFile[] textures = AuthoredAssets.ReadManifest(DirectoryPath).Textures!;
+        string temporary = Path.Combine(Path.GetTempPath(), "odot-textures-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            foreach (AuthoredTextureFile texture in textures)
+            {
+                string destination = Path.Combine(temporary, texture.Path);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.Copy(Path.Combine(DirectoryPath, texture.Path), destination);
+            }
+            AuthoredAssets.ValidateTextures(temporary, textures);
+            AuthoredTextureFile[] changed = textures.ToArray();
+            if (corruption == "missing-receipt") changed = changed[..^1];
+            else if (corruption == "duplicate-receipt") changed = [.. changed, changed[0]];
+            else if (corruption == "foreign-source") changed[0] = changed[0] with { SourcePath = "sources/environment/decals/other.png" };
+            else if (corruption == "unsafe-destination") changed[0] = changed[0] with { Path = "../other.png" };
+            else
+            {
+                string path = Path.Combine(temporary, changed[0].Path);
+                byte[] bytes = File.ReadAllBytes(path);
+                if (corruption == "corrupt-bytes") bytes[^1] ^= 1;
+                else if (corruption == "wrong-dimensions") BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(16), 256);
+                else bytes[25] = 2; // RGB without coverage alpha is not a decal resource.
+                File.WriteAllBytes(path, bytes);
+                if (corruption != "corrupt-bytes") changed[0] = changed[0] with { Sha256 = Convert.ToHexStringLower(SHA256.HashData(bytes)) };
+            }
+            Assert.Throws<InvalidDataException>(() => AuthoredAssets.ValidateTextures(temporary, changed));
+            Assert.Throws<InvalidDataException>(() => AuthoredAssets.ValidateTextures(temporary, null));
+        }
+        finally { Directory.Delete(temporary, true); }
+    }
+
     [Fact]
     public void ExportReaderRejectsTruncationPointersAndWrongContainerVersion()
     {
