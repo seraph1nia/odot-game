@@ -60,8 +60,11 @@ Standalone engine/network tasks prepare source once (locked restore/build/import
 CI shares that preparation before overlapping completed C# binaries and headless
 network workers. Engine cases run separately and serially, each with fresh owned
 preferences. The three engine cases instantiate production components in a
-minimal scene, never the full application's menu or match. Network scenarios use
-real headless application peers; they are integration, not component tests.
+minimal scene, never the full application's menu or match. The `settings` case
+also runs woodland resources, quote intent, modal input/lifetime/nested resize,
+and actual Settings pointer/keyboard/service checks; no separate UI fixture command.
+Network scenarios use real headless application peers; they are integration, not
+component tests.
 
 One worker owns each child's ordered event reader. Ports use cross-process lease
 handles plus ordinary bind-failure detection; unrelated endpoint owners are never

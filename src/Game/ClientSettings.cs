@@ -269,7 +269,7 @@ public partial class ClientSettings : Node
             _windowedSize = _window.Size; _displayEdited = true; _dirty = true;
         }
         RefreshDisplay();
-        if (IsOpen) _dialog.PopupCenteredClamped(new(620, 650), 0.9f);
+        if (IsOpen) _dialog.ReflowCenteredClamped(new(620, 650), 0.9f);
     }
     private void Save()
     {

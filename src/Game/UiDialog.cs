@@ -64,19 +64,25 @@ internal partial class UiDialog : Control
     internal void SetInputScope(bool enabled) => _shell.SetProcessInput(enabled && Visible);
     internal void PopupCenteredClamped(Vector2I minimum, float ratio = .9f)
     {
-        Invoker ??= GetViewport().GuiGetFocusOwner();
+        Control? invoker = Invoker ?? GetViewport().GuiGetFocusOwner();
+        if (invoker is not null && (!GodotObject.IsInstanceValid(invoker) || invoker.IsQueuedForDeletion() || !invoker.IsInsideTree()))
+            invoker = null;
         _shell.Set("title", Title);
         _shell.Set("ok_button_text", OkButtonText);
-        _shell.Set("invoker", Invoker);
+        _shell.Set("invoker", invoker is null ? default(Variant) : Variant.From(invoker));
         GetCancelButton().Text = CancelButtonText;
         // GUI hit testing follows sibling order, not CanvasItem z_index. Settings
         // is created before the menu; each active overlay must own the front scope.
         MoveToFront();
         Show();
-        Vector2 bound = ((Vector2)minimum).Min(GetViewportRect().Size * ratio);
-        // A bounded body, independent header/footer; never grow over hit targets.
-        Scroll.CustomMinimumSize = new(0, Math.Max(80, bound.Y - 150 - FooterContent.GetCombinedMinimumSize().Y));
-        _shell.Call("popup_centered_clamped", (Vector2I)bound, ratio);
+        ReflowCenteredClamped(minimum, ratio);
+        _shell.Call("popup_centered_clamped", (Vector2I)Panel.CustomMinimumSize, ratio);
         GetCancelButton().Visible = Confirmation;
+    }
+    internal void ReflowCenteredClamped(Vector2I minimum, float ratio = .9f)
+    {
+        Vector2 bound = ((Vector2)minimum).Min(GetViewportRect().Size * ratio);
+        Scroll.CustomMinimumSize = new(0, Math.Max(80, bound.Y - 150 - FooterContent.GetCombinedMinimumSize().Y));
+        Panel.CustomMinimumSize = bound;
     }
 }

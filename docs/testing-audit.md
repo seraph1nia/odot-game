@@ -98,6 +98,27 @@ qualification; do not update receipt counts without executing their owner suites
   processes overlap; network admission defaults to two. No global test selector
   registry, new framework, fleet manager, retries or desktop automation introduced.
 
+## Woodland component consolidation
+
+The migration's former `test-ui-resources` command, launcher, probe and SceneTree
+entry were redundant with the landed EngineTests owner. Their meaningful 38
+resource/modal/input/Settings-service assertions now execute in the existing
+`settings` engine case, selected by ordinary source CI. All ten production scenes,
+font/seal/branch/button states, supplied quote intent/disabled reason, real-catalog
+footprints/prerequisites, outside-click blocking, Tab/Escape, later-menu sibling
+picking, Audio input/service, draft/Apply/persistence and both window bounds remain.
+The original settings default/mute/gain/reload assertions also remain.
+
+Additional B regressions catch freed implicit and invalid explicit invokers on
+reusable modals, Settings resize stealing the nested confirmation's order/focus/
+input scope, and incomplete externally parented control cleanup before reload.
+Pure C# cannot instantiate those Godot nodes or route viewport input; the minimal
+fixture uses deterministic controls and synthetic process-local input, three-frame
+layout waits, existing owned preferences/marker/logs and the same 60s bound. Added
+cost is estimated at a few frame waits, not a measured full-game journey. The
+historical 38-check receipt is not current-head proof. No graphical readability,
+desktop focus, physical input, audio listening or transport claim is added.
+
 ## Failure history
 
 | Evidence | Initiator / symptom / disconfirming evidence | Action and remaining uncertainty |
