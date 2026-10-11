@@ -75,7 +75,8 @@ public partial class EngineTests : Node
         var apply = first.Dialog.FooterContent.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single();
         apply.EmitSignal(BaseButton.SignalName.Pressed);
         Check(first.Graphics["weather"] == 2 && first.Graphics["forest_theme"] == 1 && first.Graphics["magic"] == 0, "Apply signal commits independent weather/theme/magic preferences");
-        first.Dialog.FooterContent.FindChildren("ResetGraphics", "Button", true, false).OfType<Button>().Single().EmitSignal(BaseButton.SignalName.Pressed);
+        // Reset belongs to the scrollable Graphics page; only Apply/Cancel live in the footer.
+        first.Dialog.Content.FindChildren("ResetGraphics", "Button", true, false).OfType<Button>().Single().EmitSignal(BaseButton.SignalName.Pressed);
         Check(first.GraphicsDraft["forest_theme"] == 2 && first.GraphicsDraft["magic"] == 1 && first.Graphics["forest_theme"] == 1,
             "Reset previews cancellable art defaults");
         first.Close(false);

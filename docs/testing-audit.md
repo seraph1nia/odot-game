@@ -142,6 +142,18 @@ cannot exercise Godot focus dispatch. This remains B in the existing settings
 selection with owned state, real controls and bounded frame waits. Added cost is
 estimated at a few frame waits, not matched timing or graphical qualification.
 
+The existing offline Steam/native-payload probe also consumes the woodland Theme,
+font metrics, seal/branch textures, all ten production Control scenes and bundled
+JSON provenance/nonempty notices from the active `res://` root. Exported clients
+must exclude `Verification/EngineTests.tscn`. This catches missing or unloadable
+PCK resources/notices that the headless start/build/recruit protocol smoke never
+uses; source inventory hashes and component checks cannot establish exported
+resource resolution. It reuses the bounded `SteamProbe`/`SteamChecks` owner, creates
+only immediately freed hidden Controls, and never starts GameApplication, a match
+or a display. Setup uses ordinary source/export preparation and existing owned
+preferences/cleanup. Incremental cost is estimated as resource loading, not a
+new journey; this does not qualify rendered pixels or authoritative HUD bindings.
+
 ## Failure history
 
 | Evidence | Initiator / symptom / disconfirming evidence | Action and remaining uncertainty |

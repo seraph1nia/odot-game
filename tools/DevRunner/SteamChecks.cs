@@ -102,6 +102,8 @@ internal sealed partial class Runner
         await using var child = owned.Own(new Child("steam-extension-probe", executable, args, _root,
             game: true, quiet: true, workingDirectory: working, environment: environment,
             evidenceDirectory: owned.EvidenceDirectory, sanitizeSteam: true));
+        if (offline)
+            await child.WaitFor(e => e.Type == "ui-payload", "woodland source/package resources and bundled notices", options.StartupTimeout, deadline.Token);
         await child.WaitFor(e => e.Type == "steam-probe", offline ? "optional initialization" : "Steam extension lifecycle",
             options.StartupTimeout, deadline.Token);
         int code = await child.WaitExit(deadline.Token);
