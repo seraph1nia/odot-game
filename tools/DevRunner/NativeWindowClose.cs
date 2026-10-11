@@ -25,7 +25,14 @@ internal static class NativeWindowClose
     }
     public static void Focus(Child child, Options options, ulong window)
     {
-        PrivateDisplay.ValidateWorker(options);
+        if (options.DesktopSurface)
+        {
+            if (options.Command != "test-vulkan" || !OperatingSystem.IsLinux() || string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")))
+                throw new InvalidOperationException("Desktop focus requires the explicit authorized windowed Vulkan command.");
+            // This single focus operation is restricted below to the observed
+            // live child PID. Resize/close/defocus remain private-display-only.
+        }
+        else PrivateDisplay.ValidateWorker(options);
         if (child.HasExited || window == 0) throw new InvalidOperationException("Owned child has no live observed window.");
         nint display = XOpenDisplay(0);
         if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");
@@ -41,7 +48,9 @@ internal static class NativeWindowClose
     }
     public static IDisposable Defocus(Child child, Options options, ulong window)
     {
-        // Validate ownership before creating the temporary focus recipient.
+        // Defocus remains private-display-only, even if Focus admits an explicitly
+        // authorized desktop child's main window.
+        PrivateDisplay.ValidateWorker(options);
         Focus(child, options, window);
         nint display = XOpenDisplay(0);
         if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");

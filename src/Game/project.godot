@@ -5,7 +5,8 @@ config_version=5
 config/version="development"
 config/name="Odot - Nine Tiles"
 run/main_scene="res://Scenes/Main.tscn"
-config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+config/project_settings_override="user://renderer.cfg"
 run/flush_stdout_on_print=true
 
 [display]
@@ -49,6 +50,24 @@ initialization/processes/initialize_on_startup=false
 multiplayer_peer/max_channels=2
 
 [rendering]
-renderer/rendering_method="gl_compatibility"
+renderer/rendering_method="forward_plus"
+rendering_device/driver="vulkan"
+rendering_device/driver.windows="vulkan"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.035, 0.045, 0.075, 1)
+environment/volumetric_fog/volume_size=64
+environment/volumetric_fog/volume_depth=64
+
+[shader_globals]
+odot_weather_time={
+"type": "float",
+"value": 0.0
+}
+odot_foliage_wind={
+"type": "float",
+"value": 0.0
+}
+odot_water_motion={
+"type": "float",
+"value": 0.0
+}

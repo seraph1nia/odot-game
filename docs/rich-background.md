@@ -44,17 +44,20 @@ The established combat receiver envelope (including boundary hex footprints)
 retains its original floor families, heights and six-way transforms. The new
 population's full footprints stay south of Z=7, not merely its origins. Original
 battle-side props remain untouched. Buildings, all nine plot centers/scales,
-home/defender, towers/projectile origins, occupants, camera/lighting, picking,
-collisions, authority rules, gameplay RNG, networking and saves are unchanged.
+home/defender, towers/projectile origins, occupants, picking, collisions,
+authority rules, gameplay RNG, networking and saves are unchanged. This composition
+change left camera/lighting unchanged; subsequent atmospheric presentation is
+owned by [the atmosphere subsystem](atmosphere.md#ownership-and-bounded-effects).
 No simulated fauna, active scenery lights or added decorative shadows appear.
 
 ## Shared rendering and executable checks
 
 New scatter uses spatially bounded `MultiMesh` groups, sharing each **original
-imported mesh part** and material. Nonuniform local transforms stay on the
-instances; no vertex/normal/tangent flattening or copied meshes/textures are
-introduced. Unit-size templates are normalized by the existing asset placement
-owner, then freed. Two 16-cell-wide scatter buckets bound the finite dressed
+imported mesh part**. Cosmetic material adaptation is owned by
+[the atmosphere subsystem](atmosphere.md#ownership-and-bounded-effects).
+Nonuniform local transforms stay on the instances; no vertex/normal/tangent
+flattening or copied meshes/textures are introduced. Unit-size templates are
+normalized by the existing asset placement owner, then freed. Two 16-cell-wide scatter buckets bound the finite dressed
 area without the first attempt's unnecessarily numerous eight-cell buckets.
 Coverage grows deterministically and monotonically only when the camera coverage
 envelope grows, never per frame or on an ordinary redraw. Authored connector plans

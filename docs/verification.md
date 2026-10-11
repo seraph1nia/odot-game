@@ -255,6 +255,15 @@ attention outside this worktree. Required final-published-head
 outer executor. No merge readiness, waiver, publication or provider retry is
 claimed.
 
+## Forward+ and atmospheric presentation, 2026-10-10
+
+[Renderer/atmosphere qualification status](atmosphere.md#qualification-status)
+owns the current coverage boundary and retained Settings results, historical
+source/export/native campaign receipts, actual device/input bindings, image
+inspection and unresolved limitations. The historical steering022 campaign does
+not qualify subsequent review/test fixes. For selectable commands and renderer
+requirements, see [renderer verification](atmosphere.md#verification-and-visual-evidence).
+
 ## Fixed-position settlement beautification, 2026-10-07
 
 The [change verification record](../openspec/changes/beautify-settlement-world/verification.md)

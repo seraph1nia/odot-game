@@ -12,6 +12,12 @@ public partial class Main : Node, IGameSession
 {
     private enum SessionRole { None, Solo, PlayingHost, Guest, Dedicated }
     private readonly ConcurrentQueue<(long Generation, string Text)> _commands = new();
+    private static readonly bool TraceObservation = System.Environment.GetEnvironmentVariable("ODOT_STARTUP_OBSERVATION_TRACE") == "1";
+    internal static void ObservationBoundary(string boundary, string? id = null)
+    {
+        if (TraceObservation) Console.WriteLine($"ODOT_OBS {boundary} id={id} thread={System.Environment.CurrentManagedThreadId} utc={DateTimeOffset.UtcNow:O}");
+    }
+    private bool _tracedProcess, _tracedPhysics;
     private readonly List<(StringName Signal, Callable Handler)> _signals = [];
     private readonly Dictionary<long, Command> _sent = [];
     private readonly ActionCues _actionCues = new();
@@ -77,6 +83,7 @@ public partial class Main : Node, IGameSession
     public bool HasSession => _role != SessionRole.None || _drainingPeer is not null;
     public long SessionGeneration { get; private set; }
     internal GameApplication? Application { get; private set; }
+    private VanillaPopupFixture? _vanillaPopup;
     public event Action? SessionLeaving;
     public event Action<MatchSnapshot>? StateChanged;
 
@@ -176,9 +183,19 @@ public partial class Main : Node, IGameSession
         }
         if (DisplayServer.GetName() != "headless" && role != SessionRole.Dedicated)
         {
-            Application = new GameApplication(this) { Name = "Application" };
-            GetTree().Root.AddChild(Application);
-            _steam = new SteamSessions(this, Application);
+            if (System.Environment.GetEnvironmentVariable("ODOT_VANILLA_POPUP_FIXTURE") == "1")
+            {
+                if (!_supervised || !_pacing.Owned || role != SessionRole.None || DisplayServer.GetName() != "X11" || System.Environment.GetEnvironmentVariable("ODOT_STEAM_DISABLED") != "1")
+                    throw new ArgumentException("Vanilla popup requires an owned offline graphical menu.");
+                _vanillaPopup = new VanillaPopupFixture { Name = "Application", ExitRequested = RequestExit };
+                GetTree().Root.AddChild(_vanillaPopup);
+            }
+            else
+            {
+                Application = new GameApplication(this) { Name = "Application" };
+                GetTree().Root.AddChild(Application);
+                _steam = new SteamSessions(this, Application);
+            }
         }
         switch (role)
         {
@@ -199,7 +216,11 @@ public partial class Main : Node, IGameSession
             _ = Task.Run(() =>
             {
                 string? line;
-                while ((line = Console.ReadLine()) is not null) _commands.Enqueue((SessionGeneration, line));
+                while ((line = Console.ReadLine()) is not null)
+                {
+                    if (line.StartsWith("ui-probe ", StringComparison.Ordinal)) ObservationBoundary("request-received", line.Split(' ')[1]);
+                    _commands.Enqueue((SessionGeneration, line));
+                }
             });
     }
 
@@ -525,12 +546,14 @@ public partial class Main : Node, IGameSession
 
     public override void _Process(double delta)
     {
+        if (TraceObservation && !_tracedProcess) { _tracedProcess = true; ObservationBoundary("first-process-frame"); }
         _steam?.Process(); _fixtureInvitations?.Process();
 
     }
 
     public override void _PhysicsProcess(double delta)
     {
+        if (TraceObservation && !_tracedPhysics) { _tracedPhysics = true; ObservationBoundary("first-physics-frame"); }
         for (int n = 0; n < 32 && _commands.TryDequeue(out var command); n++)
             if (command.Generation == SessionGeneration || IsApplicationCommand(command.Text)) HandleCommand(command.Text);
         if (_authority is not null)
@@ -565,7 +588,7 @@ public partial class Main : Node, IGameSession
     }
 
     private static bool IsApplicationCommand(string text) => text is "quit" or "exit" or "ui" or "ui-probe"
-        || text.StartsWith("ui ", StringComparison.Ordinal) || text.StartsWith("ui-probe ", StringComparison.Ordinal);
+        || text.StartsWith("ui ", StringComparison.Ordinal) || text.StartsWith("ui-probe ", StringComparison.Ordinal) || text.StartsWith("ui-atmosphere ", StringComparison.Ordinal);
 
     private void HandleCommand(string text)
     {
@@ -582,15 +605,21 @@ public partial class Main : Node, IGameSession
                     Emit(new("pacing", State: State, Message: parts[1] + ":" + _pacing.Speed)); break;
                 case "checkpoint" when _supervised && _pacing.Owned:
                     PublishState(force: true); Emit(new("checkpoint", State: State, Message: parts[1])); break;
-                case "ui" or "ui-probe" when _supervised && Application is not null:
+                case "ui" or "ui-probe" when _supervised && (Application is not null || _vanillaPopup is not null):
                     _ = ProbeUi(parts.Length > 1 ? parts[1] : Guid.NewGuid().ToString("N"), parts.Length > 2 && parts[2] != "none" ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[2])) : null, parts.Length == 4 && parts[3] is "deferred" or "deferred-live", parts.Length == 4 && parts[3] is "live" or "deferred-live"); break;
+                case "ui-atmosphere" when _supervised && _pacing.Owned && Application is not null:
+                    Application.AtmosphereProof(int.Parse(parts[1], CultureInfo.InvariantCulture), parts[2], float.Parse(parts[3], CultureInfo.InvariantCulture), parts.Length == 5 ? int.Parse(parts[4], CultureInfo.InvariantCulture) : -1);
+                    Emit(new("atmosphere-proof", Message: text)); break;
                 case "ui-persist-frame": PersistUiFrame(parts[1]); break;
                 case "ui-steam-friends": ProbeSteamFriends(parts[1]); break;
                 case "ui-confirm-join": ProbeJoinConfirmation(parts[1]); break;
-                case "key" when _supervised && Application is not null:
+                case "key" when _supervised && (Application is not null || _vanillaPopup is not null):
                     Key key = Enum.Parse<Key>(parts[1], true);
                     Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = true });
                     Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false }); break;
+                case "ui-travel-msaa" when _supervised && _pacing.Owned && Application is not null && System.Environment.GetEnvironmentVariable("ODOT_CAMERA_TRAVEL_TRACE") == "1":
+                    GetViewport().Msaa3D = parts[1] == "off" ? Viewport.Msaa.Disabled : Viewport.Msaa.Msaa2X;
+                    Emit(new("travel-msaa", Message: parts[1])); break;
                 case "key-down" or "key-up" when _supervised && Application is not null:
                     Key heldKey = Enum.Parse<Key>(parts[1], true);
                     Input.ParseInputEvent(new InputEventKey { Keycode = heldKey, PhysicalKeycode = heldKey, Pressed = parts[0] == "key-down" }); break;
@@ -605,7 +634,7 @@ public partial class Main : Node, IGameSession
                     if (parts[0] == "mouse-move") Input.ParseInputEvent(new InputEventMouseMotion { Position = dragPosition, GlobalPosition = dragPosition, ButtonMask = MouseButtonMask.Left });
                     else Input.ParseInputEvent(new InputEventMouseButton { Position = dragPosition, GlobalPosition = dragPosition, ButtonIndex = MouseButton.Left, Pressed = parts[0] == "mouse-down" });
                     break;
-                case "click" when Application is not null:
+                case "click" when Application is not null || _vanillaPopup is not null:
                     Vector2 position = new(float.Parse(parts[1], CultureInfo.InvariantCulture), float.Parse(parts[2], CultureInfo.InvariantCulture));
                     Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
                     Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = true });
@@ -673,7 +702,8 @@ public partial class Main : Node, IGameSession
             || System.IO.File.ReadAllText(System.IO.Path.Combine(runtime, "worker-token")) != worker
             || authority is null || System.IO.Path.GetFullPath(authority) != System.IO.Path.Combine(System.IO.Path.GetFullPath(runtime), "xauthority")
             || !System.IO.File.Exists(authority) || display is null || !System.Text.RegularExpressions.Regex.IsMatch(display, "^:[0-9]+$")
-            || System.Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null)
+            || !OwnedDisplayIsolation.AbsentWaylandSocket(System.Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"),
+                System.Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR"), runtime))
             throw new ArgumentException("Probe requires an owned offline UI worker.");
     }
 
@@ -852,6 +882,7 @@ public partial class Main : Node, IGameSession
     {
         try
         {
+            ObservationBoundary("probe-dispatched", id);
             Timing?.Record("observation-admitted", State, info: new { Id = id, Live = live });
             if (deferred || live) RequireOwnedFrameWorker(screenshot);
             if (Application is not null && System.Environment.GetEnvironmentVariable("ODOT_ASSET_COSTS") == "1")
@@ -863,15 +894,18 @@ public partial class Main : Node, IGameSession
             if (!live)
             {
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                ObservationBoundary("settle-frame-one", id);
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                ObservationBoundary("settle-frame-two", id);
             }
             // Ordered live read-only requests arrive in _PhysicsProcess. Child visual
             // processing and the actual current draw finish before FramePostDraw.
             // Input/layout probes retain their two-future-frame settling barrier.
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            ObservationBoundary("post-draw", id);
             double frameWait = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
             double readback = 0, sampling = 0, png = 0;
-            if (Application is null || _exiting)
+            if (Application is null && _vanillaPopup is null || _exiting)
                 throw new InvalidOperationException("The application is closing.");
             int colors = 0, rawWidth = 0, rawHeight = 0;
             byte[]? raw = null;
@@ -900,14 +934,26 @@ public partial class Main : Node, IGameSession
                 if (result != Error.Ok) throw new InvalidOperationException($"Frame capture failed: {result}");
             }
             long observing = System.Diagnostics.Stopwatch.GetTimestamp();
-            Dictionary<string, object?> fields = Application.ObserveUi(id, deferred ? null : screenshot, colors);
+            ObservationBoundary("snapshot-begin", id);
+            Dictionary<string, object?> fields = _vanillaPopup is not null
+                ? _vanillaPopup.Observe(id, deferred ? null : screenshot, colors)
+                : Application!.ObserveUi(id, deferred ? null : screenshot, colors);
+            ObservationBoundary("snapshot-built", id);
             double observation = System.Diagnostics.Stopwatch.GetElapsedTime(observing).TotalMilliseconds;
             fields["ProbeCosts"] = new { FrameWaitMilliseconds = frameWait, ReadbackMilliseconds = readback, SamplingMilliseconds = sampling, PngMilliseconds = png, ObservationMilliseconds = observation, Live = live, ProcessFrame = Engine.GetProcessFrames(), RenderSetupCpuMs = RenderingServer.GetFrameSetupTimeCpu(), ViewportCpuMs = RenderingServer.ViewportGetMeasuredRenderTimeCpu(GetViewport().GetViewportRid()), ViewportGpuMs = RenderingServer.ViewportGetMeasuredRenderTimeGpu(GetViewport().GetViewportRid()) };
             Timing?.Record("rendered-observation", State, info: new { Id = id, PresentedTick = fields.GetValueOrDefault("CombatTick"), Frame = Engine.GetProcessFrames(), Live = live });
             if (raw is not null) fields["RawCapture"] = _rawFrames.Acquire(id, screenshot!, rawWidth, rawHeight, raw, JsonSerializer.Serialize(fields, WireJson.Options));
-            Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(fields, WireJson.Options));
+            ObservationBoundary("serialize-begin", id);
+            string response = JsonSerializer.Serialize(fields, WireJson.Options);
+            ObservationBoundary("serialized-bytes=" + System.Text.Encoding.UTF8.GetByteCount(response), id);
+            Console.WriteLine("ODOT_UI " + response);
+            ObservationBoundary("response-written", id);
         }
-        catch (Exception error) { Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(new { Id = id, Error = error.Message }, WireJson.Options)); }
+        catch (Exception error)
+        {
+            ObservationBoundary("probe-exception=" + error.GetType().Name, id);
+            Console.WriteLine("ODOT_UI " + JsonSerializer.Serialize(new { Id = id, Error = error.Message }, WireJson.Options));
+        }
     }
     public override void _ExitTree()
     {

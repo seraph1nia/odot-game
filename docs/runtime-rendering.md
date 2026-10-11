@@ -30,7 +30,9 @@ rendering optimization or renewed melee budget. Earlier stopping points below ar
 ## Official guidance and the actual backend
 
 The owned engine log identifies **Godot 4.7.2 stable .NET**, official `ed1daf0bf`;
-`project.godot` selects **GL Compatibility**. Measurements use owned X11/Xvfb and llvmpipe,
+these historical measurements used **GL Compatibility**. Current desktop defaults
+and maintained native atmosphere/settings are described in [atmosphere.md](atmosphere.md);
+required graphical CI still explicitly selects Compatibility. Measurements below use owned X11/Xvfb and llvmpipe,
 not the developer's desktop or a native GPU.
 
 Official references were consulted through their read-only source mirrors after the documentation
@@ -64,9 +66,11 @@ reference is the exact installed engine tag. Copies are retained in ignored `.ar
   and normalize before interpolation. Consequently, naive `AppendFrom` flattening or a generic
   normal/tangent recipe does not establish source rendering fidelity.
 
-Lighting/materials and original static hierarchies stay unchanged. Occlusion/lighting quality
-changes would require their own meaningful fidelity and cost proof; they are not hidden settings
-changes in this investigation.
+Lighting/materials and original static hierarchies stayed unchanged **in this historical
+optimization investigation**. The separately authorized renderer/atmosphere implementation
+changes native lighting and explicitly classified cosmetic foliage/water presentation, with
+its own checks and visual evidence in [atmosphere.md](atmosphere.md). It does not resurrect
+the rejected static-consolidation or instancing experiments below.
 
 ## Finite static-fragment candidate: not shipped
 

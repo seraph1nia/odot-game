@@ -117,7 +117,7 @@ internal static class ScenarioScheduler
                 {
                     lock (gate)
                     {
-                        failure ??= ExceptionDispatchInfo.Capture(error is OperationCanceledException ? error : new InvalidOperationException($"Scenario {scenario.Name}: {error.Message}", error));
+                        failure ??= ExceptionDispatchInfo.Capture(error is OperationCanceledException or VerificationPrerequisiteException ? error : new InvalidOperationException($"Scenario {scenario.Name}: {error.Message}", error));
                     }
                     siblings.Cancel();
                     return;
@@ -169,7 +169,17 @@ internal sealed class ScenarioScope : IAsyncDisposable
             env["APPDATA"] = env["XDG_DATA_HOME"];
             env["LOCALAPPDATA"] = env["XDG_CACHE_HOME"];
         }
-        if (Graphical) env["WAYLAND_DISPLAY"] = null;
+        if (Graphical)
+        {
+            // Unsetting WAYLAND_DISPLAY alone permits libwayland to connect to
+            // the inherited runtime's default wayland-0 on native X11 failure.
+            // Keep every graphical child's compositor socket namespace owned.
+            string runtime = Path.Combine(storage, "runtime");
+            System.IO.Directory.CreateDirectory(runtime);
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(runtime, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            env["XDG_RUNTIME_DIR"] = runtime;
+            env["WAYLAND_DISPLAY"] = Path.Combine(runtime, "no-wayland-fallback");
+        }
         return env;
     }
     public Child Own(Child child) { _children.Add(child); return child; }

@@ -44,6 +44,15 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
                     PrivateDisplay.CheckPrerequisites();
                     if (options.Scenario != "exported-package") await Prepare(); else CheckPackages();
                     await UiTests(options.Scenario); break;
+                case "test-vulkan":
+                case "test-atmosphere":
+                    if (!options.DesktopSurface) PrivateDisplay.CheckPrerequisites();
+                    else CheckDesktopVulkanPrerequisites();
+                    if (options.Exported) _ = AtmosphereClientPackage(); else await Prepare();
+                    var atmosphere = new Runner(options with { Scenario = "atmosphere", Renderer = options.Command == "test-vulkan" ? "forward-plus" : "compatibility" }, cancellation, _evidence, root: _root);
+                    if (options.DesktopSurface) await atmosphere.DesktopVulkan();
+                    else await atmosphere.UiDisplay("atmosphere", cancellation);
+                    break;
                 case "profile-presentation":
                     PrivateDisplay.CheckPrerequisites(); await Prepare();
                     await PresentationProfiles(); break;
@@ -210,7 +219,12 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         if (!headless)
         {
             if (_scope?.Graphical == true)
-                args.AddRange(["--verbose", "--display-driver", "x11", "--rendering-method", "gl_compatibility", "--rendering-driver", "opengl3", "--audio-driver", "Dummy", "--max-fps", "30", "--windowed", "--resolution", "1100x820"]);
+            {
+                args.AddRange(["--verbose", "--display-driver", "x11", "--audio-driver", "Dummy", "--max-fps", "30", "--windowed", "--resolution", "1100x820"]);
+                if (!options.UseSavedRenderer) args.AddRange(RendererArguments(options.Scenario == "atmosphere" || options.DesktopSurface ? options.Renderer ?? "compatibility" : "compatibility"));
+                if (options.Scenario == "settings") args.Add("--disable-vsync");
+            }
+            else if (options.Renderer is not null) args.AddRange(RendererArguments(options.Renderer));
             if (name == "client-a") args.AddRange(["--position", "30,80"]);
             if (name == "client-b") args.AddRange(["--position", "900,80"]);
             args.AddRange(options.EngineArgs);
@@ -232,12 +246,33 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         return args;
     }
 
+    internal static string[] RendererArguments(string renderer) => renderer switch
+    {
+        "forward-plus" => ["--rendering-method", "forward_plus", "--rendering-driver", "vulkan"],
+        "compatibility" => ["--rendering-method", "gl_compatibility", "--rendering-driver", "opengl3"],
+        _ => throw new ArgumentException("Unknown renderer: " + renderer)
+    };
+
+    internal static bool OwnsVerificationCommand(string command) => command is "test-native-pump" or "test-assets" or "test-network" or "test-ui" or "test-vulkan" or "test-atmosphere" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows";
     private Child StartGameRole(string name, string role, bool headless, int port, string? exported = null, params string[] extra)
     {
         var args = GameArguments(name, role, headless, port, exported, extra);
         string? engineLogPath = _scope is null ? null : Path.Combine(_scope.EvidenceDirectory, name + "-engine-" + Guid.NewGuid().ToString("N") + ".log");
         var environment = _scope?.EnvironmentFor(name);
-        if (_scope?.Graphical == true) environment!["ODOT_FRAME_EVIDENCE"] = _scope.EvidenceDirectory;
+        if (_scope?.Graphical == true)
+        {
+            environment!["ODOT_FRAME_EVIDENCE"] = _scope.EvidenceDirectory;
+            environment["ODOT_STARTUP_OBSERVATION_TRACE"] = "1";
+        }
+        if (options.DesktopSurface)
+        {
+            environment!["LIBGL_ALWAYS_SOFTWARE"] = null; environment["LP_NUM_THREADS"] = null;
+            environment["DBUS_SESSION_BUS_ADDRESS"] = null;
+        }
+        if (_scope?.Graphical == true && options.UiCheckpoint is "vanilla-popup" or "vanilla-native") environment!["ODOT_VANILLA_POPUP_FIXTURE"] = "1";
+        if (_scope?.Graphical == true && options.UiCheckpoint == "vanilla-native") environment!["ODOT_VANILLA_POPUP_NATIVE"] = "1";
+        if (_scope?.Graphical == true && options.UiCheckpoint == "popup-diagnostic") environment!["ODOT_GRAPHICS_POPUP_TRACE"] = "1";
+        if (_scope?.Graphical == true && options.UiCheckpoint == "travel-diagnostic") environment!["ODOT_CAMERA_TRAVEL_TRACE"] = "1";
         if (_scope?.Graphical == true && options.UiCheckpoint == "assets") environment!["ODOT_ASSET_COSTS"] = "1";
         if (_scope is not null && options.UiCheckpoint == "admission")
             environment!["ODOT_TIMING_PATH"] = Path.Combine(_scope.EvidenceDirectory, name + "-timing.jsonl");
@@ -251,7 +286,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             environment ??= new Dictionary<string, string?>();
             WindowsStandaloneEnvironment(environment);
         }
-        if (_scope is not null && options.Command is "test-native-pump" or "test-assets" or "test-network" or "test-ui" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows")
+        if (_scope is not null && OwnsVerificationCommand(options.Command))
         {
             string marker = Path.Combine(environment!["ODOT_OWNED_DATA"]!, ".verification-owner");
             string token = Guid.NewGuid().ToString("N");
@@ -311,8 +346,15 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
 
     private async Task SingleRole()
     {
-        await Prepare();
-        await using var child = StartGameRole(options.Command, options.Command == "play" ? "menu" : options.Command, options.Command == "server", options.Port ?? 7000);
+        string? executable = null;
+        if (options.Exported)
+        {
+            DesktopExport layout = DesktopExport.For(options.ExportTarget);
+            executable = Path.Combine(_root, "dist", layout.Kind(false), layout.Executable);
+            if (!File.Exists(executable)) throw new VerificationPrerequisiteException("Missing exported client: " + executable + "; this launch does not rebuild exports.");
+        }
+        else await Prepare();
+        await using var child = StartGameRole(options.Command, options.Command == "play" ? "menu" : options.Command, options.Command == "server", options.Port ?? 7000, executable);
         int code = await child.WaitExit(cancellation);
         if (code != 0) throw new InvalidOperationException($"{options.Command} exited with {code}.");
     }

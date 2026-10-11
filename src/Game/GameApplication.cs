@@ -7,8 +7,7 @@ public partial class GameApplication(Main session) : Node
 {
     private Node3D _scenery = null!;
     private Camera3D _menuCamera = null!;
-    private WorldEnvironment _environment = null!;
-    private Godot.Environment _menuEnvironment = null!;
+    private AtmosphereController _atmosphere = null!;
     private Control _menuRoot = null!;
     private VBoxContainer _startMenu = null!, _multiplayerMenu = null!;
     private Button _solo = null!, _multiplayer = null!, _menuSettings = null!, _exit = null!, _host = null!, _back = null!;
@@ -41,7 +40,10 @@ public partial class GameApplication(Main session) : Node
         var root = new Control { Name = "ApplicationControls", Theme = Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
         canvas.AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         Settings = new ClientSettings { Name = "ClientSettings", FocusFallback = ActiveFocus }; AddChild(Settings);
+        _atmosphere = new AtmosphereController { Name = "Atmosphere" }; AddChild(_atmosphere);
         Settings.Initialize(root, Theme);
+        Settings.GraphicsApplied = preferences => _atmosphere.Apply(preferences);
+        _atmosphere.Apply(Settings.Graphics);
         Settings.ReturnRequested = RequestReturn;
         using var music = GD.Load<AudioStreamWav>("res://Assets/Music/LVS04_11_Echoes_of_Valhalla_bpm82_loop.wav");
         _music = new AudioStreamPlayer { Name = "BackgroundMusic", Stream = music, Bus = "Master", VolumeDb = -12, Autoplay = true };
@@ -131,7 +133,7 @@ public partial class GameApplication(Main session) : Node
         if (_join.Visible) DeclineJoin();
         RemoveTabletop();
         Screen = "menu"; Settings.InSession = false;
-        _scenery.Visible = true; _environment.Environment = _menuEnvironment; _menuCamera.Current = true;
+        _scenery.Visible = true; _menuCamera.Current = true;
         _menuRoot.Visible = true; _startMenu.Visible = true; _multiplayerMenu.Visible = false;
         Settings.SettingsButton.Visible = false;
         _steamStatus.Visible = true;
@@ -167,7 +169,7 @@ public partial class GameApplication(Main session) : Node
         if (_join.Visible) DeclineJoin();
         RemoveTabletop();
         Screen = "session"; Settings.InSession = true;
-        _menuRoot.Visible = false; _scenery.Visible = false; _menuCamera.Current = false; _environment.Environment = null;
+        _menuRoot.Visible = false; _scenery.Visible = false; _menuCamera.Current = false;
         Settings.SettingsButton.Visible = true;
         _steamStatus.Visible = false;
         _tabletop = new Tabletop(presentation, this) { Name = "Tabletop" }; AddChild(_tabletop);
@@ -279,6 +281,7 @@ public partial class GameApplication(Main session) : Node
 
     public Dictionary<string, object?> ObserveUi(string id, string? screenshot, int colors)
     {
+        Main.ObservationBoundary("selectors-begin", id);
         var targets = new Dictionary<string, object>();
         foreach (Button button in new[] { _solo, _multiplayer, _menuSettings, _exit, _host, _back }) ObserveControl(targets, button.Name, button);
         ObserveControl(targets, "Settings", Screen == "menu" ? _menuSettings : Settings.SettingsButton);
@@ -297,6 +300,9 @@ public partial class GameApplication(Main session) : Node
             ObserveControl(targets, "DownloadUpdate", Settings.DownloadUpdateButton);
             ObserveControl(targets, "ReturnToMenu", Settings.ReturnButton);
             ObserveControl(targets, "CloseSettings", Settings.Dialog.GetOkButton());
+            Vector2 close = GetViewport().GetFinalTransform() * ((Vector2)Settings.Dialog.Position + new Vector2(Settings.Dialog.Size.X - 8, -14));
+            targets["CancelSettings"] = new { X = close.X, Y = close.Y, Width = 14, Height = 14, Visible = true, Enabled = true };
+            Settings.ObserveGraphics(this, targets);
         }
         if (_join.Visible)
         {
@@ -311,7 +317,12 @@ public partial class GameApplication(Main session) : Node
             ObserveControl(targets, "CancelReturn", _leave.GetCancelButton());
         }
         Friends.Observe(this, targets);
+        Main.ObservationBoundary("selectors-built", id);
         int master = AudioServer.GetBusIndex("Master");
+        Main.ObservationBoundary("graphics-popup-flags-begin", id);
+        bool graphicsDropdown = Settings.GraphicsDropdownOpen;
+        Settings.TracePopupObservation();
+        Main.ObservationBoundary("graphics-popup-flags-built", id);
         var fields = new Dictionary<string, object?>
         {
             ["Id"] = id,
@@ -331,6 +342,11 @@ public partial class GameApplication(Main session) : Node
             ["SelectedSlot"] = -1,
             ["Connected"] = session.Connected,
             ["SettingsOpen"] = Settings.IsOpen,
+            ["ModalOpen"] = IsModalOpen,
+            ["Exiting"] = _exiting,
+            ["GraphicsDropdownOpen"] = graphicsDropdown,
+            ["SettingsPosition"] = new { X = Settings.Dialog.Position.X, Y = Settings.Dialog.Position.Y },
+            ["WindowPosition"] = new { X = GetWindow().Position.X, Y = GetWindow().Position.Y },
             ["ResolutionFocused"] = Settings.ResolutionSelector.GetPopup().GetFocusedItem(),
             ["ResolutionSelected"] = Settings.ResolutionSelector.Selected,
             ["DropdownOpen"] = Settings.DisplaySelector.GetPopup().Visible || Settings.ResolutionSelector.GetPopup().Visible,
@@ -353,6 +369,10 @@ public partial class GameApplication(Main session) : Node
             ["AudioDriver"] = AudioServer.GetDriverName(),
             ["UserDataPath"] = ProjectSettings.GlobalizePath("user://"),
             ["Renderer"] = RenderingServer.GetVideoAdapterName(),
+            ["Graphics"] = ObserveGraphicsBoundary(id),
+            ["GraphicsDraft"] = Settings.GraphicsDraft,
+            ["GraphicsFocus"] = Settings.GraphicsFocus,
+            ["GraphicsPopupFocus"] = Settings.GraphicsPopupFocus,
             ["RenderCosts"] = new
             {
                 DrawCalls = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame),
@@ -376,6 +396,8 @@ public partial class GameApplication(Main session) : Node
             ["Width"] = GetWindow().Size.X,
             ["Height"] = GetWindow().Size.Y,
             ["WindowFocused"] = GetWindow().HasFocus(),
+            ["WindowMode"] = GetWindow().Mode.ToString(),
+            ["ProcessId"] = OS.GetProcessId(),
             ["NativeWindow"] = DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle, GetWindow().GetWindowId()),
             ["Targets"] = targets,
             ["Screenshot"] = screenshot,
@@ -388,7 +410,14 @@ public partial class GameApplication(Main session) : Node
         if (System.Environment.GetEnvironmentVariable("ODOT_ASSET_COSTS") == "1") { fields["RenderGroups"] = RenderInventory.Observe(this); }
         return fields;
     }
-    internal void ObserveControl(Dictionary<string, object> targets, string name, Control control, Rect2? local = null)
+    private object ObserveGraphicsBoundary(string id)
+    {
+        Main.ObservationBoundary("graphics-diagnostics-begin", id);
+        object result = _atmosphere.Observe();
+        Main.ObservationBoundary("graphics-diagnostics-built", id);
+        return result;
+    }
+    internal void ObserveControl(Dictionary<string, object> targets, string name, Control control, Rect2? local = null, bool? visible = null)
     {
         Rect2 rect = local is { } area ? new Rect2(control.GetGlobalTransformWithCanvas() * area.Position, area.Size) : control.GetGlobalRect();
         Vector2 point = rect.GetCenter();
@@ -401,7 +430,7 @@ public partial class GameApplication(Main session) : Node
             Y = point.Y,
             Width = rect.Size.X * scale.X,
             Height = rect.Size.Y * scale.Y,
-            Visible = control.IsVisibleInTree(),
+            Visible = visible ?? control.IsVisibleInTree(),
             Enabled = control is not BaseButton button || !button.Disabled,
             Icon = (control as Button)?.Icon?.ResourcePath ?? "",
             Text = (control as Button)?.Text ?? "",
@@ -410,12 +439,22 @@ public partial class GameApplication(Main session) : Node
         };
     }
 
+    internal void AtmosphereProof(int weather, string view, float time, int glowOverride = -1)
+    {
+        if (glowOverride is < -1 or > 1 || weather is < 0 or > 4 || view is not ("menu" or "overview" or "forest" or "river" or "combat") || time is < 0 or > 60) throw new ArgumentException("Invalid fixed atmosphere evidence request.");
+        GraphicsPreferences preferences = Settings.Graphics.Clone();
+        // Exercise the existing default Compatibility policy, not hardware High
+        // on software CI. Native Forward+ evidence deliberately exercises High.
+        preferences.Edit("quality", AtmosphereController.ForwardPlus ? 2 : 1); preferences.Edit("weather", weather);
+        _tabletop?.AtmosphereProofView(view);
+        _atmosphere.FixedProof(preferences, time);
+        // Owned diagnostic counterfactual only; never changes saved/desired settings.
+        if (glowOverride >= 0) _atmosphere.Environment.GlowEnabled = glowOverride == 1;
+    }
     private void CreateBackground()
     {
         _scenery = new Node3D { Name = "MenuScenery" }; AddChild(_scenery);
-        _menuEnvironment = VillageLighting.Environment();
-        _environment = new WorldEnvironment { Environment = _menuEnvironment }; _scenery.AddChild(_environment);
-        _scenery.AddChild(VillageLighting.Sun());
+
         _menuCamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 28, Position = new(18, 22, 30), Current = true }; _scenery.AddChild(_menuCamera); _menuCamera.LookAt(Vector3.Zero);
         _landscape = new VillageLandscape(_scenery, _landscapeAssets);
         _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);
@@ -424,5 +463,6 @@ public partial class GameApplication(Main session) : Node
     {
         if (_leave.Visible && (Screen != "session" || _leaveGeneration != session.SessionGeneration)) CancelReturn();
         if (_scenery.Visible) _landscape.Cover(_menuCamera, GetViewport().GetVisibleRect(), Vector2.Zero);
+        _atmosphere.VillageOrigin = _scenery.Visible ? Vector3.Zero : _tabletop?.AtmosphereOrigin ?? Vector3.Zero;
     }
 }

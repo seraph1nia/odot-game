@@ -62,7 +62,7 @@ public partial class ClientSettings : Node
         UiAssets.Decorate(_button, "Settings");
         ui.AddChild(_button);
         _button.Pressed += Open;
-        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Close", DialogCloseOnEscape = true };
+        _dialog = new AcceptDialog { Name = "SettingsDialog", Title = "Settings", Theme = theme, Transient = true, Exclusive = false, OkButtonText = "Apply & close", DialogHideOnOk = false, DialogCloseOnEscape = true };
         // Let Godot route modal input and dropdown focus within the parent viewport.
         _window.GuiEmbedSubwindows = true;
         AddChild(_dialog);
@@ -71,14 +71,21 @@ public partial class ClientSettings : Node
         var tabs = new TabContainer { Name = "Categories", SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 180) }; content.AddChild(tabs);
         Categories = tabs;
         var graphics = Page(tabs, "Graphics");
+        Label(graphics, "Display and performance");
         Label(graphics, "Display mode");
         _mode = new OptionButton { Name = "DisplayMode", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; graphics.AddChild(_mode);
+        // Locked release embedded PopupMenu dismissal fails native parent signal
+        // cleanup even with vanilla controls. Supported native popup ownership
+        // avoids that path without replacing selection/input/focus behavior.
+        _mode.GetPopup().ForceNative = true;
         _mode.AddItem("Windowed"); _mode.AddItem("Fullscreen");
         _mode.ItemSelected += SelectMode;
         Label(graphics, "Windowed resolution");
         _resolution = new OptionButton { Name = "Resolution", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; graphics.AddChild(_resolution);
+        _resolution.GetPopup().ForceNative = true;
         _resolution.ItemSelected += SelectResolution;
         Label(graphics, "Fullscreen uses your monitor's native size.");
+        BuildGraphicsControls(graphics, content);
         var audio = Page(tabs, "Audio");
         _value = Label(audio, $"Master volume: {_masterVolume}");
         _volume = new HSlider { Name = "MasterVolume", MinValue = 0, MaxValue = 100, Step = 1, Value = _masterVolume, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 32) }; audio.AddChild(_volume);
@@ -109,7 +116,7 @@ public partial class ClientSettings : Node
         _saveFeedback = Label(content, "");
         _dialog.VisibilityChanged += () =>
         {
-            if (!_dialog.Visible) { Save(); if (_restoreFocusOnClose) Callable.From(RestoreFocus).CallDeferred(); }
+            if (!_dialog.Visible) { CancelGraphics(); Save(); if (_restoreFocusOnClose) Callable.From(RestoreFocus).CallDeferred(); }
         };
         _window.SizeChanged += WindowResized;
         RefreshDisplay();
@@ -117,24 +124,19 @@ public partial class ClientSettings : Node
         Callable.From(() => _initialized = true).CallDeferred();
     }
 
-    private static string[] EngineArguments()
-    {
-        // Godot consumes display flags, and its embedded .NET host has no managed argv.
-        // The supported Linux desktop export can read its original process arguments.
-        string[] args = OS.GetCmdlineArgs();
-        if (OS.GetName() == "Linux")
-        {
-            try { args = System.IO.File.ReadAllText("/proc/self/cmdline").Split('\0'); }
-            catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException) { }
-        }
-        return args.TakeWhile(a => a != "--").ToArray();
-    }
+    internal static string[] EngineArguments() => OriginalProcessArguments.Read(OS.GetCmdlineArgs());
 
-    private static VBoxContainer Page(TabContainer tabs, string name)
+    private VBoxContainer Page(TabContainer tabs, string name)
     {
         var margin = new MarginContainer { Name = name }; tabs.AddChild(margin);
         foreach (string side in new[] { "left", "top", "right", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 12);
-        var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 8); margin.AddChild(box); return box;
+        Node parent = margin;
+        if (name == "Graphics")
+        {
+            _graphicsScroll = new ScrollContainer { Name = "GraphicsScroll", HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, FollowFocus = true, CustomMinimumSize = new(0, 360) };
+            margin.AddChild(_graphicsScroll); parent = _graphicsScroll;
+        }
+        var box = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; box.AddThemeConstantOverride("separation", 8); parent.AddChild(box); return box;
     }
     private static Label Label(Node parent, string text)
     {
@@ -144,6 +146,7 @@ public partial class ClientSettings : Node
     {
         using var file = new ConfigFile();
         if (file.Load(SettingsPath) != Error.Ok) return;
+        LoadGraphics(file);
         _masterVolume = ReadInteger(file, "audio", "master_volume", 50, 0, 100);
         Variant mode = file.GetValue("graphics", "mode", "windowed");
         if (mode.VariantType == Variant.Type.String && mode.AsString() == "fullscreen") _savedMode = Window.ModeEnum.Fullscreen;
@@ -192,12 +195,15 @@ public partial class ClientSettings : Node
     public void Open(Control? returnFocus)
     {
         if (IsOpen) return;
+        Save();
         _returnFocus = returnFocus ?? GetViewport().GuiGetFocusOwner() ?? _button;
         RefreshDisplay();
-        _dialog.PopupCenteredClamped(new(500, 330), 0.9f);
+        BeginGraphicsEdit();
+        _dialog.PopupCenteredClamped(new(620, 650), 0.9f);
     }
     public void Close(bool restoreFocus = true)
     {
+        if (IsOpen) CancelGraphics();
         Save();
         _restoreFocusOnClose = restoreFocus;
         if (IsOpen) _dialog.Hide();
@@ -244,7 +250,7 @@ public partial class ClientSettings : Node
             _window.Size = _windowedSize;
         }
         _changingDisplay = false;
-        RefreshDisplay(); Save();
+        RefreshDisplay();
     }
     private void SelectResolution(long index)
     {
@@ -253,7 +259,7 @@ public partial class ClientSettings : Node
         _windowedSize = _sizes[(int)index];
         _window.Size = _windowedSize;
         _changingDisplay = false;
-        RefreshDisplay(); Save();
+        RefreshDisplay();
     }
     private void WindowResized()
     {
@@ -262,20 +268,28 @@ public partial class ClientSettings : Node
             _windowedSize = _window.Size; _displayEdited = true; _dirty = true;
         }
         RefreshDisplay();
-        if (IsOpen) _dialog.PopupCenteredClamped(new(500, 330), 0.9f);
+        if (IsOpen) _dialog.PopupCenteredClamped(new(620, 650), 0.9f);
     }
     private void Save()
     {
         if (!_dirty) return;
-        bool saveDisplay = _displayEdited || !_launchDisplayOverride;
+        bool saveDisplay = _commitDisplay || !IsOpen && (_displayEdited || !_launchDisplayOverride);
         using var file = new ConfigFile();
+        file.Load(SettingsPath);
         file.SetValue("audio", "master_volume", _masterVolume);
         file.SetValue("graphics", "mode", (saveDisplay ? _window.Mode : _savedMode) is Window.ModeEnum.Fullscreen or Window.ModeEnum.ExclusiveFullscreen ? "fullscreen" : "windowed");
         Vector2I size = saveDisplay ? _windowedSize : _savedSize;
         file.SetValue("graphics", "window_width", size.X); file.SetValue("graphics", "window_height", size.Y);
+        Error rendererResult = SaveGraphics(file);
         Error result = file.Save(SettingsPath);
+        if (rendererResult != Error.Ok) result = rendererResult;
         _saveFeedback.Text = result == Error.Ok ? "" : "Couldn't save settings. Changes work for this session.";
-        if (result == Error.Ok) _dirty = false;
+        if (result == Error.Ok)
+        {
+            _dirty = false;
+            if (saveDisplay) { _savedMode = _window.Mode; _savedSize = size; }
+            _commitDisplay = false;
+        }
     }
     public override void _ExitTree()
     {

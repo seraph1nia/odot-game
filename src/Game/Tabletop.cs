@@ -83,8 +83,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     {
         _unitBindings = UnitAssets.Validate(this);
         _effects = new VillageFeedback(); AddChild(_effects);
-        AddChild(new WorldEnvironment { Environment = VillageLighting.Environment() });
-        AddChild(VillageLighting.Sun());
+
         _camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Current = true, Far = 180 };
         AddChild(_camera);
         _navigation = new(_camera);
@@ -113,6 +112,12 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     {
         var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; UiAssets.Decorate(button, text); parent.AddChild(button);
         button.Pressed += () => { if (!application.IsModalOpen) action(); }; return button;
+    }
+    internal Vector3 AtmosphereOrigin => Center(_focus);
+    internal void AtmosphereProofView(string view)
+    {
+        Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
+        _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
     internal bool DetailsOpen => _detailsDialog?.Visible == true || _researchDialog?.Visible == true || _hallDialog?.Visible == true;
     internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GrabFocus(); else if (_researchDialog.Visible) _researchDialog.GrabFocus(); else _detailsDialog.GrabFocus(); }
