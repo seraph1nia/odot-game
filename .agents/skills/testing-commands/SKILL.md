@@ -69,6 +69,9 @@ killed. Each scenario owns temporary XDG data/config/cache, resume credentials a
 engine logs; restart reuses only its client's state. Every child is awaited on
 failure/cancellation before runtime removal. `--startup-timeout-ms` is readiness,
 `--timeout-ms` is the bounded scenario/suite allowance, not a retry policy.
+Engine components default to 60000 ms each; an explicit `--timeout-ms` replaces
+that budget, including readiness and process exit. Their `--startup-timeout-ms`
+wait ends at the minimal component scene's readiness event.
 Never run two preparation/export tasks concurrently in one worktree.
 
 ## Explicit deep, CI and packages (headless)

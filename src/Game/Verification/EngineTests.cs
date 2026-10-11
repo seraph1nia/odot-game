@@ -17,6 +17,7 @@ public partial class EngineTests : Node
                 throw new InvalidOperationException("Engine tests require owned headless runtime state.");
             string[] args = OS.GetCmdlineUserArgs();
             string scenario = args is ["--scenario", var selected] ? selected : throw new ArgumentException("Select one engine scenario.");
+            Main.Emit(new GameEvent("engine-ready", Message: scenario));
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             switch (scenario)
             {

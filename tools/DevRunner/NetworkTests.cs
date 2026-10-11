@@ -98,6 +98,7 @@ internal sealed partial class Runner
     private async Task NetworkTests(bool deep = false)
     {
         using var suite = CancellationTokenSource.CreateLinkedTokenSource(cancellation); suite.CancelAfter(options.Timeout);
+        string coverage = options.Scenario is not null ? "selected" : deep ? "deep" : "bounded";
         string[] defaults = deep ? ScenarioNames.Network : ["failure-cases", "solo-session", "playing-host-lifecycle"];
         var scenarios = (options.Scenario is null ? defaults : [options.Scenario]).Select(name =>
             new Scenario(name, name switch
@@ -123,7 +124,7 @@ internal sealed partial class Runner
             }))).ToArray();
         try
         {
-            Console.WriteLine($"Network coverage: {(options.Scenario is null ? "full" : "selected")}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
+            Console.WriteLine($"Network coverage: {coverage}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
             await _evidence.Measure("network", "suite", () => ScenarioScheduler.Run(scenarios, options.Jobs, suite.Token, _admission));
             Console.WriteLine(options.Scenario is null ? deep ? "Deep headless network journeys passed." : "Bounded headless transport verification passed; deep journeys not executed." : $"Selected network scenario passed: {options.Scenario}.");
         }
