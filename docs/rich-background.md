@@ -1,5 +1,10 @@
 # Rich live woodland composition
 
+> The full graphical CI/scenery receipts below describe this earlier feature,
+> not today's required CI. See [current verification](verification.md) for the
+> headless default. Historical UI commands now require explicit
+> `ODOT_ALLOW_GRAPHICAL_TESTS=1`; deep launchers are separately selected.
+
 This follows the [detailed-ground consumer](detailed-ground.md), not an asset
 inventory refresh. `DetailedGround`, `VillageLayout.GroundTransform` and
 `VillageLandscape` still own the cosmetic lattice, placements and rendering.

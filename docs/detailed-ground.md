@@ -114,7 +114,8 @@ cooperative assertions are retained.
 For representative views, use the existing selected asset route:
 
 ```sh
-mise run test-ui --scenario launcher --checkpoint assets
+# Requires explicit graphical authorization:
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario launcher --checkpoint assets
 ```
 
 After its unchanged static-cost samples, it captures the populated settlement,
@@ -123,9 +124,10 @@ supported gameplay zoom, then verifies building picking/selection. This adds no
 new match/display/setup: a few probes and three captures extend the owned route.
 The meaningful risk is a loaded-but-hidden floor, missing maps or bad occupied
 contact that numerical/GLB tests cannot see. Other orientation classes are honestly
-covered by the headless diagnostic, not fabricated live-map views. Full `mise run
-ci` still gates all source cases, sequential exports and headless/graphical package
-smoke; selected checks are partial coverage.
+covered by the headless diagnostic, not fabricated live-map views. Selected
+checks are partial coverage. Current CI coverage is owned by
+[verification](verification.md#ci-coverage); the graphical receipts below do not
+make rendered qualification part of today's headless gates.
 
 ### Retained evidence
 

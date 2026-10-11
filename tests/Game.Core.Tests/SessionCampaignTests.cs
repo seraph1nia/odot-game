@@ -4,6 +4,7 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests;
 
+[Trait("Tier", "Deep")]
 public sealed class SessionCampaignTests(ITestOutputHelper output)
 {
     private static readonly int[] BossWaves = [10, 20];

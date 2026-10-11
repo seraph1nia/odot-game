@@ -293,7 +293,7 @@ Negative/overlapping elapsed results are inconclusive about overhead; iterator/J
 
 ### Verification speed
 
-The refreshed unoptimized test/CI baseline uses an isolated copy of the archived game with only the same corrected ordinary-speed pending-attack witness as the final runner. Untimed preparation warms build/import inputs. Original baselines and the first failed optimized CI remain retained, with the race and source audit documented in [verification guidance](verification.md#matched-network-witness-and-refreshed-verification-baselines). Locked tools, Debug configuration, two rule processes, total expensive budget two, graphical cap two, setup speed four and ordinary witness speed one are unchanged. The after inventory adds 19 cheap regressions and two focus clicks/probes in the existing combat slice.
+The refreshed unoptimized test/CI baseline uses an isolated copy of the archived game with only the same corrected ordinary-speed pending-attack witness as the final runner. Untimed preparation warms build/import inputs. Original baselines and the first failed optimized CI remain retained, with the race and source audit documented in [verification guidance](verification-history.md#matched-network-witness-and-refreshed-verification-baselines). Locked tools, Debug configuration, two rule processes, total expensive budget two, graphical cap two, setup speed four and ordinary witness speed one are unchanged. The after inventory adds 19 cheap regressions and two focus clicks/probes in the existing combat slice.
 
 | Task (one trial each) | Scope | Before | After | Δ | Δ % |
 | --- | --- | --- | --- | --- | --- |

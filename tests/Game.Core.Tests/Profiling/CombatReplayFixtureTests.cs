@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Game.Core.Tests.Profiling;
 
+[Trait("Tier", "Deep")]
 public sealed class CombatReplayFixtureTests
 {
     [Fact]

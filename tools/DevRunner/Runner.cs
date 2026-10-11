@@ -20,15 +20,31 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         string result = "passed";
         try
         {
+            if (options.Command is "test-ui" or "test-vulkan" or "test-atmosphere" or "profile-presentation" or "test-steam" or "verify-installed-linux" or "verify-installed-windows"
+                && Environment.GetEnvironmentVariable("ODOT_ALLOW_GRAPHICAL_TESTS") != "1")
+                throw new VerificationPrerequisiteException("Graphical qualification is explicit only. ODOT_ALLOW_GRAPHICAL_TESTS=1 requires authorization; default CI is headless.");
+            if (options.Command == "test-ui" && options.Scenario is null)
+                throw new ArgumentException("Select one graphical --scenario; unfiltered UI is not a default suite.");
             switch (options.Command)
             {
                 case "help":
+                    Console.WriteLine("Testing: test-fast|test-core|test-runner [--filter .NET-expression] [--jobs N]; test-campaign explicitly selects Tier=Deep. test-engine --scenario settings|animation|assets; test-deep runs C# campaigns + headless network journeys. No graphical CI by default.");
                     Console.WriteLine("Presentation profile: profile-presentation --scenario combat-playback|authored-scale --frames 600 --iterations 1..10 --configuration Debug [--work-counters]; one owned graphical worker and separate warm-up, not a default UI case.");
-                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (--jobs 1..2 (default 2, selected slice 1); exported-package uses existing exports); --scenario combat --ui-checkpoint melee|research selects an independently bounded rendered gate\nVerification: --simulation-speed 1..8 (default 4 setup, graphical witnesses 1), --trace. CI: --jobs N total expensive budget, --ui-jobs 1..2 graphical cap.\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
+                    Console.WriteLine("Commands: dev, play, server, client, prepare, test-network, test-ui, check-ui-prerequisites, prepare-templates, export-client, export-server, ci\nOptions: --host ADDRESS --bind ADDRESS --port PORT --startup-timeout-ms MS --timeout-ms MS --session-file PATH\nNetwork: --jobs N (default 2; serial 1), --scenario NAME\nUI: --scenario NAME (--jobs 1..2 (default 2, selected slice 1); exported-package uses existing exports); --scenario combat --ui-checkpoint melee|research selects an independently bounded rendered gate\nVerification: --simulation-speed 1..8 (default 4 setup, graphical witnesses 1), --trace. CI: --jobs N headless network admission budget; --ui-jobs 1..2 retained compatibility option (no graphical workers in CI).\nNetwork scenarios: " + string.Join(", ", ScenarioNames.Network) + "\nUI scenarios: " + string.Join(", ", ScenarioNames.Ui) + "\nDesktop dev/client/play accept repeated --engine-arg VALUE. Dev: --guests 1..3 (default 1).");
                     Console.WriteLine("Steam compatibility: check-steam-extension [--offline] [--exported] [--target linux-x64|windows-x64] (single account). Paired: test-steam --role host|guest [--lobby ID] [--exported] [--scenario direct-invite] (two accounts/machines; normal desktop).\nClient packaging: export-client [--tag vVERSION] [--target linux-x64|windows-x64] [--steam-app-id ID] [--production] (stable tags/production require own non-480 ID; tagged exports require a clean tag checkout).\nNative Windows validation: ci-windows (source/export/runtime/offline solo; no publishing).\nDevelopment Steam initialization defaults to 480; ODOT_STEAM_APP_ID overrides development runs.");
                     break;
                 case "prepare": await Prepare(); break;
-                case "test-rules": await CheapTests(); break;
+                case "test-rules":
+                case "test-fast":
+                case "test-core":
+                case "test-runner":
+                case "test-campaign": await CheapTests(); break;
+                case "test-engine": await Prepare(); await EngineTests(); break;
+                case "test-deep":
+                    await Prepare();
+                    await new Runner(options with { Command = "test-campaign" }, cancellation, _evidence, root: _root).CheapTests();
+                    await NetworkTests(deep: true);
+                    break;
                 case "test-assets": await Prepare(); await AssetFidelity(); break;
                 case "test-native-pump": await Prepare(); await NativePump(); break;
                 case "inspect-admission-timing": MeleeTimingReport.Write(options.EvidenceDirectory ?? throw new ArgumentException("Missing owned --evidence-directory.")); break;
@@ -87,17 +103,28 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
             string coverage = options.Scenario is not null ? "selected: " + options.Scenario + (options.UiCheckpoint is null ? "" : "/" + options.UiCheckpoint) : options.Command switch
             {
                 "test-ui" or "_ui-worker" => "all source UI slices",
-                "ci" or "test-network" => "full required set",
-                "test-rules" => "all C# rules, campaign partitions and tooling; no Godot",
+                "ci" => "headless source and Linux package gates; no graphical/deep qualification",
+                "test-network" => "bounded headless transport set",
+                "test-rules" or "test-fast" => "fast C# core and runner; excludes Tier=Deep; no Godot" + (options.Filter is null ? "" : "; selected filter: " + options.Filter),
+                "test-core" or "test-runner" => "selected C# project; excludes Tier=Deep; filter: " + (options.Filter ?? "all fast"),
+                "test-campaign" => "deep C# campaigns; filter: " + (options.Filter ?? "all deep"),
+                "test-engine" => "focused headless production components; no game session",
+                "test-deep" => "deep C# campaigns and all headless network journeys; no graphics",
                 "test-assets" => "owned headless static rendering buffers and corruption regressions; optional unsafe consolidation deferred",
                 "test-native-pump" => "owned native reliable snapshot/event-cursor/receipt conservation under ordinary and delayed polling, cancellation drain and cleanup; no graphical acceptance",
                 "inspect-admission-timing" => "read-only inspection of retained owned timing evidence; no Godot or new game acceptance",
-                "ci-source" => "all source gates; no exports or package coverage",
-                "ci-linux-package" => "Linux exports/native/headless/private UI; source gates separate",
+                "ci-source" => "fast C#, focused headless engine, bounded transport; no deep campaigns, graphics or exports",
+                "ci-linux-package" => "Linux exports/native/headless; no graphics; source gates separate",
                 "ci-windows" => "Windows source/native/export/offline solo; Linux and real Steam gates separate",
                 _ => "command only; no test coverage claimed"
             };
-            await _evidence.Summary(options.Command, coverage, options.Command is "ci" or "ci-source" or "test-network" ? options.Jobs : options.Command == "test-rules" ? 2 : options.Command == "test-ui" && options.Scenario is null ? Math.Min(options.Jobs, options.UiJobs) : 1, result, timer.Elapsed.TotalSeconds, options.UiJobs, options.SimulationSpeed, options.Trace);
+            int jobs = options.Command switch
+            {
+                "ci" or "ci-source" or "test-network" or "test-deep" => options.Jobs,
+                "test-rules" or "test-fast" => Math.Min(options.Jobs, 2),
+                _ => 1
+            };
+            await _evidence.Summary(options.Command, coverage, jobs, result, timer.Elapsed.TotalSeconds, options.UiJobs, options.SimulationSpeed, options.Trace);
         }
     }
 
@@ -253,7 +280,7 @@ internal sealed partial class Runner(Options options, CancellationToken cancella
         _ => throw new ArgumentException("Unknown renderer: " + renderer)
     };
 
-    internal static bool OwnsVerificationCommand(string command) => command is "test-native-pump" or "test-assets" or "test-network" or "test-ui" or "test-vulkan" or "test-atmosphere" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows";
+    internal static bool OwnsVerificationCommand(string command) => command is "test-engine" or "test-deep" or "test-native-pump" or "test-assets" or "test-network" or "test-ui" or "test-vulkan" or "test-atmosphere" or "_ui-worker" or "ci" or "ci-source" or "ci-linux-package" or "ci-windows";
     private Child StartGameRole(string name, string role, bool headless, int port, string? exported = null, params string[] extra)
     {
         var args = GameArguments(name, role, headless, port, exported, extra);

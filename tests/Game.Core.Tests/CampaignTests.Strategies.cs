@@ -3,6 +3,7 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests;
 
+[Trait("Tier", "Deep")]
 public sealed class FrontlineCampaignTests(ITestOutputHelper output)
 {
     [Theory]
@@ -12,6 +13,7 @@ public sealed class FrontlineCampaignTests(ITestOutputHelper output)
     public void OrdinarySoloStrategyWins(ulong seed) => CampaignAcceptance.Run(output, "frontline", 1, seed);
 }
 
+[Trait("Tier", "Deep")]
 public sealed class MixedCampaignTests(ITestOutputHelper output)
 {
     [Theory]
@@ -21,6 +23,7 @@ public sealed class MixedCampaignTests(ITestOutputHelper output)
     public void OrdinarySoloStrategyWins(ulong seed) => CampaignAcceptance.Run(output, "mixed", 1, seed);
 }
 
+[Trait("Tier", "Deep")]
 public sealed class TowersCampaignTests(ITestOutputHelper output)
 {
     [Theory]
@@ -30,6 +33,7 @@ public sealed class TowersCampaignTests(ITestOutputHelper output)
     public void OrdinarySoloStrategyWins(ulong seed) => CampaignAcceptance.Run(output, "towers", 1, seed);
 }
 
+[Trait("Tier", "Deep")]
 public sealed class ResearchCampaignTests(ITestOutputHelper output)
 {
     [Theory]
@@ -39,6 +43,7 @@ public sealed class ResearchCampaignTests(ITestOutputHelper output)
     public void OrdinarySoloStrategyWins(ulong seed) => CampaignAcceptance.Run(output, "research", 1, seed);
 }
 
+[Trait("Tier", "Deep")]
 public sealed class CooperativeCampaignTests(ITestOutputHelper output)
 {
     [Theory]

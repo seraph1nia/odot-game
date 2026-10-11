@@ -1,5 +1,8 @@
 # Spec Delta
 
+> Historical completed delta, not current requirements. Its routine campaign and
+> graphical selections are superseded by the [current capability spec](../../../../specs/coop-verification/spec.md).
+
 ## MODIFIED Requirements
 
 ### Requirement: Engine-independent cooperative rules tests

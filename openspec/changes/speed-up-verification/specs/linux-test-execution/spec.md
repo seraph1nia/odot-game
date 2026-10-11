@@ -1,5 +1,8 @@
 # Spec Delta
 
+> Historical completed delta, not current requirements. Its automatic graphical
+> selections are superseded by the [current capability spec](../../../../specs/linux-test-execution/spec.md).
+
 ## MODIFIED Requirements
 
 ### Requirement: Shared preparation before verification

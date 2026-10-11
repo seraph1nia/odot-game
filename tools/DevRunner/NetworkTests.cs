@@ -95,10 +95,12 @@ internal sealed partial class Runner
     private static string EconomicCity(CityState city) => JsonSerializer.Serialize(city with
     { DefenderCooldown = 0, Soldiers = city.Soldiers.Select(unit => unit with { Cooldown = 0 }).ToArray() }, WireJson.Options);
     private static string Gameplay(MatchSnapshot s) => JsonSerializer.Serialize(s with { Revision = 0, Players = s.Players.Select(p => p with { Connected = false, Ready = false }).ToArray() }, WireJson.Options);
-    private async Task NetworkTests()
+    private async Task NetworkTests(bool deep = false)
     {
         using var suite = CancellationTokenSource.CreateLinkedTokenSource(cancellation); suite.CancelAfter(options.Timeout);
-        var scenarios = ScenarioNames.Network.Where(n => options.Scenario is null || options.Scenario == n).Select(name =>
+        string coverage = options.Scenario is not null ? "selected" : deep ? "deep" : "bounded";
+        string[] defaults = deep ? ScenarioNames.Network : ["failure-cases", "solo-session", "playing-host-lifecycle"];
+        var scenarios = (options.Scenario is null ? defaults : [options.Scenario]).Select(name =>
             new Scenario(name, name switch
             {
                 "solo-session" => "Socketless local authority and fresh application session state; pure core tests miss delivery/lifetime.",
@@ -122,9 +124,9 @@ internal sealed partial class Runner
             }))).ToArray();
         try
         {
-            Console.WriteLine($"Network coverage: {(options.Scenario is null ? "full" : "selected")}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
+            Console.WriteLine($"Network coverage: {coverage}; jobs={options.Jobs}; {string.Join(", ", scenarios.Select(s => s.Name))}");
             await _evidence.Measure("network", "suite", () => ScenarioScheduler.Run(scenarios, options.Jobs, suite.Token, _admission));
-            Console.WriteLine(options.Scenario is null ? "Network verification passed (all required groups)." : $"Selected network scenario passed: {options.Scenario}.");
+            Console.WriteLine(options.Scenario is null ? deep ? "Deep headless network journeys passed." : "Bounded headless transport verification passed; deep journeys not executed." : $"Selected network scenario passed: {options.Scenario}.");
         }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new TimeoutException($"Network suite exceeded {options.Timeout} ms; children were cleaned up."); }
     }

@@ -30,7 +30,7 @@ without starting Godot. See
 [gameplay rules and compatibility](docs/gameplay.md#deterministic-hex-combat) and
 [verification evidence](docs/verification.md).
 
-Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Desktop clients default to native Forward+ / Vulkan on supported GPUs/drivers; Compatibility / OpenGL 3.3 remains the fallback. A display is required for play. Rules/network tests and servers are headless; required graphical verification explicitly uses Compatibility on an owned virtual display with software OpenGL, without a physical screen, GPU or audio device. See [renderer, atmosphere and graphics settings](docs/atmosphere.md) for switching, restart-later preferences and the separate optional native Vulkan smoke.
+Install [mise](https://mise.jdx.dev/), Git, and the OS prerequisites for [.NET](https://learn.microsoft.com/dotnet/core/install/) and [Godot](https://docs.godotengine.org/en/stable/about/system_requirements.html). Desktop clients default to native Forward+ / Vulkan on supported GPUs/drivers; Compatibility / OpenGL 3.3 remains the fallback. A display is required for play. Default tests and PR/main CI are headless. Graphical qualification is explicitly selected and gated, not a prerequisite for routine development. See [renderer, atmosphere and graphics settings](docs/atmosphere.md) for switching, restart-later preferences and the separate optional native Vulkan smoke.
 
 ```sh
 mise trust
@@ -67,7 +67,7 @@ Track source scenes/assets, source resource UID sidecars, project files, export 
 
 All C# projects inherit strict compilation from `Directory.Build.props`: nullable reference checking and implicit usings are enabled, and compiler/analyzer warnings fail the build. The locked SDK supplies the recommended .NET analyzers (`AnalysisLevel=latest-recommended`) without an extra NuGet dependency. Style analysis also runs during compilation; `.editorconfig` requires file-scoped namespaces and readonly fields where possible, and the formatting check rejects whitespace drift. Fix diagnostics rather than weakening enforcement or suppressing findings.
 
-The verification loop is `mise run check` (locked restore and `dotnet format --verify-no-changes`), `mise run build`, then `mise run test`, followed by the affected `test-network`/`test-ui` slice. `mise run ci` requires formatting, strict compilation, both xUnit suites, all Godot network/source UI checks and both exported-package smoke checks, while sharing source preparation and gating exports as described below.
+Use targeted `test-core`/`test-runner` during implementation, broader `test-fast` once coherent, and `test-engine`/`test-network` only for relevant engine/transport changes. Formatting is `mise run check`. `mise run ci` is now headless source plus sequential Linux exports/package checks, not a required before/after development tax. See [verification](docs/verification.md) and the [testing command skill](.agents/skills/testing-commands/SKILL.md).
 
 `Odot.slnx` is the repository solution. `src/Game/Game.sln` is the small engine-local solution required by Godot's C# editor/exporter; it includes the game and its core dependency, while tests and tooling stay outside the Godot import root. The explicit game target framework prevents the editor from inserting its default framework during import.
 
@@ -89,23 +89,18 @@ mise run dev --guests 3
 mise run play
 mise run server --bind 127.0.0.1 --port 7001
 mise run client --host 127.0.0.1 --port 7001 --session-file .sessions/player-a.json
-mise run test
-mise run test-network
+mise run test-fast
+mise run test-core --filter 'FullyQualifiedName~HexRoutingTests'
+mise run test-runner
+mise run test-engine --scenario settings
+mise run test-network --scenario playing-host-lifecycle
+# Explicit headless deep qualification, not the default development loop:
+mise run test-campaign
 mise run test-network --scenario redistribution
-mise run test-network --jobs 1
-mise run test-ui --scenario economy
-mise run test-ui --scenario reconnect
-mise run test-ui --scenario settings
-mise run test-ui --scenario launcher
-mise run test-ui --scenario combat
-mise run test-ui --scenario combat --checkpoint melee
-mise run test-assets
-# Explicit diagnostics, not additional default CI matches:
-mise run test-native-pump
-mise run test-ui --scenario combat --checkpoint admission
-mise run test-ui --scenario launcher --checkpoint assets
-mise run test-ui --scenario combat --ui-checkpoint research
-mise run ci
+mise run test-deep
+mise run ci-source
+mise run ci-linux-package
+# Graphical checks require separate authorization; do not run under headless-only tasks.
 ```
 
 `dev` builds/imports once and opens two playable desktop windows: one playing host and one guest, using ENet without Steam. `--guests 1..3` changes the guest count; the host owns the first city. Wait for the roster, then click **Start match** in the host window. Each process has isolated temporary preferences and credentials. Closing a window or Ctrl+C stops only supervised peers. `play` opens the normal start screen. Individual roles prepare themselves and keep endpoint arguments. Default bind/host is loopback and default port is 7000. Bind a LAN interface explicitly for ENet play on another machine, allowing its UDP port.
@@ -133,54 +128,59 @@ Run `prepare` first for direct commands. Headless is a display mode; explicit `-
 
 ### Choose a check
 
-For routine edits, choose the affected slice using the [execution policy](AGENTS.md#choose-checks-by-cost-and-affected-behavior). These examples show relative cost and coverage; choose another current selector when it better matches the change.
+Choose the smallest tier that can catch the changed behavior. The repository's
+[testing strategy](.agents/skills/testing-strategy/SKILL.md) owns that decision;
+[testing commands](.agents/skills/testing-commands/SKILL.md) owns exact selectors,
+filter syntax, preparation and cleanup. A filtered pass is partial coverage.
 
-| Task | Check | Preparation, cost and coverage |
-| --- | --- | --- |
-| Change numerical rules or runner logic | `mise run test` | Locked restore/build of cheap C# gameplay and runner suites; no Godot. Run frequently when applicable. |
-| Diagnose affected networking or transfer | `mise run test-network --scenario redistribution` | Standalone source preparation and real headless peers; selected transfer coverage. |
-| Change rendered controls or recovery | `mise run test-ui --scenario reconnect` | Standalone source preparation and owned Linux private display; selected recovery controls/rendering coverage. |
-| Check existing exported presentation | `mise run test-ui --scenario exported-package` | Existing client/server exports and private-display prerequisites required; selected packed UI coverage, with no source preparation or implicit package rebuild. |
-| Start/finish a substantial implementation | `mise run ci` | Full local Linux source gates, ordered client/server exports and headless/graphical package checks; reuse a successful before baseline when source/environment inputs are unchanged. |
-| Edit documentation or an OpenSpec proposal only | Relevant link/content consistency; `openspec validate CHANGE-ID --strict` for changed proposals | No automatic game/export run. |
+| Change | Suggested check |
+| --- | --- |
+| Numerical rules / subsystem | `mise run test-core --filter 'FullyQualifiedName~Research'` |
+| Runner ownership / cancellation | `mise run test-runner` |
+| Coherent implementation | `mise run test-fast`, formatting |
+| Godot controls / resources / animation | `mise run test-engine --scenario settings` (or `animation` / `assets`) |
+| Real transport / session lifetime | `mise run test-network --scenario playing-host-lifecycle` |
+| Export/package boundary | `mise run ci-linux-package` / native Windows `ci-windows` |
+| Explicit campaign qualification | `mise run test-campaign` |
+| Documentation only | Link/content/planning consistency; no automatic engine/export run |
 
-A filtered pass is partial coverage and cannot replace a required full gate. Run full CI before and after a substantial implementation task; normal CI triggers retain all required gates. Repeat a successful check only for changed relevant inputs, failure or an unresolved concern. See the [selector and preparation details below](#verification-command-details) and [coverage, timings and retained log/PNG evidence](docs/verification.md#verification-speed-implementation-evidence-2026-10-02).
-
-[Setup](#setup) owns the locked tools and user-managed OS/private-display prerequisites. Missing prerequisites are **unexecuted**; assertion/rendering failures are **failed**. Software-rendered frames and silent audio assertions do not establish native compositor/GPU performance, physical input or listening quality. [Runtime profiles](docs/simulation-performance.md), [native package checks](docs/distribution.md) and [paired Steam acceptance](docs/verification.md#external-steam-prerequisites-and-deferred-acceptance) remain separate routes.
+[Setup](#setup) owns locked tools and user-managed prerequisites. Missing
+prerequisites are **unexecuted**; assertions are **failed**. Runtime profiles,
+installer/real Steam qualification and rendered acceptance remain separate.
+See [current verification and measurements](docs/verification.md).
 
 ### Verification command details
 
-`test` runs cheap xUnit gameplay and runner tests without Godot. `test-network` launches separate real headless ENet peers and preserves ownership, economy, readiness, battle, pause/resume, retry, transfer, observer and early-clear/defeat coverage; complete victory and boss flows run in C#. Stable ids are `authority-resume-victory`, `redistribution`, `defeat`, `failure-cases`, `solo-session` and `playing-host-lifecycle`. The new slices cover socketless solo and original playing-host lifetime. Independent cases run with two workers by default; `--jobs 1` runs the same assertions serially. `--scenario NAME` runs only that case and reports selected coverage. `--port` pins the authority case, so it is rejected with other selected cases. Failure checks include unavailable/stopped servers, occupied ports, automatic bind retry, readiness deadlines and child exit; unrelated owners are preserved.
-
-`test-ui` runs five source slices with at most two Compatibility workers, each on its own Xvfb/Xauthority/Openbox display: `economy` checks picking, six-resource costs, equipment recruitment, upkeep, land expansion, Market trades and sale/rebuild input, `reconnect` checks the actual recovery control, and `settings` checks modal input blocking, persisted volume and renderer-aware graphics presets/Custom/Apply/Cancel/comfort controls through actual keyboard and scroll input. `launcher` checks menu, offline feedback, settings/music continuity, solo, return/fresh session and actual Exit at 1100×820 and 1280×720. `combat` checks mixed rigged units, contact, attack/effect/death poses, pause and fresh-session cleanup. Each has fresh peers/data and can run alone with `--scenario`; no earlier slice or full match is required. `mise run test-ui --scenario economy --checkpoint army` independently selects the owned two-wave home/retirement/storage/recovery control slice, also included in complete economy coverage. Cheap `ArmyBalanceTests` and `EconomyArmyFixtureTests` retain paid calibration and same-seed causal controls without Godot. Rendering uses X11, Mesa software OpenGL, at most 30 FPS/two Mesa threads and silent Dummy audio. Physics remains at 60 Hz. Screenshots follow completed rendering and accompany authoritative assertions. The C# scenario harness shares ownership, waits, input/capture helpers and cleanup between local and CI checks; recurring verification needs no pasted Python or external temporary SceneTree probes.
-
-The runner logs each process separately under ignored `logs/` and prints failed conditions with process output. Startup readiness has a 15-second deadline. Network suites and selected packed UI slices default to 300 seconds; standalone full combat defaults to 420 seconds and selected research to 210 seconds. Other selected UI slices, including melee, default to 180 seconds. Ordinary source UI workers default to 600 seconds and source/full CI workers to 900 seconds. Complete economy instead defaults to 1080 seconds, with its nested or independently selected army checkpoint bounded at 420 seconds. Override with `--startup-timeout-ms` and `--timeout-ms` on network/UI tasks; dev also accepts the startup deadline. Explicit worker deadlines are preserved, and parent cancellation still bounds nested checkpoints. See [verification evidence](docs/verification.md) for measured costs. Network tests default to a dynamically selected loopback UDP port; pass `--port` for a specific endpoint. An occupied explicit port fails without killing its owner. Graphical clients show connecting, connected, connection-failed and server-disconnected status.
-
-Standalone network/source UI tasks prepare safely. `ci` restores the solution, checks formatting and compiles/imports once, overlaps cheap C# partitions, bounded network cases and source UI under a shared expensive-scenario budget (default `--jobs 2`, graphical cap `--ui-jobs 2`), and requires all source UI slices **before** Linux client/server exports. Exports remain ordered. Headless exported-role smoke and the minimal private-display exported-package slice gate final success. A failed source gate prevents both exports. GitHub Actions provisions graphics prerequisites and runs source checks, Linux packaging and native Windows packaging in parallel on separate runners; all three jobs must pass. Its source command uses `--ui-jobs 2` with the default total budget of two, retaining all five UI and six network scenarios. Complete economy has a scenario-specific 1080s worker allowance, including the nested 420s army slice; the independently selected army checkpoint also uses 420s. Explicit `--timeout-ms` still overrides the worker allowance, and parent cancellation still bounds army. These wall-clock envelopes change neither game timing nor assertions: research retains its 120s setup bound with a 60s controls allowance, other CI workers remain 900s, and the hosted source job remains 25 minutes. See the [measured economy allowance rationale](docs/verification.md#hosted-overlapping-economy-wall-clock-allowance-2026-10-10). All required fresh captures, clean exit and every remaining case must actually finish on the exact final head. The workflow runs only for pull requests targeting `main` and pushes to `main`, with read-only repository permissions. Outputs stay in the workspace: **no uploads, releases, publishing or deployment**.
+For exact default selections, filters, deadlines, serial debugging and explicitly
+authorized graphical checkpoints, use the [testing command reference](.agents/skills/testing-commands/SKILL.md).
+Do not run simultaneous tasks that mutate shared build/import/export outputs.
+[Current verification](docs/verification.md#ci-coverage) owns CI job coverage,
+artifact policy and the separate weekly/manual headless deep workflow.
 
 ```sh
 mise run prepare-templates
 mise run export-client
 mise run export-client --target windows-x64
 mise run export-server
-mise run test-ui --scenario exported-package
+mise run ci-linux-package
 ```
 
 Matching .NET export templates are downloaded explicitly, checksum-verified and installed in Godot's user template directory. This is engine data, separate from mise tools and NuGet dependencies. Repeating preparation is safe. Linux exports go to ignored `dist/client` and `dist/server`; Windows desktop exports go to `dist/windows-client`. Individual export tasks are available for local iteration; local `mise run ci` applies the test gate before invoking them. Linux can cross-export Windows for inventory inspection; native launch verification requires Windows x86_64.
 
-On native Windows, `mise run ci-windows --startup-timeout-ms 60000` performs locked restore, formatting, build/import, offline native Steam source/export probes, package/runtime inventory checks and a bounded standalone solo launch. It uses isolated APPDATA/LOCALAPPDATA and removes SDK discovery from exported processes. The ordinary `Verify and build` workflow runs `ci-source`, `ci-linux-package` and native Windows checks in parallel on separate runners at the same commit. All three jobs must pass for workflow success. Local `mise run ci` retains its complete Linux checks with one source preparation. This ordinary workflow has no uploads or publishing.
+On native Windows, `mise run ci-windows --startup-timeout-ms 60000` performs locked restore, formatting, build/import, offline native Steam source/export probes, package/runtime inventory checks and a bounded standalone solo launch. It uses isolated APPDATA/LOCALAPPDATA and removes SDK discovery from exported processes. Local `mise run ci` gates sequential Linux exports/package checks on headless source success with one source preparation; `ci-linux-package` alone does not run the source gates. See [CI coverage](docs/verification.md#ci-coverage) for hosted job selection and uploaded evidence.
 
 The separate `Build published release` workflow distributes packages only when the owner publishes an existing GitHub release; release-automation/package PRs also exercise its same build/transfer/assembly path with ephemeral local tags and no release publication. It checks the exact SemVer tag and public repository, then builds native Linux/Windows packages in parallel without rerunning the test suites. Its final job alone checks package identities/checksums and attaches the installer, archive, install script, checksum manifest and public build metadata. Release runs never publish logs or player state and never overwrite an existing version. See [distribution documentation](docs/distribution.md) for friend-facing installation, manual updates, supported Linux systems and the release procedure.
 
 For optional `test-atmosphere` / `test-vulkan`, existing-client `--exported` checks, authorized windowed native execution and focused Settings checkpoints, see [renderer verification](docs/atmosphere.md#verification-and-visual-evidence). [Qualification status](docs/atmosphere.md#qualification-status) distinguishes current selected coverage from historical full/native/export receipts.
 
-The selected `exported-package` slice uses existing exports without source preparation or implicit rebuilding, and fails clearly if either executable is missing. It checks packed resources, one real UI purchase, launcher/solo transitions and rendered checkpoints. Every verification scenario owns temporary XDG preferences/cache, sessions, ports and explicit engine logs; restart reuses its client's owned state. Evidence remains in ignored `logs/<run-id>/`, with phase/scenario JSON timings, renderer information, logs and PNGs. Owned runtime/display state is removed on success, failure, timeout or interruption. Diagnostic selected runs are partial coverage, not full-suite passes.
-
-During development, run applicable cheap `test` checks frequently and choose the affected network/UI slice when it adds useful evidence. Run full `ci` before and after a substantial feature/change, reusing an unchanged successful baseline; an edit or checklist item is not a new full-suite boundary. Do not repeat passed checks on unchanged inputs. Documentation-only edits need documentation/plan consistency checks. CI still requires every gate on its normal triggers.
-
-Add expensive tests only for a meaningful regression/risk that cheaper or existing checks miss. Document that gap and expected runtime/setup/maintenance cost alongside the scenario. Prefer a small independent vertical slice or an extension to an existing case. A simple option does not automatically warrant E2E coverage; avoid feature/option matrices and graphical duplication of full headless match flows. The initial slices protect actual picking/control routing, visible reconnect recovery, modal/persistence boundaries and packed-resource loading.
-
-The cheap suites cover gameplay/presentation/transport and runner xUnit cases; see the [final economy integration gate](docs/verification.md#final-full-gate-passed) for recorded counts and coverage. Native Windows source/export validation has passed on GitHub-hosted `windows-2025`; actual release-installer verification is available as an explicitly selected package-qualification task. Timing observations are single runs rather than portable benchmarks; see [POC verification](docs/verification.md) for evidence and limitations. Real Steam peer/invitation/relay acceptance remains separate. [AGENTS.md](AGENTS.md) carries the execution/admission policy for coding agents.
+Selected exported graphical checks use existing exports, never implicit rebuilding.
+Every verification owns preferences/cache, credentials, endpoints and engine logs;
+restarts reuse only their client's state, cleanup awaits every child, and unrelated
+owners remain untouched. Failure evidence is bounded and redacted. See
+[testing hygiene](.agents/skills/testing-hygiene/SKILL.md) before adding/removing
+coverage and [flaky diagnosis](.agents/skills/diagnose-flaky-tests/SKILL.md) before
+changing deadlines. Current measurements and unexecuted qualification are recorded
+in [verification](docs/verification.md); historical receipts are explicitly separate.
 
 ## Reconnect and local sessions
 
@@ -262,16 +262,14 @@ that release qualification remains pending. See [verification](docs/verification
 for prerequisites, own-AppID cold launch, packaging, coverage and limitations.
 
 
-Animated combat has a selectable owned-display check: `mise run test-ui --scenario
-combat`. It recruits a small mixed army through actual controls, checks moving
-bones, paused poses, melee/shoot/hit/death and fresh-session cleanup through
-ordinary paid battles. Full source CI includes this fifth slice; packed smoke also exercises
-short combat and rig/weapon bindings. Reconnect tests restore paused current
-state without historical effects. See [combat rules](docs/gameplay.md) and
-[verification](docs/verification.md) for scope and measured evidence.
+Animated combat is protected by pure C# timing/state tests and focused headless
+`test-engine --scenario animation` against production imported rigs. Explicit
+owned-display combat acceptance remains available but is not PR/main CI coverage.
+Research is a separate checkpoint, not appended to combat's remaining deadline.
+See [verification](docs/verification.md) for executed scope and limitations.
 
 The early hex-melee proof is selected with `mise run test-ui --scenario combat
---checkpoint melee`. See [combat presentation verification](docs/verification.md#clarified-combat-presentation-verification)
+--checkpoint melee` with explicit graphical authorization. See [historical combat presentation verification](docs/verification-history.md#clarified-combat-presentation-verification)
 for its paid setup, bounded normal-speed progression and paused captures, linked
 near/far cues, settled-anchor clearance and intentional transit overlap.
 Authority application arguments accept `--combat-seed <unsigned-64-bit>` for
@@ -279,17 +277,11 @@ repeatable diagnostics; guests cannot select the seed. Without it, a match
 generates its seed once. No seed editor is added to the interface.
 
 
-Cheap C# verification (`mise run test`) restores/builds once and runs disjoint
-already-built campaign/general/tooling partitions with at most two test hosts.
-The ordinary sample remains 21 twenty-wave strategies; one additional serialized
-authority campaign checks boss and terminal wire state. Session flows use ordinary
-accepted requests and bounded direct ticks, not wall-clock sleeps or resource
-grants. `mise run test-in-process` retains the same discovered tests without host
-sockets. Seed/configuration and first failing wave/tick identify flow failures.
+The [testing command reference](.agents/skills/testing-commands/SKILL.md) owns
+fast/deep selection, the socketless fallback, concurrency and setup pacing.
+Interactive launches remain at ordinary simulation speed.
 
-Verification accepts `--simulation-speed 1..8` (default 4 for owned headless/setup authority). Each callback executes consecutive ordinary fixed ticks; gameplay rules and interactive launches keep their normal speed. Graphical animation witnesses explicitly acknowledge speed 1. Use `mise run test-network --scenario redistribution --simulation-speed 1` for pacing diagnosis, `mise run test-ui --jobs 1` for serial graphical coverage, or `mise run ci --jobs 1 --ui-jobs 1` for serial expensive admission. Selected graphical slices always own one worker.
-
-Routine transcripts contain compact revision/tick/phase results, buffered writes, a recent full-state ring capped at 16 snapshots/16 MiB, and engine diagnostics capped at 8 MiB per child. Failure, timeout, cancellation and cleanup retain redacted state checkpoints; truncation is explicit. `--trace` retains full protocol output for diagnosis with greater disk cost. Summaries report evidence bytes; child checkpoint reports include ticks, pacing and transcript bytes. The focused packed/installed graphical route checks menu, solo, one purchase, archive rig/clip bindings, a live animation, both supported sizes and Exit. Source slices own detailed combat and application transitions; headless package role checks remain required.
+Routine transcripts contain compact revision/tick/phase results, buffered writes, a recent full-state ring capped at 16 snapshots/16 MiB, and engine diagnostics capped at 8 MiB per child. Failure, timeout, cancellation and cleanup retain redacted state checkpoints; truncation is explicit. `--trace` retains full protocol output for diagnosis with greater disk cost. Summaries report evidence bytes; child checkpoint reports include ticks, pacing and transcript bytes. The default explicitly selected packed graphical smoke uses one offline application, build/recruit, return/Exit and one frame; legacy packed/installed journeys remain deep qualification. Headless package/runtime probes remain required; neither they nor silent Dummy audio establish rendered or listening quality.
 
 Runtime profiles are separate from verification speed. Select a workload explicitly:
 
@@ -298,8 +290,9 @@ mise run profile-campaign --strategy frontline --players 4 --seed 1 --iterations
 mise run test-scale --scenario large-battle --seed 1
 mise run profile-scale --scenario large-battle --sizes 128,512,2048 --seed 1 --iterations 3 --configuration Release
 mise run profile-snapshots --scenario ordinary-and-large --iterations 3 --configuration Release
-mise run profile-presentation --scenario combat-playback --frames 600 --iterations 3 --configuration Debug
-mise run profile-presentation --scenario authored-scale --frames 600 --iterations 1 --configuration Debug
+# Graphical profiles: explicitly authorized only, never under a headless-only task.
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run profile-presentation --scenario combat-playback --frames 600 --iterations 3 --configuration Debug
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run profile-presentation --scenario authored-scale --frames 600 --iterations 1 --configuration Debug
 ```
 
 See the [interaction scaling review](docs/simulation-performance.md),
@@ -312,8 +305,7 @@ executions with a separate warm-up and retain raw evidence in ignored `logs/`.
 Engine-free profiles default to Release; presentation uses the existing locked
 Debug Godot build and an owned software-rendered display. `test-scale` runs the
 synthetic 2,048-actor, 600-tick correctness window once, without warm-up. It is
-mandatory for this optimization's before/after acceptance and is separate from
-routine `test`/CI and graphical coverage. See [verification guidance](docs/verification.md)
+explicit stress qualification, separate from routine `test`/CI and graphical coverage. See [verification guidance](docs/verification.md)
 for phase boundaries, counter meanings, scope and comparison limitations.
 
 Campaign checks retain compact complete summaries and expand their latest 64

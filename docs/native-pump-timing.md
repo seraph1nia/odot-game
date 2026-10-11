@@ -21,13 +21,16 @@ is **not game acceptance**. Required four paused near/far overview/close images 
 
 ```sh
 mise run test-native-pump
-mise run test-ui --scenario combat --checkpoint admission --jobs 1
+# Only when graphical qualification is explicitly authorized:
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario combat --checkpoint admission --jobs 1
 dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll inspect-admission-timing \
   --evidence-directory "$PWD/logs/20261005-092301-52c169a5/combat-worker/combat"
 ```
 
-The native control and admission checkpoint are explicit diagnostics; neither enters unfiltered UI
-or ordinary CI as another match. Native peers use the locked Godot .NET engine, actual loopback
+The native control and admission checkpoint are explicit diagnostics; neither is
+part of ordinary CI. The admission checkpoint requires graphical authorization;
+there is no unfiltered UI suite (see [testing commands](../.agents/skills/testing-commands/SKILL.md)).
+Native peers use the locked Godot .NET engine, actual loopback
 ENet, ordinary `SceneMultiplayer`, reliable channel 1 snapshots, reliable channel 0 acknowledgements,
 and the unchanged complete `SnapshotPayload` codec. Only the isolated headless control tree disables
 automatic polling and deliberately delays its own poll/presentation admission. Product authority

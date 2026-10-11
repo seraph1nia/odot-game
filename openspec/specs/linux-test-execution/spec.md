@@ -7,14 +7,14 @@ Provide repeatable Linux verification that preserves desktop usability while run
 ## Requirements
 
 ### Requirement: Private-display Linux graphical execution
-The repository SHALL expose `mise run test-ui` on Linux x86_64 to run graphical clients on an owned private virtual display with rendering active and silent audio. The task SHALL require no physical display or GPU and SHALL NOT create windows, move the pointer, inject input, or change focus on the user's desktop. Missing display or graphics prerequisites SHALL fail clearly with nonzero status without falling back to the user's display or installing dependencies. `mise run dev` and the interactive client task SHALL retain their desktop-window behavior. Windows/macOS private-display execution SHALL be outside this change's supported scope.
+The repository SHALL expose explicitly authorized `mise run test-ui --scenario NAME` on Linux x86_64 to run graphical clients on an owned private virtual display with rendering active and silent audio. The task SHALL require no physical display or GPU and SHALL NOT create windows, move the pointer, inject input, or change focus on the user's desktop. Missing display or graphics prerequisites SHALL fail clearly with nonzero status without falling back to the user's display or installing dependencies. `mise run dev` and the interactive client task SHALL retain their desktop-window behavior. Windows/macOS private-display execution SHALL be outside this change's supported scope.
 
 #### Scenario: Graphical verification while the desktop is in use
-- **WHEN** a developer runs `mise run test-ui` while working in another desktop application
+- **WHEN** an authorized developer runs a selected `test-ui` scenario while working in another desktop application
 - **THEN** game rendering and automated input occur on the private display without disturbing the desktop's windows, pointer or focus
 
 #### Scenario: No desktop session is available
-- **WHEN** graphical verification runs on a Linux CI host with the declared software graphics and virtual-display prerequisites
+- **WHEN** explicitly requested graphical qualification runs on a Linux host with the declared software graphics and virtual-display prerequisites
 - **THEN** the graphical clients render and complete checks without access to a physical screen, GPU or audio device
 
 #### Scenario: Required virtual display cannot start
@@ -23,7 +23,7 @@ The repository SHALL expose `mise run test-ui` on Linux x86_64 to run graphical 
 
 #### Scenario: Interactive development remains graphical
 - **WHEN** the developer runs `mise run dev`
-- **THEN** the normal headless server and two playable desktop client windows start as before
+- **THEN** one playable ENet playing-host window and one guest window start by default; `--guests 1..3` selects the guest count
 
 ### Requirement: Isolated runtime state and owned cleanup
 Each verification run and independent scenario SHALL own distinct session, preference, engine-log and temporary display state. Client preferences and runtime output SHALL NOT overwrite the developer's normal game data. Deliberate client restart SHALL retain only that client's owned state for the scenario. Verification SHALL clean up only its owned processes, displays and temporary state on success, assertion failure, timeout, child exit or interruption, while retaining attributable non-secret evidence in ignored local output.
@@ -37,11 +37,11 @@ Each verification run and independent scenario SHALL own distinct session, prefe
 - **THEN** all owned peers and display processes exit within bounded cleanup time, owned temporary state is removed, and unrelated displays and processes remain running
 
 ### Requirement: Bounded parallel network scenarios
-`mise run test-network` SHALL support `--jobs` with a positive integer worker limit and `--scenario` selecting one named scenario. With no scenario selected it SHALL execute every existing network scenario, using two workers by default and serial execution with `--jobs 1`. Independent scenarios SHALL use distinct endpoints and storage; actions dependent on another action within a scenario SHALL retain their required order. Invalid job values and unknown scenario names SHALL fail before game processes start. Explicit endpoint collisions SHALL fail without terminating the endpoint's owner. Parallel execution SHALL preserve all existing normal-protocol gameplay and lifecycle assertions.
+`mise run test-network` SHALL support `--jobs` with a positive integer worker limit and `--scenario` selecting one named scenario. Default and deep selections SHALL follow the [testing command reference](../../../.agents/skills/testing-commands/SKILL.md#focused-headless-engine-and-bounded-transport), using two workers by default and serial execution with `--jobs 1`. Independent scenarios SHALL use distinct endpoints and storage; actions dependent on another action within a scenario SHALL retain their required order. Invalid job values and unknown scenario names SHALL fail before game processes start. Explicit endpoint collisions SHALL fail without terminating the endpoint's owner. Parallel execution SHALL preserve all existing normal-protocol gameplay and lifecycle assertions.
 
-#### Scenario: Complete suite uses bounded overlap
-- **WHEN** the full network suite runs with two workers
-- **THEN** independent scenarios overlap, no more than two scenarios run at once, each uses isolated peers and state, and all four scenario groups are reported
+#### Scenario: Selected coverage uses bounded overlap
+- **WHEN** a bounded or deep network selection runs with two workers
+- **THEN** independent scenarios overlap, no more than two scenarios run at once, each uses isolated peers and state, and the selected scenario names and coverage scope are reported
 
 #### Scenario: Serial diagnosis preserves coverage
 - **WHEN** the same full network suite runs with `--jobs 1`
@@ -59,7 +59,7 @@ Each verification run and independent scenario SHALL own distinct session, prefe
 A standalone network or UI invocation SHALL prepare the game before starting checks. Within a `ci` invocation, locked solution restore, game compilation and source resource import SHALL each run once before source verification, with their outputs reused by the source checks. Checks SHALL NOT implicitly repeat game preparation. Concurrent verification SHALL begin only after preparation completes; build, import and export operations sharing generated output SHALL NOT run concurrently. Rules-only `mise run test` SHALL continue to run without starting Godot.
 
 #### Scenario: CI reuses its prepared game
-- **WHEN** `mise run ci` executes formatting, rules, network and source UI checks
+- **WHEN** `mise run ci` executes its headless source checks
 - **THEN** its execution report shows one locked solution restore, one game compilation and one source resource import before the checks that require them, excluding separately identified supervisor bootstrap and release export publishing
 
 #### Scenario: Preparation fails
@@ -67,45 +67,45 @@ A standalone network or UI invocation SHALL prepare the game before starting che
 - **THEN** verification does not start against stale outputs and the invocation fails
 
 ### Requirement: Rendered UI smoke through ordinary controls
-The initial source graphical smoke SHALL consist of three high-value slices: `economy` exercises Start, hex plot/building selection and a representative purchase/upgrade/recruitment flow; `reconnect` exercises the actual Reconnect control and retained identity; `settings` exercises menu input blocking and a representative volume preference persisted across an owned restart. Actions SHALL use input events routed through the actual UI. Checks SHALL observe authoritative gameplay results from a separate peer, verify graphical scene and model/material loading, and capture rendered frames at named checkpoints after rendering completes. Source clients SHALL be checked before CI exports. A bounded exported-package slice SHALL verify packed resources, one ordinary-control purchase and a rendered checkpoint without a source `--path` after successful exports. Local observation/capture hooks SHALL NOT bypass controls by invoking their action callbacks or introduce gameplay-state-mutating test RPCs. Missing required controls, failed assertions, absent frames or unexpected engine errors SHALL fail the task. Existing headless gameplay assertions SHALL remain; recurring UI smoke SHALL NOT duplicate their complete match flows or require every simple feature/option combination.
+Explicit graphical smoke SHALL exercise ordinary menu/session/build/recruit/return/Exit controls in one owned offline application and capture a representative rendered checkpoint. Deeper reconnect, settings and gameplay journeys SHALL remain separately selectable according to the [testing command reference](../../../.agents/skills/testing-commands/SKILL.md#graphical-qualification--explicit-authorization-only-unexecuted-in-overhaul). Actions SHALL use input events routed through the actual UI and assert authoritative results. Exported selection SHALL load packed resources without a source `--path`. Graphical checks SHALL NOT gate ordinary CI exports. Local observation/capture hooks SHALL NOT bypass controls by invoking their action callbacks or introduce gameplay-state-mutating test RPCs. Missing required controls, failed assertions, absent frames or unexpected engine errors SHALL fail the task. Existing headless gameplay assertions SHALL remain; recurring UI smoke SHALL NOT duplicate their complete match flows or require every simple feature/option combination.
 
 #### Scenario: UI purchase has an authoritative effect
 - **WHEN** the test selects a hex plot and clicks its purchase control
-- **THEN** the server accepts the ordinary request, another peer observes the expected building and resource deduction, and the graphical client produces a rendered checkpoint
+- **THEN** the authority accepts the ordinary request, the client observes its authoritative result, and the graphical client produces a rendered checkpoint
 
 #### Scenario: Settings block gameplay input
 - **WHEN** the test opens settings and injects gameplay input behind the menu
 - **THEN** no gameplay action is accepted from that input, menu controls remain usable, and the changed preference survives the owned client restart
 
 #### Scenario: Exported presentation has packed resources
-- **WHEN** CI runs the graphical export smoke after both exports succeed
+- **WHEN** authorized graphical qualification selects the exported-package smoke against existing exports
 - **THEN** the exported client loads its UI and required assets from the package, completes ordinary-control smoke assertions on the private display, and does not depend on a source project path
 
 ### Requirement: Independently selectable UI vertical slices
-Graphical end-to-end coverage SHALL be organized into small named vertical slices with owned setup, feature-specific input/assertions and cleanup. `mise run test-ui --scenario NAME` SHALL execute only the selected slice, without executing earlier slices or the complete network/CI suite as prerequisites. Each slice SHALL establish its required match state through ordinary gameplay requests and SHALL be runnable in isolation. Without a selection, `test-ui` SHALL run all source UI slices serially; CI SHALL require all source UI slices and the exported-package slice at their prescribed gates. The exported-package slice SHALL also be selectable individually against existing exports, with clear failure for missing packages and without implicitly rebuilding exports. Unknown names SHALL fail before game processes start, and selected runs SHALL be identified as partial coverage.
+Graphical end-to-end coverage SHALL be organized into small named vertical slices with owned setup, feature-specific input/assertions and cleanup. `mise run test-ui --scenario NAME` SHALL execute only the selected slice, without executing earlier slices or the complete network/CI suite as prerequisites. Each slice SHALL establish its required match state through ordinary gameplay requests and SHALL be runnable in isolation. An invocation without a scenario selection SHALL fail before graphical launch; ordinary CI SHALL NOT select graphical slices. The exported-package slice SHALL also be selectable individually against existing exports, with clear failure for missing packages and without implicitly rebuilding exports. Unknown names SHALL fail before game processes start, and selected runs SHALL be identified as partial coverage.
 
 #### Scenario: Reconnect is tested during a reconnect change
-- **WHEN** a developer runs `mise run test-ui --scenario reconnect`
+- **WHEN** an authorized developer runs `mise run test-ui --scenario reconnect`
 - **THEN** the task creates the required peers/state, tests the real Reconnect control and retained identity, and cleans up without running economy, settings, other UI slices or the full network suite
 
 #### Scenario: Slice order is changed
 - **WHEN** a source UI slice runs first or is selected by itself
 - **THEN** it succeeds without depending on files, match state or prior actions from another slice
 
-#### Scenario: All source UI coverage is required
-- **WHEN** the unfiltered source UI task or CI's source graphical gate executes
-- **THEN** all named source slices run and are reported, and any required slice failure fails the gate
+#### Scenario: Graphical selection is required
+- **WHEN** the unfiltered source UI task is invoked
+- **THEN** it fails without launching a graphical process rather than implicitly running all journeys
 
 ### Requirement: Cost-based test execution guidance
-Root `AGENTS.md` and `README.md` SHALL describe when to run each test tier. Cheap engine-independent unit tests SHALL be the frequent development check when applicable; expensive network and UI checks SHALL be selected by affected scenario during incremental implementation and diagnosis. A full verification run SHALL be required before and after a substantial implementation task, with an existing successful baseline reusable when the source and environment have not changed. Small edits, individual checklist items and documentation-only changes SHALL NOT automatically trigger full-suite reruns. Successful targeted checks SHALL NOT be repeated against unchanged inputs. CI SHALL still run the full required suite on its normal workflow triggers. The instructions SHALL distinguish targeted coverage from full-suite success and show individual test commands.
+Root guidance SHALL link to the repository-owned [testing strategy](../../../.agents/skills/testing-strategy/SKILL.md) and [testing commands](../../../.agents/skills/testing-commands/SKILL.md), which own tier selection and execution. Reported coverage SHALL distinguish targeted passes from complete qualification.
 
 #### Scenario: Incremental feature work
 - **WHEN** an agent makes a small change within an ongoing substantial task
 - **THEN** it runs applicable cheap unit checks and the affected individual expensive slice as needed, without rerunning the entire suite after that edit
 
 #### Scenario: Substantial implementation task boundaries
-- **WHEN** an agent starts and completes a substantial implementation task
-- **THEN** it records the full-suite baseline before changes and a full-suite result after completion, reusing an unchanged successful baseline rather than running it redundantly
+- **WHEN** an agent completes a substantial implementation task
+- **THEN** it records relevant executed and unexecuted coverage according to the linked strategy, without an automatic full-suite before/after requirement
 
 #### Scenario: Documentation-only update
 - **WHEN** only testing instructions or planning documents change
@@ -123,7 +123,7 @@ Recurring network and graphical acceptance checks SHALL be checked-in named scen
 - **THEN** it reuses the harness's fixtures, bounded assertions and cleanup rather than introducing another copied launch/probe script
 
 ### Requirement: Risk-based admission of expensive tests
-Root `AGENTS.md` and `README.md` SHALL set a higher admission bar for expensive network and UI tests than cheap unit checks. Each new expensive scenario SHALL document the meaningful defect or risk it catches, why cheaper existing coverage is insufficient, and its expected execution/setup and maintenance cost. Coverage SHALL prefer the smallest independently selectable vertical slice and reuse existing checks when sufficient. Simple feature changes SHALL NOT automatically require a new E2E case, exhaustive option matrices or graphical duplication of existing headless match assertions. Existing network coverage SHALL be preserved.
+The [testing hygiene skill](../../../.agents/skills/testing-hygiene/SKILL.md) SHALL own coverage admission and removal guidance. Each new expensive scenario SHALL document the meaningful defect or risk it catches, why cheaper existing coverage is insufficient, and its expected execution/setup and maintenance cost. Coverage SHALL prefer the smallest independently selectable vertical slice and reuse existing checks when sufficient. Simple feature changes SHALL NOT automatically require a new E2E case, exhaustive option matrices or graphical duplication of existing headless match assertions. Existing network coverage SHALL be preserved.
 
 #### Scenario: A simple option is added
 - **WHEN** a simple option is implemented and its relevant logic is adequately covered by cheap or existing checks
@@ -134,10 +134,10 @@ Root `AGENTS.md` and `README.md` SHALL set a higher admission bar for expensive 
 - **THEN** a focused reusable slice or extension documents that gap and its cost, and can run individually without unrelated flows
 
 ### Requirement: Linux CI parity and evidence
-The Linux verification workflow SHALL provision or verify the declared virtual-display and software-graphics prerequisites and execute the same verification entry point used locally. Every required graphical check SHALL execute in verification rather than silently skip when prerequisites are unavailable. Output SHALL identify run and scenario names, results, elapsed phase/scenario/total times, configured concurrency, actual graphical renderer and paths to local logs/screenshots. The verification record SHALL compare available serial-baseline and parallel-result network timings at substantial task boundaries against unchanged gameplay rules and comparable environment/preparation state, record source/runner revisions and any comparability limits, distinguish test execution from preparation/export time, and explicitly identify any unexecuted checks. Repeated full suites solely to populate benchmark samples SHALL NOT be a default development requirement. Screenshots and diagnostics SHALL remain in ignored workspace output without automatic upload, publishing or deployment. Ordinary push/PR verification and `mise run ci` SHALL remain non-publishing. A separate manually published-release workflow SHALL be allowed to build, transfer and publish distributable packages, checksums, and public build metadata after lightweight identity/checksum gates without rerunning verification; it SHALL NOT transfer or publish verification screenshots, logs, preferences, or credentials.
+Linux CI SHALL execute the headless gates documented in [CI coverage](../../../docs/verification.md#ci-coverage), using the same entry points available locally. Explicit graphical qualification SHALL verify its declared prerequisites and fail rather than silently skip when they are unavailable. Output SHALL identify run and scenario names, results, elapsed phase/scenario/total times, configured concurrency, actual graphical renderer and paths to local logs/screenshots. The verification record SHALL compare available serial-baseline and parallel-result network timings at substantial task boundaries against unchanged gameplay rules and comparable environment/preparation state, record source/runner revisions and any comparability limits, distinguish test execution from preparation/export time, and explicitly identify any unexecuted checks. Repeated full suites solely to populate benchmark samples SHALL NOT be a default development requirement. Screenshots and private runtime data SHALL remain in ignored workspace output. Optional non-secret CI evidence uploads SHALL follow the linked CI coverage policy, with absent evidence warning rather than causing a secondary failure. Ordinary push/PR verification and `mise run ci` SHALL remain non-publishing. A separate manually published-release workflow SHALL be allowed to build, transfer and publish distributable packages, checksums, and public build metadata after lightweight identity/checksum gates without rerunning verification; it SHALL NOT transfer or publish verification screenshots, logs, preferences, or credentials.
 
-#### Scenario: CI has no graphics prerequisites
-- **WHEN** the workflow cannot provide a required graphical prerequisite
+#### Scenario: Selected graphics lacks prerequisites
+- **WHEN** explicit graphical qualification cannot provide a required graphical prerequisite
 - **THEN** it fails visibly rather than reporting graphical verification as passed or skipped
 
 #### Scenario: Performance is reviewed
@@ -155,7 +155,7 @@ The Linux verification workflow SHALL provision or verify the declared virtual-d
 ### Requirement: Strict C# compilation and style gates
 Every repository C# project SHALL enable nullable reference analysis and implicit usings, and compiler or analyzer warnings SHALL fail compilation. Ordinary builds SHALL run the recommended code-quality analyzers supplied by the declared locked SDK and enforce configured C# style warnings, including file-scoped namespaces and readonly fields where possible. Reported findings SHALL be fixed rather than excluded, suppressed or addressed by weakening enforcement. Tool and dependency locks SHALL remain unchanged unless intentionally updated.
 
-`mise run check` SHALL verify solution formatting without modifying source. CI SHALL require locked restore, formatting verification and strict solution compilation before source tests that depend on compiled outputs. Both cheap xUnit suites, all existing headless Godot network scenarios and source private-display UI slices SHALL gate exports; headless and graphical package smoke SHALL gate overall success after exports. Local checks and CI SHALL apply the same compiler, analyzer and style policy while preserving shared preparation and selectable expensive slices.
+`mise run check` SHALL verify solution formatting without modifying source. CI SHALL require locked restore, formatting verification and strict solution compilation before source tests that depend on compiled outputs. Required source and package gates SHALL follow [CI coverage](../../../docs/verification.md#ci-coverage); local `ci` SHALL require source success before exporting, while hosted source and platform package jobs SHALL use independent workspaces. Local checks and CI SHALL apply the same compiler, analyzer and style policy while preserving shared preparation and selectable expensive slices.
 
 #### Scenario: Nullable code fails compilation
 - **WHEN** C# source returns null from a non-nullable reference return type

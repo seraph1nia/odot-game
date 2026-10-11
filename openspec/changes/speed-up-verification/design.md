@@ -1,5 +1,10 @@
 # Design
 
+> Historical completed design. Its campaign partitions and automatic graphical
+> gates are superseded by the [current testing strategy](../../../.agents/skills/testing-strategy/SKILL.md).
+> Original measurements and coverage ownership are retained in
+> [verification history](../../../docs/verification-history.md#verification-speed-implementation-coverage-ownership).
+
 ## Context
 
 See `proposal.md` for motivation. The implementation already separates numerical simulation in `Game.Core`, Godot session/presentation in `Game`, and process supervision in `DevRunner`. `Match.Step()` and `AuthoritySession.Step()` expose fixed ticks; `AuthoritySession.Request()` accepts serialized ordinary commands and explicit time. `VillageStrategyTests` contains 21 twenty-wave combinations in one xUnit v2 class. Process authority progression calls one step per Godot physics callback. Snapshots are published after three callbacks, encoded for ENet and separately serialized for supervised stdout.

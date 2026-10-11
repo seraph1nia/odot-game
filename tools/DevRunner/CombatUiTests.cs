@@ -423,18 +423,8 @@ internal sealed partial class Runner
             Require(inspectionChanged, "live inspection updates damage or closes on its casualty");
             Require(sword && shot && hit && axe && casualty.Effects.Active <= 64 && casualty.Effects.Voices <= 8, "rendered sword/axe/cast/hit states and bounded effects sampled from live nodes");
             Require(damagedBar, "authoritative damage visibly reduces a living health bar");
-            await ResearchCheckpoint(client, observer, token);
-            await CameraZoom(client, token);
-            await Click(client, "ReturnToMenu", token);
-            await Click(client, "ConfirmReturn", token);
-            await WaitUi(client, p => p.Screen == "menu", "combat return cleanup", token);
-            await Click(client, "Singleplayer", token);
-            UiObservation fresh = await WaitUi(client, p => p.Screen == "session" && p.PhaseText.Contains("Building", StringComparison.Ordinal)
-                && p.HudHeight >= 179 && p.HudHeight <= 190 && LandscapeChecks.Covered(p.Landscape), "fresh solo layout after combat", token);
-            RequireOverview(fresh);
-            Require(fresh.Units.Length == 0 && fresh.DeathCleanups.Length == 0 && fresh.HealthBars.Length == 0 && fresh.EventCursor == 0 && Latest(client).MatchId != Latest(observer).MatchId,
-                "fresh match clears living/dead views, cleanup witnesses, events and old authority identity");
-            await Checkpoint(client, "combat-fresh-session", token);
+            // Research and menu lifetimes are independently selectable. Do not spend
+            // the combat worker's remaining deadline on an unrelated wave-eight journey.
         }
         catch (Exception error) when (!shortCheck)
         {

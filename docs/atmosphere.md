@@ -1,5 +1,11 @@
 # Desktop renderer, woodland atmosphere and graphics preferences
 
+> Current testing policy is [headless development/PR verification](verification.md).
+> The renderer campaign receipts and earlier full-graphical CI requirements are
+> historical; the command reference below describes current entry points.
+> Graphical commands now require `ODOT_ALLOW_GRAPHICAL_TESTS=1` and explicit selection; PR/main does not execute them. No native/rendered receipts
+> are recertified by the testing overhaul.
+
 ## Qualification status
 
 The steering022 campaign below predates the no-mistakes review and test fixes;
@@ -20,10 +26,10 @@ audio, invalid saved values and same-city restart assertions. Earlier actual
 180s Settings failures remain in `logs/settings-reproduce/` and
 `logs/settings-trace/`, distinct from the earlier 30-minute agent invocation cutoff.
 These selected results are not a complete source UI or CI pass, native Windows
-execution, or recertification of native/export receipts. Current full CI and
-changed-input native/export qualification belong to the outer validation phases;
-this documentation pass ran no behavioral checks. Default source/CI selection
-still includes all five source UI cases; neither focused checkpoint replaces it.
+execution, or recertification of native/export receipts. At that change, full CI and changed-input native/export qualification belonged
+to the outer validation phases; that documentation pass ran no behavioral checks.
+The historical source selection included all five UI cases. Today's default
+headless policy is linked above; selected renderer proof remains separate.
 
 ## Historical qualification — steering022
 
@@ -202,18 +208,23 @@ changes are intentionally outside this implementation.
 ## Verification and visual evidence
 
 ```sh
-mise run test                              # cheap preferences/capabilities/launch policy + existing rules
-mise run test-ui --scenario settings       # full original + expanded Settings coverage
-mise run test-ui --scenario settings --checkpoint graphics # omits only camera-input prelude
-mise run test-ui --scenario settings --checkpoint display  # bounded display-persistence regression
-mise run test-ui --scenario economy --checkpoint travel # selects original full camera/travel controls
-mise run test-atmosphere                   # optional Compatibility scenic evidence
-mise run test-vulkan                       # optional native Vulkan hardware/surface qualification
-mise run test-vulkan --exported            # existing exported client, no preparation/re-export
-mise run test-vulkan --desktop             # explicitly authorized windowed desktop surface only
-mise run test-vulkan --desktop --exported   # existing export, same explicit surface authority
-mise run ci                                # unchanged complete source/network/UI/export/package coverage
+mise run test                              # fast C# coverage
+mise run test-engine --scenario settings    # headless component signals/persistence
+# Graphical commands below require explicit authorization; not headless-only checks:
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario settings
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario settings --checkpoint graphics
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario settings --checkpoint display
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario economy --checkpoint travel
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-atmosphere         # Compatibility scenic evidence
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan             # native Vulkan hardware/surface
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --exported  # existing client; no re-export
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --desktop   # authorized windowed desktop
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --desktop --exported
 ```
+
+For default/deep selections and deadlines see the [testing command reference](../.agents/skills/testing-commands/SKILL.md).
+`ci` coverage is owned by [current verification](verification.md#ci-coverage),
+not the historical renderer receipts below.
 
 By default both atmosphere commands use DevRunner's owned Xvfb/Xauthority/Openbox
 display, client XDG state, ordered event driver, input/capture protocol, evidence and

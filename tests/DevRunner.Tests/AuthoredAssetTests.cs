@@ -8,6 +8,10 @@ namespace DevRunner.Tests;
 public sealed class AuthoredAssetTests
 {
     private static readonly string[] Clips = ["attack", "death", "hit", "idle", "run", "walk"];
+    // Immutable distribution inputs; parse/hash once for the independent mapping
+    // and rig assertions instead of rereading every GLB three times.
+    private static readonly Lazy<IReadOnlyDictionary<string, GlbSummary>> Models = new(() =>
+        AuthoredAssets.ValidateDistribution(Path.GetDirectoryName(DirectoryPath)!));
     private static string DirectoryPath
     {
         get
@@ -20,7 +24,7 @@ public sealed class AuthoredAssetTests
     [Fact]
     public void RequiredExportDistributionMatchesImmutableProvenanceAndEmbeddedDependencies()
     {
-        IReadOnlyDictionary<string, GlbSummary> models = AuthoredAssets.ValidateDistribution(Path.GetDirectoryName(DirectoryPath)!);
+        IReadOnlyDictionary<string, GlbSummary> models = Models.Value;
         Assert.Equal(AssetCatalog.RequiredPaths, models.Keys.Order(StringComparer.Ordinal));
         Assert.All(models.Values, m => { Assert.True(m.Meshes > 0); Assert.True(m.Materials > 0); });
         AuthoredAssetManifest manifest = AuthoredAssets.ReadManifest(DirectoryPath);
@@ -30,7 +34,7 @@ public sealed class AuthoredAssetTests
     [Fact]
     public void EveryCanonicalRoleUsesDedicatedAvailableGeometryAndTruthfulNames()
     {
-        IReadOnlyDictionary<string, GlbSummary> models = AuthoredAssets.Validate(DirectoryPath);
+        IReadOnlyDictionary<string, GlbSummary> models = Models.Value;
         foreach (Building type in Enum.GetValues<Building>().Where(b => b != Building.Empty))
         {
             BuildingVisual visual = AssetCatalog.Building(type);
@@ -50,7 +54,7 @@ public sealed class AuthoredAssetTests
     [Fact]
     public void EightExportedRigsContainRequiredClipsAndActualEquippedSocketChildren()
     {
-        IReadOnlyDictionary<string, GlbSummary> models = AuthoredAssets.Validate(DirectoryPath);
+        IReadOnlyDictionary<string, GlbSummary> models = Models.Value;
         HashSet<string> characters = [];
         foreach (Faction faction in Enum.GetValues<Faction>())
             foreach (UnitType type in Enum.GetValues<UnitType>())

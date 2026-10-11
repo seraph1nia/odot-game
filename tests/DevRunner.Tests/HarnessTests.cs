@@ -107,30 +107,25 @@ public sealed class HarnessTests
     }
 
     [Fact]
-    public void FullSourceUiHasABoundedAggregateBudgetAndPreservesOverrides()
+    public void HeadlessDefaultsAndUiSmokeDoNotBorrowDeepJourneyAllowances()
     {
-        Assert.Equal(900000, Options.Parse(["ci"]).Timeout);
-        Assert.Equal(900000, Options.Parse(["ci-source"]).Timeout);
-        Assert.Equal(600000, Options.Parse(["test-ui"]).Timeout);
-        Assert.Equal(420000, Options.Parse(["test-ui", "--scenario", "combat"]).Timeout);
-        Assert.Equal(210000, Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).Timeout);
-        Assert.Equal("research", Options.Parse(["test-ui", "--scenario", "combat", "--ui-checkpoint", "research"]).UiCheckpoint);
-        Assert.Equal(1080000, Options.Parse(["test-ui", "--scenario", "economy"]).UiTimeout("economy"));
-        Assert.Equal(300000, Options.Parse(["test-network"]).Timeout);
-        Assert.Equal(42, Options.Parse(["ci", "--timeout-ms", "42"]).Timeout);
-        Assert.Equal(300000, Options.Parse(["_ui-worker", "--timeout-ms", "300000"]).Timeout);
+        foreach (string command in new[] { "ci", "ci-source", "test-network" })
+        {
+            Options headless = Options.Parse([command]);
+            Assert.InRange(headless.Timeout, headless.StartupTimeout, 300000);
+            Assert.Equal(42, Options.Parse([command, "--timeout-ms", "42"]).Timeout);
+        }
+        Options smoke = Options.Parse(["test-ui", "--scenario", "economy", "--checkpoint", "smoke"]);
+        Assert.Equal(smoke.Timeout, smoke.UiTimeout("economy"));
+        Assert.Equal("research", Options.Parse(["test-ui", "--scenario", "combat", "--checkpoint", "research"]).UiCheckpoint);
     }
-    [Theory]
-    [InlineData("ci")]
-    [InlineData("ci-source")]
-    [InlineData("test-ui")]
-    public void OnlyEconomyGetsTheMeasuredDefaultAllowance(string command)
+    [Fact]
+    public void OnlyExplicitDeepEconomyGetsTheRetainedJourneyAllowance()
     {
-        Options options = Options.Parse([command]);
-        Assert.Equal(1080000, options.UiTimeout("economy"));
+        Options options = Options.Parse(["test-ui", "--scenario", "economy", "--checkpoint", "deep"]);
+        Assert.True(options.UiTimeout("economy") > options.Timeout);
         foreach (string sibling in ScenarioNames.Ui.Where(n => n != "economy"))
             Assert.Equal(options.Timeout, options.UiTimeout(sibling));
-        Assert.Equal(1080000, Options.Parse(["test-ui", "--scenario", "economy"]).UiTimeout("economy"));
         // Recreate the supervisor's executable argument contract: its resolved
         // allowance reaches the worker as an explicit deadline, not a new default.
         Options worker = Options.Parse(["_ui-worker", "--scenario", "economy", "--timeout-ms",
@@ -384,6 +379,10 @@ public sealed class HarnessTests
     [InlineData("test-network", "--jobs", "0")]
     [InlineData("test-network", "--jobs", "-1")]
     [InlineData("test-network", "--scenario", "unknown")]
+    [InlineData("test-network", "--host", "192.0.2.1")]
+    [InlineData("test-network", "--bind", "0.0.0.0")]
+    [InlineData("test-deep", "--host", "192.0.2.1")]
+    [InlineData("test-deep", "--bind", "0.0.0.0")]
     [InlineData("test-ui", "--scenario", "unknown")]
     [InlineData("ci", "--scenario", "economy")]
     [InlineData("test-ui", "--engine-arg", "--headless")]
@@ -397,6 +396,16 @@ public sealed class HarnessTests
         Assert.Equal(2, Options.Parse(["test-network"]).Jobs);
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-network", "--scenario", "defeat", "--port", "7001"]));
         Assert.Equal(7001, Options.Parse(["test-network", "--scenario", "authority-resume-victory", "--port", "7001"]).Port);
+        Options deep = Options.Parse(["test-deep", "--host", "127.0.0.1", "--bind", "127.0.0.1", "--port", "7001"]);
+        Assert.Equal(Options.Parse(["test-deep"]).Host, deep.Host);
+        Assert.Equal(Options.Parse(["test-deep"]).Bind, deep.Bind);
+        Assert.Equal(7001, deep.Port);
+        foreach (string command in new[] { "dev", "client", "server", "play" })
+        {
+            Options interactive = Options.Parse([command, "--host", "192.0.2.1", "--bind", "0.0.0.0"]);
+            Assert.Equal("192.0.2.1", interactive.Host);
+            Assert.Equal("0.0.0.0", interactive.Bind);
+        }
     }
     [Fact]
     public void MissingDisplayPrerequisitesFailWithoutFallback()
