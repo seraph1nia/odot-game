@@ -134,7 +134,6 @@ internal sealed partial class Runner
 
     private async Task CiSource()
     {
-        PrivateDisplay.CheckPrerequisites();
         await Preflight();
         await VerifySteamFiles();
         await Execute("restore", "dotnet", "restore", "Odot.slnx", "--locked-mode");
@@ -142,27 +141,25 @@ internal sealed partial class Runner
         await BuildAndImport();
         await SteamExtensionProbe(exported: false, offline: true);
         await BuildIdentityProbe(null);
-        await AssetFidelity();
+        await EngineTests();
         using var admission = new ScenarioAdmission(options.Jobs, options.UiJobs);
         try
         {
             await ScenarioScheduler.Run([
-                new("C#", "Complete isolated cheap partitions", token => new Runner(options, token, _evidence, root: _root).CheapTests()),
-                new("network", "Real transport witnesses", token => new Runner(options, token, _evidence, root: _root, admission: admission).NetworkTests()),
-                new("UI", "Independent owned graphical displays", token => new Runner(options, token, _evidence, root: _root, admission: admission).UiTests(null))
-            ], 3, cancellation);
+                new("C#", "Fast isolated C# binaries; deep campaigns explicit", token => new Runner(options, token, _evidence, root: _root).CheapTests()),
+                new("network", "Bounded headless transport witnesses", token => new Runner(options, token, _evidence, root: _root, admission: admission).NetworkTests())
+            ], 2, cancellation);
         }
         finally
         {
             await File.WriteAllTextAsync(Path.Combine(_evidence.Directory, "source-admission.json"), System.Text.Json.JsonSerializer.Serialize(
                 new { admission.Jobs, admission.UiJobs, admission.MaximumActive, admission.MaximumGraphical }, Evidence.JsonOptions));
         }
-        Console.WriteLine("All source gates passed; no exports performed.");
+        Console.WriteLine("Headless source gates passed; no deep campaigns, graphical checks or exports performed.");
     }
 
     private async Task CiLinuxPackage()
     {
-        PrivateDisplay.CheckPrerequisites();
         await Prepare();
         await CiLinuxExports();
         await CiLinuxPackageChecks();
@@ -181,6 +178,7 @@ internal sealed partial class Runner
     {
         await _evidence.Measure("export-smoke", "suite", ExportSmoke);
         await SteamExtensionProbe(exported: true, offline: true);
-        await UiTests("exported-package");
+        CheckPackages();
+        Console.WriteLine("Headless Linux package checks passed; graphical exported-package qualification is explicitly separate.");
     }
 }

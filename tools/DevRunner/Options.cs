@@ -6,13 +6,13 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
     bool Production = false, uint? SteamAppId = null, bool Offline = false, bool Exported = false, int Guests = 1,
     string? SteamRole = null, ulong? Lobby = null, string? ReleaseTag = null, string ExportTarget = "linux-x64", string? InstalledClient = null,
     string? UiCheckpoint = null, int SimulationSpeed = 4, bool Trace = false, int UiJobs = 2,
-    int ProfileIterations = 3, int ProfileFrames = 600, string ProfileConfiguration = "Debug", bool ProfileWorkCounters = false, string? ProfileBaseline = null, string? PixelOwnershipRequest = null, string? BoundaryEvidence = null, bool ExplicitTimeout = false, string? Renderer = null)
+    int ProfileIterations = 3, int ProfileFrames = 600, string ProfileConfiguration = "Debug", bool ProfileWorkCounters = false, string? ProfileBaseline = null, string? PixelOwnershipRequest = null, string? BoundaryEvidence = null, bool ExplicitTimeout = false, string? Renderer = null, string? Filter = null)
 {
     public const int ArmyUiTimeout = 420000;
 
     // Hosted two-display economy reached army battle two at 900s. Keep its
     // complete paid paths bounded without extending sibling or explicit budgets.
-    public int UiTimeout(string scenario) => !ExplicitTimeout && scenario == "economy"
+    public int UiTimeout(string scenario) => !ExplicitTimeout && scenario == "economy" && UiCheckpoint is not (null or "smoke")
         ? UiCheckpoint == "army" ? ArmyUiTimeout : 1080000
         : Timeout;
 
@@ -45,7 +45,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         string? releaseTag = null;
         string exportTarget = command is "ci-windows" or "package-windows" ? "windows-x64" : "linux-x64";
         string? installedClient = null;
-        string? checkpoint = null, renderer = null;
+        string? checkpoint = null, renderer = null, filter = null;
         var engineArgs = new List<string>();
         for (int i = 1; i < args.Length; i++)
         {
@@ -66,6 +66,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
                 case "--jobs": jobs = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--guests" when command == "dev": guests = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--scenario": scenario = Value(); break;
+                case "--filter" when command is "test-rules" or "test-fast" or "test-core" or "test-runner" or "test-campaign": filter = Value(); break;
                 case "--iterations" when command == "profile-presentation": profileIterations = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--frames" when command is "profile-presentation" or "_ui-worker": profileFrames = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--configuration" when command is "profile-presentation" or "_ui-worker": profileConfiguration = Value(); break;
@@ -93,7 +94,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         }
         // CI's ordinary worker budget; economy's measured allowance is resolved
         // separately at the display boundary, not applied to every source gate.
-        if (!explicitTimeout && command is "ci" or "ci-source") timeout = 900000;
+        if (!explicitTimeout && command is "ci" or "ci-source" or "test-deep") timeout = 300000;
         else if (!explicitTimeout && command == "profile-presentation") timeout = 600000;
         else if (!explicitTimeout && command is "test-ui" or "_ui-worker" && scenario is null) timeout = 600000;
         // Research's 120s setup + 60s controls need startup/cleanup headroom.
@@ -107,14 +108,14 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
         if (sessionFile is not null && command != "client") throw new ArgumentException("--session-file belongs to the independent client command; dev/tests isolate their own files.");
         if (scenario is not null)
         {
-            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback", "authored-scale", "atmosphere"] : command == "profile-presentation" ? ["combat-playback", "authored-scale"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : [];
+            string[] names = command == "test-network" ? ScenarioNames.Network : command == "test-ui" ? ScenarioNames.Ui : command == "_ui-worker" ? [.. ScenarioNames.Ui, "combat-playback", "authored-scale", "atmosphere"] : command == "profile-presentation" ? ["combat-playback", "authored-scale"] : command == "test-steam" ? ["direct-invite"] : command == "test-native-pump" ? ["peer-liveness"] : command == "test-engine" ? ["settings", "animation", "assets"] : [];
             if (!names.Contains(scenario)) throw new ArgumentException($"Unknown --scenario '{scenario}' for {command}. Available: {string.Join(", ", names)}.");
         }
-        if (checkpoint is not null && !(scenario == "combat" && checkpoint is "melee" or "research" or "admission" || scenario == "economy" && checkpoint is "army" or "travel-diagnostic" or "travel" || scenario == "launcher" && checkpoint == "assets" || scenario == "settings" && checkpoint is "display" or "graphics" || checkpoint == "return-diagnostic" && (command == "test-atmosphere" || command == "_ui-worker" && scenario == "atmosphere") || checkpoint is "startup-diagnostic" or "popup-diagnostic" or "vanilla-popup" or "vanilla-native" && command == "test-vulkan" && desktopSurface))
+        if (checkpoint is not null && !(checkpoint is "deep" or "smoke" && scenario is "economy" or "launcher" or "exported-package" || scenario == "combat" && checkpoint is "melee" or "research" or "admission" || scenario == "economy" && checkpoint is "army" or "travel-diagnostic" or "travel" || scenario == "launcher" && checkpoint == "assets" || scenario == "settings" && checkpoint is "display" or "graphics" || checkpoint == "return-diagnostic" && (command == "test-atmosphere" || command == "_ui-worker" && scenario == "atmosphere") || checkpoint is "startup-diagnostic" or "popup-diagnostic" or "vanilla-popup" or "vanilla-native" && command == "test-vulkan" && desktopSurface))
             throw new ArgumentException("--checkpoint melee|research|admission belongs to --scenario combat; army|travel|travel-diagnostic belongs to --scenario economy; assets belongs to --scenario launcher; display|graphics belongs to --scenario settings; return-diagnostic belongs to test-atmosphere.");
         if (port is not null && command == "test-network" && scenario is not null && scenario != "authority-resume-victory")
             throw new ArgumentException("--port pins authority-resume-victory; select that scenario or omit --port.");
-        if (args.Contains("--jobs") && command is not ("test-network" or "test-ui" or "ci" or "ci-source")) throw new ArgumentException("--jobs belongs to network/UI/source verification.");
+        if (args.Contains("--jobs") && command is not ("test-network" or "test-ui" or "ci" or "ci-source" or "test-rules" or "test-fast" or "test-core" or "test-runner" or "test-campaign" or "test-deep")) throw new ArgumentException("--jobs belongs to verification commands.");
         if (command == "test-ui" && jobs > 2 || uiJobs is < 1 or > 2) throw new ArgumentException("Graphical workers must be 1..2.");
         if (args.Contains("--ui-jobs") && command is not ("ci" or "ci-source")) throw new ArgumentException("--ui-jobs belongs to CI source verification.");
         if (profileIterations is < 1 or > 10 || profileFrames != 600 || profileConfiguration != "Debug")
@@ -148,7 +149,7 @@ internal sealed record Options(string Command, string Host, string Bind, int? Po
             throw new ArgumentException("direct-invite requires accepting an actual invitation; omit --lobby.");
         return new(command, host, bind, port, startup, timeout, engineArgs.ToArray(), sessionFile, jobs, scenario, evidence, workerToken,
             production, steamAppId, offline, exported, guests, steamRole, lobby, releaseTag, exportTarget, installedClient, checkpoint, simulationSpeed, trace, uiJobs,
-            profileIterations, profileFrames, profileConfiguration, profileWorkCounters, profileBaseline, pixelOwnershipRequest, boundaryEvidence, explicitTimeout, renderer)
+            profileIterations, profileFrames, profileConfiguration, profileWorkCounters, profileBaseline, pixelOwnershipRequest, boundaryEvidence, explicitTimeout, renderer, filter)
         { DesktopSurface = desktopSurface };
     }
 }

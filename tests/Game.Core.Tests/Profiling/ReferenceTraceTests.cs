@@ -3,6 +3,7 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests.Profiling;
 
+[Trait("Tier", "Deep")]
 public sealed class ReferenceTraceTests(ITestOutputHelper output)
 {
     [Fact]

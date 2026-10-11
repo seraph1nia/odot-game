@@ -86,7 +86,8 @@ performance.
 ## One real before/after diagnostic
 
 Same authored workload, unchanged 40-sample/18s read-only diagnostic:
-`mise run test-ui --scenario combat --checkpoint admission --jobs 1`.
+`ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario combat --checkpoint admission --jobs 1`
+when graphical qualification is authorized (not part of headless PR verification).
 After: `logs/20261005-100632-5b96b17c/combat-worker/combat/` (43.13s scenario).
 Before: `logs/20261005-092301-52c169a5/combat-worker/combat/`.
 

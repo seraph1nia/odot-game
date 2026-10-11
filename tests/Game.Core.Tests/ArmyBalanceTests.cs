@@ -5,6 +5,7 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests;
 
+[Trait("Tier", "Deep")]
 public sealed class ArmyBalanceTests(ITestOutputHelper output)
 {
     public static IEnumerable<object[]> Cases()

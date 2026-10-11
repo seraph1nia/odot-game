@@ -49,12 +49,55 @@ description = "Compile the local development supervisor"
 hide = true
 run = ["dotnet restore tools/DevRunner/DevRunner.csproj --locked-mode", "dotnet build tools/DevRunner/DevRunner.csproj --no-restore --nologo"]
 
+[tasks.prepare-tests]
+description = "Restore locked dependencies and compile shared outputs once before isolated test binaries"
+hide = true
+run = ["dotnet restore Odot.slnx --locked-mode", "dotnet build Odot.slnx --no-restore --nologo"]
+
 [tasks.test]
-description = "Run cheap gameplay and runner xUnit checks without Godot"
-run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet build tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore --nologo", "dotnet build tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore --nologo", "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-rules"]
+description = "Default fast C# tests; no Godot processes, excludes deep campaigns"
+depends = ["prepare-tests"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-fast"
+raw_args = true
+
+[tasks.test-fast]
+description = "Fast C# core and runner binaries; --filter uses standard .NET syntax; --jobs 1 for serial debug"
+depends = ["prepare-tests"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-fast"
+raw_args = true
+
+[tasks.test-core]
+description = "Fast Game.Core tests only; --filter FullyQualifiedName~ClassOrMethod"
+depends = ["prepare-tests"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-core"
+raw_args = true
+
+[tasks.test-runner]
+description = "Runner/unit integration boundaries only; --filter FullyQualifiedName~ClassOrMethod"
+depends = ["prepare-tests"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-runner"
+raw_args = true
+
+[tasks.test-campaign]
+description = "Explicit deep C# twenty-wave campaign matrix; --filter supported"
+depends = ["prepare-tests"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-campaign"
+raw_args = true
+
+[tasks.test-engine]
+description = "Focused owned HEADLESS production components; --scenario settings|animation|assets"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-engine"
+raw_args = true
+
+[tasks.test-deep]
+description = "Explicit deep C# campaigns and headless multiplayer journeys; no graphical processes"
+depends = ["runner"]
+run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-deep"
+raw_args = true
 
 [tasks.test-in-process]
-description = "Run the same locked xUnit suites without test-host sockets"
+description = "Explicit all-C# socketless fallback, including deep tests; no filtering"
 run = ["dotnet restore tests/Game.Core.Tests/Game.Core.Tests.csproj --locked-mode", "dotnet restore tests/DevRunner.Tests/DevRunner.Tests.csproj --locked-mode", "dotnet build tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore -m:1 -nr:false -p:UseSharedCompilation=false", "dotnet build tests/DevRunner.Tests/DevRunner.Tests.csproj --no-restore -m:1 -nr:false -p:UseSharedCompilation=false", "dotnet tests/Game.Core.Tests/bin/Debug/net10.0/Game.Core.Tests.dll", "dotnet tests/DevRunner.Tests/bin/Debug/net10.0/DevRunner.Tests.dll"]
 
 [tasks.profile-campaign]
@@ -127,13 +170,13 @@ run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-native-pump"
 raw_args = true
 
 [tasks.test-network]
-description = "Verify real server/client processes without a display"
+description = "Bounded headless lifecycle/failure transport by default; --scenario selects a single journey"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-network"
 raw_args = true
 
 [tasks.test-ui]
-description = "Run named graphical checks on an owned private Linux display"
+description = "Explicit graphical acceptance ONLY (not headless/default CI); --scenario required"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-ui"
 raw_args = true
@@ -184,7 +227,7 @@ run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-steam"
 raw_args = true
 
 [tasks.ci]
-description = "Verify rules/network/private UI, export Linux roles and check packages"
+description = "Headless source and Linux exports/package gates; no deep campaigns or graphical qualification"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci"
 raw_args = true
@@ -196,13 +239,13 @@ run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-windows"
 raw_args = true
 
 [tasks.ci-source]
-description = "Run all formatting/build/rules/network/source UI gates without exports"
+description = "Headless formatting/build/fast C#/component/essential transport gates; no exports or graphics"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-source"
 raw_args = true
 
 [tasks.ci-linux-package]
-description = "Prepare/export/check Linux packages (workflow requires source gate first)"
+description = "Prepare/export/check Linux packages headlessly; source gates are separate"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll ci-linux-package"
 raw_args = true

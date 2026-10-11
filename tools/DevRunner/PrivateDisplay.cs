@@ -172,6 +172,8 @@ internal sealed partial class Runner
             var worker = new Runner(options, token, _evidence, owned);
             if (name == "atmosphere") await worker.AtmosphereScenario(token);
             else if (name is "combat-playback" or "authored-scale") await worker.PresentationProfileScenario(token);
+            else if (name is "launcher" or "economy" or "exported-package" && options.UiCheckpoint is null or "smoke")
+                await worker.UiSmoke(name == "exported-package" ? Path.Combine(_root, "dist", "client", "odot.x86_64") : null, token);
             else if (name == "launcher" && options.UiCheckpoint == "assets") await worker.AssetCostScenario(token);
             else if (name == "launcher") await worker.MenuUiScenario(null, token);
             else if (name is "installed-linux" or "exported-package")

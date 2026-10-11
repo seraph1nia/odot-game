@@ -48,7 +48,7 @@ internal sealed class Evidence
     public async Task Summary(string command, string coverage, int jobs, string result, double seconds, int uiJobs = 1, int simulationSpeed = 1, bool trace = false)
     {
         long evidenceBytes = System.IO.Directory.EnumerateFiles(Directory, "*", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length);
-        var report = new { Command = command, Coverage = coverage, Jobs = jobs, UiJobs = uiJobs, RuleProcessBudget = 2, SetupSimulationSpeed = simulationSpeed, Trace = trace, Result = result, Seconds = seconds, EvidenceBytes = evidenceBytes, Measurements = _results.ToArray() };
+        var report = new { Command = command, Coverage = coverage, Jobs = jobs, UiJobs = uiJobs, SetupSimulationSpeed = simulationSpeed, Trace = trace, Result = result, Seconds = seconds, EvidenceBytes = evidenceBytes, Measurements = _results.ToArray() };
         string name = command == "_ui-worker" ? "ui-" + (coverage.Contains("exported-package", StringComparison.Ordinal) ? "package" : "source") : command.TrimStart('_');
         await File.WriteAllTextAsync(Path.Combine(Directory, name + "-summary.json"), DiagnosticText.Redact(JsonSerializer.Serialize(report, JsonOptions)));
         Console.WriteLine($"{command}: {coverage}; jobs={jobs}; {result}; {seconds:F2}s. Evidence: {Directory}");
@@ -239,7 +239,11 @@ internal static class VerificationGate
 
 internal static class PortAllocator
 {
-    private static readonly HashSet<int> Reserved = [];
+    // FileShare.None provides a cross-process lease for cooperating runners.
+    // Retain the empty lock inode: deleting it lets a later opener lock a new
+    // inode while an earlier process still owns the old one. OS releases the
+    // open-handle lock on crash; stale files do not reserve endpoints.
+    private static readonly Dictionary<int, FileStream> Reserved = [];
     public static int Acquire()
     {
         lock (Reserved)
@@ -249,10 +253,24 @@ internal static class PortAllocator
                 using var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
                 socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
                 int port = ((System.Net.IPEndPoint)socket.LocalEndPoint!).Port;
-                if (Reserved.Add(port)) return port;
+                if (Reserved.ContainsKey(port)) continue;
+                string leases = Path.Combine(Path.GetTempPath(), "odot-port-leases");
+                Directory.CreateDirectory(leases);
+                try
+                {
+                    var lease = new FileStream(Path.Combine(leases, port.ToString(CultureInfo.InvariantCulture)),
+                        FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                    Reserved.Add(port, lease);
+                    return port;
+                }
+                catch (IOException) { /* Another runner owns this candidate. */ }
             }
             throw new InvalidOperationException("Cannot allocate a distinct loopback port.");
         }
     }
-    public static void Release(int port) { lock (Reserved) Reserved.Remove(port); }
+    public static void Release(int port)
+    {
+        lock (Reserved)
+            if (Reserved.Remove(port, out FileStream? lease)) lease.Dispose();
+    }
 }

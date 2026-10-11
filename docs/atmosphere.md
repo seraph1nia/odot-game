@@ -1,6 +1,12 @@
 # Desktop renderer, woodland atmosphere and graphics preferences
 
-## Qualification status
+> Current testing policy is [headless development/PR verification](verification.md).
+> The renderer campaign receipts and full-graphical CI requirements below are
+> historical. Graphical commands now require `ODOT_ALLOW_GRAPHICAL_TESTS=1` and
+> explicit selection; PR/main does not execute them. No native/rendered receipts
+> are recertified by the testing overhaul.
+
+## Qualification status (historical renderer change)
 
 The steering022 campaign below predates the no-mistakes review and test fixes;
 it is historical evidence, not qualification of the current head. Later changes
@@ -20,10 +26,10 @@ audio, invalid saved values and same-city restart assertions. Earlier actual
 180s Settings failures remain in `logs/settings-reproduce/` and
 `logs/settings-trace/`, distinct from the earlier 30-minute agent invocation cutoff.
 These selected results are not a complete source UI or CI pass, native Windows
-execution, or recertification of native/export receipts. Current full CI and
-changed-input native/export qualification belong to the outer validation phases;
-this documentation pass ran no behavioral checks. Default source/CI selection
-still includes all five source UI cases; neither focused checkpoint replaces it.
+execution, or recertification of native/export receipts. At that change, full CI and changed-input native/export qualification belonged
+to the outer validation phases; that documentation pass ran no behavioral checks.
+The historical source selection included all five UI cases. Today's default
+headless policy is linked above; selected renderer proof remains separate.
 
 ## Historical qualification — steering022
 

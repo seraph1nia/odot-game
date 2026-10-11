@@ -1,0 +1,51 @@
+name: Deep headless qualification
+
+on:
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      network-scenario:
+        description: 'Optional single deep network scenario; empty runs all headless deep checks'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deep-headless-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  headless-deep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        with:
+          version: 2026.9.17
+          install: false
+          cache: true
+      - name: Install declared locked tools
+        run: mise install --locked dotnet godot-dotnet
+      - name: Selected headless transport journey
+        if: github.event_name == 'workflow_dispatch' && inputs.network-scenario != ''
+        env:
+          SCENARIO: ${{ inputs.network-scenario }}
+        run: mise run test-network --scenario "$SCENARIO" --startup-timeout-ms 60000
+      - name: Deep C# campaigns and headless multiplayer journeys
+        if: github.event_name != 'workflow_dispatch' || inputs.network-scenario == ''
+        run: mise run test-deep --startup-timeout-ms 60000
+      - name: Retain timing summaries
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deep-headless-timings-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            logs/*/*-summary.json
+            logs/*/*-results/*.trx
+            logs/*/**/*-engine-*.log
