@@ -10,10 +10,10 @@ namespace Game.Core.Tests;
 public sealed class WorldtreeResearchTests
 {
     [Theory]
-    [InlineData(TechnologyId.Stonecraft, TechnologyId.MeleeFoundation, TechnologyId.Guardian, Building.Stonecutter, Resource.Stone, 1)]
-    [InlineData(TechnologyId.ManagedForestry, TechnologyId.RangedFoundation, TechnologyId.Precision, Building.Lumbermill, Resource.Wood, 1)]
-    [InlineData(TechnologyId.Irrigation, TechnologyId.MagicFoundation, TechnologyId.Frost, Building.Farm, Resource.Food, 2)]
-    public void PurchasesAffectActualProductionAndForecastOnceAndSurviveWireRestoration(TechnologyId id, TechnologyId foundation, TechnologyId prerequisite, Building producer, Resource resource, int bonus)
+    [InlineData(TechnologyId.Stonecraft, TechnologyId.MeleeFoundation, TechnologyId.Guardian, Building.Stonecutter, Resource.Stone, 1, 2, 3)]
+    [InlineData(TechnologyId.ManagedForestry, TechnologyId.RangedFoundation, TechnologyId.Precision, Building.Lumbermill, Resource.Wood, 1, 2, 3)]
+    [InlineData(TechnologyId.Irrigation, TechnologyId.MagicFoundation, TechnologyId.Frost, Building.Farm, Resource.Food, 2, 7, 10)]
+    public void PurchasesAffectActualProductionAndForecastOnceAndSurviveWireRestoration(TechnologyId id, TechnologyId foundation, TechnologyId prerequisite, Building producer, Resource resource, int bonus, int levelOne, int levelTwo)
     {
         using var match = new Match(); match.Join(); Apply(match, "start"); City city = match.Players[1]; city.Research = new(30);
         Assert.False(match.Apply(1, Request(match, "research-tech", id)).Accepted);
@@ -25,6 +25,12 @@ public sealed class WorldtreeResearchTests
         Assert.Equal(stocks, city.Resources); Assert.Equal(12, city.Research.Points);
         Assert.Equal(before.RecruitmentQuotes, city.Snapshot().RecruitmentQuotes);
         var purchased = match.Snapshot();
+        BuildingDefinition definition = purchased.BuildingCatalog.Single(b => b.Type == producer);
+        string unit = resource.ToString().ToLowerInvariant();
+        Assert.Equal($"+{levelOne} {unit}/turn", ProgressionPresentation.ProducerBenefit(definition, research: city.Research, technologies: purchased.TechnologyCatalog));
+        Assert.Equal($"+{levelTwo} {unit}/turn", ProgressionPresentation.ProducerBenefit(definition, 2, research: city.Research, technologies: purchased.TechnologyCatalog));
+        Assert.Equal($"{levelOne} → {levelTwo} {unit}/turn", ProgressionPresentation.ProducerBenefit(definition, upgrade: true, research: city.Research, technologies: purchased.TechnologyCatalog));
+        Assert.Equal(levelOne + levelTwo, purchased.Players[0].ProductionIncome!.Value.Amount(resource) - match.Economy.BaseProduction.Amount(resource));
         Assert.False(match.Apply(1, Request(match, "research-tech", id)).Accepted);
         Assert.False(match.Apply(1, Request(match, "research-tech", (TechnologyId)63)).Accepted);
         Assert.Equal(JsonSerializer.Serialize(purchased, WireJson.Options), JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
@@ -90,6 +96,8 @@ public sealed class WorldtreeResearchTests
         var economy = new EconomyConfiguration(new Rules { WoodOutput = int.MaxValue });
         ResearchState owned = new(Owned: (1UL << (int)TechnologyId.RangedFoundation) | (1UL << (int)TechnologyId.Precision) | (1UL << (int)TechnologyId.ManagedForestry));
         Assert.Null(economy.ProjectedProduction([new(Building.Lumbermill, 1)], owned));
+        Assert.Equal("Unavailable", ProgressionPresentation.ProducerBenefit(economy.Building(Building.Lumbermill), research: owned, technologies: catalog.Definitions()));
+        Assert.Equal("Unavailable", ProgressionPresentation.ProducerBenefit(economy.Building(Building.Lumbermill), upgrade: true, research: owned, technologies: catalog.Definitions()));
         Assert.Throws<ArgumentException>(() => catalog.ValidateState(new(Owned: 1UL << (int)TechnologyId.ManagedForestry)));
         Assert.Throws<ArgumentException>(() => catalog.ValidateState(new(Owned: (1UL << (int)TechnologyId.MeleeFoundation) | (1UL << (int)TechnologyId.Guardian) | (1UL << (int)TechnologyId.Assault))));
         Assert.False(catalog.Eligibility(default, TechnologyId.ManagedForestry).Available);

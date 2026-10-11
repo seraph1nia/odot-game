@@ -136,16 +136,18 @@ public sealed class EconomyConfiguration
         { 1 => building.Upgrade, 2 => new(6, 2, Stone: 2), 3 => new(9, 2, Stone: 3), 4 => new(14, 2, Stone: 4), _ => throw new InvalidOperationException("Invalid recruitment level.") };
         return true;
     }
+    public static int ProducerOutput(BuildingDefinition building, int level, ResearchState research, IEnumerable<TechnologyDefinition> technologies)
+        => checked(building.Output(level) + technologies.Where(n => research.Has(n.Id) && n.Production is { } benefit
+            && benefit.Building == building.Type && benefit.Resource == building.Produces).Sum(n => n.Production!.ExtraPerProducer));
     public ResourceCost Production(IEnumerable<SlotState> slots, ResearchState research = default)
     {
         Research.ValidateState(research);
-        ProductionBenefit[] benefits = Research.Definitions().Where(n => research.Has(n.Id) && n.Production is not null).Select(n => n.Production!).ToArray();
+        TechnologyDefinition[] technologies = Research.Definitions();
         ResourceCost total = BaseProduction;
         foreach (SlotState slot in slots)
         {
             if (!_buildings.TryGetValue(slot.Type, out BuildingDefinition? building) || building.Produces is not Resource resource) continue;
-            int bonus = benefits.Where(b => b.Building == slot.Type && b.Resource == resource).Sum(b => b.ExtraPerProducer);
-            ResourceCost output = new ResourceCost().With(resource, checked(building.Output(slot.Level) + bonus));
+            ResourceCost output = new ResourceCost().With(resource, ProducerOutput(building, slot.Level, research, technologies));
             if (!total.TryAdd(output, out ResourceCost next)) throw new OverflowException("Production exceeds whole-resource bounds.");
             total = next;
         }

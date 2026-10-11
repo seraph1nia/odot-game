@@ -12,7 +12,6 @@ public partial class WorldtreeResearch : VBoxContainer
     public Label Description { get; private set; } = null!;
     public Label Feedback { get; private set; } = null!;
     public Action<TechnologyId>? Requested { get; set; }
-    public Func<bool>? RequestBlocked { get; set; }
     private MatchSnapshot? _state;
     private CityState? _city;
     private int _player;
@@ -35,7 +34,7 @@ public partial class WorldtreeResearch : VBoxContainer
         Tree.Connect("node_selected", Callable.From<string>(id => { _selected = id; DescribeSelection(); }));
         Tree.Connect("node_action_requested", Callable.From<string>(id =>
         {
-            if (RequestBlocked?.Invoke() != true && WorldtreeProjection.Find(id) is { Technology: not TechnologyId.None } slot
+            if (WorldtreeProjection.Find(id) is { Technology: not TechnologyId.None } slot
                 && ProgressionPresentation.ResearchAccess(_state, _city, _player, _connected, slot.Technology).Available)
                 Requested?.Invoke(slot.Technology);
         }));
@@ -99,10 +98,7 @@ public partial class WorldtreeDialog : Control
 {
     public WorldtreeResearch Research { get; private set; } = null!;
     public Button CloseButton { get; private set; } = null!;
-    public Button SettingsButton { get; private set; } = null!;
     public Control? Invoker { get; set; }
-    public Func<bool>? ChildModalOpen { get; set; }
-    public Action? OpenSettings { get; set; }
     private PanelContainer _panel = null!;
     public override void _Ready()
     {
@@ -113,10 +109,9 @@ public partial class WorldtreeDialog : Control
         var body = new VBoxContainer(); _panel.AddChild(body);
         var header = new HBoxContainer(); body.AddChild(header);
         header.AddChild(new Label { Text = "Worldtree · city research", SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        SettingsButton = new Button { Name = "ResearchSettings", Text = "Settings" }; header.AddChild(SettingsButton); SettingsButton.Pressed += () => OpenSettings?.Invoke();
-        CloseButton = new Button { Name = "CloseResearch", Text = "Close" }; header.AddChild(CloseButton); CloseButton.Pressed += () => { if (ChildModalOpen?.Invoke() != true) Close(); };
+        CloseButton = new Button { Name = "CloseResearch", Text = "Close" }; header.AddChild(CloseButton); CloseButton.Pressed += Close;
         var scroll = new ScrollContainer { FollowFocus = true, SizeFlagsVertical = SizeFlags.ExpandFill }; body.AddChild(scroll);
-        Research = new WorldtreeResearch { SizeFlagsHorizontal = SizeFlags.ExpandFill, RequestBlocked = () => ChildModalOpen?.Invoke() == true }; scroll.AddChild(Research);
+        Research = new WorldtreeResearch { SizeFlagsHorizontal = SizeFlags.ExpandFill }; scroll.AddChild(Research);
         Resized += Layout;
         Layout(); Hide();
     }
@@ -132,14 +127,13 @@ public partial class WorldtreeDialog : Control
         Hide();
         if (Invoker is not null && GodotObject.IsInstanceValid(Invoker) && Invoker.IsVisibleInTree() && GetWindow().HasFocus()) Invoker.GrabFocus();
     }
-    public void FocusContent()
+    private void FocusContent()
     {
-        if (ChildModalOpen?.Invoke() == true) return;
         Research.Tree.Get("buttons").AsGodotDictionary()["root"].As<Control>().GrabFocus();
     }
     public override void _Input(InputEvent @event)
     {
-        if (!Visible || ChildModalOpen?.Invoke() == true || @event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (!Visible || @event is not InputEventKey { Pressed: true, Echo: false } key) return;
         if (key.IsActionPressed("ui_cancel")) { Close(); GetViewport().SetInputAsHandled(); return; }
         bool forward = key.IsActionPressed("ui_focus_next"), backward = key.IsActionPressed("ui_focus_prev");
         if (!forward && !backward) return;

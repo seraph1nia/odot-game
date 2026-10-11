@@ -261,11 +261,14 @@ public partial class GameApplication(Main session) : Node
         // Embedded subwindows receive their own input before this root viewport.
         // Consume only events routed outside the dialog, keeping native focus inside.
         // Nonexclusive dialogs let the main window deliver native close requests.
-        if (!IsModalOpen) return;
-        if (_tabletop?.DetailsOpen == true) { _tabletop.FocusDetails(); GetViewport().SetInputAsHandled(); return; }
-        if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true })
-            (_leave.Visible ? _leave : _join.Visible ? _join : Friends.IsOpen ? Friends : Settings.Dialog).GrabFocus();
-        GetViewport().SetInputAsHandled();
+        Window? modal = _leave.Visible ? _leave : _join.Visible ? _join : Friends.IsOpen ? Friends : Settings.IsOpen ? Settings.Dialog : _tabletop?.DetailsWindow;
+        RouteModalInput(@event, GetViewport(), modal);
+    }
+    internal static void RouteModalInput(InputEvent @event, Viewport viewport, Window? modal)
+    {
+        if (modal is null) return;
+        if (@event is InputEventMouseButton { Pressed: true } or InputEventKey { Pressed: true }) modal.GrabFocus();
+        viewport.SetInputAsHandled();
     }
     public override void _UnhandledInput(InputEvent @event)
     {

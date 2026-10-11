@@ -98,6 +98,24 @@ qualification; do not update receipt counts without executing their owner suites
   processes overlap; network admission defaults to two. No global test selector
   registry, new framework, fleet manager, retries or desktop automation introduced.
 
+## Worldtree review coverage adjustments
+
+The existing Tier A Worldtree production fixture now also checks independent
+expected researched labels at both levels and for upgrades (farm +7 and 7 → 10;
+stone/wood +2 and 2 → 3). Income-only assertions could miss stale producer labels.
+The native-client prerequisite fixture covers the exported component caller and
+selects the current OS layout; fixture files do not qualify Windows execution.
+
+The existing Tier B Worldtree case routes native mouse, wheel and keyboard events
+through the same GameApplication input handler used in production. Detached
+component intent calls missed root-viewport consumption. Fixed small controls,
+owned SceneTree state and process-frame synchronization replace no journey;
+estimated incremental cost is a few frames, not a new process. Nested Settings
+callback/guard assertions are removed with that unrequired product route. The
+normal Settings component owner and research authority/disconnection/teardown
+negative paths remain. Full application, physical input, pixels and native Windows
+package qualification are not established by these focused fixtures.
+
 ## Failure history
 
 | Evidence | Initiator / symptom / disconfirming evidence | Action and remaining uncertainty |

@@ -79,9 +79,10 @@ internal sealed partial class Runner
     }
     internal string AtmosphereClientPackage()
     {
-        string executable = Path.Combine(_root, "dist", "client", "odot.x86_64");
+        DesktopExport layout = DesktopExport.For(OperatingSystem.IsWindows() ? "windows-x64" : "linux-x64");
+        string executable = Path.Combine(_root, "dist", layout.Kind(false), layout.Executable);
         if (!File.Exists(executable))
-            throw new VerificationPrerequisiteException("Missing exported client: " + executable + "; run mise run export-client first. The selected atmosphere check never implicitly exports.");
+            throw new VerificationPrerequisiteException("Missing exported client: " + executable + "; run mise run export-client first. The selected client check never implicitly exports.");
         return executable;
     }
     internal void CheckPackages()

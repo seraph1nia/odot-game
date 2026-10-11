@@ -9,15 +9,17 @@ selected-node footer. The footer shows the actual cost and authority-provided
 reason. Acquired, prerequisite-locked, unaffordable and inactive nodes remain
 inspectable. Foreign cities and disconnected/paused/ready/fallen cities are
 read-only. Close/Escape restores the invoker when the window is focused. Settings
-uses the existing settings owner; its child-modal guard prevents underlying
-purchase/close callbacks. The game modal confines Tab/Shift-Tab; the imported
+remains available through its normal application entry, not inside research.
+The game modal confines Tab/Shift-Tab; the imported
 component itself still supports native traversal into/out of its host.
 
 `ResearchPanel.cs` binds the game session to `WorldtreeDialog` and
 `WorldtreeResearch.cs`. The native Control overlay is outside the city layout
 containers. `GameApplication.IsModalOpen` already incorporates
 `Tabletop.DetailsOpen`, so this panel also interrupts held movement and blocks
-world picking/drag/zoom. The panel does not pause the cooperative match. A bounded
+world picking/drag/zoom. Application input consumption is restricted to embedded
+Window dialogs, allowing this in-viewport overlay to receive native GUI events.
+The panel does not pause the cooperative match. A bounded
 scroll host retains descriptions and the canonical 900×560 minimum component.
 Physical control/branch identities survive selection, snapshots and resize.
 
@@ -162,15 +164,16 @@ are in [worldtree-validation.json](worldtree-validation.json). The final deliver
 pipeline must bind fresh checks to its actual published head; the initial dirty
 worktree receipts are not relabeled as later-head qualification.
 
-- Tier A: `WorldtreeResearchTests` exercises actual per-producer forecasts and
-  income, purchases, duplicates, stale phase/turn, affordability, prerequisites,
+- Tier A: `WorldtreeResearchTests` exercises actual per-producer forecasts,
+  income and researched level/upgrade labels, purchases, duplicates, stale phase/turn, affordability, prerequisites,
   exclusive locks, invalid state/overflow, all three authority policies, retained
   authority reconnect, JSON/Brotli restoration and fixed projection gates.
 - Tier B: `test-engine --scenario worldtree` uses the existing minimal owned
   headless SceneTree, loading both JSON resources, all 30 icons, actual snapshots,
   native selection/action signals, independent child awakening, unchanged-tick
   tween preservation, native Tab/Enter host escape/re-entry and modal confinement,
-  Settings host callbacks, resize, disconnection and free-during-awakening.
+  socket/purchase/Close clicks and scrolling through the shared GameApplication
+  input-routing boundary, resize, disconnection and free-during-awakening.
 - Package: `test-engine --scenario worldtree --exported` loads that same component
   owner from the newly exported client. Locked release templates prohibit scene
   overrides, so an early deferred `--engine-component-probe worldtree` dispatch
@@ -184,8 +187,8 @@ worktree receipts are not relabeled as later-head qualification.
 native GPU/compositor/performance, listening, tiny windows, localization/RTL/HiDPI,
 Steam paired invites, durable save/restart, deep twenty-wave balance and native
 Windows execution locally. Settings itself retains its separate production
-headless test owner; this component case verifies the actual host callbacks/guard,
-not rendered child-window stacking. The retained optional graphical research
+headless test owner; the research component case does not instantiate the full
+application or qualify rendered window stacking. The retained optional graphical research
 checkpoint's selectors follow this native panel, but it was not run. Standalone
 asset captures and previous game's graphical receipts do not certify this game
 integration.

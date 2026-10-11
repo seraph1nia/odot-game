@@ -10,8 +10,9 @@ public partial class EngineTests
     // Main, renderer, menu, game peers or graphical process. Arithmetic is Tier A.
     private async Task Worldtree()
     {
-        var host = new Control { Size = new(1280, 720) }; AddChild(host);
+        var host = new WorldtreeInputHost { Size = new(GetViewport().GetVisibleRect().Size.X, 620) }; AddChild(host);
         var outside = new Button { Text = "Outside", Name = "OutsideResearch" }; host.AddChild(outside);
+        int outsideClicks = 0; outside.Pressed += () => outsideClicks++;
         var dialog = new WorldtreeDialog { Invoker = outside }; host.AddChild(dialog);
         var second = new WorldtreeResearch(); host.AddChild(second); second.Hide();
         try
@@ -33,11 +34,32 @@ public partial class EngineTests
             {
                 Check(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "research-tech", 1, Technology: id)).Accepted, "actual intent invokes existing authority command");
             };
+            void Click(Control control)
+            {
+                Vector2 position = control.GetGlobalRect().GetCenter();
+                GetViewport().PushInput(new InputEventMouseMotion { Position = position, GlobalPosition = position }, true);
+                GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = true }, true);
+                GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = false }, true);
+            }
             Refresh(); dialog.Open();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Click(outside);
+            Check(outsideClicks == 0, "research scrim blocks native clicks on underlying controls");
             var prior = tree.Get("snapshot").AsGodotDictionary().Duplicate(true);
-            tree.Call("select_node", "primary_left");
-            Check(dialog.Research.Description.Text.Contains("Melee Foundation", StringComparison.Ordinal), "native selection projects real selected-node description");
-            tree.Call("request_action");
+            Click(buttons["primary_left"].As<Button>());
+            Check(dialog.Research.Description.Text.Contains("Melee Foundation", StringComparison.Ordinal), "native socket click reaches GUI through application input boundary");
+            var scroll = dialog.FindChildren("*", "ScrollContainer", true, false).OfType<ScrollContainer>().Single();
+            scroll.ScrollVertical = 0;
+            Vector2 wheelPosition = scroll.GetGlobalRect().GetCenter();
+            GetViewport().PushInput(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition, ButtonIndex = MouseButton.WheelDown, Pressed = true }, true);
+            GetViewport().PushInput(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition, ButtonIndex = MouseButton.WheelDown, Pressed = false }, true);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Check(scroll.ScrollVertical > 0, "native wheel reaches modal scroll through application input boundary");
+            tree.Get("action").As<Button>().GrabFocus();
+            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = true });
+            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = false });
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(match.Players[1].Research.Has(TechnologyId.MeleeFoundation), "intent callback acknowledges real research purchase");
             Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Count == prior["acquired"].AsGodotArray().Count,
                 "presentation intent never changes acquired state before authority snapshot");
@@ -71,6 +93,16 @@ public partial class EngineTests
             Check(tree.Get("action").As<Button>().Disabled && tree.Get("action").As<Button>().FocusMode == Control.FocusModeEnum.None
                 && dialog.Research.Description.Text.Contains("Inactive slot", StringComparison.Ordinal), "inactive slot stays inspectable but cannot request research or trap focus");
             int requests = 0; dialog.Research.Requested = _ => requests++; tree.Call("request_action"); Check(requests == 0, "inactive intent cannot escape into game commands");
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Click(dialog.CloseButton);
+            Check(!dialog.Visible, "native Close click reaches GUI through application input boundary");
+            dialog.Open(); tree.Call("select_node", "primary_center");
+            tree.Get("action").As<Button>().GrabFocus();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Click(tree.Get("action").As<Button>());
+            Check(requests == 1 && !match.Players[1].Research.Has(TechnologyId.MagicFoundation), "native Research click emits intent through application boundary without local purchase");
             dialog.Close();
             // Unconfined imported component retains real native host-boundary links.
             second.Show(); second.Update(match.Snapshot(), match.Players[1].Snapshot(), 1, true);
@@ -119,15 +151,6 @@ public partial class EngineTests
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(dialog.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "visible game modal confines reverse Tab");
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, ShiftPressed = true, Pressed = false });
-            bool settings = false; dialog.OpenSettings = () => settings = true; dialog.ChildModalOpen = () => settings;
-            dialog.SettingsButton.EmitSignal(BaseButton.SignalName.Pressed); Check(settings, "real Settings button calls existing host callback");
-            tree.Call("select_node", "primary_right"); tree.Call("request_action");
-            dialog.CloseButton.EmitSignal(BaseButton.SignalName.Pressed);
-            Check(requests == 0 && dialog.Visible, "child Settings guard blocks underlying purchase and Close callbacks");
-            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, Pressed = true });
-            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            Check(dialog.Visible, "research host does not steal child Settings Escape");
-            settings = false; Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, Pressed = false });
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, Pressed = true });
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(!dialog.Visible, "native Escape closes only visible research modal");
@@ -149,4 +172,9 @@ public partial class EngineTests
         }
         finally { RemoveChild(host); host.Free(); }
     }
+}
+
+internal sealed partial class WorldtreeInputHost : Control
+{
+    public override void _Input(InputEvent @event) => GameApplication.RouteModalInput(@event, GetViewport(), null);
 }

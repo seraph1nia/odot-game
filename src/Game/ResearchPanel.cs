@@ -18,9 +18,7 @@ public partial class Tabletop
         {
             Name = "WorldtreeResearchDialog",
             Theme = application.Theme,
-            Invoker = _openResearch,
-            ChildModalOpen = () => _settings.IsOpen,
-            OpenSettings = () => _settings.Open()
+            Invoker = _openResearch
         };
         overlayHost.AddChild(_researchDialog);
         _researchDialog.Research.Requested = technology =>
