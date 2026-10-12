@@ -114,13 +114,17 @@ all-owned food forecast/funded/field-participant receipts and current wounds;
 reconnect never
 replays production, food payment or healing.
 
-Full compatibility identity includes all six tower profiles and the current
-combat rules declared in [`CombatSettings`](../src/Game.Core/Combat/CombatConfiguration.cs).
-Seeded actor tie-breaking instead retains the original rules-v5 serialization
-of all actual legacy settings. Unused new variant metadata therefore cannot
-reroll unchanged soldiers, defenders or base towers; meaningful legacy changes
-still change the decision salt. `ArmyPlotTowerTests` pairs variant-only authoring
-with unchanged legacy decisions and a full-identity counterfactual. Snapshot
+Full compatibility identity includes all six resolved tower profiles, the current
+combat rules declared in [`CombatSettings`](../src/Game.Core/Combat/CombatConfiguration.cs)
+and the actor decision fingerprint. Seeded actor tie-breaking retains the original
+rules-v5 serialization of all actual legacy settings, including authored Arrow
+victim/radius values even though its resolved damage profile is always single-target.
+Those legacy inputs can change decisions and therefore must also change full
+compatibility identity. Unused new variant metadata cannot reroll unchanged
+soldiers, defenders or base towers; ineffective Rapid Arrow victim/radius authoring
+changes neither fingerprint. `CombatConfigurationTests` covers identity round-trips
+and retained legacy decision transcripts; `ArmyPlotTowerTests` pairs variant-only
+authoring with unchanged legacy decisions and a full-identity counterfactual. Snapshot
 codec/load and credential resume against the same live authority remain the
 persistence boundary, not an authority disk-save or restart-recovery API.
 

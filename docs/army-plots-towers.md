@@ -52,21 +52,23 @@ RulesVersion assertion 5 versus 6; six historical economy variants with
 city differences, and growth stock 7 versus 10 metal. Runner then passed 649,
 with two Windows-specific skips. None of those failures was waived.
 
-The final correction separates the explicit new variants from the four old
-profiles. Seeded tie-breaking retains the exact original v5 serialization of
-**all actual legacy settings**, while full compatibility identity serializes
-current rules and all six profiles. Meaningful legacy profile changes still
-change the decision salt. New variant-only metadata does not reroll otherwise
-unchanged unit, defender or tower decisions. The original economy fixture
-assertions, paid prices, casualty identities, outcomes and resource goldens
-remain unchanged. The intentional RulesVersion assertion now verifies version
-6 **and the complete exact six-profile set**, configured legacy timing/splash,
+The correction in the local receipts below separated the explicit new variants
+from the four old profiles and retained the original legacy decision namespace;
+[session ownership](sessions.md) owns the current configuration/decision identity
+contract. The original economy fixture assertions, paid prices, casualty
+identities, outcomes and resource goldens remain unchanged. The intentional
+RulesVersion assertion now verifies version 6 **and the complete exact six-profile
+set**, configured legacy timing/splash,
 rapid non-splash and new bombard radius, rather than weakening the assertion.
 
-The paired regression uses seeds 0, 1, 123 and the historical economy seed
-14056307608042553509. It changes only new Rapid/Bombard timing/radius metadata,
-keeps the same three deployed enemies/base tower/positions/sequence/price, and
-compares the first actual tower selection. One-condition counterfactual changes
+The retained paired-regression receipt uses seeds 0, 1, 123 and the historical
+economy seed 14056307608042553509. This receipt predates the review correction
+that includes the actor decision fingerprint in full compatibility identity;
+its full-identity hash and counterfactual targets below are historical outputs,
+not current-head fingerprints or expected counterfactual selections. It changed
+only new Rapid/Bombard timing/radius metadata, kept the same three deployed
+enemies/base tower/positions/sequence/price, and compared the first actual tower
+selection. The one-condition counterfactual changed
 **only** the selector salt back to full configuration identity:
 
 | Seed | Original namespace / actual target | Full-identity counterfactual target |
@@ -83,7 +85,7 @@ is 500 hundredths damage, 12 windup, 60 cadence, one target, zero radius.
 The preserved legacy salt is
 `79d304d3da6d850ff756b29178073f1d48f34d35259e183e4028e84cc991d693`.
 For the explicit counterfactual metadata (Rapid 3/17 ticks; Bombard 20/80,
-cap 4, radius 2), truthful full identity is
+cap 4, radius 2), the receipt's full identity was
 `0050759aa39220ec3b97cb7f6ee1b413e2eb294d5ca6f7c75f8ef0718739508c`.
 These values are diagnostic inputs, not shipping balance or known-seed branches.
 Actual JSON/profile/stock outputs are in the targeted TRX below. A paired
