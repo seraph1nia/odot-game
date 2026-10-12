@@ -5,7 +5,7 @@ namespace Game;
 
 public partial class Tabletop
 {
-    private Button _buyHome = null!, _openHall = null!, _hallSend = null!, _hallRetire = null!, _hallCapacity = null!, _hallHealing = null!;
+    private Button _openHall = null!, _hallSend = null!, _hallRetire = null!, _hallCapacity = null!, _hallHealing = null!;
     private UiDialog _hallDialog = null!;
     private Label _hallSummary = null!, _hallSelection = null!, _homeSummary = null!;
     private VBoxContainer _hallRoster = null!;
@@ -26,7 +26,6 @@ public partial class Tabletop
     }
     private void CreateArmyControls(Node city, Node context, Node details)
     {
-        _buyHome = Button(city, "Buy unit space", () => { if (CanEdit()) game.SendAction("buy-home"); }); _buyHome.Name = "BuyHome";
         _homeSummary = Text(details, "", 13);
         _openHall = Button(context, "Town hall roster", () =>
         {
@@ -60,13 +59,8 @@ public partial class Tabletop
     private void RefreshArmy()
     {
         CityState? city = Focus(); ArmyState? army = city?.Army; ArmyConfiguration? config = UiArmy();
-        ResourceCost? homePrice = army is null ? null : config?.HomeQuote(army.PurchasedHomes);
-        _buyHome.Visible = army is not null && game.State?.Phase != Phase.Lobby;
-        _buyHome.Text = homePrice is { } price ? $"Buy unit space · {price.Gold} gold" : "All six unit spaces purchased";
-        _buyHome.Disabled = !CanEdit() || homePrice is not { } cost || !city!.Resources.TryPay(cost, out _);
-        _buyHome.TooltipText = !CanEdit() ? "Edit your unready, unpaused city during Building or Preparation." : "Buy the next physical six-size home. Town hall upgrades never buy battlefield space.";
-        _homeSummary.Text = army is null ? "" : "Battlefield homes (first-fit order):\n" + string.Join("\n", army.Homes.Select((h, i) => $"{i + 1}. Tile {h.Cell} · {(h.Purchased ? $"{h.Used}/6 size" : "locked")}"));
-        _openHall.Visible = city?.Slots.ElementAtOrDefault(_slot)?.Type == Building.TownHall;
+        _homeSummary.Text = army is null ? "" : "Army plots (first-fit order):\n" + string.Join("\n", army.Homes.Select(h => $"{h.Number}. Tile {h.Cell} · {h.State} · {h.Used}/6 size"));
+        _openHall.Visible = SelectedPlot(city)?.Type == Building.TownHall;
         _openHall.Disabled = !game.Connected;
         if (_hallSlot < 0 || city?.Slots.ElementAtOrDefault(_hallSlot) is not { Type: Building.TownHall } selected || selected.Generation != _hallGeneration)
         {
@@ -103,31 +97,29 @@ public partial class Tabletop
         UnitState? chosen = stored.FirstOrDefault(u => u.Id == _storedUnit);
         foreach (Button button in _hallUnits) button.Modulate = button.Name == "HallUnit" + _storedUnit ? Colors.White : new Color(.85f, .85f, .85f);
         _hallSelection.Text = chosen is null ? "Select a stored unit. Selection changes nothing." : $"Selected #{chosen.Id} · wounds and level are retained when sent.";
-        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, chosen.Size) is not null;
+        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, chosen.Size, plots: army.Homes.Select(h => h.Plot).ToArray()) is not null;
         _hallSend.Disabled = !CanEdit() || chosen is null || !fits; _hallRetire.Disabled = !CanEdit() || chosen is null;
         _hallSend.TooltipText = chosen is null ? "Select a stored unit." : !fits ? "Battlefield homes are full. Buy a space or retire/store a field unit first." : "Insert at the first fitting purchased tile and free anchor; no healing or payment.";
     }
-    private static void UpdateArmyMarkers(Node3D board, CityState city, MatchSnapshot state)
+    private void UpdateArmyMarkers(Node3D board, CityState city, MatchSnapshot state)
     {
         if (city.Army is not { } army) return;
+        string key = string.Join('|', army.Homes.Select(h => $"{h.PlotId}:{h.Cell}:{h.Purchased}:{h.Used}:{h.Plot.Type}:{h.Plot.Level}:{h.Plot.Generation}"));
         Node3D? old = board.GetNodeOrNull<Node3D>("ArmyHomes");
-        if (old is not null && old.GetMeta("purchased").AsInt32() == army.PurchasedHomes)
-        { old.Visible = state.Phase is Phase.Building or Phase.Preparation; return; }
+        if (old is not null && old.GetMeta("key").AsString() == key) return;
         if (old is not null) { board.RemoveChild(old); old.QueueFree(); }
-        var markers = new Node3D { Name = "ArmyHomes", Visible = state.Phase is Phase.Building or Phase.Preparation };
-        markers.SetMeta("purchased", army.PurchasedHomes); board.AddChild(markers);
-        foreach ((ArmyHomeState home, int index) in army.Homes.Select((h, i) => (h, i)))
-        {
-            HexCoordinate coordinate = state.Rules.Combat.Board.Cells.Single(c => c.Id == home.Cell).Coordinate;
-            Vector3 position = VillageLayout.Hex(coordinate.Column, coordinate.R);
-            Label3D label = Label(markers, position + new Vector3(0, .12f, .95f), home.Purchased ? "" : $"Space {index + 1} · locked", 18);
-            label.Name = "Home" + index; label.Modulate = home.Purchased ? new Color("c7e6c5") : new Color("b9b5aa");
-            if (!home.Purchased) markers.AddChild(new Sprite3D { Name = "LockedHome" + index, Position = position + new Vector3(0, .35f, 0), Texture = UiAssets.Icon("Gold"), PixelSize = .014f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Shaded = false });
-        }
+        var markers = new ArmyPlotView(city, state, _landscapeAssets); markers.SetMeta("key", key); board.AddChild(markers);
+        ReceiveArmyPlotBounds(city.Id, markers);
+    }
+    internal void ReceiveArmyPlotBounds(int city, ArmyPlotView view)
+    {
+        if (!_buildingBounds.TryGetValue(city, out Aabb?[]? bounds)) _buildingBounds[city] = bounds = new Aabb?[ArmyConfiguration.TotalPlots];
+        for (int index = 0; index < ArmyConfiguration.PlotCount; index++)
+            bounds[ArmyConfiguration.PlotOffset + index] = view.Bounds[index];
     }
     private void ObserveArmy(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _buyHome, _openHall, _hallCapacity, _hallHealing, _hallSend, _hallRetire }.Concat(_hallUnits)) Application.ObserveControl(targets, button.Name, button);
+        foreach (Button button in new[] { _openHall, _hallCapacity, _hallHealing, _hallSend, _hallRetire }.Concat(_hallUnits)) Application.ObserveControl(targets, button.Name, button);
         Application.ObserveControl(targets, "CloseTownHall", _hallDialog.GetOkButton());
         fields["TownHallOpen"] = _hallDialog.Visible; fields["TownHallText"] = _hallSummary.Text;
         fields["SelectedStoredUnit"] = _storedUnit; fields["ArmyHomes"] = Focus()?.Army; fields["HomeText"] = _homeSummary.Text;

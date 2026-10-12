@@ -40,6 +40,8 @@ public static class AssetCatalog
         [Game.Core.Building.ResearchTower] = new("Research tower", "buildings/research_tower.glb", Plinth, true),
         [Game.Core.Building.ArrowTower] = new("Arrow tower", "buildings/arrow_tower.glb", Plinth, true),
         [Game.Core.Building.CatapultTower] = new("Bombard tower", "buildings/bombarding_tower.glb", Plinth, true),
+        [Game.Core.Building.RapidArrowTower] = new("Rapid arrow tower", "buildings/arrow_tower.glb", Plinth, true),
+        [Game.Core.Building.BombardTower] = new("Bombard tower", "buildings/bombarding_tower.glb", Plinth, true),
         [Game.Core.Building.Market] = new("Market", "buildings/trade_market.glb", GoldCargo),
         [Game.Core.Building.TownHall] = new("Town hall", "buildings/town_hall.glb", "props/kit_book.glb")
     };

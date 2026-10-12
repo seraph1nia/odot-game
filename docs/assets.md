@@ -135,10 +135,14 @@ model, roof picking, Upgrade and Sell actions are unchanged.
 | Archery range | `ArcheryRange` | Ranged recruitment |
 | Magic academy | `Arcanum` | Magic recruitment |
 | Research tower | `ResearchTower` | Personal research progress |
-| Arrow tower | `ArrowTower` | Existing ranged defense profile |
-| Bombard tower | `CatapultTower` | Existing area-defense profile, not new cannon mechanics |
+| Arrow tower | `ArrowTower` | Base/legacy ranged defense |
+| Rapid arrow tower | `RapidArrowTower` | Explicit arrow upgrade; existing arrow artwork |
+| Bombard tower | `CatapultTower`, `BombardTower` | Legacy direct construction or explicit arrow upgrade; existing bombard artwork |
 | Market | `Market` | Quoted resource-bundle sales |
 | Town hall | `TownHall` | Stable storage, separate capacity/healing upgrades and guarded roster transfers/retire |
+
+The two Bombard identities share a visible name and mesh, not a damage footprint;
+[gameplay tower profiles](gameplay.md#defense-towers-on-army-plots) distinguish them.
 
 | Friendly name | Enemy name | Canonical unit type |
 | --- | --- | --- |

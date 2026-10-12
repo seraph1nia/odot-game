@@ -55,7 +55,7 @@ internal sealed partial class CombatSimulation : IDisposable
     internal CombatUnit[] Units() => All();
     internal int RouteSearches => _routing.Searches;
     private CombatDecisionKey Key(int id, int city, long sequence, int generation, CombatPurpose purpose, CombatActorKind kind = CombatActorKind.Unit)
-        => new(_seed, _configuration.Fingerprint, _wave, city, kind, id, sequence, generation, purpose);
+        => new(_seed, _configuration.ActorDecisionFingerprint, _wave, city, kind, id, sequence, generation, purpose);
     private CombatDecisionState NewDecision(int id, int city, long sequence)
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
 

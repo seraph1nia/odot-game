@@ -36,7 +36,7 @@ blue focus remains independent of ownership/selection. Godot imports SVGs/font l
 | Invite/leave confirmations, friends | `GameApplication`, `SteamFriendsDialog`: same Control shell and native controls | Existing lifetime/generation guards, Cancel-default, invitation query/send identities, busy state and async invalidation; no local Steam lobby/invitation during verification |
 | Six-resource HUD and upkeep | `TabletopHud`: production `resource_ledger.tscn`; game binds its native stock/income labels and appends authoritative upkeep/context rows | Existing exact six-resource order, economy projection, forecast/receipt distinctions; no kit economy calculation |
 | Village/building/economy/market/recruitment | `TabletopHud`, `Tabletop`, `UiAssets`: shared native woodland styles, textual costs/reasons/quotes, native groups and selectors | Original plot/ownership/phase/ready/connection checks, server costs/eligibility, build/upgrade/sale/trade/recruitment semantics and opaque command identities |
-| Research | `ResearchPanel`, `WorldtreeResearch`, `WorldtreeDialog`: imported living tree, native inspect/purchase Controls, descriptions and focus-follow scroll | Landed protocol-12 catalog and labels, actual 3/6/9-point foundations/specializations/masteries and village production offshoots, permanent sibling locks, authoritative points/requirements and session `research-tech` action |
+| Research | `ResearchPanel`, `WorldtreeResearch`, `WorldtreeDialog`: imported living tree, native inspect/purchase Controls, descriptions and focus-follow scroll | Landed research catalog and labels under the [session compatibility contract](sessions.md), actual 3/6/9-point foundations/specializations/masteries and village production offshoots, permanent sibling locks, authoritative points/requirements and session `research-tech` action |
 | City Details, Town hall/army roster | `TabletopHud`, `ArmyPanel`: native production modal, scrollable live summaries/roster/track controls | Existing physical tile capacities, paid recovery, storage/healing independent quotes, stale hall generation and occupied-sale/transfer/retirement guards |
 | Unit inspection | `UnitInspector`: inherited woodland Theme and native health/scroll/actions | Existing real model preview, picking, level/profile/status clocks and authoritative store/retire requests |
 | Match/lobby/reconnect/combat/feedback | `Tabletop`: native woodland Ready green/Pause violet and standard text controls, branch-framed HUD | Existing start/readiness/cooperative pause/reconnect/fresh-session services and authoritative phase counters; settings never pauses the match |
@@ -87,9 +87,10 @@ not purchases. Locked/owned nodes remain inspectable; the native purchase contro
 and production session bridge independently enforce real eligibility. The
 [Worldtree interaction contract](worldtree.md#reachable-game-feature) owns its
 current details, denial copy and pointer/keyboard purchase route.
-The landed village production offshoots and protocol-12 compatibility boundary
-remain unchanged by this migration. There is no new skill currency, one-point
-root, respec, local spend, prediction or research rule invented to fit a demo.
+The landed village production offshoots remain unchanged by this migration;
+[session ownership](sessions.md) owns the current compatibility boundary. There
+is no new skill currency, one-point root, respec, local spend, prediction or
+research rule invented to fit a demo.
 
 ## Removed-resource evidence
 

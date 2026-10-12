@@ -20,12 +20,12 @@ These are the current unresearched defaults, exercised by the finite twenty-wave
 | Archery Range | 2 W | 5 | Crossbowman |
 | Arcanum | 5 G + 2 W + 3 S | 5 | Mage |
 | Research Tower | 2 W + 2 S | 2 | +1 / +2 research per three-production cycle |
-| Arrow Tower | 4 G + 3 W | 2 | 5 / 7 damage per shot |
-| Catapult Tower | 6 G + 4 W + 3 S + 2 M | 2 | 6 / 8 damage per shot, at most three victims |
+| Arrow Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Tower profiles](#defense-towers-on-army-plots) |
+| Catapult Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Legacy splash profile](#defense-towers-on-army-plots) |
 | Market | 2 W + 2 S | 1 | Explicit fixed-bundle sales |
 | Town hall | 5 G + 2 W + 2 S | Independent tracks | [Storage and paid recovery](#purchased-army-homes-and-town-hall-rotation) |
 
-Producer upgrades cost 2 W + 2 S. Research Tower and Arrow Tower upgrades cost 4 G + 2 W + 2 S; Catapult upgrades add 1 M. Barracks and Archery Range first upgrades cost 2 W; Arcanum's first upgrade costs 4 G + 2 W. Later recruitment upgrades cost respectively 6 G + 2 W + 2 S, 9 G + 2 W + 3 S and 14 G + 2 W + 4 S. Market has no upgrade. Quotes and output come from the authority's frozen catalog; custom Rules values are already in these units.
+Producer upgrades cost 2 W + 2 S. Research Tower upgrades cost 4 G + 2 W + 2 S; defense upgrades use the [tower paths and quotes](#defense-towers-on-army-plots). Barracks and Archery Range first upgrades cost 2 W; Arcanum's first upgrade costs 4 G + 2 W. Later recruitment upgrades cost respectively 6 G + 2 W + 2 S, 9 G + 2 W + 3 S and 14 G + 2 W + 4 S. Market has no upgrade. Quotes and output come from the authority's frozen catalog; custom Rules values are already in these units.
 
 ```mermaid
 flowchart LR
@@ -275,12 +275,13 @@ recovery. The unit stays anchored through both intervals. All due unit/defense
 impacts share one snapshot and damage accumulator before deaths; initiative
 cannot cancel a simultaneous lethal exchange. Invalid locked targets cause
 misses with normal recovery. Mage splash has radius one hex and cap
-two, primary first, then distance/initiative/seeded ties. Catapult radius is
-zero with cap three. Friendly, queued and dying units are excluded. City damage
-is one primary hit. Defender and towers have independent positive windup/recovery,
-using the shared city distance anchor regardless of plot. Candidate defender
-damage is 2 per second; Arrow levels deal 5/7 per second and Catapult 6/8 per two
-seconds. These values are tuned separately from unit approach speed.
+two, primary first, then distance/initiative/seeded ties. Tower footprints and
+cadences follow the [defense profiles](#defense-towers-on-army-plots), including
+the separate rapid-arrow and bombard upgrade paths. Friendly, queued and dying
+units are excluded. City damage is one primary hit. Defender and towers have
+independent positive windup/recovery, using the shared city distance anchor
+regardless of plot. Candidate defender damage is 2 per second; defense values
+are tuned separately from unit approach speed.
 Defender and tower identities are explicit. Every defense receives a complete
 frozen damage/windup/recovery/victim-cap/radius profile and uses the same pure
 attack-deadline and victim-selection rules as units. The default defender remains
@@ -354,9 +355,27 @@ This finite sample establishes viable ordinary strategies; it is not universal b
 
 ## Purchased army homes and Town hall rotation
 
-Each city starts with **two physical homes**, each holding six size points: **six ordinary size-two units**, not twelve units. Buy the four further homes for **5/8/12/18 gold**, independent of building land or Town hall upgrades. Six homes give 36 size points, normally eighteen field units. The order is forward center/owner-left/owner-right, then the rear row in that order; each insertion uses the first fitting purchased tile and its forwardmost free anchor, then anchor ID. Free size in different tiles cannot be pooled. Existing assignments never repack automatically. All ordinary roles use this same insertion policy; enemies retain automatic class-based formation.
+Each city starts with **two physical homes**, each holding six size points: **six ordinary size-two units**, not twelve units. Click any of the four locked numbered army plots and accept its **Buy plot** quote for **5/8/12/18 gold** in purchase-count order, independent of city-building land or Town hall upgrades. Each purchase owns that specific physical six-size plot; it is not a second capacity charge. Six homes without towers give 36 size points, normally eighteen field units. The order is forward center/owner-left/owner-right, then the rear row in that order; each insertion uses the first fitting purchased tile and its forwardmost free anchor, then anchor ID. Free size in different tiles cannot be pooled. Existing assignments never repack automatically. All ordinary roles use this same insertion policy; enemies retain automatic class-based formation.
 
-Recruitment pays the current equipment quote only if one home fits. Survivors keep identity, unit level, wounds and assignment. Death frees roster size but retained combat corpses still block spatial restoration until cleanup. Use **Buy unit space** to purchase the next home and **Details** to inspect occupied size in home order. During Building and Preparation, only unpurchased homes show `Space N · locked` text and a gold marker; purchased homes have no world-space text or lock marker. Buying a home clears only that home's text and marker, without changing its six-size capacity. Click an owned field unit for **Retire** (permanent, no refund or death animation), or select a destination **Town hall** in its dropdown and click **Send to Town hall**. Build the hall from the **Army** construction group; select it and open **Town hall roster** to inspect its reserve tiles and units. Transfers preserve identity, level, wounds and capabilities and are atomic: full/foreign/stale destinations reject without spending or losing the source unit. Send from a selected hall roster entry uses field first-fit, never overflow. Selection itself changes nothing. Controls are available only to the connected owner during unpaused, unready Building or Preparation; paused/disconnected inspection is read-only.
+Recruitment pays the current equipment quote only if one home fits. Survivors keep identity, unit level, wounds and assignment. Death frees roster size but retained combat corpses still block spatial restoration until cleanup. There is no separate **Buy unit space** button. Select a physical army plot to purchase it through the same authoritative **Buy plot** interaction as city plots, or use **Details** to inspect occupied size in home order. Every army plot shows its stable number and meaningful state: locked/purchasable, owned-empty, unit-occupied with used size, or tower-occupied with all six spots. Locked plots retain a gold marker. Buying any locked plot updates only its ownership/state and marker; placement still first-fits in fixed plot order, never purchase order. Recruitment and Town hall Send skip locked, full and tower-occupied plots, including after snapshot load/reconnect. No client spending or ownership is applied before the authority acknowledges. Click an owned field unit for **Retire** (permanent, no refund or death animation), or select a destination **Town hall** in its dropdown and click **Send to Town hall**. Build the hall from the **Army** construction group; select it and open **Town hall roster** to inspect its reserve tiles and units. Transfers preserve identity, level, wounds and capabilities and are atomic: full/foreign/stale destinations reject without spending or losing the source unit. Send from a selected hall roster entry uses field first-fit, never overflow. Selection itself changes nothing. Controls are available only to the connected owner during unpaused, unready Building or Preparation; paused/disconnected inspection is read-only.
+
+### Defense towers on army plots
+
+Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A unit-occupied plot cannot build a tower, even if it has unused size. A tower consumes all six persistent roster spots, not just one anchor, and no recruitment or Town hall Send can assign a unit there. Selling the tower removes its defense actor, retains purchased land and frees the whole footprint; it refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. This is persistent army capacity exclusion, not a new combat terrain/routing rule.
+
+Click a base Arrow tower to inspect its damage/timing and choose exactly one paid upgrade:
+
+| Tower | Construction / upgrade payment | Damage | Windup / total cadence (60 Hz ticks) | Damage footprint |
+| --- | --- | --- | --- | --- |
+| Base Arrow tower (L1) | Existing 4 gold + 3 wood construction | 5 HP | 12 / 60 | Single target, no splash |
+| Rapid arrow tower (L2) | 4 gold + 2 wood + 2 stone upgrade | 7 HP | 6 / 30 | Single target, no splash |
+| Bombard tower (L2 from base Arrow tower) | 4 gold + 2 wood + 2 stone + 1 metal upgrade | 8 HP | 30 / 120 | Primary plus at most two enemies within one hex of the primary |
+
+The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its legacy L1/L2 profiles retain 6/8 HP damage, 30/120 timing, three-victim cap and zero-hex radius (same-cell splash). Its ordinary L2 upgrade uses the bombard upgrade payment in the table. The legacy scripted `upgrade` of `ArrowTower` also retains its L2 7 HP, 12/60, single-target profile. The new native paths create distinct `RapidArrowTower` and `BombardTower` L2 identities, so unchanged legacy towers are not silently accelerated or given a new radius. Both paths reuse frozen tower profiles and existing catalog upgrade costs, not a new tech tree. Arrows always resolve a single target, even with custom splash authoring. Bombard damage is authoritative, filtered to living targetable enemies in the owning city's battle; a dead/transferred primary misses entirely. Each selected victim is hit once, with existing deterministic ordering, resistance and tower/city attribution. Existing research-unit effects and Research Tower production are unchanged.
+
+Generation/level, price-count, ownership, phase, ready/pause and resource guards reject stale or conflicting intents before payment. Retry ledgers never charge again. Tower state, per-plot ownership/identity/investment and unit assignments survive the normal snapshot codec and credential resume. See [session compatibility](sessions.md) for command IDs, version admission, legacy actions, configuration/decision identities and the persistence boundary.
+
+### Town hall storage and recovery
 
 A Town hall occupies one purchased building plot. Its two independently quoted tracks are:
 

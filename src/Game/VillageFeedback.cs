@@ -48,11 +48,11 @@ internal sealed partial class VillageFeedback : Node3D
         node.Position = from; node.Scale = Vector3.One; node.Visible = true;
         _active.Add(new(node, from, to, time, duration, projectile));
     }
-    public void Action(Command request, int focus, double seconds, bool audible)
+    public void Action(Command request, int focus, double seconds, bool audible, Vector3? plotPosition = null)
     {
-        if (request.City != focus || request.Action != "research-tech" && request.Slot is < 0 or >= 9) return;
+        if (request.City != focus || request.Action != "research-tech" && request.Slot is < 0 or >= ArmyConfiguration.TotalPlots) return;
         Vector3 point = new((focus - 1) * 40, 0, 0);
-        point += (request.Action == "research-tech" ? VillageLandscape.Defender : VillageLayout.Slot(request.Slot)) + new Vector3(0, .6f, 0);
+        point += (request.Action == "research-tech" ? VillageLandscape.Defender : plotPosition ?? VillageLayout.Slot(request.Slot)) + new Vector3(0, .6f, 0);
         for (int n = 0; n < 5; n++) Spawn(point, point + new Vector3((n - 2) * .18f, .7f, (n % 2) * .2f), seconds, .5, false);
         Sound(request.Action == "research-tech" ? 1 : 0, audible);
     }
@@ -70,7 +70,7 @@ internal sealed partial class VillageFeedback : Node3D
         if (entry.Type == CombatEventType.Impact && entry.Landed)
         {
             for (int n = 0; n < Math.Max(1, entry.Victims.Length); n++) Spawn(impact, impact + new Vector3((n - 1) * .2f, .35f, .1f), seconds, .2, false);
-            Sound(entry.Tower?.Type == Building.CatapultTower ? 5 : entry.Unit?.Class == UnitClass.Magic ? 4 : 2, audible);
+            Sound(entry.Tower?.Type is Building.CatapultTower or Building.BombardTower ? 5 : entry.Unit?.Class == UnitClass.Magic ? 4 : 2, audible);
         }
         if (entry.Type == CombatEventType.Death) Sound(entry.Unit?.Faction == Faction.Skeletons ? 3 : 2, audible);
     }
