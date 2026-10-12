@@ -8,7 +8,7 @@ public partial class EngineTests
     // Tier B: imported resources, GDScript signals/tweens/native focus and real
     // game adapter binding cannot execute in xUnit. One minimal SceneTree; no
     // Main, renderer, menu, game peers or graphical process. Arithmetic is Tier A.
-    private async Task HoverResearch(WorldtreeDialog dialog, Button socket, bool panelOnRight)
+    private async Task HoverResearch(WorldtreeDialog dialog, Button socket, bool panelOnRight, Button? coveredSocket = null)
     {
         dialog.Research.FocusRoot(false);
         MoveResearchPointer(new(4, 4)); await Frames();
@@ -18,6 +18,8 @@ public partial class EngineTests
         Check(dialog.Research.HoverDetailsVisible && !socket.HasFocus()
             && dialog.Research.Tree.Get("snapshot").AsGodotDictionary()["selected"].AsString() == selected,
             "native socket hover opens details without clicking, selecting or focusing it");
+        string description = dialog.Research.Description.Text;
+        bool disabled = dialog.Research.Tree.Get("action").As<Button>().Disabled;
         Rect2 panel = dialog.Research.HoverDetailsRect;
         float near = panelOnRight ? node.End.X : panel.End.X;
         float far = panelOnRight ? panel.Position.X : node.Position.X;
@@ -28,11 +30,34 @@ public partial class EngineTests
         Check(GetViewport().GetMousePosition().IsEqualApprox(gap), "native viewport records the actual transit input position");
         GD.Print($"HOVER node={node} panel={panel} pointer={GetViewport().GetMousePosition()} side={(panelOnRight ? "right" : "left")} visible={dialog.Research.HoverDetailsVisible}");
         Check(dialog.Research.HoverDetailsVisible && !socket.HasFocus(), "hover-only details survive frames inside the native transit gap");
-        MoveResearchPointer(new(panelOnRight ? panel.Position.X + 2 : panel.End.X - 2, gap.Y)); await Frames();
-        Check(dialog.Research.HoverDetailsVisible, "native pointer enters the actual panel without losing details");
+        Vector2 entry = new(panelOnRight ? panel.Position.X + 2 : panel.End.X - 2, gap.Y);
+        MoveResearchPointer(entry); await Frames();
+        Check(dialog.Research.HoverDetailsVisible && dialog.Research.Description.Text == description,
+            "native pointer enters the actual panel without losing or replacing details");
         var action = dialog.Research.Tree.Get("action").As<Button>();
-        MoveResearchPointer(action.GetGlobalTransformWithCanvas() * (action.Size / 2)); await Frames();
-        Check(dialog.Research.HoverDetailsVisible, "native Research action remains reachable from hover alone");
+        Vector2 current = entry;
+        if (coveredSocket is not null)
+        {
+            Vector2 covered = coveredSocket.GetGlobalTransformWithCanvas() * (coveredSocket.Size / 2);
+            Check(panel.HasPoint(covered), "actual foreground panel covers the neighboring native socket");
+            GD.Print($"OWNER original={socket.Name} covered={coveredSocket.Name} panel={panel} siblingPointer={covered} description={description}");
+            for (int step = 1; step <= 4; step++)
+            {
+                current = entry.Lerp(covered, step / 4f);
+                MoveResearchPointer(current); await Frames();
+                Check(GetViewport().GetMousePosition().IsEqualApprox(current) && dialog.Research.HoverDetailsVisible
+                    && dialog.Research.Description.Text == description && action.Disabled == disabled,
+                    "slow native movement across a covered socket preserves the original description, cost and denial");
+            }
+        }
+        Vector2 destination = action.GetGlobalTransformWithCanvas() * (action.Size / 2);
+        Vector2 start = current;
+        for (int step = 1; step <= 4; step++)
+        {
+            MoveResearchPointer(start.Lerp(destination, step / 4f)); await Frames();
+            Check(dialog.Research.HoverDetailsVisible && dialog.Research.Description.Text == description && action.Disabled == disabled,
+                "native panel-to-Research travel retains the original described purchase target");
+        }
     }
     private void MoveResearchPointer(Vector2 position)
     {
@@ -103,6 +128,28 @@ public partial class EngineTests
             await HoverResearch(dialog, buttons["primary_left"].As<Button>(), panelOnRight: true);
             MoveResearchPointer(new(4, 4)); await Frames();
             Check(!dialog.Research.HoverDetailsVisible, "genuine leave dismisses hover details despite root retaining keyboard focus");
+            foreach (var (original, covered, title, coveredTitle, right) in new[]
+            {
+                ("terminal_left_a_1", "terminal_left_a_2", "Guardian Mastery", "Stonecraft", true),
+                ("terminal_right_b_2", "terminal_right_b_1", "Managed Forestry", "Precision Mastery", false)
+            })
+            {
+                await HoverResearch(dialog, buttons[original].As<Button>(), right, buttons[covered].As<Button>());
+                Check(dialog.Research.Description.Text.StartsWith(title, StringComparison.Ordinal) && tree.Get("action").As<Button>().Disabled,
+                    "covered-socket transit retains the original prerequisite denial");
+                MoveResearchPointer(new(4, 4)); await Frames();
+                Check(!dialog.Research.HoverDetailsVisible, "leaving the protected panel genuinely dismisses its pointer owner");
+                MoveResearchPointer(buttons[covered].As<Button>().GetGlobalTransformWithCanvas() * (buttons[covered].As<Button>().Size / 2)); await Frames();
+                Check(dialog.Research.Description.Text.StartsWith(coveredTitle, StringComparison.Ordinal), "hover after genuine leave switches to the formerly covered socket");
+                await HoverResearch(dialog, buttons[original].As<Button>(), right, buttons[covered].As<Button>());
+                Click(buttons[covered].As<Button>()); await Frames();
+                Check(dialog.Research.Description.Text.StartsWith(coveredTitle, StringComparison.Ordinal)
+                    && tree.Get("snapshot").AsGodotDictionary()["selected"].AsString() == covered,
+                    "explicit native click on a covered socket can replace the details owner");
+                buttons[original].As<Button>().GrabFocus(); await Frames();
+                Check(dialog.Research.Description.Text.StartsWith(title, StringComparison.Ordinal) && buttons[original].As<Button>().HasFocus(),
+                    "native keyboard focus can replace ownership even while the pointer remains over the panel");
+            }
             await HoverResearch(dialog, buttons["primary_right"].As<Button>(), panelOnRight: false);
             MoveResearchPointer(buttons["terminal_right_a_2"].As<Button>().GetGlobalTransformWithCanvas()
                 * (buttons["terminal_right_a_2"].As<Button>().Size / 2)); await Frames();

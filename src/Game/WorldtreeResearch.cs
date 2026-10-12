@@ -54,7 +54,15 @@ public partial class WorldtreeResearch : VBoxContainer
         foreach (WorldtreeSlot slot in WorldtreeProjection.Slots)
         {
             Button button = Tree.Get("buttons").AsGodotDictionary()[slot.VisualId].As<Button>();
-            button.MouseEntered += () => ShowDetails(slot.VisualId, button);
+            button.MouseEntered += () =>
+            {
+                if (_hoverDetails.IsVisibleInTree())
+                {
+                    PlaceDetails();
+                    if (HoverDetailsRect.HasPoint(GetViewport().GetMousePosition())) return;
+                }
+                ShowDetails(slot.VisualId, button);
+            };
             button.FocusEntered += () => { if (!_restoringFocus) ShowDetails(slot.VisualId, button); };
         }
         _hoverDetails.Hide();

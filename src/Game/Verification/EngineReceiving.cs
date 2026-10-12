@@ -369,6 +369,44 @@ public partial class EngineTests
             session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
             Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_right")
                 && Button("Research").Text == "Worldtree (9)", "left-placement hover purchase receives authoritative ownership and balance");
+            PublishResearchPoints(30);
+            Click(nodes["secondary_right_b"].As<Button>()); await Frames();
+            Click(action); session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+            Check(session.Commands[^1] is { Action: "research-tech", Technology: TechnologyId.Precision }
+                && session.Results[^1].Accepted && match.Players[1].Research.Points == 24,
+                "covered-socket fixture obtains the real ranged prerequisite through the production sender");
+            foreach (var (original, covered, technology, right) in new[]
+            {
+                ("terminal_left_a_1", "terminal_left_a_2", TechnologyId.GuardianMastery, true),
+                ("terminal_right_b_2", "terminal_right_b_1", TechnologyId.ManagedForestry, false)
+            })
+            {
+                int quotedPoints = match.Players[1].Research.Points;
+                await HoverResearch(dialog, nodes[original].As<Button>(), right, nodes[covered].As<Button>());
+                Check(!action.Disabled && dialog.Research.Description.Text.Contains("• 9 points", StringComparison.Ordinal),
+                    "original covered-socket route retains its authoritative mastery quote");
+                before = session.Commands.Count;
+                match.Players[1].Research = match.Players[1].Research with { Points = 2 };
+                Click(action); Refresh(slot: 2); await Frames();
+                Check(session.Commands.Count == before + 1 && session.Commands[^1].Technology == technology
+                    && !session.Results[^1].Accepted && !match.Players[1].Research.Has(technology)
+                    && dialog.Research.Feedback.Text == session.Results[^1].Message
+                    && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == quotedPoints,
+                    "covered-socket travel submits the original technology and retains real authority denial without local allocation");
+                match.Players[1].Research = match.Players[1].Research with { Points = quotedPoints };
+                await HoverResearch(dialog, nodes[original].As<Button>(), right, nodes[covered].As<Button>());
+                Click(action); Refresh(slot: 2);
+                Check(session.Commands.Count == before + 2 && session.Commands[^1].Technology == technology && session.Results[^1].Accepted
+                    && match.Players[1].Research.Has(technology) && match.Players[1].Research.Points == quotedPoints - 9
+                    && !tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == original)
+                    && Button("Research").Text == $"Worldtree ({quotedPoints})",
+                    "covered-socket travel purchases only the original technology without optimistic ownership or balance");
+                session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+                Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == original)
+                    && Button("Research").Text == $"Worldtree ({quotedPoints - 9})",
+                    "original covered-socket purchase receives authoritative ownership and paid balance");
+            }
+            Check(!match.Players[1].Research.Has(TechnologyId.PrecisionMastery), "covered neighboring mastery was never accidentally purchased");
             GetWindow().Size = new(1920, 1080); await Frames();
             session.Connected = false; Refresh(slot: 2); before = session.Commands.Count;
             dialog.Research.Requested?.Invoke(TechnologyId.MagicFoundation);

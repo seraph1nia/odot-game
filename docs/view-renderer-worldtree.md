@@ -244,6 +244,46 @@ suite, graphical/full-application journey, transport, package, PR or CI phase wa
 executed in this review fix round. Native headless geometry/input dispatch does
 not qualify physical mouse/compositor behavior or rendered appearance.
 
+## Review R2: covered-socket hover ownership
+
+Pointer-only socket entry now checks the existing visible panel at its current
+placement in native viewport coordinates before replacing its owner. Explicit
+socket selection and native keyboard focus remain separate, deliberate owner
+changes. The panel stays mouse-transparent; R1 gap/clipping/dismissal and
+foreground scope behavior are unchanged.
+
+Coverage admission: the previous fixture entered the panel and jumped to Research,
+checking visibility but not ownership over covered sockets. Pure C# cannot detect
+this native picking defect. The same Tier B fixtures now traverse the description
+and action in frame-separated native steps, checking the original description,
+cost and denial at each step. Both reported pairs are exercised: Guardian Mastery
+through the right-hand panel over Stonecraft, and Managed Forestry through the
+left-hand panel over Precision Mastery. Genuine leave/node switching, explicit
+covered-socket clicks, native focus, and existing keyboard/modal checks remain.
+Receiving sends each original technology through real authority rejection and
+purchase, then explicitly acknowledges ownership and balance; the covered
+Precision Mastery is never purchased. Setup uses the existing owned nodes, Match
+and delayed snapshot adapter, adding layout frames and three purchase awakenings,
+not another scene, supervisor or application journey.
+
+Focused receipts with the same locked SDK/Godot roots, process-local LatestMajor,
+acquisition disabled, locked restore and changed-file C# formatting:
+
+- `logs/20261012-205119-68e29ed6`: production from
+  `26980c601dfeb6c000cb469a5a0a66c69444c556`, compiled against the extended fixture,
+  fails covered-socket owner preservation in 1.10s. The recorded original right
+  panel is `(254.25568, 112.94021), (332, 166)` and the covered Stonecraft socket
+  center is `(287.3608, 129.56702)`. This expected source-bound failure is retained.
+- `logs/20261012-205128-f3f6ef53`: fixed `test-engine --scenario worldtree
+  --startup-timeout-ms 60000` passes, 9.19s component / 14.90s with preparation.
+- `logs/20261012-205143-9a009e35`: fixed `test-engine --scenario receiving
+  --startup-timeout-ms 60000` passes, 20.81s component / 25.29s with preparation.
+
+Only these focused headless components ran in this fix round. The full test/lint,
+publication and CI phases remain owned by the outer pipeline. Physical pointer,
+compositor, rendered occlusion and full-session qualification remain unexecuted;
+previous failed-fixture receipts and the R1 evidence above remain retained.
+
 ## Explicit unexecuted acceptance
 
 No native artistic composition, opaque rendered pixels, physical Vulkan GPU
