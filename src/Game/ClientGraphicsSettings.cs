@@ -16,7 +16,7 @@ public partial class ClientSettings
     private Label _rendererStatus = null!;
     private Window.ModeEnum _previewMode;
     private Vector2I _previewSize;
-    private bool _previewEdited, _rendererEdited, _commitDisplay;
+    private bool _previewEdited, _rendererEdited, _draftRendererSelected, _commitDisplay;
     private Button _applyGraphics = null!, _cancelGraphics = null!, _resetGraphics = null!;
     private ScrollContainer _graphicsScroll = null!;
 
@@ -29,11 +29,11 @@ public partial class ClientSettings
         {
             if (option.Group != group) { group = option.Group; Label(page, group); }
             Label(page, option.Label);
-            var control = new OptionButton { Name = "Graphics_" + option.Key, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 32) };
+            var control = new OptionButton { Name = "Graphics_" + option.Key, AllowReselect = option.Key == "renderer", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new(0, 32) };
             control.GetPopup().ForceNative = true;
             foreach (string choice in option.Choices) control.AddItem(choice);
             page.AddChild(control); _graphicsControls.Add(option.Key, control);
-            control.ItemSelected += index => { _draftGraphics.Edit(option.Key, (int)index); RefreshGraphics(); PreviewArt(); };
+            control.ItemSelected += index => { _draftGraphics.Edit(option.Key, (int)index); if (option.Key == "renderer") _draftRendererSelected = true; RefreshGraphics(); PreviewArt(); };
             AttachPopupTrace(control);
         }
         Label(page, "Brightness / exposure (80–120%)");
@@ -41,7 +41,7 @@ public partial class ClientSettings
         page.AddChild(_exposure);
         _exposure.ValueChanged += value => { _draftGraphics.SetExposure((int)value); RefreshGraphics(); };
         _resetGraphics = new Button { Name = "ResetGraphics", Text = "Reset graphics to defaults", CustomMinimumSize = new(0, 38) }; page.AddChild(_resetGraphics);
-        _resetGraphics.Pressed += () => { _draftGraphics = new(); RefreshGraphics(); PreviewArt(); };
+        _resetGraphics.Pressed += () => { _draftGraphics = new(); _draftRendererSelected = true; RefreshGraphics(); PreviewArt(); };
         var actions = new HBoxContainer(); content.AddChild(actions);
         _applyGraphics = new Button { Name = "ApplyGraphics", Text = "Apply graphics", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _cancelGraphics = new Button { Name = "CancelGraphics", Text = "Cancel graphics changes", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -52,29 +52,34 @@ public partial class ClientSettings
     }
     private void BeginGraphicsEdit()
     {
-        _draftGraphics = Graphics.Clone();
+        _draftGraphics = Graphics.Clone(); _draftRendererSelected = false;
         _previewMode = _window.Mode; _previewSize = _windowedSize; _previewEdited = _displayEdited;
         RefreshGraphics();
     }
     private void RefreshGraphics()
     {
         bool forward = AtmosphereController.ForwardPlus;
+        // A pending Forward+ request may configure next-launch features. Only the
+        // active method controls effective resources; Vulkan alone is not enough.
+        bool configurable = forward || _draftGraphics.DesiredMethod == "forward_plus";
         foreach (GraphicsOption option in GraphicsPreferences.Options)
         {
             OptionButton control = _graphicsControls[option.Key];
-            for (int i = 0; i < option.Choices.Length; i++) control.SetItemDisabled(i, !GraphicsPreferences.Supported(option.Key, i, forward));
-            control.Disabled = !forward && option.Key is "volumetric" or "indirect";
+            for (int i = 0; i < option.Choices.Length; i++) control.SetItemDisabled(i, !GraphicsPreferences.Supported(option.Key, i, configurable));
+            control.Disabled = !configurable && option.Key is "volumetric" or "indirect";
             int desired = _draftGraphics[option.Key];
-            control.Select(GraphicsPreferences.Supported(option.Key, desired, forward) ? desired : _draftGraphics.Effective(forward)[option.Key]);
+            control.Select(GraphicsPreferences.Supported(option.Key, desired, configurable) ? desired : _draftGraphics.Effective(forward)[option.Key]);
             bool compatibilityOff = !forward && option.Key == "aa" && desired is 1 or 3;
             control.TooltipText = compatibilityOff ? "Compatibility uses Off for desired FXAA (unsupported) or MSAA 2× (default cost policy). Your desired value is retained; High still uses supported MSAA 4×."
+                : !forward && configurable && option.Key is "volumetric" or "indirect" ? "Next-launch preference only: Apply and restart into Forward+. Unavailable in the active renderer."
                 : control.Disabled || !GraphicsPreferences.Supported(option.Key, desired, forward)
-                ? "Requires Forward+. Your saved preference is retained; this renderer uses the supported fallback." : "Apply to keep this change.";
+                ? "Requires active Forward+. Your saved preference is retained; this renderer uses the supported fallback."
+                : "Apply to keep this change.";
         }
         _exposure.SetValueNoSignal(_draftGraphics.Exposure);
         string method = RenderingServer.GetCurrentRenderingMethod(), driver = RenderingServer.GetCurrentRenderingDriverName();
         bool restart = method != _draftGraphics.DesiredMethod;
-        _rendererStatus.Text = $"Running: {method} / {driver}\n{RenderingServer.GetVideoAdapterName()}\nNext launch: {_draftGraphics.DesiredMethod}{(restart ? " — restart required" : "")}";
+        _rendererStatus.Text = $"Running: {method} / {driver}\n{RenderingServer.GetVideoAdapterName()}\nSaved request: {Graphics.DesiredMethod}\nDraft request: {_draftGraphics.DesiredMethod}{(restart ? " — Apply and restart required" : " — active method matches")}";
         string[] aa = GraphicsPreferences.Options.Single(option => option.Key == "aa").Choices;
         _rendererStatus.Text += $"\nAA — applied: {aa[Graphics.Effective(forward)["aa"]]}; desired draft: {aa[_draftGraphics["aa"]]}; draft effective: {aa[_draftGraphics.Effective(forward)["aa"]]}.";
         if (!forward) _rendererStatus.Text += "\nCompatibility: FXAA/TAA unsupported; desired MSAA 2× uses Off by default cost policy. High MSAA 4× remains supported.";
@@ -91,7 +96,10 @@ public partial class ClientSettings
     }
     private void ApplyGraphics()
     {
-        _rendererEdited |= Graphics["renderer"] != _draftGraphics["renderer"];
+        // Explicit re-selection also repairs a stale startup override without
+        // silently overwriting a deliberate saved choice on ordinary launches.
+        _rendererEdited |= _draftRendererSelected || Graphics["renderer"] != _draftGraphics["renderer"];
+        _draftRendererSelected = false;
         Graphics = _draftGraphics.Clone(); GraphicsApplied?.Invoke(Graphics);
         _commitDisplay = _displayEdited; _dirty = true; Save();
         // Apply sets the new cancellation baseline, allowing several deliberate edits.
@@ -100,7 +108,7 @@ public partial class ClientSettings
     }
     private void CancelGraphics()
     {
-        _draftGraphics = Graphics.Clone();
+        _draftGraphics = Graphics.Clone(); _draftRendererSelected = false;
         _changingDisplay = true; _window.Mode = _previewMode; _windowedSize = Fit(_previewSize);
         if (_previewMode == Window.ModeEnum.Windowed) _window.Size = _windowedSize;
         _changingDisplay = false; _displayEdited = _previewEdited;

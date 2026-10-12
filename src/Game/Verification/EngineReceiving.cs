@@ -267,7 +267,7 @@ public partial class EngineTests
             Click(action); tree.EmitSignal("node_action_requested", "secondary_left_a");
             Check(session.Commands.Count == before && !match.Players[1].Research.Has(TechnologyId.Guardian), "native and forged prerequisite intent cannot escape receiving eligibility guard");
             Click(nodes["primary_left"].As<Button>()); await Frames();
-            Check(!action.Disabled && dialog.Research.Description.Text.Contains("3 research points", StringComparison.Ordinal), "native foundation selection shows the actual three-point catalog cost");
+            Check(!action.Disabled && dialog.Research.Description.Text.Contains("• 3 points", StringComparison.Ordinal), "native foundation selection shows the actual three-point catalog cost");
             var peer = new ReceivingSession(match, 2);
             await SettingsResearchScope(settings, leave, dialog, () =>
             {
@@ -285,8 +285,8 @@ public partial class EngineTests
             Check(peer.Results[^1].Accepted && !session.State.Paused && !dialog.Visible && action.Disabled,
                 "another player's acknowledged resume reaches the HUD while research remains suspended");
             Click(join.GetCancelButton());
-            Check(dialog.Visible && !action.Disabled && dialog.Research.Description.Text.EndsWith("Available.", StringComparison.Ordinal)
-                && dialog.Research.Description.Text.Contains("3 research points", StringComparison.Ordinal)
+            Check(dialog.Visible && !action.Disabled && !dialog.Research.Description.Text.Contains("Available", StringComparison.Ordinal)
+                && dialog.Research.Description.Text.Contains("• 3 points", StringComparison.Ordinal)
                 && tree.Get("snapshot").AsGodotDictionary()["available"].AsGodotArray().Any(v => v.AsString() == "primary_left")
                 && dialog.Research.Feedback.Text == session.Feedback && nodes["primary_left"].As<Button>().HasFocus(),
                 "invitation dismissal refreshes current availability, price, description and feedback before restoring research focus");
@@ -302,17 +302,26 @@ public partial class EngineTests
             PressKey(Key.Enter); await Frames();
             Check(session.Commands.Count == before && match.Players[1].Research.Points == 30, "Enter after denied restoration cannot submit or spend research");
             peer.Acknowledge(); peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
-            Click(nodes["primary_left"].As<Button>()); await Frames();
-            action.GrabFocus(); PressKey(Key.Enter); await Frames(); Refresh(slot: 2);
+            await HoverResearch(dialog, nodes["primary_left"].As<Button>(), panelOnRight: true);
+            before = session.Commands.Count;
+            match.Players[1].Research = match.Players[1].Research with { Points = 2 };
+            Click(action); Refresh(slot: 2); await Frames();
+            Check(session.Commands.Count == before + 1 && session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.MeleeFoundation }
+                && !session.Results[^1].Accepted && !match.Players[1].Research.Has(TechnologyId.MeleeFoundation)
+                && dialog.Research.Feedback.Text == session.Results[^1].Message && Button("Research").Text == "Worldtree (30)",
+                "hover-only Research crosses the real sender and preserves authority denial without optimistic spending");
+            match.Players[1].Research = match.Players[1].Research with { Points = 30 };
+            await HoverResearch(dialog, nodes["primary_left"].As<Button>(), panelOnRight: true);
+            Click(action); await Frames(); Refresh(slot: 2);
             Check(session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.MeleeFoundation }
                 && session.Results[^1].Accepted && match.Players[1].Research.Points == 27, "production Worldtree sender purchases through real Match authority");
             Check(!tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_left")
-                && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 30, "research intent cannot allocate ownership or points before acknowledgment");
+                && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 30 && Button("Research").Text == "Worldtree (30)", "research intent cannot allocate ownership or HUD points before acknowledgment");
             session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
             Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_left")
-                && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 27, "real acknowledged snapshot updates the receiving Worldtree");
+                && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 27 && Button("Research").Text == "Worldtree (27)", "real acknowledged snapshot updates the receiving Worldtree and HUD balance");
             Click(nodes["secondary_left_a"].As<Button>()); await Frames();
-            Check(!action.Disabled && dialog.Research.Description.Text.Contains("6 research points", StringComparison.Ordinal), "native specialization now receives the actual six-point prerequisite quote");
+            Check(!action.Disabled && dialog.Research.Description.Text.Contains("• 6 points", StringComparison.Ordinal), "native specialization now receives the actual six-point prerequisite quote");
             Click(action); GameApplication.ShowJoinConfirmation(join); await Frames();
             session.Acknowledge(); Refresh(slot: 2);
             Check(!dialog.Visible && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 27,
@@ -320,8 +329,8 @@ public partial class EngineTests
             Click(join.GetCancelButton());
             Check(tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 21
                 && tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "secondary_left_a")
-                && nodes["secondary_left_b"].As<Button>().TooltipText.Contains("Permanently locked", StringComparison.Ordinal)
-                && tree.Get("points_label").As<Label>().Text == $"Research points  {session.State.Players[0].Research.Points} · progress {session.State.Players[0].Research.Progress}/3"
+                && nodes["secondary_left_b"].As<Button>().TooltipText.Length == 0
+                && Button("Research").Text == "Worldtree (21)"
                 && dialog.Research.Feedback.Text == session.Results[^1].Message,
                 "covered acknowledgment restores authoritative acquired nodes, points/progress, sibling lock and command feedback");
             await ToSignal(tree, "awakening_finished");
@@ -333,7 +342,7 @@ public partial class EngineTests
             Check(session.Commands.Count == before && !match.Players[1].Research.Has(TechnologyId.Assault), "locked sibling cannot send or spend through native/receiving guards");
             PublishResearchPoints(2);
             Click(nodes["terminal_left_a_2"].As<Button>()); await Frames();
-            Check(action.Disabled && dialog.Research.Description.Text.Contains("9 research points", StringComparison.Ordinal)
+            Check(action.Disabled && dialog.Research.Description.Text.Contains("• 9 points", StringComparison.Ordinal)
                 && dialog.Research.Description.Text.Contains("Needs 9", StringComparison.Ordinal), "real production offshoot control shows exact cost and insufficient research: " + dialog.Research.Description.Text);
             Click(action); tree.EmitSignal("node_action_requested", "terminal_left_a_2");
             Check(session.Commands.Count == before && match.Players[1].Research.Points == 2, "unfunded offshoot cannot mutate authoritative research");
@@ -343,11 +352,62 @@ public partial class EngineTests
             match.Players[1].Research = match.Players[1].Research with { Points = 2 };
             Click(action); Refresh(slot: 2);
             Check(!session.Results[^1].Accepted && dialog.Research.Feedback.Text == session.Results[^1].Message
-                && !match.Players[1].Research.Has(TechnologyId.Stonecraft), "Worldtree shows real rejected-command feedback without cosmetic acquisition");
+                && !match.Players[1].Research.Has(TechnologyId.Stonecraft) && Button("Research").Text == "Worldtree (12)", "Worldtree shows real rejected-command feedback without cosmetic acquisition or optimistic HUD spending");
             PublishResearchPoints(12);
             Click(action); session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
             Check(match.Players[1].Research.Has(TechnologyId.Stonecraft) && match.Players[1].Research.Points == 3, "real production offshoot bridge pays nine points once");
             Check(dialog.Research.Description.Text.Contains("stone per building turn", StringComparison.Ordinal), "production offshoot description remains the landed researched benefit");
+            PublishResearchPoints(12);
+            GetWindow().Size = new(1100, 820); await Frames();
+            await HoverResearch(dialog, nodes["primary_right"].As<Button>(), panelOnRight: false);
+            before = session.Commands.Count;
+            Click(action); Refresh(slot: 2);
+            Check(session.Commands.Count == before + 1 && session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.RangedFoundation }
+                && session.Results[^1].Accepted && match.Players[1].Research.Points == 9
+                && !tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_right")
+                && Button("Research").Text == "Worldtree (12)", "resized left-placement hover purchase emits real intent without allocating before acknowledgment");
+            session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+            Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_right")
+                && Button("Research").Text == "Worldtree (9)", "left-placement hover purchase receives authoritative ownership and balance");
+            PublishResearchPoints(30);
+            Click(nodes["secondary_right_b"].As<Button>()); await Frames();
+            Click(action); session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+            Check(session.Commands[^1] is { Action: "research-tech", Technology: TechnologyId.Precision }
+                && session.Results[^1].Accepted && match.Players[1].Research.Points == 24,
+                "covered-socket fixture obtains the real ranged prerequisite through the production sender");
+            foreach (var (original, covered, technology, right) in new[]
+            {
+                ("terminal_left_a_1", "terminal_left_a_2", TechnologyId.GuardianMastery, true),
+                ("terminal_right_b_2", "terminal_right_b_1", TechnologyId.ManagedForestry, false)
+            })
+            {
+                int quotedPoints = match.Players[1].Research.Points;
+                await HoverResearch(dialog, nodes[original].As<Button>(), right, nodes[covered].As<Button>());
+                Check(!action.Disabled && dialog.Research.Description.Text.Contains("• 9 points", StringComparison.Ordinal),
+                    "original covered-socket route retains its authoritative mastery quote");
+                before = session.Commands.Count;
+                match.Players[1].Research = match.Players[1].Research with { Points = 2 };
+                Click(action); Refresh(slot: 2); await Frames();
+                Check(session.Commands.Count == before + 1 && session.Commands[^1].Technology == technology
+                    && !session.Results[^1].Accepted && !match.Players[1].Research.Has(technology)
+                    && dialog.Research.Feedback.Text == session.Results[^1].Message
+                    && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == quotedPoints,
+                    "covered-socket travel submits the original technology and retains real authority denial without local allocation");
+                match.Players[1].Research = match.Players[1].Research with { Points = quotedPoints };
+                await HoverResearch(dialog, nodes[original].As<Button>(), right, nodes[covered].As<Button>());
+                Click(action); Refresh(slot: 2);
+                Check(session.Commands.Count == before + 2 && session.Commands[^1].Technology == technology && session.Results[^1].Accepted
+                    && match.Players[1].Research.Has(technology) && match.Players[1].Research.Points == quotedPoints - 9
+                    && !tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == original)
+                    && Button("Research").Text == $"Worldtree ({quotedPoints})",
+                    "covered-socket travel purchases only the original technology without optimistic ownership or balance");
+                session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+                Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == original)
+                    && Button("Research").Text == $"Worldtree ({quotedPoints - 9})",
+                    "original covered-socket purchase receives authoritative ownership and paid balance");
+            }
+            Check(!match.Players[1].Research.Has(TechnologyId.PrecisionMastery), "covered neighboring mastery was never accidentally purchased");
+            GetWindow().Size = new(1920, 1080); await Frames();
             session.Connected = false; Refresh(slot: 2); before = session.Commands.Count;
             dialog.Research.Requested?.Invoke(TechnologyId.MagicFoundation);
             Check(session.Commands.Count == before && action.Disabled, "Tabletop sender independently refuses research while disconnected");

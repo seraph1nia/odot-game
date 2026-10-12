@@ -2,6 +2,7 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
+    private static readonly string[] RendererStartupScenarios = ["renderer-forward", "renderer-compatibility"];
     private async Task EngineTests(bool exported = false)
     {
         int timeout = options.ExplicitTimeout ? options.Timeout : 60000;
@@ -33,6 +34,22 @@ internal sealed partial class Runner
                 deadline.Token.ThrowIfCancellationRequested();
                 if (code != 0 || child.HasEngineErrors)
                     throw new InvalidOperationException("Engine component failed.\n" + child.Tail());
+                if (!exported && scenario == "settings")
+                {
+                    // Intentional restart of this same minimal component client,
+                    // reusing only its owned preferences. No application or GPU.
+                    foreach (string startup in RendererStartupScenarios)
+                    {
+                        string[] restartArguments = [.. arguments[..^1], startup];
+                        await using var restarted = owned.Own(new Child(startup, executable, restartArguments,
+                            _root, game: true, environment: environment, evidenceDirectory: owned.EvidenceDirectory,
+                            engineLogPath: Path.Combine(owned.EvidenceDirectory, startup + ".log")));
+                        await restarted.WaitFor(e => e.Type == "engine-ready", startup + " readiness", options.StartupTimeout, deadline.Token);
+                        await restarted.WaitFor(e => e.Type == "engine-test", startup + " native project override", timeout, deadline.Token);
+                        int restartCode = await restarted.WaitExit(deadline.Token);
+                        if (restartCode != 0 || restarted.HasEngineErrors) throw new InvalidOperationException("Renderer startup component failed.\n" + restarted.Tail());
+                    }
+                }
                 await owned.DisposeAsync(); owned.CheckErrors();
             });
         Console.WriteLine("Engine coverage: " + string.Join(", ", selected) + "; headless components, no session or graphical proof.");
