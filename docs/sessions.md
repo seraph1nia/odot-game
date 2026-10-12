@@ -16,12 +16,13 @@ The engine-independent `AuthoritySession` owns `Match`, authenticated bindings,
 private resume credentials, per-player request ledgers and remote rate limits.
 Local actions use the same ownership, costs, phase/turn and retry validation as
 remote actions. Hosted start belongs to the original bound host; dedicated
-start remains available to connected members. Capacity is four, with nine plots
-per city. No gameplay or balance rules are duplicated in presentation.
+start remains available to connected members. Roster capacity is four; city and
+army land follow the [gameplay plot contract](gameplay.md#purchased-army-homes-and-town-hall-rotation).
+No gameplay or balance rules are duplicated in presentation.
 
 `Command.FromSnapshot` captures match/phase/stage and building-generation,
-plot-count, home-count and selected hall-track expectations for both `Main`
-and ordinary campaign verification. Callers reserve the sequence first and
+plot-count, home-count and selected hall-track or tower-level expectations for
+both `Main` and ordinary campaign verification. Callers reserve the sequence first and
 retain the resulting request for retry; they never refresh its quotes when
 resending it. The raw wire constructor/defaults remain available for delivery
 and deliberately stale/invalid request checks. Authority validation remains
@@ -33,8 +34,10 @@ revision once for an accepted edit. That module owns quote/instance/capacity
 checks and validated city mutations, not admission, retries, production or
 battle progression. `ArmyConfiguration.Find` uses one living assigned-soldier
 view scoped to field or exact hall generation for both size and anchor checks;
-authority and previews share it. Combat remains the only unit health/identity
-store, with unchanged restoration and death-cleanup barriers.
+authority and previews share it, passing actual army-plot ownership and type so
+arbitrary purchases retain fixed first-fit order and tower plots are excluded.
+Combat remains the only unit health/identity store, with unchanged restoration
+and death-cleanup barriers.
 
 Only authority calls `Step()` on the fixed physics tick. Local rendering and
 remote reliable channel-1 broadcasts consume complete authoritative snapshots.
@@ -89,19 +92,38 @@ connection semantics of [BLoggedOn](https://partner.steamgames.com/doc/api/IStea
 
 The current protocol, declared by
 [`WireJson.ProtocolVersion`](../src/Game.Core/Diagnostics.cs), includes typed recruitment, hex movement/profile/action
-state and bounded ordered combat-event history, plus purchased army homes,
+state and bounded ordered combat-event history, plus each army plot's stable
+identity, ownership, building generation/investment and projected occupation,
 field/Town hall assignments, independent hall levels/quotes and completed-paid
-recovery eligibility. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
-and their optional catalog benefits. The Worldtree catalog extension advances
-compatibility beyond protocol 11: authority admission rejects older peers before
-sending a snapshot, and Steam lobby matching uses the same version boundary.
-`Command.UnitId` targets retire/store/send;
-`ExpectedHomeCount` binds the next home price, `ExpectedTrackLevel` binds the
-selected hall upgrade quote, and `ExpectedGeneration` binds the hall instance.
+recovery eligibility. City command IDs remain 0–8; army IDs are 9–14, displayed
+as Army 1–6. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
+and their optional catalog benefits, and the distinct rapid-arrow/bombard tower
+profiles. Authority admission rejects older peers before sending a snapshot,
+and Steam lobby matching uses the same version boundary.
+`Command.UnitId` targets retire/store/send; `ExpectedHomeCount` binds the army
+purchase-count quote, `ExpectedTrackLevel` binds the selected hall track or base
+tower level, and `ExpectedGeneration` binds the building instance.
+`buy-plot` targets a chosen locked army ID as well as city land; legacy
+`buy-home` remains an alias for actual army land acquisition (the first locked
+plot when no ID is supplied), not a separate capacity purchase.
+`upgrade-tower` selects a final rapid-arrow or bombard identity on a base Arrow
+tower; the legacy `upgrade` action retains the ordinary Arrow/Catapult L2 paths.
 The existing authenticated owner, match/phase/stage, ready/pause and sequence
-ledger checks still apply. Full snapshots detach assignments, all-owned food
-forecast/funded/field-participant receipts and current wounds; reconnect never
+ledger checks still apply. Full snapshots detach plot states, assignments,
+all-owned food forecast/funded/field-participant receipts and current wounds;
+reconnect never
 replays production, food payment or healing.
+
+Full compatibility identity includes all six tower profiles and the current
+combat rules declared in [`CombatSettings`](../src/Game.Core/Combat/CombatConfiguration.cs).
+Seeded actor tie-breaking instead retains the original rules-v5 serialization
+of all actual legacy settings. Unused new variant metadata therefore cannot
+reroll unchanged soldiers, defenders or base towers; meaningful legacy changes
+still change the decision salt. `ArmyPlotTowerTests` pairs variant-only authoring
+with unchanged legacy decisions and a full-identity counterfactual. Snapshot
+codec/load and credential resume against the same live authority remain the
+persistence boundary, not an authority disk-save or restart-recovery API.
+
 `recruit <slot>` still means Swordsman; automation also accepts
 `recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
 is no mixed-version play. Stable unit IDs and event sequences are match-scoped,

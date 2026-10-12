@@ -20,12 +20,12 @@ These are the current unresearched defaults, exercised by the finite twenty-wave
 | Archery Range | 2 W | 5 | Crossbowman |
 | Arcanum | 5 G + 2 W + 3 S | 5 | Mage |
 | Research Tower | 2 W + 2 S | 2 | +1 / +2 research per three-production cycle |
-| Arrow Tower | 4 G + 3 W | 2 | 5 / 7 damage per shot |
-| Catapult Tower | 6 G + 4 W + 3 S + 2 M | 2 | 6 / 8 damage per shot, at most three victims |
+| Arrow Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Tower profiles](#defense-towers-on-army-plots) |
+| Catapult Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Legacy splash profile](#defense-towers-on-army-plots) |
 | Market | 2 W + 2 S | 1 | Explicit fixed-bundle sales |
 | Town hall | 5 G + 2 W + 2 S | Independent tracks | [Storage and paid recovery](#purchased-army-homes-and-town-hall-rotation) |
 
-Producer upgrades cost 2 W + 2 S. Research Tower and Arrow Tower upgrades cost 4 G + 2 W + 2 S; Catapult upgrades add 1 M. Barracks and Archery Range first upgrades cost 2 W; Arcanum's first upgrade costs 4 G + 2 W. Later recruitment upgrades cost respectively 6 G + 2 W + 2 S, 9 G + 2 W + 3 S and 14 G + 2 W + 4 S. Market has no upgrade. Quotes and output come from the authority's frozen catalog; custom Rules values are already in these units.
+Producer upgrades cost 2 W + 2 S. Research Tower upgrades cost 4 G + 2 W + 2 S; defense upgrades use the [tower paths and quotes](#defense-towers-on-army-plots). Barracks and Archery Range first upgrades cost 2 W; Arcanum's first upgrade costs 4 G + 2 W. Later recruitment upgrades cost respectively 6 G + 2 W + 2 S, 9 G + 2 W + 3 S and 14 G + 2 W + 4 S. Market has no upgrade. Quotes and output come from the authority's frozen catalog; custom Rules values are already in these units.
 
 ```mermaid
 flowchart LR
@@ -275,12 +275,13 @@ recovery. The unit stays anchored through both intervals. All due unit/defense
 impacts share one snapshot and damage accumulator before deaths; initiative
 cannot cancel a simultaneous lethal exchange. Invalid locked targets cause
 misses with normal recovery. Mage splash has radius one hex and cap
-two, primary first, then distance/initiative/seeded ties. Catapult radius is
-zero with cap three. Friendly, queued and dying units are excluded. City damage
-is one primary hit. Defender and towers have independent positive windup/recovery,
-using the shared city distance anchor regardless of plot. Candidate defender
-damage is 2 per second; Arrow levels deal 5/7 per second and Catapult 6/8 per two
-seconds. These values are tuned separately from unit approach speed.
+two, primary first, then distance/initiative/seeded ties. Tower footprints and
+cadences follow the [defense profiles](#defense-towers-on-army-plots), including
+the separate rapid-arrow and bombard upgrade paths. Friendly, queued and dying
+units are excluded. City damage is one primary hit. Defender and towers have
+independent positive windup/recovery, using the shared city distance anchor
+regardless of plot. Candidate defender damage is 2 per second; defense values
+are tuned separately from unit approach speed.
 Defender and tower identities are explicit. Every defense receives a complete
 frozen damage/windup/recovery/victim-cap/radius profile and uses the same pure
 attack-deadline and victim-selection rules as units. The default defender remains
@@ -370,9 +371,11 @@ Click a base Arrow tower to inspect its damage/timing and choose exactly one pai
 | Rapid arrow tower (L2) | 4 gold + 2 wood + 2 stone upgrade | 7 HP | 6 / 30 | Single target, no splash |
 | Bombard tower (L2 from base Arrow tower) | 4 gold + 2 wood + 2 stone + 1 metal upgrade | 8 HP | 30 / 120 | Primary plus at most two enemies within one hex of the primary |
 
-The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its legacy L1/L2 profiles retain 6/8 HP damage, 30/120 timing, three-victim cap and zero-hex radius (same-cell splash). Its ordinary L2 upgrade retains the existing bombard upgrade quote. The legacy scripted `upgrade` of `ArrowTower` also retains its L2 7 HP, 12/60, single-target profile. The new native paths create distinct `RapidArrowTower` and `BombardTower` L2 identities, so unchanged legacy towers are not silently accelerated or given a new radius. Both paths reuse frozen tower profiles and existing catalog upgrade costs, not a new tech tree. Arrows always resolve a single target, even with custom splash authoring. Bombard damage is authoritative, filtered to living targetable enemies in the owning city's battle; a dead/transferred primary misses entirely. Each selected victim is hit once, with existing deterministic ordering, resistance and tower/city attribution. Existing research-unit effects and Research Tower production are unchanged.
+The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its legacy L1/L2 profiles retain 6/8 HP damage, 30/120 timing, three-victim cap and zero-hex radius (same-cell splash). Its ordinary L2 upgrade uses the bombard upgrade payment in the table. The legacy scripted `upgrade` of `ArrowTower` also retains its L2 7 HP, 12/60, single-target profile. The new native paths create distinct `RapidArrowTower` and `BombardTower` L2 identities, so unchanged legacy towers are not silently accelerated or given a new radius. Both paths reuse frozen tower profiles and existing catalog upgrade costs, not a new tech tree. Arrows always resolve a single target, even with custom splash authoring. Bombard damage is authoritative, filtered to living targetable enemies in the owning city's battle; a dead/transferred primary misses entirely. Each selected victim is hit once, with existing deterministic ordering, resistance and tower/city attribution. Existing research-unit effects and Research Tower production are unchanged.
 
-Generation/level, price-count, ownership, phase, ready/pause and resource guards reject stale or conflicting intents before payment. Retry ledgers never charge again. Tower state, per-plot ownership/identity/investment and unit assignments survive the normal snapshot codec and credential resume. Protocol **13** prevents older peers from interpreting the new army plot IDs (city plots 0–8, army plots 9–14); combat rules **6** include all six tower profiles. The full configuration fingerprint includes the new variants; seeded actor tie-breaking uses the original v5 decision namespace and all actual legacy settings, so unused new variant metadata cannot reroll unchanged soldiers, defenders or base towers. Meaningful legacy stat changes still change that decision salt. There is no newly invented authority disk-save API: persistence proof is the project's existing snapshot/load and live-authority resume boundary.
+Generation/level, price-count, ownership, phase, ready/pause and resource guards reject stale or conflicting intents before payment. Retry ledgers never charge again. Tower state, per-plot ownership/identity/investment and unit assignments survive the normal snapshot codec and credential resume. See [session compatibility](sessions.md) for command IDs, version admission, legacy actions, configuration/decision identities and the persistence boundary.
+
+### Town hall storage and recovery
 
 A Town hall occupies one purchased building plot. Its two independently quoted tracks are:
 

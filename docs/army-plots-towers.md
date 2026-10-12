@@ -6,13 +6,13 @@ Baseline main source: `1d97f8a814009ab7e5665579cea518e302eacb62`.
 Gameplay controls and concrete values are in
 [gameplay](gameplay.md#defense-towers-on-army-plots).
 
-- `City.ArmyPlots` owns six persistent `SlotState` instances. City construction
-  slots remain 0–8; army command IDs are 9–14, displayed as Army 1–6.
+- `City.ArmyPlots` owns the persistent army `SlotState` instances; command IDs
+  and compatibility are documented in [session ownership](sessions.md).
 - `SettlementCommands` owns direct `buy-plot`, paid construction, exclusive
   `upgrade-tower`, selling and all rejection/payment transitions. Existing
   Match ownership/phase/ready/pause guards and AuthoritySession retry ledgers
-  remain the admission boundary. The old `buy-home` wire action is an alias
-  buying one actual locked plot, not a parallel capacity allocation or UI.
+  remain the admission boundary. [Session ownership](sessions.md) documents
+  the legacy wire alias and explicit upgrade action.
 - `ArmyConfiguration` owns placement order, quotes and projections. Production
   recruit/Send paths pass the actual per-plot ownership/type array; arbitrary
   purchase order never becomes first-fit order. A tower consumes the whole six
@@ -27,33 +27,11 @@ Gameplay controls and concrete values are in
 
 ## Paid-capacity and upgrade ledger
 
-The old purchase was one six-size home, not one soldier. It now buys the chosen
-six-size army plot. Both models start with two owned plots, retain four further
-prices **5/8/12/18 gold**, and normally allow three size-two soldiers per plot.
-City-land acquisition prices remain independent. No capacity is made free,
-no second land charge is added, and Town hall capacity/recovery is unchanged.
-
-The base Arrow tower retains **4 gold + 3 wood**, 5 HP damage and 12/60 ticks.
-New native upgrades are separate final L2 identities:
-
-| Path | Additional payment | Damage | Windup / cadence | Footprint |
-| --- | --- | --- | --- | --- |
-| `RapidArrowTower` | 4 G + 2 W + 2 S | 7 HP | 6 / 30 ticks | One enemy, no splash |
-| `BombardTower` | 4 G + 2 W + 2 S + 1 M | 8 HP | 30 / 120 ticks | Up to three enemies within one hex of primary |
-
-These are existing Arrow/Catapult upgrade quotes, not a new technology catalog.
-The four legacy Arrow/Catapult L1/L2 profiles retain their original damage,
-windup/cadence and default victim footprint. In particular, legacy Arrow L2 is
-12/60, and legacy Catapult splash has radius zero (same-cell, up to three).
-The legacy scripted `upgrade` remains valid; the native base-arrow actions
-choose the explicitly new rapid/radius paths. Selling uses component-wise half
-of actual construction plus upgrade investment, retains land, removes the actor
-and releases all six persistent spots. Generation/level conflicts and retries
-cannot duplicate payment or upgrade investment.
-
-Protocol 13 rejects older peers before new IDs/types can be interpreted. Combat
-rules 6 and the full configuration/snapshot identity include all six actual
-profiles. No compatibility hash is forged or substituted.
+[Gameplay](gameplay.md#purchased-army-homes-and-town-hall-rotation) owns the
+paid-capacity, tower-path, legacy-profile and refund rules and concrete values.
+[Session ownership](sessions.md) owns wire admission, command expectations,
+legacy aliases and configuration/decision identity. This batch receipt records
+causal evidence and executed scope rather than a second current rule table.
 
 ## Causal diagnosis — retained failures, not refreshed goldens
 

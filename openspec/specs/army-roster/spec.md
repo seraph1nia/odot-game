@@ -7,16 +7,17 @@ Give each city's persistent army an explicit paid spatial budget and useful vete
 ## Requirements
 
 ### Requirement: Purchased physical battlefield homes
-Each city SHALL start with two unlocked physical home tiles of six size points each and SHALL offer four further homes bought independently for 5, 8, 12 and 18 gold. The ordered domain SHALL be the existing allied forward cells in center/owner-left/owner-right order, followed by its protected rear cells in that order. Anchors SHALL use forwardmost then identity order. Recruitment and sending a stored unit to the field SHALL choose the first purchased tile with enough unassigned size and its first free anchor; free size in different tiles SHALL NOT be pooled. Assignment SHALL persist independently of current combat position, food eligibility and deployment. Living field-assigned units, including unfed and queued units, SHALL consume home capacity; stored and dead units SHALL not. Buying homes SHALL NOT change movement topology or prevent movement through unpurchased home cells. Purchases SHALL follow existing owner, phase, readiness, pause, stale price and retry guards and SHALL be permanent for the match.
+Cities SHALL expose the persistent numbered army plots, initial ownership, size budgets and purchase curve defined in [gameplay](../../../docs/gameplay.md#purchased-army-homes-and-town-hall-rotation). An eligible owner SHALL choose any locked army plot through the shared plot purchase interaction, without a separate Buy unit space control or capacity charge. Recruitment and sending a stored unit to the field SHALL choose the first purchased, tower-free tile with enough unassigned size and its first free anchor in the fixed home/anchor order defined there, independent of purchase order; free size in different tiles SHALL NOT be pooled. Tower construction, whole-plot assignment exclusion and release after sale SHALL follow the [tower contract](../../../docs/gameplay.md#defense-towers-on-army-plots). Assignment SHALL persist independently of current combat position, food eligibility and deployment. Living field-assigned units, including unfed and queued units, SHALL consume home capacity; stored and dead units SHALL not. Buying homes SHALL NOT change movement topology or prevent movement through unpurchased home cells. Purchases SHALL follow existing owner, phase, readiness, pause, stale price and retry guards and SHALL be permanent for the match.
 
 #### Scenario: Fill two homes
 - **WHEN** six ordinary size-two units are recruited onto two initial homes
 - **THEN** three are assigned to the first tile and three to the second at distinct anchors
 - **AND** a seventh recruit rejects without material payment unless another home is bought or an assignment is freed
 
-#### Scenario: Buy the next home
-- **WHEN** an eligible owner pays the next home purchase quote
-- **THEN** exactly that next home becomes available, gold is charged once, and neither city land nor combat topology changes
+#### Scenario: Buy a chosen locked army plot
+- **WHEN** an eligible owner selects a locked army plot out of home order and pays the current army purchase-count quote
+- **THEN** exactly that chosen plot becomes available, gold is charged once, and neither city land nor combat topology changes
+- **AND** subsequent recruitment and Town hall Send retain fixed first-fit order and skip tower-occupied plots
 
 ### Requirement: Atomic persistent army actions
 Eligible living unready owners SHALL retire or transfer a selected living owned unit only during unpaused Building or Preparation. Retirement SHALL permanently remove the unit without refunds, free recruits, healing, starvation damage or a combat death animation. Field-to-hall and hall-to-field transfers SHALL preserve identity, tier, current health and capabilities, and change one assignment atomically. Hall insertion SHALL use first-fit size tiles and anchors. A full, absent, foreign, stale or otherwise ineligible destination or unit SHALL reject without spending, loss, partial assignment or automatic overflow. Capacity SHALL be preflighted before recruitment payment. Duplicate accepted requests SHALL not repeat creation, removal, transfer or payment. No combat-time editing SHALL be allowed.
