@@ -28,24 +28,41 @@ public partial class EngineTests
         GD.Print($"LAYOUT ledgerBounds={bounds} viewport={viewport} rightInset={viewport.End.X - bounds.End.X}");
     }
 
+    private static Rect2 TitleBox(Button button, bool firstLine = false)
+    {
+        StyleBox style = button.GetThemeStylebox(button.Disabled ? "disabled" : "normal");
+        using var paragraph = new TextParagraph();
+        paragraph.Width = button.Size.X - style.GetMinimumSize().X;
+        paragraph.AddString(button.Text, button.GetThemeFont("font"), button.GetThemeFontSize("font_size"));
+        Vector2 size = paragraph.GetSize();
+        float y = style.ContentMarginTop + (button.Size.Y - style.GetMinimumSize().Y - size.Y) / 2;
+        float width = firstLine ? paragraph.GetLineSize(0).X : Enumerable.Range(0, paragraph.GetLineCount()).Max(i => paragraph.GetLineSize(i).X);
+        return new(new(style.ContentMarginLeft + (paragraph.Width - width) / 2, y), new(width, firstLine ? paragraph.GetLineSize(0).Y : size.Y));
+    }
+    private static Rect2 CostBox(RichTextLabel cost) => new(cost.Position + new Vector2((cost.Size.X - cost.GetLineWidth(0)) / 2, cost.GetLineOffset(0)),
+        new(cost.GetLineWidth(0), cost.GetLineHeight(0)));
+    private static void CheckStackedCost(Button button)
+    {
+        var cost = button.GetNode<RichTextLabel>("Cost");
+        StyleBox style = button.GetThemeStylebox(button.Disabled ? "disabled" : "normal");
+        Rect2 title = TitleBox(button);
+        float glyphHeight = cost.GetThemeFont("normal_font").GetHeight(cost.GetThemeFontSize("normal_font_size"));
+        Check(title.Size.Y >= button.GetThemeFont("font").GetHeight(button.GetThemeFontSize("font_size"))
+            && title.Position.Y >= style.ContentMarginTop && cost.Position.Y - title.End.Y >= 4
+            && !title.Intersects(CostBox(cost)),
+            "native shaped title and cost have distinct padded line boxes: " + button.Name);
+        Check(button.Size.Y >= button.GetCombinedMinimumSize().Y && cost.Size.Y >= glyphHeight && cost.Size.Y >= cost.GetContentHeight()
+            && cost.Position.X >= 8 && button.Size.X - cost.GetRect().End.X >= 8 && button.Size.Y - cost.GetRect().End.Y >= 6,
+            "caption fits native height and button minimum/interior: " + button.Name);
+        Check(cost.GetThemeFont("normal_font").GetStringSize(cost.GetParsedText(), fontSize: cost.GetThemeFontSize("normal_font_size")).X <= cost.Size.X,
+            "complete untruncated quote fits: " + button.Name);
+        GD.Print($"LAYOUT viewport={button.GetViewport().GetVisibleRect().Size} stretch={button.GetViewport().GetStretchTransform().Scale} {button.Name} disabled={button.Disabled} button={button.Size} min={button.GetCombinedMinimumSize()} title={title} cost={cost.GetRect()} costLine={CostBox(cost)} gap={cost.Position.Y - title.End.Y}");
+    }
     private async Task ReceivingSpacing(Control host, Tabletop hud, ReceivingSession session, Match authority)
     {
         Button Find(string name) => host.FindChildren(name, "Button", true, false).OfType<Button>().Single();
         var ledger = host.GetNode<PanelContainer>("ResourceTable");
         var body = ledger.GetNode<VBoxContainer>("Body");
-        Rect2 TitleBox(Button button, bool firstLine = false)
-        {
-            StyleBox style = button.GetThemeStylebox(button.Disabled ? "disabled" : "normal");
-            using var paragraph = new TextParagraph();
-            paragraph.Width = button.Size.X - style.GetMinimumSize().X;
-            paragraph.AddString(button.Text, button.GetThemeFont("font"), button.GetThemeFontSize("font_size"));
-            Vector2 size = paragraph.GetSize();
-            float y = style.ContentMarginTop + (button.Size.Y - style.GetMinimumSize().Y - size.Y) / 2;
-            float width = firstLine ? paragraph.GetLineSize(0).X : Enumerable.Range(0, paragraph.GetLineCount()).Max(i => paragraph.GetLineSize(i).X);
-            return new(new(style.ContentMarginLeft + (paragraph.Width - width) / 2, y), new(width, firstLine ? paragraph.GetLineSize(0).Y : size.Y));
-        }
-        Rect2 CostBox(RichTextLabel cost) => new(cost.Position + new Vector2((cost.Size.X - cost.GetLineWidth(0)) / 2, cost.GetLineOffset(0)),
-            new(cost.GetLineWidth(0), cost.GetLineHeight(0)));
         bool SafeArea(PanelContainer panel)
         {
             var style = (StyleBoxTexture)panel.GetThemeStylebox("panel");
@@ -99,22 +116,9 @@ public partial class EngineTests
                     foreach (Button button in host.FindChildren("*", "Button", true, false).OfType<Button>()
                         .Where(b => b.IsVisibleInTree() && b.GetParent() is GridContainer && b.HasNode("Cost")))
                     {
-                        var cost = button.GetNode<RichTextLabel>("Cost");
-                        StyleBox style = button.GetThemeStylebox(button.Disabled ? "disabled" : "normal");
-                        Rect2 title = TitleBox(button);
-                        float glyphHeight = cost.GetThemeFont("normal_font").GetHeight(cost.GetThemeFontSize("normal_font_size"));
-                        Check(title.Size.Y >= button.GetThemeFont("font").GetHeight(button.GetThemeFontSize("font_size"))
-                            && title.Position.Y >= style.ContentMarginTop && cost.Position.Y - title.End.Y >= 4
-                            && !title.Intersects(CostBox(cost)),
-                            "native shaped title and cost have distinct padded line boxes: " + button.Name);
-                        Check(button.Size.Y >= button.GetCombinedMinimumSize().Y && cost.Size.Y >= glyphHeight && cost.Size.Y >= cost.GetContentHeight()
-                            && cost.Position.X >= 8 && button.Size.X - cost.GetRect().End.X >= 8 && button.Size.Y - cost.GetRect().End.Y >= 6,
-                            "caption fits native height and button minimum/interior: " + button.Name);
-                        Check(cost.GetThemeFont("normal_font").GetStringSize(cost.GetParsedText(), fontSize: cost.GetThemeFontSize("normal_font_size")).X <= cost.Size.X,
-                            "complete untruncated construction quote fits: " + button.Name);
+                        CheckStackedCost(button);
                         Check(!disconnected || button.Disabled, "disconnected construction stays disabled: " + button.Name);
                         Check(!rich || disconnected || !button.Disabled, "affordable connected construction stays enabled: " + button.Name);
-                        GD.Print($"LAYOUT {size} stretch={GetViewport().GetStretchTransform().Scale} {button.Name} disabled={button.Disabled} button={button.Size} min={button.GetCombinedMinimumSize()} title={title} cost={cost.GetRect()} costLine={CostBox(cost)} gap={cost.Position.Y - title.End.Y}");
                     }
                 }
                 Check(SafeArea(ledger), "all resource/upkeep content stays inside decorated-frame safe inset");

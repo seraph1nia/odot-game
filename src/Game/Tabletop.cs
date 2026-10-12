@@ -404,7 +404,7 @@ public partial class Tabletop : Node3D
                 ResourceCost? quote = s?.BuildingCatalog.FirstOrDefault(b => b.Type == (path == Building.RapidArrowTower ? Building.ArrowTower : Building.CatapultTower))?.Upgrade;
                 TowerDefinition? next = s?.TowerCatalog.FirstOrDefault(t => t.Type == path && t.Level == 2);
                 button.Visible = baseTower;
-                button.Text = name + "\n "; UiAssets.Cost(button, quote ?? default);
+                button.Text = name; UiAssets.Cost(button, quote ?? default, stacked: true);
                 button.Disabled = !edit || !baseTower || quote is not { } cost || !me!.Resources.TryPay(cost, out _);
                 button.TooltipText = next is null ? "" : TowerDamageDescription(next) + "\n" + (focus is null || quote is null ? "" : CostExplanation(quote.Value, focus.Resources));
             }

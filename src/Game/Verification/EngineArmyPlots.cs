@@ -58,6 +58,32 @@ public partial class EngineTests
                 Check(button.IsVisibleInTree() && !button.Disabled && button.GetGlobalRect().HasArea(), "native army action laid out: " + name);
                 this.Click(button.GetGlobalRect().GetCenter());
             }
+            async Task CheckUpgradeSpacing(int plot)
+            {
+                foreach (Vector2I size in new[] { new Vector2I(1100, 820), new Vector2I(1280, 720), new Vector2I(1920, 1080), new Vector2I(2200, 1640) })
+                {
+                    GetWindow().Size = size;
+                    foreach (bool connected in new[] { true, false })
+                    {
+                        session.Connected = connected; hud.RefreshHud(1, plot); await Frames(); await Frames();
+                        foreach (var (name, caption) in new[]
+                        {
+                            ("RapidArrowUpgrade", "4 gold · 2 wood · 2 stone"),
+                            ("BombardUpgrade", "4 gold · 2 wood · 2 stone · 1 metal")
+                        })
+                        {
+                            Button button = Button(name);
+                            Check(button.IsVisibleInTree() && button.Disabled == !connected,
+                                $"native tower upgrade state on plot {plot}: {name}, connected={connected}");
+                            Check(button.GetNode<RichTextLabel>("Cost").GetParsedText() == caption,
+                                "complete authoritative tower upgrade cost caption: " + name);
+                            CheckStackedCost(button);
+                        }
+                    }
+                }
+                GetWindow().Size = new(1920, 1080);
+                session.Connected = true; hud.RefreshHud(1, plot); await Frames(); await Frames();
+            }
             Receive(); Pick(14); await Frames();
             Check(host.FindChildren("BuyHome", "Button", true, false).Count == 0 && Detail().Text.Contains("Army plot 6 · Locked", StringComparison.Ordinal),
                 "actual HUD has numbered locked army plot and no parallel Buy unit space button");
@@ -78,6 +104,7 @@ public partial class EngineTests
                 && receiver.GetNode<Label3D>("Home5").Text.Contains("all 6 spots", StringComparison.Ordinal),
                 "actual imported tower bounds, label and selected inspection expose whole-plot occupation");
             CheckInspection("single target · no splash");
+            await CheckUpgradeSpacing(14);
             Check(Button("BombardUpgrade").TooltipText.Contains("radius 1 hex · up to 3 enemies", StringComparison.Ordinal),
                 "default bombard preview retains authoritative radius and victim cap");
             match.Players[1].Metal = 0;
@@ -113,6 +140,9 @@ public partial class EngineTests
             Check(session.Results[^1].Accepted && session.State.Players[0].Towers.Single(t => t.Slot == 1).Level == 2,
                 "native legacy city catapult upgrade retains its independent level path");
             CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            session.SendAction("build", 2, Building.ArrowTower); session.Acknowledge(); hud.RefreshHud(1, 2);
+            Check(session.Results[^1].Accepted, "city base arrow tower enables both native upgrade siblings");
+            await CheckUpgradeSpacing(2);
             // Retained snapshots with all capacity tower-blocked disable recruitment.
             session.SendAction("build", 0, Building.Barracks); session.Acknowledge(); hud.RefreshHud(1, 0); await Frames();
             Check(Button("Recruit").Disabled, "actual recruitment UI excludes all tower occupied slots, including initially owned army plots");
