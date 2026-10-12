@@ -52,18 +52,21 @@ scope. Before keyboard activation it repairs missing or external focus, while
 owned native popups retain their own routing. Layout-only resize reflow must not
 reopen, promote or refocus a dialog or reactivate a suspended input scope.
 Friends/Settings deferred restoration runs only when no foreground sibling modal
-remains, including fallback restoration. These receiving-boundary regressions
+or restored research scope remains, including fallback restoration. These receiving-boundary regressions
 live in `src/Game/Verification/EngineTests.Ui.cs`.
 The game still explicitly blocks picking/held-world gestures/commands while a
-modal is open. Leave confirmation temporarily suspends the underlying Settings
-key scope; closure restores it. Join confirmation suspends the Tabletop research
-host by hiding its scope, preserving the selected native focus target; every
-invitation dismissal restores that scope before the existing service callback.
+modal is open. Application-hosted dialogs share the adapter's visibility boundary:
+the last visible sibling owns its key scope, while Settings, Friends, Join, Leave,
+Details and Town hall all suspend the Tabletop research host. Closing an inner
+dialog restores only the remaining foreground dialog; research stays hidden until
+the last covering dialog closes. Its selected state and valid native focus target
+are preserved without a separate invitation/leave exception.
 The Tabletop research visibility boundary refreshes the current accepted session
 projection on both ordinary opening and restoration, before focus returns; a
 purchase control newly disabled by that snapshot uses the existing root fallback.
-The receiving fixture constructs the actual application invitation above the
-later HUD subtree, without starting the application or using Steam credentials.
+The receiving fixture constructs the actual persistent Settings button, nested
+leave Controls and application invitation above the later HUD subtree, without
+starting the application or using Steam credentials.
 Dialogs are outside layout containers under the
 application's viewport-sized overlay. Tabletop teardown frees its owned overlays.
 Settings footer composition remains extensible for actual later controls; no
@@ -245,6 +248,23 @@ while hidden. All earlier receiving/input/authority checks remain. Changed C# wa
 formatted after locked restore. No full C#/lint suites, other engine selections,
 transport/package/hosted CI, real Steam or graphical checks ran in this round;
 this selected pass is partial, not final publication clearance.
+
+The shared-foreground-host review fix based on `325c99c` passed focused headless
+`receiving` (**153 checks**, 8.84s component / 24.32s with preparation) and
+`settings` (**79 checks**, 1.96s / 6.82s), each with
+`--startup-timeout-ms 60000`. Receipts are under
+`logs/review-r4/{receiving,settings}/`; `logs/review-r4/focused.log` records starting
+HEAD/tree and freshly verified installed SDK/engine identities. The receiving
+case adds the real persistent Settings-button route, foreground native keys,
+nested production leave cancellation, both covering-dialog close orders,
+acknowledged peer pause and deferred-focus protection. Earlier invitation,
+authoritative-refresh and live HUD/research checks remain, as do the Settings,
+Friends and replacement-confirmation cases. Isolated Join/Leave scope subscriptions
+were replaced by the existing adapter's foreground-sibling decision and research
+host binding. Changed C# was formatted after locked restore. No complete C#/lint
+suite, other engine selections, transport/package/hosted CI, real Steam or
+graphical verification ran in this review round; these selected passes remain
+partial, not final-head delivery clearance.
 
 Final village/building/army/research/combat/multiplayer live-game journeys and
 refreshed screenshots, native GPU/compositor/performance/physical input/listening,

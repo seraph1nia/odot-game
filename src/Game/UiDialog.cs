@@ -15,6 +15,7 @@ internal partial class UiDialog : Control
     internal string CancelButtonText { get; set; } = "Cancel";
     internal bool Confirmation { get; set; }
     internal Control? Invoker { get; set; }
+    internal Func<WorldtreeDialog?>? ResearchHost { get; set; }
     internal event Action? Confirmed;
     internal event Action? Canceled;
     internal VBoxContainer FooterContent { get; private set; } = null!;
@@ -55,6 +56,13 @@ internal partial class UiDialog : Control
                 _shell.Call("close");
                 _synchronizing = false;
             }
+            if (!IsInsideTree()) return;
+            UiDialog? foreground = ForegroundDialog();
+            foreach (UiDialog dialog in GetParent().GetChildren().OfType<UiDialog>()) dialog.SetInputScope(dialog == foreground);
+            ResearchHost?.Invoke()?.SetInputScope(foreground is null);
+            Control? focus = GuiGetFocusOwner();
+            if (!Visible && foreground is not null && (focus is null || !foreground.IsAncestorOf(focus)))
+                (foreground.Confirmation ? foreground.GetCancelButton() : foreground.GetOkButton()).GrabFocus();
         };
         Hide();
     }
@@ -63,7 +71,7 @@ internal partial class UiDialog : Control
     internal Control? GuiGetFocusOwner() => GetViewport().GuiGetFocusOwner();
     internal void SetInputScope(bool enabled) => _shell.SetProcessInput(enabled && Visible);
     private UiDialog? ForegroundDialog() => GetParent().GetChildren().OfType<UiDialog>().LastOrDefault(dialog => dialog.IsVisibleInTree());
-    internal bool CanRestoreFocus() => GodotObject.IsInstanceValid(this) && IsInsideTree() && !IsQueuedForDeletion() && ForegroundDialog() is null;
+    internal bool CanRestoreFocus() => GodotObject.IsInstanceValid(this) && IsInsideTree() && !IsQueuedForDeletion() && ForegroundDialog() is null && ResearchHost?.Invoke()?.IsVisibleInTree() != true;
     internal void PopupCenteredClamped(Vector2I minimum, float ratio = .9f)
     {
         Control? invoker = Invoker ?? GetViewport().GuiGetFocusOwner();

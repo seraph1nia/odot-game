@@ -9,7 +9,11 @@ public partial class GameApplication(Main session) : Node
     private Camera3D _menuCamera = null!;
     private AtmosphereController _atmosphere = null!;
     private Control _menuRoot = null!, _uiRoot = null!;
-    internal void AddDialog(UiDialog dialog) => _uiRoot.AddChild(dialog);
+    internal void AddDialog(UiDialog dialog)
+    {
+        dialog.ResearchHost = () => _tabletop?.ResearchDialog;
+        _uiRoot.AddChild(dialog);
+    }
     private VBoxContainer _startMenu = null!, _multiplayerMenu = null!;
     private Button _solo = null!, _multiplayer = null!, _menuSettings = null!, _exit = null!, _host = null!, _back = null!;
     private Label _feedback = null!;
@@ -45,6 +49,7 @@ public partial class GameApplication(Main session) : Node
         Settings = new ClientSettings { Name = "ClientSettings", FocusFallback = ActiveFocus }; AddChild(Settings);
         _atmosphere = new AtmosphereController { Name = "Atmosphere" }; AddChild(_atmosphere);
         Settings.Initialize(root, Theme);
+        Settings.Dialog.ResearchHost = () => _tabletop?.ResearchDialog;
         Settings.GraphicsApplied = preferences => _atmosphere.Apply(preferences);
         _atmosphere.Apply(Settings.Graphics);
         Settings.ReturnRequested = RequestReturn;
@@ -91,11 +96,9 @@ public partial class GameApplication(Main session) : Node
         var ornament = new TextureRect { Texture = UiAssets.Texture("art/woodland/woodland_corners.svg"), CustomMinimumSize = new(180, 84), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
         content.AddChild(ornament);
         _join = CreateJoinConfirmation(root, Theme, () => _tabletop?.ResearchDialog);
-        _leave = new UiDialog { Name = "LeaveConfirmation", Title = "Return to menu?", OkButtonText = "Return to menu", CancelButtonText = "Cancel", Confirmation = true, Theme = Theme };
-        AddDialog(_leave);
+        _leave = CreateLeaveConfirmation(root, Theme, () => _tabletop?.ResearchDialog);
         _leave.Confirmed += ConfirmReturn;
         _leave.Canceled += CancelReturn;
-        _leave.VisibilityChanged += () => Settings.Dialog.SetInputScope(!_leave.Visible);
         _join.Confirmed += AcceptJoin;
         _join.Canceled += DeclineJoin;
         Friends = new SteamFriendsDialog { Name = "SteamFriends", Theme = Theme, FocusFallback = FocusCurrent };
@@ -198,9 +201,7 @@ public partial class GameApplication(Main session) : Node
     {
         if (_exiting || Screen != "session" || !Settings.IsOpen || _leave.Visible || !session.HasSession) return;
         _leaveGeneration = session.SessionGeneration;
-        _leave.DialogText = session.LeaveWarning;
-        _leave.PopupCenteredClamped(new(500, 190), 0.9f);
-        _leave.GetCancelButton().GrabFocus();
+        ShowLeaveConfirmation(_leave, session.LeaveWarning);
     }
     private void CancelReturn()
     {
@@ -215,13 +216,24 @@ public partial class GameApplication(Main session) : Node
         Settings.Close(false);
         session.ReturnToMenu();
     }
+    internal static UiDialog CreateLeaveConfirmation(Control host, Theme theme, Func<WorldtreeDialog?> research)
+    {
+        var leave = new UiDialog { Name = "LeaveConfirmation", Title = "Return to menu?", OkButtonText = "Return to menu", CancelButtonText = "Cancel", Confirmation = true, Theme = theme, ResearchHost = research };
+        host.AddChild(leave);
+        return leave;
+    }
+    internal static void ShowLeaveConfirmation(UiDialog leave, string warning)
+    {
+        leave.DialogText = warning;
+        leave.PopupCenteredClamped(new(500, 190), 0.9f);
+        leave.GetCancelButton().GrabFocus();
+    }
     internal static UiDialog CreateJoinConfirmation(Control host, Theme theme, Func<WorldtreeDialog?> research)
     {
-        var join = new UiDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Confirmation = true, Theme = theme };
+        var join = new UiDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Confirmation = true, Theme = theme, ResearchHost = research };
         host.AddChild(join);
         UiAssets.Decorate(join.GetOkButton(), "AcceptJoin");
         UiAssets.Decorate(join.GetCancelButton(), "DeclineJoin");
-        join.VisibilityChanged += () => research()?.SetInputScope(!join.Visible);
         return join;
     }
     internal static void ShowJoinConfirmation(UiDialog join)

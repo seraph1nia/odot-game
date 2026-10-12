@@ -28,12 +28,19 @@ public partial class EngineTests
         match.Players[1].Research = new(30);
         var session = new ReceivingSession(match);
         var hud = new Tabletop(session);
+        var settings = new ClientSettings(); applicationCanvas.AddChild(settings);
+        settings.Initialize(applicationHost, theme);
+        settings.Dialog.ResearchHost = () => hud.ResearchDialog;
+        settings.InSession = true;
+        GetWindow().Size = new(1920, 1080);
         UiDialog join = GameApplication.CreateJoinConfirmation(applicationHost, theme, () => hud.ResearchDialog);
+        UiDialog leave = GameApplication.CreateLeaveConfirmation(applicationHost, theme, () => hud.ResearchDialog);
+        settings.ReturnRequested = () => GameApplication.ShowLeaveConfirmation(leave, "End the current hosted game?");
         bool suspended = false;
         try
         {
-            hud.InitializeHud(host, dialog => host.AddChild(dialog),
-                () => suspended || GameApplication.SelectModal(hud.DetailModals) is not null, () => { });
+            hud.InitializeHud(host, dialog => { dialog.ResearchHost = () => hud.ResearchDialog; applicationHost.AddChild(dialog); },
+                () => suspended || GameApplication.SelectModal([leave, join, settings.Dialog, .. hud.DetailModals]) is not null, () => { });
             void Refresh(int slot = 1, int city = 1) => hud.RefreshHud(city, slot);
             void PublishResearchPoints(int points)
             {
@@ -127,13 +134,20 @@ public partial class EngineTests
             Check(session.Commands.Count == before && !match.Players[1].Research.Has(TechnologyId.Guardian), "native and forged prerequisite intent cannot escape receiving eligibility guard");
             Click(nodes["primary_left"].As<Button>()); await Frames();
             Check(!action.Disabled && dialog.Research.Description.Text.Contains("3 research points", StringComparison.Ordinal), "native foundation selection shows the actual three-point catalog cost");
+            var peer = new ReceivingSession(match, 2);
+            await SettingsResearchScope(settings, leave, dialog, () =>
+            {
+                peer.Acknowledge(); peer.SendAction("pause"); session.Acknowledge(); Refresh(slot: 2);
+                Check(peer.Results[^1].Accepted && session.State.Paused, "peer pause is acknowledged while Settings covers research");
+            }, () => session.Commands.Count);
+            peer.Acknowledge(); peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
+            Click(nodes["primary_left"].As<Button>()); await Frames();
             await InvitationScope(join, dialog, farm, () => session.Commands.Count);
             session.SendAction("pause"); session.Acknowledge(); Refresh(slot: 2);
             Check(session.Results[^1].Accepted && session.State.Paused && action.Disabled && dialog.Research.Description.Text.EndsWith("Paused", StringComparison.Ordinal),
                 "paused Building research shows its current denial before an invitation");
             GameApplication.ShowJoinConfirmation(join); await Frames();
-            var peer = new ReceivingSession(match, 2);
-            peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
+            peer.Acknowledge(); peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
             Check(peer.Results[^1].Accepted && !session.State.Paused && !dialog.Visible && action.Disabled,
                 "another player's acknowledged resume reaches the HUD while research remains suspended");
             Click(join.GetCancelButton());

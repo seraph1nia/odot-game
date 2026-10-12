@@ -143,7 +143,6 @@ public partial class EngineTests
         int confirmations = 0, cancellations = 0;
         confirmation.Confirmed += () => confirmations++;
         confirmation.Canceled += () => cancellations++;
-        confirmation.VisibilityChanged += () => settings.Dialog.SetInputScope(!confirmation.Visible);
         settings.InSession = true;
         settings.ReturnRequested = () =>
         {
@@ -265,6 +264,84 @@ public partial class EngineTests
         settings.FocusFallback = null;
         hidden.Free(); replacement.Free(); friends.Free(); invite.Free();
         await Frames();
+    }
+    private async Task SettingsResearchScope(ClientSettings settings, UiDialog leave, WorldtreeDialog research, Action pauseWhileCovered, Func<int> requests)
+    {
+        int before = requests(), canceled = 0, confirmed = 0;
+        leave.Canceled += () => canceled++;
+        leave.Confirmed += () => confirmed++;
+        Button purchase = research.Research.Tree.Get("action").As<Button>();
+        Vector2 backgroundClose = research.CloseButton.GetGlobalRect().GetCenter();
+        async Task OpenSettings()
+        {
+            Click(settings.SettingsButton.GetGlobalRect().GetCenter()); await Frames();
+            Check(settings.IsOpen && !research.Visible && settings.Dialog.IsAncestorOf(GetViewport().GuiGetFocusOwner()),
+                "real persistent Settings button covers research and takes native keyboard scope");
+            Click(backgroundClose); await Frames();
+            Check(settings.IsOpen && !research.Visible && requests() == before, "Settings scrim blocks the covered research Close and purchase controls");
+        }
+        async Task OpenLeave()
+        {
+            settings.ReturnButton.GrabFocus(); PressKey(Key.Enter); await Frames();
+            Check(leave.Visible && settings.IsOpen && !research.Visible && !settings.Dialog.GetChild(0).IsProcessingInput()
+                && GetViewport().GuiGetFocusOwner() == leave.GetCancelButton(), "real Settings Return action opens foreground production leave confirmation with both background scopes suspended");
+        }
+        async Task SettingsRemains()
+        {
+            await Frames();
+            Check(!leave.Visible && settings.IsOpen && !research.Visible && settings.Dialog.GetChild(0).IsProcessingInput()
+                && settings.Dialog.IsAncestorOf(GetViewport().GuiGetFocusOwner()) && requests() == before,
+                "leave dismissal restores only Settings while covered research remains suspended");
+        }
+        await OpenSettings();
+        foreach (bool shift in new[] { false, true })
+        {
+            PressKey(Key.Tab, shift); await Frames();
+            Check(settings.Dialog.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "Settings owns cross-subtree native Tab; shift=" + shift);
+        }
+        foreach (var (key, side) in new[] { (Key.Left, Side.Left), (Key.Right, Side.Right), (Key.Up, Side.Top), (Key.Down, Side.Bottom) })
+        {
+            Button close = settings.Dialog.GetOkButton();
+            close.SetFocusNeighbor(side, close.GetPathTo(settings.SettingsButton));
+            close.GrabFocus(); PressKey(key); await Frames();
+            Check(settings.Dialog.IsAncestorOf(GetViewport().GuiGetFocusOwner()) && requests() == before, "Settings contains native " + key + " without activating research");
+            close.SetFocusNeighbor(side, "");
+        }
+        settings.Dialog.GetOkButton().GrabFocus(); PressKey(Key.Enter); await Frames();
+        Check(!settings.IsOpen && research.Visible && research.IsAncestorOf(GetViewport().GuiGetFocusOwner()) && requests() == before,
+            "Settings Enter closes only Settings and deferred restoration cannot steal restored research focus");
+        await OpenSettings(); await OpenLeave();
+        foreach (bool shift in new[] { false, true })
+        {
+            PressKey(Key.Tab, shift); await Frames();
+            Check(leave.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "leave confirmation owns cross-subtree native Tab; shift=" + shift);
+        }
+        PressKey(Key.Escape); await SettingsRemains();
+        foreach (var (key, side) in new[] { (Key.Left, Side.Left), (Key.Right, Side.Right), (Key.Up, Side.Top), (Key.Down, Side.Bottom) })
+        {
+            await OpenLeave();
+            Button cancel = leave.GetCancelButton();
+            cancel.SetFocusNeighbor(side, cancel.GetPathTo(settings.ReturnButton));
+            cancel.GrabFocus(); PressKey(key); await Frames();
+            Check(leave.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "nested leave contains native " + key);
+            cancel.GrabFocus(); PressKey(Key.Enter); await SettingsRemains();
+        }
+        await OpenLeave(); Click(leave.HeaderClose.GetGlobalRect().GetCenter()); await SettingsRemains();
+        Check(canceled == 6 && confirmed == 0, "nested Escape, Stay and header close never confirm return or close research");
+        pauseWhileCovered();
+        Check(!research.Visible && !purchase.Disabled, "research stays suspended with its old projection until the last covering dialog closes");
+        PressKey(Key.Escape); await Frames();
+        Check(!settings.IsOpen && !leave.Visible && research.Visible && purchase.Disabled
+            && research.Research.Description.Text.EndsWith("Paused", StringComparison.Ordinal)
+            && research.IsAncestorOf(GetViewport().GuiGetFocusOwner()) && requests() == before,
+            "last Settings Escape refreshes acknowledged research denial before restoring focus, without purchase or background close");
+        await OpenSettings(); await OpenLeave();
+        settings.Close(); await Frames();
+        Check(leave.Visible && !settings.IsOpen && !research.Visible && leave.IsAncestorOf(GetViewport().GuiGetFocusOwner()),
+            "closing Settings underneath leave keeps research suspended and prevents deferred background focus restoration");
+        PressKey(Key.Escape); await Frames();
+        Check(!leave.Visible && research.Visible && purchase.Disabled && research.IsAncestorOf(GetViewport().GuiGetFocusOwner()) && requests() == before,
+            "closing the last leave confirmation restores only current research scope");
     }
     private async Task InvitationScope(UiDialog join, WorldtreeDialog research, Control background, Func<int> requests)
     {

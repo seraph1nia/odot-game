@@ -218,6 +218,22 @@ awakening, not a new application or transport journey. Ordinary opening and
 invitation restoration now share the Tabletop visibility refresh boundary; the
 opener no longer carries a duplicate refresh.
 
+The foreground-host regression additionally opens the actual persistent Settings
+button over research, exercises Tab/Shift-Tab, all four directional keys and Enter,
+then opens the production leave Controls through Settings Return. Nested Escape,
+Stay and header dismissal must restore only Settings, without closing or buying
+research. A peer pause acknowledged during coverage must become the research
+projection only when the last dialog closes. Both close orders are exercised,
+including delayed Settings focus restoration while Leave still owns the scope.
+Ordinary Settings close and the earlier invitation/replacement cases remain.
+This is Tier B in the same receiving scene: earlier invitation-only and sibling
+Settings fixtures missed the later HUD subtree's viewport input ordering, and
+pure C# cannot route it. Deterministic native Controls, owned preferences, accepted
+snapshots, existing frame barriers and the same deadline are reused. Incremental
+cost is estimated at a few dozen frames; no full application, graphics, Steam
+pairing or real transport is added. The host adapter now derives scopes from its
+existing foreground sibling order, not independent Join/Leave subscriptions.
+
 Observed implementation cost: receiving **62 checks, 7.07s component / 12.92s
 including locked preparation**, `logs/20261012-082246-34c944ee/`; Settings **89
 checks, 1.96s / 6.91s**, `logs/20261012-081718-ddd7dd77/`; landed Worldtree **74
