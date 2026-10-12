@@ -3,14 +3,19 @@
 ## Source and runtime boundary
 
 The game consumes the accepted native kit from `odot-game-assets`, incorporating
-its compact skill tree and later woodland HUD/menu presentation, not the
-superseded flat Ledger palette. The [manifest](../src/Game/UI/manifest.json) owns
+its woodland HUD/menu presentation and the landed living Worldtree, not the
+superseded flat Ledger palette. The original compact skill-tree payload remains
+immutable but is not the live game research surface. The [kit manifest](../src/Game/UI/manifest.json) owns
 the exact source revision, production member hashes and source-relative paths,
 API/inventory/migration/coverage/woodland bindings, theme generator, original seal
 source, reference hashes and catalog package identity. See
 [notices and acquisition boundary](../src/Game/UI/README.md),
 [woodland provenance](../src/Game/UI/woodland-art.json) and the complete
-[font license](../src/Game/UI/fonts/LICENSE-DejaVu.txt).
+[font license](../src/Game/UI/fonts/LICENSE-DejaVu.txt). The additional Worldtree
+members retain their separate exact asset-main revision/inventory under
+[the authored manifest](../src/Game/Assets/Authored/manifest.json) and
+[Worldtree import contract](worldtree.md#immutable-import-contract); the original
+46-member kit pin is not expanded or rewritten to hide that second binding.
 
 Game import/export and live UI checks are the receiving-project qualification;
 source-member integrity does not establish runtime acceptance. `hud.png` remains
@@ -28,7 +33,7 @@ blue focus remains independent of ownership/selection. Godot imports SVGs/font l
 | Invite/leave confirmations, friends | `GameApplication`, `SteamFriendsDialog`: same Control shell and native controls | Existing lifetime/generation guards, Cancel-default, invitation query/send identities, busy state and async invalidation; no local Steam lobby/invitation during verification |
 | Six-resource HUD and upkeep | `TabletopHud`: production `resource_ledger.tscn`; game binds its native stock/income labels and appends authoritative upkeep/context rows | Existing exact six-resource order, economy projection, forecast/receipt distinctions; no kit economy calculation |
 | Village/building/economy/market/recruitment | `TabletopHud`, `Tabletop`, `UiAssets`: shared native woodland styles, textual costs/reasons/quotes, native groups and selectors | Original plot/ownership/phase/ready/connection checks, server costs/eligibility, build/upgrade/sale/trade/recruitment semantics and opaque command identities |
-| Research | `ResearchPanel`: compact native center-out fork per actual class, native inspect and purchase Buttons, decorative links, two-axis focus-follow scroll; production quoted-action detail | The actual 3/6/9-point roots/specializations/masteries, permanent sibling locks, effects replacing prior effects, authoritative points/requirements and `research-tech` action |
+| Research | `ResearchPanel`, `WorldtreeResearch`, `WorldtreeDialog`: imported living tree, native inspect/purchase Controls, descriptions and focus-follow scroll | Landed protocol-12 catalog and labels, actual 3/6/9-point foundations/specializations/masteries and village production offshoots, permanent sibling locks, authoritative points/requirements and session `research-tech` action |
 | City Details, Town hall/army roster | `TabletopHud`, `ArmyPanel`: native production modal, scrollable live summaries/roster/track controls | Existing physical tile capacities, paid recovery, storage/healing independent quotes, stale hall generation and occupied-sale/transfer/retirement guards |
 | Unit inspection | `UnitInspector`: inherited woodland Theme and native health/scroll/actions | Existing real model preview, picking, level/profile/status clocks and authoritative store/retire requests |
 | Match/lobby/reconnect/combat/feedback | `Tabletop`: native woodland Ready green/Pause violet and standard text controls, branch-framed HUD | Existing start/readiness/cooperative pause/reconnect/fresh-session services and authoritative phase counters; settings never pauses the match |
@@ -61,12 +66,14 @@ class foundations costing three points each, each with two exclusive
 specialization/mastery chains costing six/nine points. Feeding game data to that
 allocator would change rules or pretend it matches. It is therefore retained as
 an unchanged production payload member, **not instantiated as game authority**.
-The game adapts its compact center-out native Buttons/links/inspection/scroll
-presentation to the real catalog. Inspect controls remain focusable for locked
-and owned nodes; separate purchase controls reflect real eligibility. Existing
-`Tech*` selectors still purchase their exact opaque technology; full effects,
-prerequisite and sibling-lock copy remain in quotes/tooltips. There is no new
-skill currency, one-point root, respec, local spend, prediction or new research rule.
+The landed Worldtree instead projects the actual catalog and acknowledged acquired
+set into the immutable living tree; structural roots are established systems,
+not purchases. Locked/owned nodes remain inspectable; the native purchase control
+and production session bridge independently enforce real eligibility. Full
+prerequisite, sibling-lock, price and benefit copy remains in descriptions/tooltips.
+The landed village production offshoots and protocol-12 compatibility boundary
+remain unchanged by this migration. There is no new skill currency, one-point
+root, respec, local spend, prediction or research rule invented to fit a demo.
 
 ## Removed-resource evidence
 
@@ -199,7 +206,9 @@ The earlier Settings pass does not certify subsequent layout edits. Original
 graphical journeys remain explicit, authorized selections rather than ordinary CI;
 the landed [testing policy](verification.md) owns headless engine/transport/package
 selection and process admission/deadlines. Client export presets include the
-current UI manifest/notices/font license and exclude `Verification/*`;
+current UI manifest/notices/font license and retain the guarded minimal
+`Verification/EngineTests.tscn` required by the landed exported Worldtree probe;
+the retired `Verification/ui_resources.gd` launcher remains excluded;
 packaged runtime/visual execution remains unexecuted by this review, not inferred
 from filters. `.github/workflows/ci.yml` invokes the landed headless `ci-source`,
 `ci-linux-package` and `ci-windows` gates; no graphical qualification is selected

@@ -17,12 +17,18 @@ One owner per topic, rather than competing copied policies:
 
 `Verify and build` retains the existing `source`, `linux-package`,
 `windows-package` job identifiers. PRs and main pushes use the same bounded
-headless coverage: formatting/compilation, fast C# (excluding `Tier=Deep`), three
-production Godot component cases, three short transport/lifecycle cases, offline
+headless coverage: formatting/compilation, fast C# (excluding `Tier=Deep`), five
+production Godot component cases (settings, animation, assets, Worldtree and
+Tabletop receiving bindings), three short transport/lifecycle cases, offline
 native extension/build identity, and native Linux/Windows export/runtime probes.
 Linux exports mutate sequentially; OS jobs have independent workspaces. Source
 prepares once before overlapping already-built core/runner binaries with bounded
 network workers. There is no Xvfb install or graphical source/package launch.
+The [Worldtree integration](worldtree.md#verification-and-limits) also loads its
+actual production component/game adapter from the exported client in the existing
+Linux/Windows package jobs; [exact implementation receipts](worldtree-validation.json)
+and the [delivery plan](worldtree-verification-plan.md) distinguish measured
+headless resource/input/state coverage from unexecuted graphical acceptance.
 
 `Deep headless qualification` runs weekly or manually, and supports a single
 network scenario. It runs only C# campaigns and headless network journeys. It

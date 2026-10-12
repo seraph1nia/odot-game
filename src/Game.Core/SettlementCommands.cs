@@ -11,7 +11,9 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
         CommandResult Accept() => new(command.Sequence, true, $"{command.Action} accepted.");
         if (command.Action == "research-tech")
         {
-            TechnologyEligibility eligibility = economy.Research.Eligibility(city.Research, command.Technology);
+            TechnologyEligibility eligibility;
+            try { eligibility = economy.Research.Eligibility(city.Research, command.Technology); }
+            catch (ArgumentException) { return Reject("Invalid research state."); }
             if (!eligibility.Available) return Reject(eligibility.Reason);
             ResearchState next = city.Research.Purchase(command.Technology, economy.Research);
             try { combat.Research(city.Id, next, economy.Research); }

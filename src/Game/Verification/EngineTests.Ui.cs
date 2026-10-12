@@ -31,14 +31,9 @@ public partial class EngineTests
         quote.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Bakery", ["enabled"] = false, ["reason"] = "Insufficient wood" });
         Check(quote.GetNode<Button>("Body/Action").Disabled && quote.GetNode<Label>("Body/Reason").Text == "Insufficient wood", "disabled quote retains exact supplied reason");
         quote.Hide();
-        var definitions = new Game.Core.ResearchCatalog().Definitions();
-        var centers = Tabletop.ResearchCenters(definitions);
-        foreach (Game.Core.UnitClass role in Enum.GetValues<Game.Core.UnitClass>())
-        {
-            var nodes = definitions.Where(node => node.Class == role).ToArray();
-            Check(nodes.All(node => new Rect2(0, 0, 900, 310).Encloses(new Rect2(centers[node.Id] - new Vector2(88, 44), new Vector2(176, 88)))) && nodes.Select(node => centers[node.Id]).Distinct().Count() == 5, "compact real-catalog " + role + " nodes have distinct bounded native footprints");
-            Check(nodes.Where(node => node.Prerequisite != Game.Core.TechnologyId.None).All(node => centers[node.Id].Y < centers[node.Prerequisite].Y), "compact real-catalog " + role + " links follow actual prerequisites outward");
-        }
+        // The superseded compact Tabletop tree's center arithmetic is no longer
+        // production behavior. EngineWorldtree owns the actual 24/23 native graph;
+        // Receiving exercises its real catalog/prerequisite/cost sender bindings.
         await ModalInput();
         await SettingsServices();
         Theme themeResource = _ui.Theme;

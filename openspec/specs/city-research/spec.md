@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Give each city independent research choices that develop its army during one cooperative match, with modest shared-clear income and optional plot-consuming Research Towers.
+Give each city independent research choices that develop its army and village production during one cooperative match, with modest shared-clear income and optional plot-consuming Research Towers. [Worldtree node design](../../../docs/worldtree.md#bounded-node-design) owns the production offshoots' identities, prerequisites, costs and effects.
 
 ## Requirements
 
@@ -54,7 +54,7 @@ Each surviving city SHALL receive one research point on each shared wave clear, 
 - **THEN** the corresponding ready transition rejects before any city's income, food payment or phase changes
 
 ### Requirement: Catalog-driven technology purchases
-All cities SHALL use the same finite technology catalog with stable identifiers, prerequisites, eligible unit types, exclusivity groups, effects and point prices. Foundation nodes SHALL cost three points, specializations six and advanced improvements nine. Purchases SHALL require an authenticated living owner during unpaused editable building/preparation while not ready. They SHALL require no selected plot, Research Tower, material payment or recruitment-building ownership. Unknown identifiers, unmet prerequisites, insufficient points, already purchased nodes, conflicting choices, foreign ownership and stale match/stage context SHALL reject without mutation. A purchase SHALL atomically spend its price, record the node and update eligible units. Retried commands SHALL not charge or apply twice.
+All cities SHALL use the same finite technology catalog with stable identifiers, prerequisites, eligible unit types, exclusivity groups, effects and point prices. Foundation nodes SHALL cost three points, specializations six and advanced improvements nine. Purchases SHALL require an authenticated living owner during unpaused editable building/preparation while not ready. They SHALL require no selected plot, Research Tower, material payment or recruitment-building ownership. Unknown identifiers, unmet prerequisites, insufficient points, already purchased nodes, conflicting choices, foreign ownership and stale match/stage context SHALL reject without mutation. A purchase SHALL atomically spend its price, record the node and update eligible units or future per-producer output, according to its catalog benefit. Retried commands SHALL not charge or apply twice.
 
 #### Scenario: Purchase without a tower
 - **WHEN** an eligible living city with three earned points and no Research Tower buys a foundation
@@ -65,7 +65,7 @@ All cities SHALL use the same finite technology catalog with stable identifiers,
 - **THEN** no extra points are deducted and no extra capability is applied
 
 ### Requirement: Exclusive army specializations
-The initial tree SHALL have independent melee, ranged and magic foundations. Each foundation SHALL increase its class's own level-scaled maximum health and direct attack damage by five percent without healing. Melee SHALL fork into Guardian damage reduction or Assault direct damage; ranged into Venom poison or Precision direct damage; magic into Fire burn or Frost chill. Each six-point specialization SHALL immediately grant its defining benefit. Each nine-point descendant SHALL improve that chosen benefit. Purchasing one specialization SHALL lock its sibling and that sibling's descendants for the rest of the match, without respec. Different class forks SHALL remain combinable. The first catalog SHALL contain no freeze/stun promise or inaccessible placeholder for either mechanic.
+The initial tree SHALL have independent melee, ranged and magic foundations. Each foundation SHALL increase its class's own level-scaled maximum health and direct attack damage by five percent without healing. Melee SHALL fork into Guardian damage reduction or Assault direct damage; ranged into Venom poison or Precision direct damage; magic into Fire burn or Frost chill. Each six-point specialization SHALL immediately grant its defining benefit. Each nine-point combat mastery SHALL improve that chosen combat benefit; optional production descendants SHALL affect only their catalogued producers. Purchasing one specialization SHALL lock its sibling and that sibling's descendants for the rest of the match, without respec. Different class forks SHALL remain combinable. The first catalog SHALL contain no freeze/stun promise or inaccessible placeholder for either mechanic.
 
 #### Scenario: Fire choice is permanent and personal
 - **WHEN** a city purchases Fire after its magic foundation

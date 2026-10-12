@@ -80,7 +80,8 @@ internal static class SteamProbe
     private static void VerifyUiPayload(Node owner)
     {
         // The protocol smoke never creates UI. Consume the real source/PCK resources
-        // here, using the existing bounded offline probe rather than shipping a fixture.
+        // here using the existing bounded offline probe. The separately selected
+        // Worldtree package probe retains its minimal guarded EngineTests scene.
         if (DisplayServer.GetName() != "headless") throw new InvalidOperationException("Offline payload verification requires headless Godot.");
         using Theme theme = ApplicationTheme.Create();
         if (theme.DefaultFont.ResourcePath != "res://UI/fonts/DejaVuSerif.ttf"
@@ -111,8 +112,8 @@ internal static class SteamProbe
             using var file = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read);
             if (file is null || file.GetLength() == 0) throw new InvalidOperationException("Bundled UI notice is missing: " + path);
         }
-        if (!OS.HasFeature("editor") && ResourceLoader.Exists("res://Verification/EngineTests.tscn"))
-            throw new InvalidOperationException("Client package contains the engine verification fixture.");
-        Main.Emit(new GameEvent("ui-payload", Message: "Woodland theme, licensed serif font, original seal, branch art, all ten production scenes and bundled UI provenance/notices loaded; client fixture exclusion checked. Headless resources only, not rendered pixels or gameplay binding."));
+        if (ResourceLoader.Exists("res://Verification/ui_resources.gd"))
+            throw new InvalidOperationException("Client contains the retired competing UI verification launcher.");
+        Main.Emit(new GameEvent("ui-payload", Message: "Woodland theme, licensed serif font, original seal, branch art, all ten production scenes and bundled UI provenance/notices loaded; retired UI launcher absent. Headless resources only, not rendered pixels or gameplay binding."));
     }
 }

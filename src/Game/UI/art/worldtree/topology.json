@@ -1,0 +1,479 @@
+{
+  "schema": "worldtree_visual_topology.v1",
+  "note": "Concept-only topology: authoritative game effects/costs are intentionally absent",
+  "canvas": {
+    "width": 1600,
+    "height": 1080
+  },
+  "node_count": 24,
+  "edge_count": 23,
+  "counts_by_role": {
+    "root": 1,
+    "trunk": 2,
+    "primary": 3,
+    "secondary": 6,
+    "terminal": 12
+  },
+  "topology": "root -> trunk_1 -> trunk_2 -> 3 primary -> each 2 secondary -> each 2 terminal",
+  "nodes": [
+    {
+      "id": "root",
+      "role": "root",
+      "position": {
+        "x": 800,
+        "y": 890
+      },
+      "parent": null,
+      "icon_key": "world_seed",
+      "group": "core"
+    },
+    {
+      "id": "trunk_1",
+      "role": "trunk",
+      "position": {
+        "x": 800,
+        "y": 755
+      },
+      "parent": "root",
+      "icon_key": "shield",
+      "group": "core"
+    },
+    {
+      "id": "trunk_2",
+      "role": "trunk",
+      "position": {
+        "x": 800,
+        "y": 620
+      },
+      "parent": "trunk_1",
+      "icon_key": "spark",
+      "group": "core"
+    },
+    {
+      "id": "primary_left",
+      "role": "primary",
+      "position": {
+        "x": 340,
+        "y": 480
+      },
+      "parent": "trunk_2",
+      "icon_key": "leaf",
+      "group": "left"
+    },
+    {
+      "id": "primary_center",
+      "role": "primary",
+      "position": {
+        "x": 800,
+        "y": 460
+      },
+      "parent": "trunk_2",
+      "icon_key": "flame",
+      "group": "center"
+    },
+    {
+      "id": "primary_right",
+      "role": "primary",
+      "position": {
+        "x": 1260,
+        "y": 480
+      },
+      "parent": "trunk_2",
+      "icon_key": "crossed_swords",
+      "group": "right"
+    },
+    {
+      "id": "secondary_left_a",
+      "role": "secondary",
+      "position": {
+        "x": 180,
+        "y": 350
+      },
+      "parent": "primary_left",
+      "icon_key": "heart",
+      "group": "left"
+    },
+    {
+      "id": "secondary_left_b",
+      "role": "secondary",
+      "position": {
+        "x": 420,
+        "y": 355
+      },
+      "parent": "primary_left",
+      "icon_key": "book",
+      "group": "left"
+    },
+    {
+      "id": "secondary_center_a",
+      "role": "secondary",
+      "position": {
+        "x": 655,
+        "y": 315
+      },
+      "parent": "primary_center",
+      "icon_key": "spiral",
+      "group": "center"
+    },
+    {
+      "id": "secondary_center_b",
+      "role": "secondary",
+      "position": {
+        "x": 930,
+        "y": 315
+      },
+      "parent": "primary_center",
+      "icon_key": "crystal",
+      "group": "center"
+    },
+    {
+      "id": "secondary_right_a",
+      "role": "secondary",
+      "position": {
+        "x": 1160,
+        "y": 355
+      },
+      "parent": "primary_right",
+      "icon_key": "bow",
+      "group": "right"
+    },
+    {
+      "id": "secondary_right_b",
+      "role": "secondary",
+      "position": {
+        "x": 1420,
+        "y": 350
+      },
+      "parent": "primary_right",
+      "icon_key": "paw",
+      "group": "right"
+    },
+    {
+      "id": "terminal_left_a_1",
+      "role": "terminal",
+      "position": {
+        "x": 115,
+        "y": 200
+      },
+      "parent": "secondary_left_a",
+      "icon_key": "mushroom",
+      "group": "left"
+    },
+    {
+      "id": "terminal_left_a_2",
+      "role": "terminal",
+      "position": {
+        "x": 240,
+        "y": 200
+      },
+      "parent": "secondary_left_a",
+      "icon_key": "acorn",
+      "group": "left"
+    },
+    {
+      "id": "terminal_left_b_1",
+      "role": "terminal",
+      "position": {
+        "x": 355,
+        "y": 200
+      },
+      "parent": "secondary_left_b",
+      "icon_key": "tree_roots",
+      "group": "left"
+    },
+    {
+      "id": "terminal_left_b_2",
+      "role": "terminal",
+      "position": {
+        "x": 480,
+        "y": 200
+      },
+      "parent": "secondary_left_b",
+      "icon_key": "water_drop",
+      "group": "left"
+    },
+    {
+      "id": "terminal_center_a_1",
+      "role": "terminal",
+      "position": {
+        "x": 585,
+        "y": 185
+      },
+      "parent": "secondary_center_a",
+      "icon_key": "crescent_moon",
+      "group": "center"
+    },
+    {
+      "id": "terminal_center_a_2",
+      "role": "terminal",
+      "position": {
+        "x": 715,
+        "y": 185
+      },
+      "parent": "secondary_center_a",
+      "icon_key": "lantern",
+      "group": "center"
+    },
+    {
+      "id": "terminal_center_b_1",
+      "role": "terminal",
+      "position": {
+        "x": 845,
+        "y": 185
+      },
+      "parent": "secondary_center_b",
+      "icon_key": "eye",
+      "group": "center"
+    },
+    {
+      "id": "terminal_center_b_2",
+      "role": "terminal",
+      "position": {
+        "x": 975,
+        "y": 185
+      },
+      "parent": "secondary_center_b",
+      "icon_key": "rune",
+      "group": "center"
+    },
+    {
+      "id": "terminal_right_a_1",
+      "role": "terminal",
+      "position": {
+        "x": 1100,
+        "y": 200
+      },
+      "parent": "secondary_right_a",
+      "icon_key": "antlers",
+      "group": "right"
+    },
+    {
+      "id": "terminal_right_a_2",
+      "role": "terminal",
+      "position": {
+        "x": 1220,
+        "y": 200
+      },
+      "parent": "secondary_right_a",
+      "icon_key": "thorn_vine",
+      "group": "right"
+    },
+    {
+      "id": "terminal_right_b_1",
+      "role": "terminal",
+      "position": {
+        "x": 1350,
+        "y": 200
+      },
+      "parent": "secondary_right_b",
+      "icon_key": "snowflake",
+      "group": "right"
+    },
+    {
+      "id": "terminal_right_b_2",
+      "role": "terminal",
+      "position": {
+        "x": 1480,
+        "y": 200
+      },
+      "parent": "secondary_right_b",
+      "icon_key": "feather",
+      "group": "right"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_to_trunk_1",
+      "from": "root",
+      "to": "trunk_1"
+    },
+    {
+      "id": "edge_to_trunk_2",
+      "from": "trunk_1",
+      "to": "trunk_2"
+    },
+    {
+      "id": "edge_to_primary_left",
+      "from": "trunk_2",
+      "to": "primary_left"
+    },
+    {
+      "id": "edge_to_primary_center",
+      "from": "trunk_2",
+      "to": "primary_center"
+    },
+    {
+      "id": "edge_to_primary_right",
+      "from": "trunk_2",
+      "to": "primary_right"
+    },
+    {
+      "id": "edge_to_secondary_left_a",
+      "from": "primary_left",
+      "to": "secondary_left_a"
+    },
+    {
+      "id": "edge_to_secondary_left_b",
+      "from": "primary_left",
+      "to": "secondary_left_b"
+    },
+    {
+      "id": "edge_to_secondary_center_a",
+      "from": "primary_center",
+      "to": "secondary_center_a"
+    },
+    {
+      "id": "edge_to_secondary_center_b",
+      "from": "primary_center",
+      "to": "secondary_center_b"
+    },
+    {
+      "id": "edge_to_secondary_right_a",
+      "from": "primary_right",
+      "to": "secondary_right_a"
+    },
+    {
+      "id": "edge_to_secondary_right_b",
+      "from": "primary_right",
+      "to": "secondary_right_b"
+    },
+    {
+      "id": "edge_to_terminal_left_a_1",
+      "from": "secondary_left_a",
+      "to": "terminal_left_a_1"
+    },
+    {
+      "id": "edge_to_terminal_left_a_2",
+      "from": "secondary_left_a",
+      "to": "terminal_left_a_2"
+    },
+    {
+      "id": "edge_to_terminal_left_b_1",
+      "from": "secondary_left_b",
+      "to": "terminal_left_b_1"
+    },
+    {
+      "id": "edge_to_terminal_left_b_2",
+      "from": "secondary_left_b",
+      "to": "terminal_left_b_2"
+    },
+    {
+      "id": "edge_to_terminal_center_a_1",
+      "from": "secondary_center_a",
+      "to": "terminal_center_a_1"
+    },
+    {
+      "id": "edge_to_terminal_center_a_2",
+      "from": "secondary_center_a",
+      "to": "terminal_center_a_2"
+    },
+    {
+      "id": "edge_to_terminal_center_b_1",
+      "from": "secondary_center_b",
+      "to": "terminal_center_b_1"
+    },
+    {
+      "id": "edge_to_terminal_center_b_2",
+      "from": "secondary_center_b",
+      "to": "terminal_center_b_2"
+    },
+    {
+      "id": "edge_to_terminal_right_a_1",
+      "from": "secondary_right_a",
+      "to": "terminal_right_a_1"
+    },
+    {
+      "id": "edge_to_terminal_right_a_2",
+      "from": "secondary_right_a",
+      "to": "terminal_right_a_2"
+    },
+    {
+      "id": "edge_to_terminal_right_b_1",
+      "from": "secondary_right_b",
+      "to": "terminal_right_b_1"
+    },
+    {
+      "id": "edge_to_terminal_right_b_2",
+      "from": "secondary_right_b",
+      "to": "terminal_right_b_2"
+    }
+  ],
+  "activation_fixtures": [
+    {
+      "name": "01_root_only",
+      "owned": [
+        "root"
+      ],
+      "owned_count": 1
+    },
+    {
+      "name": "02_trunk_awakened",
+      "owned": [
+        "root",
+        "trunk_1",
+        "trunk_2"
+      ],
+      "owned_count": 3
+    },
+    {
+      "name": "03_three_primaries_awakened",
+      "owned": [
+        "root",
+        "trunk_1",
+        "trunk_2",
+        "primary_left",
+        "primary_center",
+        "primary_right"
+      ],
+      "owned_count": 6
+    },
+    {
+      "name": "04_left_branch_family_awakened",
+      "owned": [
+        "root",
+        "trunk_1",
+        "trunk_2",
+        "primary_left",
+        "secondary_left_a",
+        "secondary_left_b",
+        "terminal_left_a_1",
+        "terminal_left_a_2",
+        "terminal_left_b_1",
+        "terminal_left_b_2"
+      ],
+      "owned_count": 10
+    }
+  ],
+  "icon_catalog": [
+    "world_seed",
+    "shield",
+    "spark",
+    "leaf",
+    "flame",
+    "crossed_swords",
+    "heart",
+    "book",
+    "spiral",
+    "bow",
+    "paw",
+    "crystal",
+    "mushroom",
+    "crescent_moon",
+    "lantern",
+    "water_drop",
+    "tree_roots",
+    "thorn_vine",
+    "antlers",
+    "eye",
+    "acorn",
+    "feather",
+    "tower",
+    "rune",
+    "snowflake",
+    "poison_drop",
+    "stone",
+    "boot",
+    "owl",
+    "squirrel"
+  ]
+}

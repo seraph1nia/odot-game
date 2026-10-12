@@ -8,7 +8,7 @@ public sealed class CityResearchTests
     [Fact]
     public void CatalogHasThreeIndependentExclusivePathsWithReplacementMastery()
     {
-        var catalog = new ResearchCatalog(); Assert.Equal(15, catalog.Definitions().Length);
+        var catalog = new ResearchCatalog(); Assert.Equal(18, catalog.Definitions().Length);
         foreach (TechnologyDefinition node in catalog.Definitions())
         {
             Assert.Equal(node.Tier * 3, node.Cost);

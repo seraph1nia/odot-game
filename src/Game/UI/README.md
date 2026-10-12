@@ -13,7 +13,11 @@ The portable package identity is recorded in the manifest's `package` record;
 its production members are recorded in `files`. The archive itself was absent
 in the read-only source checkout: these game resources were verified/copied
 directly from the pinned source members, **not claimed loaded from that ZIP**. Receiving
-Godot regenerates native SVG/font imports locally.
+Godot regenerates native SVG/font imports locally. The additional landed
+Worldtree members retain their own exact inventory/revision in
+[the authored manifest](../Assets/Authored/manifest.json) and
+[immutable import contract](../../../docs/worldtree.md#immutable-import-contract),
+not a relabeled expansion of this original kit pin.
 
 Original authored art uses the repository owner's existing permission: **the
 repo is my own work, so yes, use it**. Origin is not a new open-source license

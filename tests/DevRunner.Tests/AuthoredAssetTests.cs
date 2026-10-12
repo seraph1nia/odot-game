@@ -52,6 +52,32 @@ public sealed class AuthoredAssetTests
         Assert.Equal(AssetCatalog.Revision, manifest.Revision);
         Assert.Equal("the repo is my own work, so yes, use it", manifest.Permission);
     }
+    // Tier A byte/provenance admission catches a modified or missing imported
+    // resource before an engine launch. Tier B separately loads these textures,
+    // JSON and controls. Read-only members only; subsecond expected cost.
+    [Fact]
+    public void WorldtreeRuntimeMembersMatchPinnedOriginalSourceAndExcludeAuthoringPayload()
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(DirectoryPath, "manifest.json")));
+        var worldtree = document.RootElement.GetProperty("worldtree");
+        Assert.Equal("https://github.com/seraph1nia/odot-game-assets.git", worldtree.GetProperty("source").GetString());
+        Assert.Equal(40, worldtree.GetProperty("revision").GetString()!.Length);
+        string game = Path.GetFullPath(Path.Combine(DirectoryPath, "..", ".."));
+        var members = worldtree.GetProperty("files").EnumerateArray().ToArray();
+        foreach (var member in members)
+        {
+            string path = member.GetProperty("path").GetString()!;
+            Assert.StartsWith("UI/", path); Assert.DoesNotContain("..", path);
+            Assert.DoesNotContain("prototype", path); Assert.DoesNotContain("reference", path); Assert.DoesNotContain("tests", path);
+            Assert.Equal("ui/preview/" + path, member.GetProperty("sourcePath").GetString());
+            byte[] bytes = File.ReadAllBytes(Path.Combine(game, path));
+            Assert.Equal(member.GetProperty("bytes").GetInt64(), bytes.LongLength);
+            Assert.Equal(member.GetProperty("sha256").GetString(), Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        }
+        Assert.Equal(30, members.Count(m => m.GetProperty("path").GetString()!.StartsWith("UI/art/worldtree/icons/", StringComparison.Ordinal)));
+        Assert.Contains(members, m => m.GetProperty("path").GetString() == "UI/art/worldtree/topology.json");
+        Assert.Contains(members, m => m.GetProperty("path").GetString() == "UI/art/worldtree/modules.json");
+    }
     [Fact]
     public void EveryCanonicalRoleUsesDedicatedAvailableGeometryAndTruthfulNames()
     {

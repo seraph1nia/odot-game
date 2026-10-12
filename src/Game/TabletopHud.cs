@@ -8,6 +8,21 @@ public partial class Tabletop
     private Label _quoteDetails = null!;
     private Label _inspectionRoster = null!;
     private Label _armyDetails = null!;
+    private Control _hudRoot = null!;
+    private Action<UiDialog> _ownHudDialog = null!;
+    private Func<bool> _hudInputBlocked = null!;
+    private Action _hudInvite = null!;
+
+    // Ordinary production receiving seam. Hosts supply existing dialog/modal/
+    // invitation ownership; all state, Controls and action bindings stay here.
+    internal void InitializeHud(Control root, Action<UiDialog> ownDialog, Func<bool> inputBlocked, Action invite)
+    {
+        if (_hudRoot is not null) throw new InvalidOperationException("HUD is already initialized.");
+        _hudRoot = root; _ownHudDialog = ownDialog; _hudInputBlocked = inputBlocked; _hudInvite = invite;
+        _healthRoot = new Control { Name = "UnitHealth", MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
+        root.AddChild(_healthRoot); _healthRoot.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        CreateHud(root);
+    }
     private void CreateHud(Control root)
     {
         _resources = (PanelContainer)UiAssets.Component("resource_ledger", root);
@@ -50,18 +65,19 @@ public partial class Tabletop
         _detailsButton = Button(city, "Details", () => _detailsDialog.PopupCenteredClamped(new(650, 450), .9f)); _detailsButton.Name = "Details";
         _detailsButton.TooltipText = "Space: overview · Scroll: zoom · WASD / arrows or left drag: pan";
         _stats = Text(city, "", 12); _stats.Visible = false;
-        _status = Text(city, "", 12); _feedback = Text(city, "", 12);
+        _status = Text(city, "", 12); _status.Name = "SessionStatus";
+        _feedback = Text(city, "", 12); _feedback.Name = "SessionFeedback";
         _roster = new HBoxContainer(); city.AddChild(_roster);
         _rosterDetails = Text(_roster, "", 11);
-        _detailsDialog = new UiDialog { Title = "City details", Theme = application.Theme };
-        application.AddDialog(_detailsDialog);
+        _detailsDialog = new UiDialog { Title = "City details", Theme = root.Theme };
+        _ownHudDialog(_detailsDialog);
         var details = _detailsDialog.Content;
         _inspectionRoster = Text(details, "", 13);
         _quoteDetails = Text(details, "", 13);
         _upkeep = Text(details, "", 14); _reward = Text(details, "", 14); _armyDetails = Text(details, "", 13);
         _detailsDialog.VisibilityChanged += () => { if (!_detailsDialog.Visible && _detailsButton.IsVisibleInTree()) _detailsButton.GrabFocus(); };
         var context = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 0.6f }; columns.AddChild(context);
-        _detail = Text(context, "", 12); _detail.CustomMinimumSize = Vector2.Zero;
+        _detail = Text(context, "", 12); _detail.Name = "SelectedPlot"; _detail.CustomMinimumSize = Vector2.Zero;
         _buyPlot = Button(context, "Buy plot", () => ContextAction("buy-plot")); _buyPlot.Name = "BuyPlot";
         _buildGroups = new HBoxContainer(); context.AddChild(_buildGroups);
         foreach (string group in new[] { "Production", "Army", "Defense", "Trade" })
@@ -99,7 +115,7 @@ public partial class Tabletop
             _recruitment[type].Name = type switch { UnitType.Swordsman => "Recruit", UnitType.Crossbowman => "RecruitRanged", _ => "Recruit" + type };
         }
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
-        CreateResearch(city);
+        CreateResearch(city, root);
         CreateArmyControls(city, context, details);
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = .22f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 12);
@@ -112,7 +128,7 @@ public partial class Tabletop
         _pause = Button(controls, "Pause", () => game.SendAction(game.State?.Paused == true ? "resume" : "pause"));
         _reconnect = Button(match, "Reconnect to my city", () => game.Connect());
         _fresh = Button(match, "Join lobby · fresh session", () => game.Connect(true));
-        _invite = Button(match, "Invite friends", application.RequestInvite); _invite.Name = "Invite";
+        _invite = Button(match, "Invite friends", _hudInvite); _invite.Name = "Invite";
         foreach (var (button, name) in new[] { (_mine, "Mine"), (_farm, "Farm"), (_barracks, "Barracks"), (_upgrade, "Upgrade"), (_recruit, "Recruit"), (_ready, "Ready"), (_pause, "Pause"), (_start, "Start"), (_reconnect, "Reconnect"), (_fresh, "Fresh") }) button.Name = name;
         foreach (Button button in _panel.FindChildren("*", "Button", true, false).OfType<Button>())
         {
@@ -131,6 +147,7 @@ public partial class Tabletop
         if (ids.Length < 2) return;
         CancelGesture(); _inspector.Close();
         _focus = ids[(Array.IndexOf(ids, _focus) + direction + ids.Length) % ids.Length];
-        _slot = _hover = -1; _uiKey = ""; _navigation.Reset();
+        _slot = _hover = -1; _uiKey = ""; _navigation?.Reset();
+        RefreshHud(_focus, _slot);
     }
 }

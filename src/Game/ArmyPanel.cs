@@ -34,7 +34,7 @@ public partial class Tabletop
             _hallSlot = _slot; _hallGeneration = hall.Generation; _storedUnit = 0; _hallKey = "";
             RefreshArmy(); _hallDialog.PopupCenteredClamped(new(700, 500), .9f);
         }); _openHall.Name = "OpenTownHall";
-        _hallDialog = new UiDialog { Title = "Town hall", Theme = application.Theme }; application.AddDialog(_hallDialog);
+        _hallDialog = new UiDialog { Title = "Town hall", Theme = _hudRoot.Theme }; _ownHudDialog(_hallDialog);
         var body = _hallDialog.Content;
         _hallSummary = Text(body, "", 13);
         var upgrades = new HBoxContainer(); body.AddChild(upgrades);
@@ -127,8 +127,8 @@ public partial class Tabletop
     }
     private void ObserveArmy(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _buyHome, _openHall, _hallCapacity, _hallHealing, _hallSend, _hallRetire }.Concat(_hallUnits)) application.ObserveControl(targets, button.Name, button);
-        application.ObserveControl(targets, "CloseTownHall", _hallDialog.GetOkButton());
+        foreach (Button button in new[] { _buyHome, _openHall, _hallCapacity, _hallHealing, _hallSend, _hallRetire }.Concat(_hallUnits)) Application.ObserveControl(targets, button.Name, button);
+        Application.ObserveControl(targets, "CloseTownHall", _hallDialog.GetOkButton());
         fields["TownHallOpen"] = _hallDialog.Visible; fields["TownHallText"] = _hallSummary.Text;
         fields["SelectedStoredUnit"] = _storedUnit; fields["ArmyHomes"] = Focus()?.Army; fields["HomeText"] = _homeSummary.Text;
         fields["HomeMarkers"] = _boards.GetValueOrDefault(_focus)?.GetNodeOrNull<Node3D>("ArmyHomes")?.GetChildren().Select(n => n.Name.ToString()).ToArray() ?? [];

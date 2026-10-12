@@ -6,7 +6,8 @@ public enum TechnologyId
 {
     None, MeleeFoundation, Guardian, GuardianMastery, Assault, AssaultMastery,
     RangedFoundation, Venom, VenomMastery, Precision, PrecisionMastery,
-    MagicFoundation, Fire, FireMastery, Frost, FrostMastery
+    MagicFoundation, Fire, FireMastery, Frost, FrostMastery,
+    Stonecraft = 16, ManagedForestry = 17, Irrigation = 18
 }
 public static class TechnologyIds
 {
@@ -36,8 +37,11 @@ public readonly record struct UnitCapabilities(int FoundationPercent = 0, int Di
     internal UnitCapabilities Merge(UnitCapabilities other) => new(Math.Max(FoundationPercent, other.FoundationPercent), Math.Max(DirectDamagePercent, other.DirectDamagePercent),
         Math.Max(ReductionPercent, other.ReductionPercent), Math.Max(BurnPercent, other.BurnPercent), Math.Max(PoisonPercent, other.PoisonPercent), Math.Max(ChillPercent, other.ChillPercent));
 }
+public sealed record ProductionBenefit(Building Building, Resource Resource, int ExtraPerProducer);
 public sealed record TechnologyDefinition(TechnologyId Id, UnitClass Class, int Tier, int Cost, TechnologyId Prerequisite, TechnologyId Branch, UnitCapabilities Benefit)
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ProductionBenefit? Production { get; init; }
     public string Name => TechnologyIds.Name(Id);
     public UnitType[] EligibleTypes => Enum.GetValues<UnitType>().Where(t => Catalogs.Class(t) == Class).ToArray();
 }
@@ -56,7 +60,7 @@ public readonly record struct ResearchState(int Points = 0, int Progress = 0, ul
     public bool Has(TechnologyId id) => id != TechnologyId.None && Enum.IsDefined(id) && (Owned & (1UL << (int)id)) != 0;
     public void Validate()
     {
-        if (Points < 0 || Progress is < 0 or > 2 || (Owned & ~((1UL << 16) - 2)) != 0) throw new ArgumentException("Invalid research state.");
+        if (Points < 0 || Progress is < 0 or > 2 || (Owned & ~((1UL << 19) - 2)) != 0) throw new ArgumentException("Invalid research state.");
     }
     public ResearchState Income(int points = 0, int progress = 0)
     {
@@ -78,13 +82,18 @@ public sealed class ResearchCatalog
     public ResearchCatalog(IEnumerable<TechnologyDefinition> definitions)
     {
         TechnologyDefinition[] nodes = definitions.ToArray();
-        if (nodes.Length != 15 || nodes.Select(n => n.Id).Distinct().Count() != nodes.Length
+        if (nodes.Length != 18 || nodes.Select(n => n.Id).Distinct().Count() != nodes.Length
             || nodes.Any(n => n.Id == TechnologyId.None || !Enum.IsDefined(n.Id) || !Enum.IsDefined(n.Class) || n.Tier is < 1 or > 3 || n.Cost <= 0))
-            throw new ArgumentException("A research catalog requires fifteen distinct valid nodes and positive prices.");
+            throw new ArgumentException("A research catalog requires eighteen distinct valid nodes and positive prices.");
         _nodes = nodes.ToFrozenDictionary(n => n.Id);
         foreach (TechnologyDefinition node in nodes)
         {
-            node.Benefit.Validate(); var visited = new HashSet<TechnologyId>(); TechnologyDefinition current = node;
+            node.Benefit.Validate();
+            if (node.Production is { } production && (node.Id < TechnologyId.Stonecraft || node.Tier != 3 || node.Benefit != default
+                || !Enum.IsDefined(production.Building) || !Enum.IsDefined(production.Resource) || production.ExtraPerProducer is < 1 or > 2)
+                || node.Id >= TechnologyId.Stonecraft && node.Production is null)
+                throw new ArgumentException("Invalid village production benefit.");
+            var visited = new HashSet<TechnologyId>(); TechnologyDefinition current = node;
             while (current.Prerequisite != TechnologyId.None)
             {
                 if (!visited.Add(current.Id) || !_nodes.TryGetValue(current.Prerequisite, out TechnologyDefinition? parent)
@@ -98,15 +107,25 @@ public sealed class ResearchCatalog
         }
         foreach (UnitClass role in Enum.GetValues<UnitClass>())
             if (nodes.Count(n => n.Class == role && n.Tier == 1) != 1 || nodes.Count(n => n.Class == role && n.Tier == 2) != 2
-                || nodes.Count(n => n.Class == role && n.Tier == 3) != 2) throw new ArgumentException("Each class needs one foundation and two exclusive paths.");
-        if (nodes.Where(n => n.Tier == 2).Any(n => nodes.Count(m => m.Tier == 3 && m.Prerequisite == n.Id) != 1))
-            throw new ArgumentException("Each exclusive specialization needs exactly one mastery.");
+                || nodes.Count(n => n.Class == role && n.Tier == 3 && n.Production is null) != 2) throw new ArgumentException("Each class needs one foundation and two exclusive paths.");
+        if (nodes.Where(n => n.Tier == 2).Any(n => nodes.Count(m => m.Tier == 3 && m.Prerequisite == n.Id && m.Production is null) != 1))
+            throw new ArgumentException("Each exclusive specialization needs exactly one combat mastery.");
     }
     public TechnologyDefinition Get(TechnologyId id) => _nodes[id];
     public TechnologyDefinition[] Definitions() => _nodes.Values.OrderBy(n => n.Id).ToArray();
-    public TechnologyEligibility Eligibility(ResearchState state, TechnologyId id)
+    public void ValidateState(ResearchState state)
     {
         state.Validate();
+        foreach (TechnologyDefinition node in _nodes.Values.Where(n => state.Has(n.Id)))
+        {
+            if (node.Prerequisite != TechnologyId.None && !state.Has(node.Prerequisite)
+                || node.Branch != TechnologyId.None && _nodes.Values.Any(n => n.Tier == 2 && n.Class == node.Class && n.Id != node.Branch && state.Has(n.Id)))
+                throw new ArgumentException("Invalid acquired research prerequisites or exclusive branches.");
+        }
+    }
+    public TechnologyEligibility Eligibility(ResearchState state, TechnologyId id)
+    {
+        ValidateState(state);
         if (!_nodes.TryGetValue(id, out TechnologyDefinition? node)) return new(id, false, "Unknown technology.");
         if (state.Has(id)) return new(id, false, "Acquired.");
         TechnologyDefinition? sibling = _nodes.Values.FirstOrDefault(n => n.Tier == 2 && n.Class == node.Class && n.Id != node.Branch && state.Has(n.Id));
@@ -115,13 +134,21 @@ public sealed class ResearchCatalog
         return state.Points < node.Cost ? new(id, false, $"Needs {node.Cost} research points.") : new(id, true, "Available.");
     }
     public UnitCapabilities Capabilities(ResearchState state, UnitType type)
-        => Definitions().Where(n => n.Class == Catalogs.Class(type) && state.Has(n.Id)).Aggregate(default(UnitCapabilities), (c, n) => c.Merge(n.Benefit));
+    {
+        ValidateState(state);
+        return Definitions().Where(n => n.Class == Catalogs.Class(type) && state.Has(n.Id)).Aggregate(default(UnitCapabilities), (c, n) => c.Merge(n.Benefit));
+    }
     internal void Write(BinaryWriter writer, bool prices)
     {
-        foreach (TechnologyDefinition node in Definitions())
+        foreach (TechnologyDefinition node in Definitions().Where(n => prices || n.Production is null))
         {
             writer.Write((int)node.Id);
-            if (prices) writer.Write(node.Cost);
+            if (prices)
+            {
+                writer.Write(node.Cost);
+                if (node.Production is { } production)
+                { writer.Write((int)node.Prerequisite); writer.Write((int)production.Building); writer.Write((int)production.Resource); writer.Write(production.ExtraPerProducer); }
+            }
             else
             {
                 writer.Write((int)node.Class); writer.Write(node.Tier); writer.Write((int)node.Prerequisite); writer.Write((int)node.Branch);
@@ -143,6 +170,9 @@ public sealed class ResearchCatalog
         Class(UnitClass.Melee, TechnologyId.MeleeFoundation, TechnologyId.Guardian, TechnologyId.GuardianMastery, new(ReductionPercent: 10), new(ReductionPercent: 20), TechnologyId.Assault, TechnologyId.AssaultMastery, new(DirectDamagePercent: 10), new(DirectDamagePercent: 20));
         Class(UnitClass.Ranged, TechnologyId.RangedFoundation, TechnologyId.Venom, TechnologyId.VenomMastery, new(PoisonPercent: 10), new(PoisonPercent: 15), TechnologyId.Precision, TechnologyId.PrecisionMastery, new(DirectDamagePercent: 10), new(DirectDamagePercent: 20));
         Class(UnitClass.Magic, TechnologyId.MagicFoundation, TechnologyId.Fire, TechnologyId.FireMastery, new(BurnPercent: 20), new(BurnPercent: 30), TechnologyId.Frost, TechnologyId.FrostMastery, new(ChillPercent: 20), new(ChillPercent: 40));
+        nodes.Add(new(TechnologyId.Stonecraft, UnitClass.Melee, 3, s.MasteryCost, TechnologyId.Guardian, TechnologyId.Guardian, default) { Production = new(Building.Stonecutter, Resource.Stone, 1) });
+        nodes.Add(new(TechnologyId.ManagedForestry, UnitClass.Ranged, 3, s.MasteryCost, TechnologyId.Precision, TechnologyId.Precision, default) { Production = new(Building.Lumbermill, Resource.Wood, 1) });
+        nodes.Add(new(TechnologyId.Irrigation, UnitClass.Magic, 3, s.MasteryCost, TechnologyId.Frost, TechnologyId.Frost, default) { Production = new(Building.Farm, Resource.Food, 2) });
         return nodes.ToArray();
     }
 }

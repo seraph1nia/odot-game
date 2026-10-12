@@ -91,7 +91,11 @@ The current protocol, declared by
 [`WireJson.ProtocolVersion`](../src/Game.Core/Diagnostics.cs), includes typed recruitment, hex movement/profile/action
 state and bounded ordered combat-event history, plus purchased army homes,
 field/Town hall assignments, independent hall levels/quotes and completed-paid
-recovery eligibility. `Command.UnitId` targets retire/store/send;
+recovery eligibility. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
+and their optional catalog benefits. The Worldtree catalog extension advances
+compatibility beyond protocol 11: authority admission rejects older peers before
+sending a snapshot, and Steam lobby matching uses the same version boundary.
+`Command.UnitId` targets retire/store/send;
 `ExpectedHomeCount` binds the next home price, `ExpectedTrackLevel` binds the
 selected hall upgrade quote, and `ExpectedGeneration` binds the hall instance.
 The existing authenticated owner, match/phase/stage, ready/pause and sequence

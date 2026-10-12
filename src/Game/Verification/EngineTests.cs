@@ -3,8 +3,8 @@ using Godot;
 
 namespace Game.Verification;
 
-// Minimal SceneTree, not Main/GameApplication, a match, or a multiplayer peer.
-// Exercises production components which pure .NET cannot instantiate.
+// Minimal SceneTree, not Main/GameApplication, a world, or a multiplayer peer.
+// Receiving uses numerical Match authority, not a launched application/session.
 public partial class EngineTests : Node
 {
     public override async void _Ready()
@@ -16,13 +16,20 @@ public partial class EngineTests : Node
             if (DisplayServer.GetName() != "headless" || !ownership.Owned)
                 throw new InvalidOperationException("Engine tests require owned headless runtime state.");
             string[] args = OS.GetCmdlineUserArgs();
-            string scenario = args is ["--scenario", var selected] ? selected : throw new ArgumentException("Select one engine scenario.");
+            string scenario = args switch
+            {
+                ["--scenario", var selected] => selected,
+                ["--supervised", "--engine-component-probe", "worldtree"] => "worldtree",
+                _ => throw new ArgumentException("Select one engine scenario.")
+            };
             Main.Emit(new GameEvent("engine-ready", Message: scenario));
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             switch (scenario)
             {
                 case "settings": await Settings(); await UiComponents(); break;
                 case "animation": Animation(); break;
+                case "worldtree": await Worldtree(); break;
+                case "receiving": await Receiving(); break;
                 case "assets": await AssetFidelityProbe.Run(this); return;
                 default: throw new ArgumentException("Unknown engine scenario: " + scenario);
             }

@@ -32,7 +32,10 @@ UI use (**yes, 3rd party ui is fine too**) is historical owner approval, not cre
 redistribution clearance. The current [woodland UI migration](ui-migration.md)
 replaces every live Trio pack dependency with the pinned authored native kit and
 licensed DejaVu Serif; music is unchanged. Original UI notices and exact removed
-member hashes remain attributable outside the runtime pack.
+member hashes remain attributable outside the runtime pack. The separately landed
+living research UI retains its [Worldtree import contract](worldtree.md#immutable-import-contract)
+and [notice](../src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui); its immutable
+members and production adapter are preserved alongside the application-wide kit.
 
 ## Earlier quality refresh (2026-10-08)
 

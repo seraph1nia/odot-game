@@ -97,6 +97,16 @@ public partial class Main : Node, IGameSession
                 Emit(new("build-info", Message: BuildInfo.Identity?.ToJson() ?? BuildInfo.DisplayVersion));
                 GetTree().Quit();
             }
+            else if (DisplayServer.GetName() == "headless" && args is ["--supervised", "--engine-component-probe", "worldtree"])
+            {
+                // Locked release templates disallow command-line scene overrides.
+                // Dispatch before Setup: no application, session, peer or renderer.
+                Callable.From(() =>
+                {
+                    if (GetTree().ChangeSceneToFile("res://Verification/EngineTests.tscn") == Error.Ok) return;
+                    Emit(new("error", Message: "Packed component scene unavailable.")); GetTree().Quit(1);
+                }).CallDeferred();
+            }
             else if (args is ["--supervised", "--asset-fidelity-probe"]) _ = AssetFidelityProbe.Run(this);
             else if (args is ["--supervised", "--native-pump-control"]) _ = NativePumpControl.Run(this);
             else if (args is ["--supervised", "--native-liveness-control"]) _ = NativePumpControl.Liveness(this);

@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://UI/components/worldtree.gd" id="1"]
+[ext_resource type="Theme" path="res://UI/theme/ledger.tres" id="2"]
+[node name="Worldtree" type="Control"]
+custom_minimum_size = Vector2(900, 560)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2")
+script = ExtResource("1")

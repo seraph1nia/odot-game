@@ -4,8 +4,16 @@ using Godot;
 namespace Game;
 
 // Client-side presentation. Gameplay interactions submit ordinary commands.
-public partial class Tabletop(IGameSession game, GameApplication application) : Node3D
+public partial class Tabletop : Node3D
 {
+    private readonly IGameSession game;
+    private readonly GameApplication? _application;
+    private GameApplication Application => _application ?? throw new InvalidOperationException("World presentation requires its application host.");
+
+    public Tabletop(IGameSession game, GameApplication application) : this(game) => _application = application;
+    // The receiving HUD can be hosted independently of world/renderer startup.
+    // This controller remains outside the SceneTree; its real Controls own GUI input.
+    internal Tabletop(IGameSession game) => this.game = game;
     private readonly LandscapeAssets _landscapeAssets = new();
     private readonly Dictionary<int, VillageLandscape> _landscapes = [];
     private readonly Dictionary<int, UnitView> _units = [];
@@ -91,15 +99,13 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         _hoverMarker = Outline(this, 0.97f, "e7eee0"); _hoverMarker.Visible = false;
         var canvas = new CanvasLayer(); AddChild(canvas);
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; canvas.AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        root.Theme = application.Theme;
-        _healthRoot = new Control { Name = "UnitHealth", MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
-        root.AddChild(_healthRoot); _healthRoot.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        _settings = application.Settings;
-        CreateHud(root);
+        root.Theme = Application.Theme;
+        _settings = Application.Settings;
+        InitializeHud(root, Application.AddDialog, () => Application.IsModalOpen, Application.RequestInvite);
     }
     public override void _ExitTree()
     {
-        foreach (UiDialog? dialog in new[] { _detailsDialog, _researchDialog, _hallDialog })
+        foreach (Control? dialog in new Control?[] { _detailsDialog, _researchDialog, _hallDialog })
             if (dialog is not null && IsInstanceValid(dialog)) { dialog.Hide(); dialog.QueueFree(); }
     }
     private void ContextAction(string action, Building building = Building.Empty, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, ConstructionPayment payment = ConstructionPayment.Standard)
@@ -116,7 +122,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
     private Button Button(Node parent, string text, Action action)
     {
         var button = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; UiAssets.Decorate(button, text); parent.AddChild(button);
-        button.Pressed += () => { if (!application.IsModalOpen) action(); }; return button;
+        button.Pressed += () => { if (!_hudInputBlocked()) action(); }; return button;
     }
     internal Vector3 AtmosphereOrigin => Center(_focus);
     internal VillageLandscape? AtmosphereLandscape => _landscapes.GetValueOrDefault(_focus);
@@ -125,31 +131,31 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
         _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
-    internal bool DetailsOpen => _detailsDialog?.Visible == true || _researchDialog?.Visible == true || _hallDialog?.Visible == true;
-    internal void FocusDetails() { if (_hallDialog.Visible) _hallDialog.GetOkButton().GrabFocus(); else if (_researchDialog.Visible) _researchDialog.GetOkButton().GrabFocus(); else _detailsDialog.GetOkButton().GrabFocus(); }
+    internal Node?[] DetailModals => [_hallDialog, _detailsDialog, _researchDialog];
+    internal bool DetailsOpen => GameApplication.SelectModal(DetailModals) is not null;
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
         foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _previousCity, _nextCity, _detailsButton }.Concat(_construction.Values).Concat(_recruitment.Values).Concat(_trades.Values).Concat(_groupButtons).Concat(new[] { _buyPlot, _sell, _recovery }))
-            application.ObserveControl(targets, button.Name, button);
-        application.ObserveControl(targets, "ResourceTable", _resources);
-        application.ObserveControl(targets, "UpkeepTable", _compactUpkeep);
-        if (_detailsDialog.Visible) application.ObserveControl(targets, "CloseDetails", _detailsDialog.GetOkButton());
+            Application.ObserveControl(targets, button.Name, button);
+        Application.ObserveControl(targets, "ResourceTable", _resources);
+        Application.ObserveControl(targets, "UpkeepTable", _compactUpkeep);
+        if (_detailsDialog.Visible) Application.ObserveControl(targets, "CloseDetails", _detailsDialog.GetOkButton());
         fields["DetailsOpen"] = DetailsOpen;
         ObserveResearch(targets);
         ObserveArmy(fields, targets);
         fields["StatusBadges"] = _units.Values.Where(v => v.Visible && v.StatusBadge.Length > 0).ToDictionary(v => v.State.Id, v => v.StatusBadge);
-        fields["ResearchText"] = _researchBalance.Text;
+        fields["ResearchText"] = _researchDialog.Research.Description.Text;
         fields["DetailsText"] = _inspectionRoster.Text + "\n" + _upkeep.Text + "\n" + _reward.Text + "\n" + _armyDetails.Text + "\n" + _quoteDetails.Text;
         fields["ResourceOrder"] = _values.Keys.ToArray();
-        _inspector.Observe(application, fields, targets);
+        _inspector.Observe(Application, fields, targets);
         foreach ((int id, UnitView view) in _units)
         {
             Vector3 point = view.GlobalPosition + new Vector3(0, .7f, 0);
             Vector2 position = _camera.UnprojectPosition(point);
             Vector2 screen = GetViewport().GetFinalTransform() * position;
-            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position), Enabled = !application.IsModalOpen };
+            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position), Enabled = !Application.IsModalOpen };
         }
         fields["WorldLabels"] = _boards.GetValueOrDefault(_focus)?.FindChildren("*", "Label3D", true, false).OfType<Label3D>()
             .Where(label => label.IsVisibleInTree() && label.Text.Length > 0).Select(label => label.Text).ToArray() ?? [];
@@ -170,7 +176,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
                 Y = screen.Y,
                 Visible = Focus() is not null && !_camera.IsPositionBehind(point)
                 && WorldArea().HasPoint(position) && !BlocksWorld(position) && Pick(position) == slot,
-                Enabled = game.Connected && !application.IsModalOpen
+                Enabled = game.Connected && !Application.IsModalOpen
             };
         }
         if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) fields["Landscape"] = landscape.Observe(_camera, WorldArea());
@@ -272,12 +278,12 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         mark = ReplayMark("WorldAcceptance", mark);
         if (Focus() is not { Slots.Length: 9 }) _slot = -1;
         string uiKey = $"{_revision}:{game.Connected}:{game.Status}:{game.Feedback}:{game.CanStart}:{game.CanInvite}:{_focus}:{_slot}:{game.PlayerId}:{game.HostPlayerId}:{_constructionGroup}";
-        if (uiKey != _uiKey) { _uiKey = uiKey; UpdateUi(); UpdateMarkers(); }
+        if (uiKey != _uiKey) { _uiKey = uiKey; RefreshHud(_focus, _slot); UpdateMarkers(); }
         mark = ReplayMark("Hud", mark);
         UpdateUnits(delta);
         mark = ReplayMark("Units", mark);
         FrameCamera();
-        _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
+        _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !Application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
         mark = ReplayMark("Camera", mark);
         if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) landscape.Cover(_camera, WorldArea(), TabletopCamera.Travel);
         mark = ReplayMark("Landscape", mark);
@@ -289,6 +295,12 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
         int hover = game.Connected && !BlocksWorld(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
         if (hover != _hover) { _hover = hover; UpdateMarkers(); }
         ReplayMark("HoverPicking", mark);
+    }
+    internal void RefreshHud(int focus, int slot)
+    {
+        if (slot is < -1 or > 8) throw new ArgumentOutOfRangeException(nameof(slot));
+        _focus = focus; _slot = slot;
+        UpdateUi();
     }
     private void UpdateUi()
     {
@@ -346,7 +358,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             SlotState slot = _slot >= 0 && focus is not null ? focus.Slots[_slot] : new(Building.Empty, 0);
             TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
             BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
-            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
+            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level, research: focus!.Research, technologies: s!.TechnologyCatalog) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage · up to {tower?.VictimCap} targets");
             string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
             if (explanation.Length != 0) _detail.Text += "\n" + explanation;
             _buildActions.Visible = _slot >= 0 && slot.Purchased && slot.Type == Building.Empty;
@@ -366,7 +378,7 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             {
                 button.Visible = BuildingGroup(type) == _constructionGroup;
                 BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
-                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build) : "") + "\n ";
+                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog) : "") + "\n ";
                 button.AddThemeFontSizeOverride("font_size", 11);
                 button.Disabled = !edit || slot.Type != Building.Empty || build is null || !slot.Purchased || !me!.Resources.TryPay(build.Construction, out _);
                 UiAssets.Cost(button, build?.Construction ?? default);
@@ -375,11 +387,11 @@ public partial class Tabletop(IGameSession game, GameApplication application) : 
             BuildingDefinition? lumbermill = s?.BuildingCatalog.FirstOrDefault(b => b.Type == Building.Lumbermill);
             _recovery.Visible = _buildActions.Visible && _constructionGroup == "Production" && focus?.Wood == 0 && lumbermill?.RecoveryConstruction is not null;
             ResourceCost recoveryCost = lumbermill?.RecoveryConstruction ?? default;
-            _recovery.Text = $"{BuildingName(Building.Lumbermill)} · gold recovery · {ResourceText(recoveryCost)} · {(lumbermill is null ? "" : ProgressionPresentation.ProducerBenefit(lumbermill))}";
+            _recovery.Text = $"{BuildingName(Building.Lumbermill)} · gold recovery · {ResourceText(recoveryCost)} · {(lumbermill is null ? "" : ProgressionPresentation.ProducerBenefit(lumbermill, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog))}";
             _recovery.Disabled = !edit || !_recovery.Visible || !me!.Resources.TryPay(recoveryCost, out _);
             _recovery.TooltipText = explanation.Length > 0 ? explanation : focus is null ? "" : "Explicit recovery at zero wood.\n" + CostExplanation(recoveryCost, focus.Resources);
             _upgrade.Visible = slot.Type != Building.TownHall;
-            _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true) : "")}\n ";
+            _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true, research: focus!.Research, technologies: s!.TechnologyCatalog) : "")}\n ";
             _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
             UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
             _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {AssetCatalog.UnitName(q.Type)} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";

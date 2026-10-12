@@ -217,15 +217,16 @@ public sealed class GraphicsTests
     [Theory]
     [InlineData("test-vulkan")]
     [InlineData("test-atmosphere")]
-    public void OptionalExportedAtmosphereChecksRequireOnlyTheClient(string command)
+    [InlineData("test-engine")]
+    public void OptionalExportedChecksRequireOnlyTheNativeClient(string command)
     {
         string root = Path.Combine(Directory.GetCurrentDirectory(), "logs", "atmosphere-prerequisite-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
         {
             var evidence = new Evidence(root, Path.Combine(root, "evidence"));
-            var runner = new Runner(Options.Parse([command, "--exported"]), CancellationToken.None, evidence, root: root);
-            string executable = Path.Combine(root, "dist", "client", "odot.x86_64");
+            var runner = new Runner(Options.Parse(command == "test-engine" ? [command, "--scenario", "worldtree", "--exported"] : [command, "--exported"]), CancellationToken.None, evidence, root: root);
+            string executable = OperatingSystem.IsWindows() ? Path.Combine(root, "dist", "windows-client", "odot.exe") : Path.Combine(root, "dist", "client", "odot.x86_64");
             var missing = Assert.Throws<VerificationPrerequisiteException>(() => runner.AtmosphereClientPackage());
             Assert.Contains(executable, missing.Message, StringComparison.Ordinal);
             Directory.CreateDirectory(Path.GetDirectoryName(executable)!);
@@ -235,6 +236,9 @@ public sealed class GraphicsTests
             string server = Path.Combine(root, "dist", "server", "odot.x86_64");
             Directory.CreateDirectory(Path.GetDirectoryName(server)!);
             File.WriteAllBytes(server, []);
+            string linuxClient = Path.Combine(root, "dist", "client", "odot.x86_64");
+            Directory.CreateDirectory(Path.GetDirectoryName(linuxClient)!);
+            File.WriteAllBytes(linuxClient, []);
             runner.CheckPackages();
         }
         finally { Directory.Delete(root, true); }

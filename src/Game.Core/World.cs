@@ -207,7 +207,7 @@ public sealed class City
     public TowerState Defender { get; set; }
     public CityState Snapshot() => Snapshot(_combat.Soldiers(Id));
     internal CityState Snapshot(UnitState[] soldiers, bool terminal = false) => new(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
-    { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+    { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
 }
 
 public sealed class Match : IDisposable
@@ -376,7 +376,7 @@ public sealed class Match : IDisposable
             {
                 foreach (City city in Players.Values.Where(p => !p.Eliminated))
                 {
-                    ResourceCost income = Economy.Production(city.Slots);
+                    ResourceCost income = Economy.Production(city.Slots, city.Research);
                     if (!city.Resources.TryAdd(income, out ResourceCost balance)) return false;
                     balances.Add(city.Id, balance);
                     research.Add(city.Id, city.Research.Income(progress: Economy.ResearchProduction(city.Slots)));

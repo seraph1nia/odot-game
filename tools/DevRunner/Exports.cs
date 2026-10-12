@@ -178,6 +178,7 @@ internal sealed partial class Runner
     {
         await _evidence.Measure("export-smoke", "suite", ExportSmoke);
         await SteamExtensionProbe(exported: true, offline: true);
+        await EngineTests(exported: true);
         CheckPackages();
         Console.WriteLine("Headless Linux package checks passed; graphical exported-package qualification is explicitly separate.");
     }

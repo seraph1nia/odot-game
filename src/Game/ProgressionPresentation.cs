@@ -32,9 +32,18 @@ public static class ProgressionPresentation
             ? $"{r}: {stocks.Amount(r)}/{cost.Amount(r)} · affordable"
             : $"Need {cost.Amount(r) - stocks.Amount(r)} more {r.ToString().ToLowerInvariant()} · " + (r switch
             { Resource.Gold => "production, Gold mine or Market", Resource.Wood => AssetCatalog.BuildingName(Building.Lumbermill), Resource.Food => AssetCatalog.BuildingName(Building.Farm), Resource.Stone => AssetCatalog.BuildingName(Building.Stonecutter), Resource.Metal => AssetCatalog.BuildingName(Building.MetalMine), _ => AssetCatalog.BuildingName(Building.Weaver) })));
-    public static string ProducerBenefit(BuildingDefinition definition, int level = 1, bool upgrade = false)
-        => definition.Produces is Resource resource ? upgrade ? $"{definition.Output(level)} → {definition.Output(level + 1)} {resource.ToString().ToLowerInvariant()}/turn"
-            : $"+{definition.Output(level)} {resource.ToString().ToLowerInvariant()}/turn" : "";
+    public static string ProducerBenefit(BuildingDefinition definition, int level = 1, bool upgrade = false,
+        ResearchState research = default, IEnumerable<TechnologyDefinition>? technologies = null)
+    {
+        if (definition.Produces is not Resource resource) return "";
+        try
+        {
+            int output = EconomyConfiguration.ProducerOutput(definition, level, research, technologies ?? []);
+            return upgrade ? $"{output} → {EconomyConfiguration.ProducerOutput(definition, level + 1, research, technologies ?? [])} {resource.ToString().ToLowerInvariant()}/turn"
+                : $"+{output} {resource.ToString().ToLowerInvariant()}/turn";
+        }
+        catch (OverflowException) { return "Unavailable"; }
+    }
     public static string FoodSalePreview(CityState city, MarketRate rate)
     {
         if (city.Food < rate.Units) return $"Need {rate.Units - city.Food} more food · {AssetCatalog.BuildingName(Building.Farm)}";
