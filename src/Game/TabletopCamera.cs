@@ -17,14 +17,20 @@ internal sealed class TabletopCamera(Camera3D camera)
     private static readonly bool TravelTrace = System.Environment.GetEnvironmentVariable("ODOT_CAMERA_TRAVEL_TRACE") == "1";
     private Transform3D _base, _fittedBase;
     private float _baseSize;
+    private Rect2 _boundary, _viewport, _content;
+    internal Rect2 Boundary => _boundary;
+    internal Vector3? ViewCenter => Ground(_viewport.GetCenter());
     internal float Zoom { get; private set; } = 1;
     internal Vector2 Pan { get; private set; }
     internal double MovementSeconds { get; private set; }
     internal Vector2 MovementDirection { get; private set; }
 
-    internal void Fit()
+    internal void Fit(Rect2 content, Rect2 viewport)
     {
-        _fittedBase = _base = camera.Transform; _baseSize = camera.Size;
+        _fittedBase = _base = camera.Transform; _baseSize = camera.Size; _viewport = viewport; _content = content.Grow(BattlefieldFrame.Margin);
+        // Include the complete default native projection, even behind the HUD.
+        // This also handles narrow/wide resize without exposing a perimeter end.
+        _boundary = BattlefieldFrame.Footprint(camera, viewport).Merge(content.Grow(BattlefieldFrame.Margin)).Grow(1);
         Apply();
     }
     internal void Reset()
@@ -104,9 +110,15 @@ internal sealed class TabletopCamera(Camera3D camera)
     private void Apply()
     {
         if (_baseSize <= 0) return;
-        Pan = Pan.Clamp(-Travel, Travel);
-        camera.Transform = new(_base.Basis, _base.Origin + new Vector3(Pan.X, 0, Pan.Y));
+        camera.Transform = _base;
         camera.Size = _baseSize / Zoom;
+        Rect2 footprint = BattlefieldFrame.Footprint(camera, _viewport);
+        Vector3 aim = Ground(_viewport.GetCenter()) ?? _base.Origin;
+        Vector2 center = new(aim.X, aim.Z);
+        Vector2 minimum = (-Travel).Max(_boundary.Position - footprint.Position).Max(_content.Position - center);
+        Vector2 maximum = Travel.Min(_boundary.End - footprint.End).Min(_content.End - center);
+        Pan = Pan.Clamp(minimum, maximum);
+        camera.Position += new Vector3(Pan.X, 0, Pan.Y);
     }
     internal object Observe(Vector3 reference, Transform2D screen)
     {

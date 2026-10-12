@@ -110,6 +110,13 @@ public sealed class WorldtreeResearchTests
         var slots = WorldtreeProjection.Slots; Assert.Equal(24, slots.Count); Assert.Equal(24, slots.Select(s => s.VisualId).Distinct().Count());
         Assert.Equal(Enum.GetValues<TechnologyId>().Where(id => id != TechnologyId.None), slots.Where(s => s.Technology != TechnologyId.None).Select(s => s.Technology).Order());
         var before = WorldtreeProjection.Project(match.Snapshot(), city.Snapshot(), 1, true, "primary_left"); Assert.Equal(3, before.Acquired.Length); Assert.Equal(3, before.Available.Length);
+        // Tier A: exact authoritative costs/denials survive concise hover copy;
+        // native focus/layout belongs to the existing Tier B component checks.
+        string description = WorldtreeProjection.Description("primary_left", match.Snapshot(), city.Snapshot(), 1, true);
+        Assert.Contains("• 3 points", description);
+        Assert.DoesNotContain("Available", description); Assert.DoesNotContain("No prerequisite", description); Assert.DoesNotContain("no healing", description);
+        Assert.Contains("• Requires Melee Foundation", WorldtreeProjection.Description("secondary_left_a", match.Snapshot(), city.Snapshot(), 1, true));
+        Assert.Contains("• Building/preparation only", WorldtreeProjection.Description("primary_left", match.Snapshot() with { Phase = Phase.Combat }, city.Snapshot(), 1, true));
         Apply(match, "research-tech", TechnologyId.MeleeFoundation); Apply(match, "research-tech", TechnologyId.Guardian); Apply(match, "research-tech", TechnologyId.Stonecraft);
         var projected = WorldtreeProjection.Project(match.Snapshot(), city.Snapshot(), 1, true, "terminal_left_a_2"); Assert.Contains("terminal_left_a_2", projected.Acquired);
         Assert.DoesNotContain("terminal_left_a_2", projected.Available); Assert.DoesNotContain("terminal_left_b_2", projected.Available);

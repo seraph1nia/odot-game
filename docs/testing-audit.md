@@ -112,6 +112,20 @@ research-center footprint assertions are replaced by the landed `worldtree` case
 and actual `receiving` research bridge checks, not revived as an obsolete surface.
 The original settings default/mute/gain/reload assertions also remain.
 
+The [framing/renderer/Worldtree batch](view-renderer-worldtree.md) extends these
+existing cases, rather than adding a full-game journey: `settings` checks native
+camera projections at five aspects, compact passive landscape resources and two
+owned minimal-process renderer restarts; `worldtree` checks the single hover/focus
+surface and its intent/input traversal; `receiving` retains real authority,
+rejection and foreground-restoration checks while adding acknowledged HUD balances.
+Native MultiMesh transform readback is unavailable on Dummy (a standalone setter/
+getter counterfactual returns identity); native buffer placement and rendered
+opacity remain unqualified. Coordinate retention is content/bounds/helper proof,
+not a fabricated native readback. Duplicate bottom/footer/tooltip assertions are
+replaced by the one visible surface; costs, locks, inactive nodes and modal negative
+paths remain. The new short-lived passive fixture releases its owned derived
+material cache before RenderingServer teardown.
+
 Additional B regressions catch freed implicit and invalid explicit invokers on
 reusable modals, Settings resize stealing the nested confirmation's order/focus/
 input scope, and incomplete externally parented control cleanup before reload.

@@ -84,8 +84,9 @@ inventory and its canonical upstream source unchanged.
 The landed Worldtree instead projects the actual catalog and acknowledged acquired
 set into the immutable living tree; structural roots are established systems,
 not purchases. Locked/owned nodes remain inspectable; the native purchase control
-and production session bridge independently enforce real eligibility. Full
-prerequisite, sibling-lock, price and benefit copy remains in descriptions/tooltips.
+and production session bridge independently enforce real eligibility. The
+[Worldtree interaction contract](worldtree.md#reachable-game-feature) owns its
+current details, denial copy and pointer/keyboard purchase route.
 The landed village production offshoots and protocol-12 compatibility boundary
 remain unchanged by this migration. There is no new skill currency, one-point
 root, respec, local spend, prediction or research rule invented to fit a demo.

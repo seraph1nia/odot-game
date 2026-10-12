@@ -2,12 +2,19 @@
 
 ## Reachable game feature
 
-Open **Worldtree** in the city controls (the stable observation target remains
-`Research`), without selecting a plot. Select a native socket by click or native
-Tab/Enter, read its description below the tree, and press **Research** in the
-selected-node footer. The footer shows the actual cost and authority-provided
-reason. Acquired, prerequisite-locked, unaffordable and inactive nodes remain
-inspectable. Foreign cities and disconnected/paused/ready/fallen cities are
+Open **Worldtree (X)** in the city controls (the stable observation target remains
+`Research`), without selecting a plot. X is the current authoritative unspent city
+research balance, including while the dialog is closed; sending a request does not
+spend it locally. Hover a native socket or reach it with keyboard focus to read
+concise effects, cost and actual purchase denials in one shared details surface.
+Move from the socket across the narrow gap into its details to press **Research**,
+or Tab from an available focused socket into that action. Moving across sockets
+covered by the visible details does not change its description or purchase target;
+an explicit socket click or keyboard focus can still change the target. Leaving
+both the socket and details dismisses the preview unless its socket or action
+retains keyboard focus. The bottom description/footer and native duplicate tooltips
+are not displayed. Acquired, prerequisite-locked, unaffordable and inactive nodes
+remain inspectable. Foreign cities and disconnected/paused/ready/fallen cities are
 read-only. Close/Escape restores the invoker when the window is focused. Settings
 remains available through its normal application entry, not inside research.
 The game modal confines Tab/Shift-Tab; the imported
@@ -23,7 +30,12 @@ containers. `GameApplication.IsModalOpen` selects among the application's dialog
 world picking/drag/zoom. Application input consumption is restricted to embedded
 Window dialogs, allowing this in-viewport overlay to receive native GUI events.
 The panel does not pause the cooperative match. A bounded
-scroll host retains descriptions and the canonical 900×560 minimum component.
+scroll host retains the canonical 900×560 minimum component. The shared hover/focus
+surface follows current socket/canvas geometry through scrolling and resize and
+is clamped to the viewport. Ancestor clipping bounds the socket's pointer region
+and transit strip. Its informational background remains mouse-transparent;
+`WorldtreeResearch.cs` guards pointer-only owner replacement within the visible
+surface while retaining explicit socket clicks and native focus.
 Physical control/branch identities survive selection, snapshots and resize.
 
 ## Bounded node design
@@ -158,10 +170,12 @@ untouched and unimported.
 
 ## Verification and limits
 
-Exact implementation commands, results, retained failures, changed source hashes,
+Original integration commands, results, retained failures, changed source hashes,
 resource/import identities and Linux executable/PCK/managed member identities
-are in [worldtree-validation.json](worldtree-validation.json). The final delivery
-pipeline must bind fresh checks to its actual published head; the initial dirty
+are in [worldtree-validation.json](worldtree-validation.json). Current single-surface
+native hover/transit/covered-socket regressions and receiving denial/acknowledgment
+receipts are in the [framing/renderer/Worldtree evidence](view-renderer-worldtree.md#review-r1-hover-only-research-transit).
+The final delivery pipeline must bind fresh checks to its actual published head; the initial dirty
 worktree receipts are not relabeled as later-head qualification.
 
 - Tier A: `WorldtreeResearchTests` exercises actual per-producer forecasts,

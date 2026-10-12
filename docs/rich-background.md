@@ -16,6 +16,12 @@ metadata, not an art/asset change.
 
 ## What is composed
 
+The following describes the authored composition plan. [Compact battlefield
+framing](view-renderer-worldtree.md#battlefield-framing) owns the current city-view
+coverage and decorative visibility boundary; the menu retains full-background
+coverage. Plan cell counts below do not mean every cell is emitted in the compact
+battlefield.
+
 - Weighted coordinate-only patches give the woodland many smaller irregular
   sections, interleaving moss, pine duff, leaf litter and grassy openings. Patch
   centers, influence and adjacency vary at a roughly three-cell scale; it is
@@ -42,8 +48,8 @@ metadata, not an art/asset change.
   Grass clearings are lighter than forest patches; different ground families
   favor fitting undergrowth. Props are excluded from the actual route corridors
   with conservative width/footprint clearance and kept on one supporting terrace.
-  The dressed envelope is columns −12..12, rows 3..14. The exterior still has
-  its previous sparse decorative coverage, with correct decorative floor contact.
+  The authored dressed envelope is columns −12..12, rows 3..14; sparse exterior
+  decoration belongs to the original full-background composition.
 
 The established combat receiver envelope (including boundary hex footprints)
 retains its original floor families, heights and six-way transforms. The new
@@ -66,10 +72,10 @@ Nonuniform local transforms stay on the instances; no vertex/normal/tangent
 flattening or copied meshes/textures are introduced. Unit-size templates are
 normalized by the existing asset placement owner, then freed. Two 16-cell-wide scatter buckets bound the finite dressed
 area without the first attempt's unnecessarily numerous eight-cell buckets.
-Coverage grows deterministically and monotonically only when the camera coverage
-envelope grows, never per frame or on an ordinary redraw. Authored connector plans
-and clearance corridors are cached once; conservative broad phases skip only
-remote corridors/ribbon cells. Nearby contacts still sample actual triangles and
+The menu's coverage grows deterministically and monotonically with its camera
+envelope; battlefield coverage follows the [compact framing owner](view-renderer-worldtree.md#battlefield-framing).
+Authored connector plans and clearance corridors are cached once; conservative
+broad phases skip only remote corridors/ribbon cells. Nearby contacts still sample actual triangles and
 use the same full segment-width test. Cheap equivalence tests include close port
 boundaries; these changes do not relax geometric assertions.
 

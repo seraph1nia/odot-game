@@ -50,12 +50,14 @@ semantic colors. Real normal-zoom visual distinguishability remains unexecuted.
 
 `GameApplication` already owns one `AtmosphereController` for menu, village,
 combat and city transitions. That controller now owns one `ForestMagic` child.
-`VillageLandscape` supplies four fixed grounded focal sites using its existing
-actual-contact resolver. `Tabletop` exposes only the viewed landscape to that
-owner. No second WorldEnvironment, weather clock, per-city effect controller,
+`VillageLandscape` supplies four grounded focal sites using its existing
+actual-contact resolver; the table lists their source hex coordinates. Current
+battlefield placement is bounded by [compact framing](view-renderer-worldtree.md#battlefield-framing),
+and the same rig refreshes when those sites move on the viewed landscape.
+`Tabletop` exposes only the viewed landscape to that owner. No second WorldEnvironment, weather clock, per-city effect controller,
 procedural terrain system or simulation RNG was introduced.
 
-| Site | Native accent | Ground texture | Full footprint |
+| Source site | Native accent | Ground texture | Full footprint |
 | --- | --- | --- | --- |
 | Mushroom hollow (-3,4) | soft cyan | spore growth | 0.6 m |
 | Bridge lantern (2,6) | warm amber | moss wash | 0.8 m |
@@ -103,13 +105,13 @@ nodes. A null landscape suppresses the rig. Owner disposal releases its subtree.
 
 ## Composition and deliberate exclusions
 
-Existing fixed canopy pockets, seed-varied batched middle/background vegetation,
-continuous woodland/river/bridge/trails and camera-dependent landscape coverage
-remain. Nine low plants/mushrooms are grouped around three selected clearings;
+Fixed canopy pockets, seed-varied batched vegetation and woodland/river/bridge/trail
+plans remain the composition inputs. [Compact battlefield framing](view-renderer-worldtree.md#battlefield-framing)
+owns their current visibility/coverage boundary; menu coverage remains separate.
+Nine low plants/mushrooms are grouped around three selected clearings;
 fixed-coordinate decorative yaw variation breaks repetition without consuming
 random simulation state. The central village, all building plots and the combat
-approach stay open. There is no new exterior silhouette wall or unrelated library
-refresh; the existing background already fills the permitted camera footprint.
+approach stay open. No unrelated asset-library refresh occurred.
 
 Built-in toon/rim and light projectors were evaluated but not applied in this
 initial pass. Existing foliage has a channel-preserving lit wind shader, while
