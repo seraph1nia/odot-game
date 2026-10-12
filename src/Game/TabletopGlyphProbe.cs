@@ -34,7 +34,7 @@ public partial class Tabletop
                         Building = state.Type.ToString(),
                         state.Level,
                         Asset = asset,
-                        Protected = state.Type is Building.ArrowTower or Building.CatapultTower or Building.TownHall,
+                        Protected = ArmyConfiguration.IsTower(state.Type) || state.Type == Building.TownHall,
                         ExpectedText = text,
                         ExpectedLocal = V(position),
                         OwnerGlobal = V(owner.GlobalPosition),
@@ -49,7 +49,7 @@ public partial class Tabletop
                     ArmyHomeState home = army.Homes[index];
                     HexCoordinate coordinate = snapshot.Rules.Combat.Board.Cells.Single(c => c.Id == home.Cell).Coordinate;
                     Vector3 position = VillageLayout.Hex(coordinate.Column, coordinate.R) + new Vector3(0, .12f, .95f);
-                    string text = $"Space {index + 1} · {(home.Purchased ? "6 size" : "locked")}";
+                    string text = ArmyPlotView.Title(home);
                     if (label.Name != "Home" + index || label.Text != text || label.FontSize != 18 || label.Position != position) continue;
                     return new
                     {

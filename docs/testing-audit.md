@@ -16,6 +16,29 @@ scenario registrations and historical evidence. It does not assert that a small
 C# test replaces native rendering. No forbidden graphical/live desktop/Vulkan
 baseline was rerun. No toolchain/driver upgrade, release or branch-rule mutation.
 
+## Army plot/tower coverage admission (2026-10-12)
+
+`ArmyPlotTowerTests` adds Tier A against actual SettlementCommands/ArmyConfiguration,
+DefenseActor/CombatSimulation and the snapshot/AuthoritySession boundary. Existing
+catalog/roster tests could not catch arbitrary paid plot IDs, a tower allowing
+unit Send/recruit into its full footprint, exclusive-path races, or a bombard
+radius implemented only cosmetically. Fixed seeds, owned serialized ECS worlds
+and numerical profiles keep this cheap. Four paired initial-selection rows and
+an unchanged-base-tower replay catch metadata-only rerolls; original paid economy
+fixture goldens remain unchanged. `DefensePolicyTests` now asserts the complete
+six-profile set and configured behavior, not a permissive count/timing bound.
+
+The existing `receiving` Tier B case now additionally hosts the real army receiver,
+HUD and native camera with current main resources. It catches wrong roof/ground
+picking, absent/optimistic/stale native purchase/build/upgrade bindings and full-
+footprint recruitment availability without launching Main, a world or a session.
+No scenario/supervisor/display or separate test framework was added. Graphical
+fixtures now use actual army-plot selection instead of BuyHome; they remain
+unexecuted, not replaced by a claim of graphical equivalence. No existing negative
+coverage was removed. [Exact receipts, admission costs, failures and limits](army-plots-towers.md)
+distinguish 48 targeted cases from the final broad fast 484/649 passes and two
+platform skips; actual `receiving` component time was 9.28s.
+
 ## Core groups
 
 Names below are relative to `tests/Game.Core.Tests`; `Tests.cs` suffix is omitted

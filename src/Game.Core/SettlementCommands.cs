@@ -21,11 +21,18 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             city.Research = next;
             return Accept();
         }
-        if (command.Action == "buy-home")
+        // Retain the old wire action as a compatibility alias, never a second
+        // capacity purchase. Direct plot acquisition and the alias buy real land.
+        if (command.Action == "buy-home" || command.Action == "buy-plot" && ArmyConfiguration.IsArmyPlot(command.Slot))
         {
+            int id = command.Slot;
+            if (command.Action == "buy-home" && id == -1)
+                id = Array.FindIndex(city.ArmyPlots, p => !p.Purchased) + ArmyConfiguration.PlotOffset;
+            if (!ArmyConfiguration.IsArmyPlot(id)) return Reject("Choose an army plot.");
+            if (city.Plot(id).Purchased) return Reject("Plot already purchased.");
             if (command.ExpectedHomeCount != city.PurchasedHomes) return Reject("Stale home purchase price.");
             if (army.HomeQuote(city.PurchasedHomes) is not ResourceCost price || !city.Resources.TryPay(price, out ResourceCost balance)) return Reject("No affordable battlefield home available.");
-            city.Resources = balance; city.PurchasedHomes++;
+            city.Resources = balance; city.SetPlot(id, city.Plot(id) with { Purchased = true });
             return Accept();
         }
         if (command.Action is "retire" or "store" or "send")
@@ -44,13 +51,14 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
                 || command.Action == "store" && current.Stored) return Reject("Unit is not in the requested source roster.");
             ArmyAssignment? next = army.Find(city.Soldiers, city.PurchasedHomes, unit.Size,
                 command.Action == "store" ? command.Slot : -1, command.Action == "store" ? hall.Generation : 0,
-                command.Action == "store" ? ArmyConfiguration.Capacity(hall.CapacityLevel) : 0);
+                command.Action == "store" ? ArmyConfiguration.Capacity(hall.CapacityLevel) : 0, city.ArmyPlots);
             if (next is null) return Reject("Destination has no fitting size capacity.");
             combat.Assign(unit.Id, next); combat.RestoreHomes();
             return Accept();
         }
-        if (command.Slot is < 0 or >= 9) return Reject("Choose a slot from 0 to 8.");
-        SlotState slot = city.Slots[command.Slot];
+        if (command.Slot is < 0 or >= ArmyConfiguration.TotalPlots) return Reject("Choose a city or army plot.");
+        bool armyPlot = ArmyConfiguration.IsArmyPlot(command.Slot);
+        SlotState slot = city.Plot(command.Slot);
         BuildingDefinition? definition = economy.BuildingRule(slot.Type);
         void Pay(ResourceCost cost)
         {
@@ -58,7 +66,7 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             city.Resources = balance;
         }
         bool CanPay(ResourceCost cost) => city.Resources.TryPay(cost, out _);
-        if (command.Action is "upgrade" or "upgrade-capacity" or "upgrade-healing" or "recruit" or "sell" or "trade"
+        if (command.Action is "upgrade" or "upgrade-capacity" or "upgrade-healing" or "upgrade-tower" or "recruit" or "sell" or "trade"
             && (slot.Type == Building.Empty || command.ExpectedGeneration != slot.Generation)) return Reject("Stale building instance.");
         switch (command.Action)
         {
@@ -71,7 +79,7 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             case "sell":
                 if (slot.Type == Building.TownHall && city.Soldiers.Any(u => u.Assignment is { Stored: true } a && a.HallSlot == command.Slot && a.HallGeneration == slot.Generation)) return Reject("Send or retire stored units before selling this Town hall.");
                 if (!city.Resources.TryAdd(slot.Refund, out ResourceCost refunded)) return Reject("Refund would overflow resource balances.");
-                city.Resources = refunded; city.Slots[command.Slot] = new(Building.Empty, 0) { Purchased = slot.Purchased };
+                city.Resources = refunded; city.SetPlot(command.Slot, new(Building.Empty, 0) { Purchased = slot.Purchased });
                 city.Towers.Remove(command.Slot);
                 break;
             case "trade":
@@ -86,6 +94,9 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
                 if (construction is null) return Reject("Unknown building.");
                 if (!slot.Purchased) return Reject("Purchase this plot first.");
                 if (slot.Type != Building.Empty) return Reject("Slot occupied.");
+                if (armyPlot && (!ArmyConfiguration.IsTower(command.Building)
+                    || city.Soldiers.Any(u => u.Assignment is { Stored: false } a && a.Tile == army.HomeCells[command.Slot - ArmyConfiguration.PlotOffset])))
+                    return Reject("Army plots require an empty whole plot and a defense tower.");
                 ResourceCost payment = construction.Construction;
                 if (command.Payment == ConstructionPayment.GoldRecovery)
                 {
@@ -94,15 +105,15 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
                 }
                 if (!CanPay(payment)) return Reject("Not enough resources.");
                 if (city.NextBuildingGeneration == long.MaxValue) return Reject("Building identity exhausted.");
-                Pay(payment); city.Slots[command.Slot] = new(command.Building, 1)
+                Pay(payment); city.SetPlot(command.Slot, new(command.Building, 1)
                 {
                     Purchased = true,
                     Generation = city.NextBuildingGeneration++,
                     Investment = payment,
                     CapacityLevel = command.Building == Building.TownHall ? 1 : 0,
                     HealingLevel = command.Building == Building.TownHall ? 1 : 0
-                };
-                if (command.Building is Building.ArrowTower or Building.CatapultTower)
+                });
+                if (ArmyConfiguration.IsTower(command.Building))
                     city.Towers[command.Slot] = new(city.Id, command.Slot, command.Building, 1);
                 break;
             case "upgrade-capacity":
@@ -119,18 +130,27 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
                     HealingLevel = slot.HealingLevel + (healing ? 1 : 0)
                 };
                 break;
+            case "upgrade-tower":
+                if (slot.Type != Building.ArrowTower || slot.Level != 1 || command.ExpectedTrackLevel != slot.Level
+                    || command.Building is not (Building.RapidArrowTower or Building.BombardTower)) return Reject("Choose a current base arrow tower and an upgrade path.");
+                if (!economy.TryTowerUpgrade(command.Building, out ResourceCost towerQuote)
+                    || !CanPay(towerQuote) || !slot.Investment.TryAdd(towerQuote, out ResourceCost towerInvestment)) return Reject("Not enough resources or unsafe investment.");
+                Pay(towerQuote);
+                city.SetPlot(command.Slot, slot with { Type = command.Building, Level = 2, Investment = towerInvestment });
+                city.Towers[command.Slot] = city.Towers[command.Slot] with { Type = command.Building, Level = 2 };
+                break;
             case "upgrade":
                 if (definition is null || !economy.TryUpgrade(slot.Type, slot.Level, out ResourceCost upgrade)) return Reject("Building is at its maximum level.");
                 if (!CanPay(upgrade)) return Reject("Not enough resources.");
                 if (!slot.Investment.TryAdd(upgrade, out ResourceCost investment)) return Reject("Investment would overflow resource bounds.");
-                Pay(upgrade); city.Slots[command.Slot] = slot with { Level = slot.Level + 1, Investment = investment };
+                Pay(upgrade); city.SetPlot(command.Slot, slot with { Level = slot.Level + 1, Investment = investment });
                 if (city.Towers.TryGetValue(command.Slot, out TowerState? tower)) city.Towers[command.Slot] = tower with { Level = slot.Level + 1 };
                 break;
             case "recruit":
                 if (definition?.Recruits?.Contains(command.SoldierType) != true) return Reject("This building cannot recruit that role.");
                 ResourceCost cost = economy.Recruitment(command.SoldierType, slot.Level);
                 if (!CanPay(cost)) return Reject("Not enough resources.");
-                ArmyAssignment? home = army.Find(city.Soldiers, city.PurchasedHomes, configuration.Unit(command.SoldierType, level: slot.Level).Size);
+                ArmyAssignment? home = army.Find(city.Soldiers, city.PurchasedHomes, configuration.Unit(command.SoldierType, level: slot.Level).Size, plots: city.ArmyPlots);
                 if (home is null) return Reject("Battlefield homes are full. Buy a home, store or retire a unit.");
                 Pay(cost); combat.Create(command.SoldierType, city.Id, city.Id, city.Id, level: slot.Level, capabilities: economy.Research.Capabilities(city.Research, command.SoldierType), assignment: home); combat.RestoreHomes();
                 break;

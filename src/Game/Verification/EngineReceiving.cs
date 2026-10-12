@@ -146,6 +146,7 @@ public partial class EngineTests
 
     private async Task Receiving()
     {
+        await ArmyPlots();
         GetWindow().Size = new(1920, 1080);
         using Theme theme = ApplicationTheme.Create();
         var applicationCanvas = new CanvasLayer { Layer = 10 };
