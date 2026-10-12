@@ -26,9 +26,9 @@ public partial class WorldtreeResearch : VBoxContainer
     private int? _cityId;
     private PanelContainer _hoverDetails = null!;
     private Button? _detailsNode;
-    private bool _pointerInside, _restoringFocus;
+    private bool _restoringFocus;
     internal bool HoverDetailsVisible => _hoverDetails.Visible;
-    internal Rect2 HoverDetailsRect => _hoverDetails.GetGlobalRect();
+    internal Rect2 HoverDetailsRect => _hoverDetails.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, _hoverDetails.Size);
     public override void _Ready()
     {
         Tree = GD.Load<PackedScene>("res://UI/components/worldtree.tscn").Instantiate<Control>();
@@ -51,13 +51,10 @@ public partial class WorldtreeResearch : VBoxContainer
         // the currently described node instead, still guarded by authority.
         action.Disconnect(BaseButton.SignalName.Pressed, new Callable(Tree, "request_action"));
         action.Pressed += () => Tree.EmitSignal("node_action_requested", _detailsId);
-        _hoverDetails.MouseEntered += () => _pointerInside = true;
-        _hoverDetails.MouseExited += () => _pointerInside = false;
         foreach (WorldtreeSlot slot in WorldtreeProjection.Slots)
         {
             Button button = Tree.Get("buttons").AsGodotDictionary()[slot.VisualId].As<Button>();
-            button.MouseEntered += () => { _pointerInside = true; ShowDetails(slot.VisualId, button); };
-            button.MouseExited += () => _pointerInside = false;
+            button.MouseEntered += () => ShowDetails(slot.VisualId, button);
             button.FocusEntered += () => { if (!_restoringFocus) ShowDetails(slot.VisualId, button); };
         }
         _hoverDetails.Hide();
@@ -151,7 +148,7 @@ public partial class WorldtreeResearch : VBoxContainer
     {
         if (_detailsNode is null) return;
         _hoverDetails.ResetSize();
-        Rect2 node = _detailsNode.GetGlobalRect(), viewport = GetViewport().GetVisibleRect();
+        Rect2 node = _detailsNode.GetGlobalRect(), viewport = _hoverDetails.GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         Vector2 position = new(node.End.X + 8, node.Position.Y);
         if (position.X + _hoverDetails.Size.X > viewport.End.X - 16) position.X = node.Position.X - _hoverDetails.Size.X - 8;
         _hoverDetails.GlobalPosition = position.Clamp(viewport.Position + Vector2.One * 16,
@@ -159,11 +156,21 @@ public partial class WorldtreeResearch : VBoxContainer
     }
     public override void _Process(double delta)
     {
+        if (!IsVisibleInTree() || !_hoverDetails.Visible || _detailsNode is null) return;
+        PlaceDetails();
         Control? focus = GetViewport().GuiGetFocusOwner();
         bool focused = focus == _detailsNode || focus is not null && _hoverDetails.IsAncestorOf(focus);
-        bool overDetails = _hoverDetails.Visible && _hoverDetails.GetGlobalRect().HasPoint(GetViewport().GetMousePosition());
-        if (!_pointerInside && !focused && !overDetails) _hoverDetails.Hide();
-        if (_hoverDetails.Visible) PlaceDetails();
+        Rect2 socket = _detailsNode.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, _detailsNode.Size);
+        Rect2 node = socket;
+        for (Node? ancestor = _detailsNode.GetParent(); ancestor is not null; ancestor = ancestor.GetParent())
+            if (ancestor is Control { ClipContents: true } clip)
+                node = node.Intersection(clip.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, clip.Size));
+        Rect2 panel = HoverDetailsRect;
+        Vector2 pointer = GetViewport().GetMousePosition();
+        Vector2 start = new(Math.Min(socket.End.X, panel.End.X), Math.Max(node.Position.Y, panel.Position.Y));
+        Vector2 end = new(Math.Max(socket.Position.X, panel.Position.X), Math.Min(node.End.Y, panel.End.Y));
+        bool transit = node.HasArea() && end.X > start.X && end.Y > start.Y && new Rect2(start, end - start).HasPoint(pointer);
+        if (!focused && !node.HasPoint(pointer) && !panel.HasPoint(pointer) && !transit) _hoverDetails.Hide();
     }
 }
 

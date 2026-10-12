@@ -198,6 +198,52 @@ These are new failures, not an inherited accepted crash or waived success:
    no-reselection behavior and proves the repair without directly synthesizing
    `ItemSelected` (which had masked native selection policy).
 
+## Review R1: hover-only Research transit
+
+The shared dismissal path now places the existing details surface before checking
+its current viewport-space socket, panel and bounded horizontal transit strip.
+Socket ownership respects ancestor clipping; clipping cannot enlarge the gap.
+Native canvas transforms apply to hit geometry and viewport confinement. The
+existing keyboard-focus owner and foreground suspension/restoration remain intact;
+no timeout, duplicate panel or new popup supervisor was added.
+
+Coverage admission: pure C# and the previous click/focus fixture missed the
+observable defect: a frame between socket exit and panel entry hid the only
+purchase surface. The existing Tier B Worldtree/receiving fixtures now use native
+`Input.ParseInputEvent` motion through the actual laid-out gap, asserting the
+viewport's recorded pointer position and retained visibility without socket
+click/focus. They exercise both placement sides, genuine leave, another inactive
+socket, translated canvas, native scrolling and resized placement, retaining
+keyboard traversal and Settings/invitation/leave ownership checks. Receiving uses
+the production sender, real Match denial/purchase and explicit delayed snapshot
+acknowledgment; it does not substitute a local allocator or live transport.
+Resources remain owned by the existing fixture and runner. Added setup is native
+layout frames plus one purchase awakening, not another scene or game journey.
+
+Focused review receipts (SDK 10.0.401, Godot .NET 4.7.2, process-local
+`DOTNET_ROLL_FORWARD=LatestMajor`, locked restore; changed C# formatted):
+
+- `logs/20261012-203604-c2a8a493`: compiled the saved production file from
+  `d92ab4c265f94adb77031cca2e73c0ea0eeb27cb` against the new fixture. It failed the
+  transit visibility assertion in 0.92s. Native socket end X=350.1732, panel start
+  X=358.1732, pointer=(354.1732, 258.8866), panel hidden. This is an executed
+  source-bound counterfactual, not a source-text assertion.
+- `logs/20261012-203907-98994bbd`: final `test-engine --scenario worldtree
+  --startup-timeout-ms 60000` passed, 7.71s component / 13.26s including preparation.
+- `logs/20261012-203920-2e467cf4`: final `test-engine --scenario receiving
+  --startup-timeout-ms 60000` passed, 13.47s component / 17.97s including preparation.
+- Failed fixture attempts remain in `logs/20261012-203441-38ea4fc2` (GUI
+  `Viewport.PushInput` did not update the native pointer queried by dismissal)
+  and `logs/20261012-203612-f3b85fe8` (the chosen purported inactive socket was
+  actually Managed Forestry). Correcting native input delivery and choosing the
+  actual inactive sibling preserved the assertions, budgets and failure evidence.
+  Intermediate corrected passes are not final-source receipts.
+
+These are selected headless components, not a full test/lint gate. No complete
+suite, graphical/full-application journey, transport, package, PR or CI phase was
+executed in this review fix round. Native headless geometry/input dispatch does
+not qualify physical mouse/compositor behavior or rendered appearance.
+
 ## Explicit unexecuted acceptance
 
 No native artistic composition, opaque rendered pixels, physical Vulkan GPU

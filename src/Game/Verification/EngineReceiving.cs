@@ -302,8 +302,17 @@ public partial class EngineTests
             PressKey(Key.Enter); await Frames();
             Check(session.Commands.Count == before && match.Players[1].Research.Points == 30, "Enter after denied restoration cannot submit or spend research");
             peer.Acknowledge(); peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
-            Click(nodes["primary_left"].As<Button>()); await Frames();
-            action.GrabFocus(); PressKey(Key.Enter); await Frames(); Refresh(slot: 2);
+            await HoverResearch(dialog, nodes["primary_left"].As<Button>(), panelOnRight: true);
+            before = session.Commands.Count;
+            match.Players[1].Research = match.Players[1].Research with { Points = 2 };
+            Click(action); Refresh(slot: 2); await Frames();
+            Check(session.Commands.Count == before + 1 && session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.MeleeFoundation }
+                && !session.Results[^1].Accepted && !match.Players[1].Research.Has(TechnologyId.MeleeFoundation)
+                && dialog.Research.Feedback.Text == session.Results[^1].Message && Button("Research").Text == "Worldtree (30)",
+                "hover-only Research crosses the real sender and preserves authority denial without optimistic spending");
+            match.Players[1].Research = match.Players[1].Research with { Points = 30 };
+            await HoverResearch(dialog, nodes["primary_left"].As<Button>(), panelOnRight: true);
+            Click(action); await Frames(); Refresh(slot: 2);
             Check(session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.MeleeFoundation }
                 && session.Results[^1].Accepted && match.Players[1].Research.Points == 27, "production Worldtree sender purchases through real Match authority");
             Check(!tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_left")
@@ -348,6 +357,19 @@ public partial class EngineTests
             Click(action); session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
             Check(match.Players[1].Research.Has(TechnologyId.Stonecraft) && match.Players[1].Research.Points == 3, "real production offshoot bridge pays nine points once");
             Check(dialog.Research.Description.Text.Contains("stone per building turn", StringComparison.Ordinal), "production offshoot description remains the landed researched benefit");
+            PublishResearchPoints(12);
+            GetWindow().Size = new(1100, 820); await Frames();
+            await HoverResearch(dialog, nodes["primary_right"].As<Button>(), panelOnRight: false);
+            before = session.Commands.Count;
+            Click(action); Refresh(slot: 2);
+            Check(session.Commands.Count == before + 1 && session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.RangedFoundation }
+                && session.Results[^1].Accepted && match.Players[1].Research.Points == 9
+                && !tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_right")
+                && Button("Research").Text == "Worldtree (12)", "resized left-placement hover purchase emits real intent without allocating before acknowledgment");
+            session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+            Check(tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_right")
+                && Button("Research").Text == "Worldtree (9)", "left-placement hover purchase receives authoritative ownership and balance");
+            GetWindow().Size = new(1920, 1080); await Frames();
             session.Connected = false; Refresh(slot: 2); before = session.Commands.Count;
             dialog.Research.Requested?.Invoke(TechnologyId.MagicFoundation);
             Check(session.Commands.Count == before && action.Disabled, "Tabletop sender independently refuses research while disconnected");
