@@ -3,7 +3,7 @@ using Godot;
 
 namespace Game;
 
-internal sealed partial class SteamFriendsDialog : AcceptDialog
+internal sealed partial class SteamFriendsDialog : UiDialog
 {
     private VBoxContainer _rows = null!;
     private ScrollContainer _scroll = null!;
@@ -25,8 +25,8 @@ internal sealed partial class SteamFriendsDialog : AcceptDialog
     public override void _Ready()
     {
         Title = "Invite Steam friends"; OkButtonText = "Close";
-        Transient = true; Exclusive = false; DialogCloseOnEscape = true;
-        var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 10); AddChild(content);
+        base._Ready();
+        var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 10); Content.AddChild(content);
         content.AddChild(new Label { Text = $"Your friend needs their own copy of {GameBrand.Title} running.", CustomMinimumSize = new(400, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart });
         _refresh = new Button { Name = "RefreshFriends", Text = "Refresh", CustomMinimumSize = new(0, 38) }; content.AddChild(_refresh);
         _refresh.Pressed += Refresh;
@@ -34,17 +34,17 @@ internal sealed partial class SteamFriendsDialog : AcceptDialog
         content.AddChild(_scroll);
         _rows = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; _scroll.AddChild(_rows);
         _status = new Label { Name = "InviteStatus", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new(400, 55) }; content.AddChild(_status);
-        GetOkButton().Name = "CloseFriends";
         UiAssets.Decorate(GetOkButton(), "Back");
         VisibilityChanged += () =>
         {
             if (Visible) return;
             _opening++; _query = null; _send = null; _busy = false;
-            Action? closed = _closed; _closed = null; closed?.Invoke();
             Control? focus = _returnFocus; _returnFocus = null;
+            Action? closed = _closed; _closed = null; closed?.Invoke();
             Callable.From(() =>
             {
-                if (focus is not null && GodotObject.IsInstanceValid(focus) && focus.IsVisibleInTree()) focus.GrabFocus();
+                if (!CanRestoreFocus()) return;
+                if (focus is not null && GodotObject.IsInstanceValid(focus) && !focus.IsQueuedForDeletion() && focus.IsInsideTree() && focus.IsVisibleInTree()) focus.GrabFocus();
                 else FocusFallback?.Invoke();
             }).CallDeferred();
         };

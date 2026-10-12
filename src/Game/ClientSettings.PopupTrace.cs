@@ -56,7 +56,7 @@ public partial class ClientSettings
             Method = RenderingServer.GetCurrentRenderingMethod(),
             FocusOwner = _dialog.GuiGetFocusOwner()?.GetInstanceId(),
             Root = WindowState(_window),
-            Dialog = WindowState(_dialog),
+            Dialog = new { Id = _dialog.GetInstanceId(), _dialog.Visible, Scope = "native-Control", Bounds = _dialog.Panel.GetGlobalRect().ToString() },
             Popup = WindowState(popup),
             NativeMenu = popup.IsNativeMenu(),
             Item = popup.GetFocusedItem(),

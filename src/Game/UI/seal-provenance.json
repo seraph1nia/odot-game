@@ -1,0 +1,12 @@
+{
+  "scope":"Original approval explorations only, not approved production art",
+  "generator":"tools/ui/explore_crest.py",
+  "shared_dependencies":["tools/asset_pack/geometry.py material/mesh/cube", "tools/asset_pack/art_style.py sRGB conversion and bevel segments", "tools/asset_pack/worker.py isolated process"],
+  "parameters":{"camera":"orthographic face-on", "orthographic_scale":2.4, "render_px":[192,192], "display_px":48, "engine":"Cycles CPU", "samples":32, "denoising":true, "color":"AgX / Medium High Contrast", "format":"PNG RGBA transparent", "lighting":"350W disk Area at (-2,3,4), size 4; world 0.12", "geometry":"six-sided seal, gate piers/lintel/step; two-segment bevels; no baked text", "material":"Principled BSDF; geometry.material sRGB to scene-linear; enamel roughness 0.78, warm relief 0.72"},
+  "assets":[
+    {"id":"ledger-seal", "source":"sources/ui/menu_seal.blend", "output":"ui/preview/UI/art/menu_seal.png", "source_sha256":"ae82996b4f252b3e58da274b1cc2881764be41d5106b1b5f4e1e84db650a231d", "output_sha256":"cf3e2ceb4510be6d6a052e882597c2313216e2268a9aaa61fdf1d7e1308d2ced", "enamel_srgb":[0.77,0.53,0.25]},
+    {"id":"watch-seal", "source":"sources/ui/explorations/watch_seal.blend", "output":"ui/preview/art/explorations/watch_seal.png", "source_sha256":"6ff0a79a5fe9fef920ce80974fe3556e1333cb6499163f30b63c43081415a34d", "output_sha256":"7a07395d2407f0799c5a2605273834dfd6e5efaf2c86781c7d47c9365e67e973", "enamel_srgb":[0.30,0.43,0.53]}
+  ],
+  "provenance":"Authored here from original geometry, no copied kit/reference raster or third-party font. This records origin, not a new license grant.",
+  "regeneration":"python -m tools.asset_pack.worker tools/ui/explore_crest.py --label ui-exploration-seals; sources and images regenerate, hashes must be refreshed intentionally. Regeneration is not cross-machine byte-identical certification."
+}

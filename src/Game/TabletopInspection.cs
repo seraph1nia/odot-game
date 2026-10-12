@@ -7,7 +7,7 @@ public partial class Tabletop
     private UnitInspector _inspector = null!;
     private void UpdateInspector()
     {
-        if (application.IsModalOpen) { _inspector.Close(); return; }
+        if (Application.IsModalOpen) { _inspector.Close(); return; }
         _inspector.Place(GetViewport().GetVisibleRect().Size, _resources.GetGlobalRect().End.Y, _panel.Position.Y);
         if (_inspector.UnitId is not { } id) return;
         UnitState? unit = game.State?.Players.SelectMany(city => city.Soldiers).Concat(game.State.Enemies).FirstOrDefault(unit => unit.Id == id);

@@ -5,7 +5,7 @@ internal sealed partial class Runner
     private async Task EngineTests(bool exported = false)
     {
         int timeout = options.ExplicitTimeout ? options.Timeout : 60000;
-        string[] selected = exported ? ["worldtree"] : options.Scenario is null ? ["settings", "animation", "assets", "worldtree"] : [options.Scenario];
+        string[] selected = exported ? ["worldtree"] : options.Scenario is null ? ["settings", "animation", "assets", "worldtree", "receiving"] : [options.Scenario];
         foreach (string scenario in selected)
             await _evidence.Measure("engine-" + scenario, "engine", async () =>
             {

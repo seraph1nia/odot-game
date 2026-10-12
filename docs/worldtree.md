@@ -11,7 +11,10 @@ inspectable. Foreign cities and disconnected/paused/ready/fallen cities are
 read-only. Close/Escape restores the invoker when the window is focused. Settings
 remains available through its normal application entry, not inside research.
 The game modal confines Tab/Shift-Tab; the imported
-component itself still supports native traversal into/out of its host.
+component itself still supports native traversal into/out of its host. The
+[shared foreground dialog contract](ui-migration.md#discovered-live-consumers)
+owns research suspension and current-state/focus restoration when application
+dialogs cover it.
 
 `ResearchPanel.cs` binds the game session to `WorldtreeDialog` and
 `WorldtreeResearch.cs`. The native Control overlay is outside the city layout

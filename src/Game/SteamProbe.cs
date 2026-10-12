@@ -27,6 +27,7 @@ internal static class SteamProbe
             if (!overlaySignalObserved) throw new InvalidOperationException("C# overlay signal arguments were not delivered.");
         }
         finally { steam.Disconnect("overlay_toggled", overlayCallback); }
+        if (!online) VerifyUiPayload(owner);
         if (online)
         {
             if (!platform.TryInitialize(out string feedback))
@@ -74,5 +75,45 @@ internal static class SteamProbe
             ? "Native load, AppID initialization, C# signal, peer host/channel/assignment, close/disposal and SDK shutdown passed."
             : "Native classes and typed overlay callback loaded; Steam initialization skipped; no match, socket or presentation created."), WireJson.Options));
         owner.GetTree().Quit();
+    }
+
+    private static void VerifyUiPayload(Node owner)
+    {
+        // The protocol smoke never creates UI. Consume the real source/PCK resources
+        // here using the existing bounded offline probe. The separately selected
+        // Worldtree package probe retains its minimal guarded EngineTests scene.
+        if (DisplayServer.GetName() != "headless") throw new InvalidOperationException("Offline payload verification requires headless Godot.");
+        using Theme theme = ApplicationTheme.Create();
+        if (theme.DefaultFont.ResourcePath != "res://UI/fonts/DejaVuSerif.ttf"
+            || theme.DefaultFont.GetStringSize("The Common Watch").X <= 0
+            || UiAssets.Texture("art/menu_seal.png").GetSize() != new Vector2(192, 192)
+            || ((StyleBoxTexture)theme.GetStylebox("panel", "PanelContainer")).Texture.ResourcePath != "res://UI/art/woodland/branch_frame.svg")
+            throw new InvalidOperationException("Woodland theme/font/art did not load from the active resource pack.");
+        foreach (string component in new[] { "modal", "resource_ledger" })
+        {
+            Control loaded = UiAssets.Component(component, owner);
+            try
+            {
+                loaded.Hide();
+                if (!loaded.IsNodeReady()) throw new InvalidOperationException("UI payload scene did not initialize: " + component);
+            }
+            finally { loaded.Free(); }
+        }
+        foreach (string path in new[] { "res://UI/manifest.json", "res://UI/woodland-art.json", "res://UI/seal-provenance.json" })
+        {
+            using var file = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read)
+                ?? throw new InvalidOperationException("Bundled UI provenance is missing: " + path);
+            using var json = System.Text.Json.JsonDocument.Parse(file.GetAsText());
+            if (json.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
+                throw new InvalidOperationException("Bundled UI provenance is invalid: " + path);
+        }
+        foreach (string path in new[] { "res://UI/README.md", "res://UI/fonts/LICENSE-DejaVu.txt" })
+        {
+            using var file = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read);
+            if (file is null || file.GetLength() == 0) throw new InvalidOperationException("Bundled UI notice is missing: " + path);
+        }
+        if (ResourceLoader.Exists("res://Verification/ui_resources.gd"))
+            throw new InvalidOperationException("Client contains the retired competing UI verification launcher.");
+        Main.Emit(new GameEvent("ui-payload", Message: "Woodland theme, licensed serif font, original seal, branch art, both selected kit scenes and bundled UI provenance/notices loaded; retired UI launcher absent. Headless resources only, not rendered pixels or gameplay binding."));
     }
 }

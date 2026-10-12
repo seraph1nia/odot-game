@@ -17,8 +17,9 @@ One owner per topic, rather than competing copied policies:
 
 `Verify and build` retains the existing `source`, `linux-package`,
 `windows-package` job identifiers. PRs and main pushes use the same bounded
-headless coverage: formatting/compilation, fast C# (excluding `Tier=Deep`), four
-production Godot component cases (settings, animation, assets and Worldtree), three short transport/lifecycle cases, offline
+headless coverage: formatting/compilation, fast C# (excluding `Tier=Deep`), five
+production Godot component cases (settings, animation, assets, Worldtree and
+Tabletop receiving bindings), three short transport/lifecycle cases, offline
 native extension/build identity, and native Linux/Windows export/runtime probes.
 Linux exports mutate sequentially; OS jobs have independent workspaces. Source
 prepares once before overlapping already-built core/runner binaries with bounded
@@ -46,6 +47,17 @@ Artifacts are optional allowlisted non-secret summaries, TRX and bounded redacte
 engine diagnostics; absent files warn rather than causing a second CI error.
 Other child logs/evidence remain under ignored `logs/<run-id>/`; credentials and
 temporary owned runtime state must not be uploaded.
+
+## Woodland UI migration evidence
+
+The [woodland UI migration](ui-migration.md#verification-and-limitations) owns
+receipts and remaining coverage for the replacement of the live Trio pack;
+older Trio receipts are not acceptance for it. The
+[coverage ledger](testing-audit.md#woodland-component-consolidation) owns the
+consolidation into the existing minimal settings engine case, and
+[testing commands](../.agents/skills/testing-commands/SKILL.md#focused-headless-engine-and-bounded-transport)
+owns selection and supervision. Current-head gates belong to the outer validation
+phases, not historical component receipts.
 
 ## Overhaul measurements (2026-10-11)
 
@@ -90,10 +102,12 @@ Original C# evidence: `logs/20261011-080905-42bb1fa4/test-rules-summary.json`.
 
 Headless Godot tests exercise real ConfigFile persistence/audio-bus signals,
 imported scenes/equipment/AnimationPlayer skeleton changes and rendering buffer
-construction. They do not prove native popup/focus behavior, compositor/GPU
-performance, final pixels or audible playback. Transport peers are real headless
-application processes, not component tests. A minimal explicit graphical smoke
-retains menu/solo/build/recruit/return/Exit and one capture; it does not replace
+construction. The settings case also routes synthetic pointer/keyboard input
+through Control modals and embedded popups. These do not prove native-window
+popup/desktop focus behavior, compositor/GPU performance, final pixels or audible
+playback. Transport peers are real headless application processes, not component
+tests. A minimal explicit graphical smoke retains menu/solo/build/recruit/return/Exit
+and one capture; it does not replace
 all old graphical acceptance assertions. Those journeys remain explicit E.
 
 Cross-process cooperating runners lease port candidates through kernel-backed

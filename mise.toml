@@ -39,6 +39,7 @@ rename_exe = { "Godot" = "godot" }
 lockfile = true
 lockfile_platforms = ["linux-x64", "windows-x64", "macos-arm64", "macos-x64"]
 task.run_auto_install = false
+exec_auto_install = false
 
 [env]
 DOTNET_CLI_TELEMETRY_OPTOUT = "1"
@@ -85,7 +86,7 @@ run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-campaign"
 raw_args = true
 
 [tasks.test-engine]
-description = "Focused owned HEADLESS production components; --scenario settings|animation|assets|worldtree; worldtree supports --exported"
+description = "Focused owned HEADLESS production components; --scenario settings|animation|assets|worldtree|receiving; settings includes UI resources/input/services; worldtree supports --exported"
 depends = ["runner"]
 run = "dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-engine"
 raw_args = true

@@ -7,7 +7,7 @@ public partial class Tabletop
     private Vector2? _pressPosition;
     private Vector3? _dragAnchor;
     private bool _dragging;
-    private bool BlocksWorld(Vector2 point) => application.BlocksWorldInput(point) || _resources.GetGlobalRect().HasPoint(point) || _inspector.Contains(point);
+    private bool BlocksWorld(Vector2 point) => Application.BlocksWorldInput(point) || _resources.GetGlobalRect().HasPoint(point) || _inspector.Contains(point);
     private void CancelGesture() { _pressPosition = null; _dragAnchor = null; _dragging = false; _navigation?.Interrupt(); }
     public override void _Notification(int what)
     {
@@ -20,7 +20,7 @@ public partial class Tabletop
             _navigation.ObserveKey(key);
             if (key.IsActionPressed("ui_focus_next") || key.IsActionPressed("ui_focus_prev")) CancelGesture();
         }
-        if (application.IsModalOpen || !GetWindow().HasFocus()) { CancelGesture(); _inspector.Close(); return; }
+        if (Application.IsModalOpen || !GetWindow().HasFocus()) { CancelGesture(); _inspector.Close(); return; }
         if (@event is InputEventMouseButton { Pressed: true } press)
         {
             if (!_inspector.Contains(press.Position)) _inspector.Close();
@@ -43,11 +43,11 @@ public partial class Tabletop
     }
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (!application.IsModalOpen && @event.IsActionPressed("ui_cancel", false))
+        if (!Application.IsModalOpen && @event.IsActionPressed("ui_cancel", false))
         {
             CancelGesture(); _inspector.Close(); _settings.Open(); GetViewport().SetInputAsHandled(); return;
         }
-        if (application.IsModalOpen || !GetWindow().HasFocus()) return;
+        if (Application.IsModalOpen || !GetWindow().HasFocus()) return;
         if (Focus() is not null && @event is InputEventKey { Pressed: true, Echo: false } reset && reset.Keycode == Key.Space && GetViewport().GuiGetFocusOwner() is null)
         {
             CancelGesture(); _navigation.Reset(); GetViewport().SetInputAsHandled(); return;

@@ -18,12 +18,11 @@ backups, caches or scratch archives are copied here. Original GLB bytes,
 materials, skin/animation data and embedded images are preserved; presentation
 transforms and in-memory animation integration do not re-author these exports.
 
-The user separately approved continued use of the existing third-party UI:
-**yes, 3rd party ui is fine too**. That approval is not independent verification
-of creator-granted redistribution rights or a new license. Existing UI/audio
-notices and factual provenance retain their independent scope and are unchanged. See the migration documentation for role substitutions and
-canonical gameplay compatibility; no display-name change renames a save/session
-or protocol identity.
+UI/audio notices retain their independent scope; see the
+[current woodland UI notices](../../UI/README.md) and [music provenance](../Music/README.md).
+See [asset mappings](../../../../docs/assets.md#names-versus-authoritative-identities)
+for role substitutions and canonical gameplay compatibility; no display-name
+change renames a save/session or protocol identity.
 
 ## Living Worldtree UI
 

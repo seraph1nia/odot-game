@@ -13,7 +13,7 @@ internal sealed partial class Runner
         Require(Math.Abs(frame.Camera.Zoom - 1) < 0.001 && Math.Abs(frame.Camera.PanX) < 0.001 && Math.Abs(frame.Camera.PanZ) < 0.001
             && Math.Abs(frame.Camera.BaseSize - frame.Camera.Size) < 0.001, "reset fitted overview");
         Require(Enumerable.Range(0, 9).All(i => frame.Targets["Plot" + i].Visible), "all nine plots visible at overview");
-        TrioPresentation(frame);
+        WoodlandPresentation(frame);
         Countryside(frame);
     }
     private static Task Wheel(Child client, float x, float y, bool inward)

@@ -100,6 +100,29 @@ public partial class WorldtreeDialog : Control
     public Button CloseButton { get; private set; } = null!;
     public Control? Invoker { get; set; }
     private PanelContainer _panel = null!;
+    private bool _suspended;
+    private Control? _suspendedFocus;
+    internal void SetInputScope(bool enabled)
+    {
+        if (!enabled)
+        {
+            if (_suspended || !IsVisibleInTree()) return;
+            _suspended = true;
+            _suspendedFocus = GetViewport().GuiGetFocusOwner();
+            Hide();
+        }
+        else if (_suspended)
+        {
+            _suspended = false;
+            Control? focus = _suspendedFocus;
+            _suspendedFocus = null;
+            if (!IsInsideTree() || IsQueuedForDeletion()) return;
+            Show();
+            if (focus is not null && IsInstanceValid(focus) && !focus.IsQueuedForDeletion() && focus.IsVisibleInTree() && IsAncestorOf(focus)
+                && focus.FocusMode != FocusModeEnum.None && focus is not BaseButton { Disabled: true }) focus.GrabFocus();
+            else FocusContent();
+        }
+    }
     public override void _Ready()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -124,6 +147,8 @@ public partial class WorldtreeDialog : Control
     public void Open() { Show(); MoveToFront(); Layout(); FocusContent(); }
     public void Close()
     {
+        _suspended = false;
+        _suspendedFocus = null;
         Hide();
         if (Invoker is not null && GodotObject.IsInstanceValid(Invoker) && Invoker.IsVisibleInTree() && GetWindow().HasFocus()) Invoker.GrabFocus();
     }
@@ -133,7 +158,21 @@ public partial class WorldtreeDialog : Control
     }
     public override void _Input(InputEvent @event)
     {
-        if (!Visible || @event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (!IsVisibleInTree() || @event is not InputEventKey { Pressed: true } key) return;
+        Control? focus = GetViewport().GuiGetFocusOwner();
+        if (focus is null || !IsAncestorOf(focus))
+        {
+            FocusContent();
+            focus = GetViewport().GuiGetFocusOwner();
+        }
+        foreach (var (action, side) in new[] { ("ui_left", Side.Left), ("ui_right", Side.Right), ("ui_up", Side.Top), ("ui_down", Side.Bottom) })
+        {
+            if (!key.IsActionPressed(action, allowEcho: true) || focus is null) continue;
+            if (focus.GetFocusNeighbor(side).ToString() == ".") focus.SetFocusNeighbor(side, "");
+            Control? neighbor = focus.FindValidFocusNeighbor(side);
+            if (neighbor is not null && !IsAncestorOf(neighbor)) focus.SetFocusNeighbor(side, ".");
+        }
+        if (key.Echo) return;
         if (key.IsActionPressed("ui_cancel")) { Close(); GetViewport().SetInputAsHandled(); return; }
         bool forward = key.IsActionPressed("ui_focus_next"), backward = key.IsActionPressed("ui_focus_prev");
         if (!forward && !backward) return;

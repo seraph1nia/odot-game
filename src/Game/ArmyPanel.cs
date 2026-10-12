@@ -6,7 +6,7 @@ namespace Game;
 public partial class Tabletop
 {
     private Button _buyHome = null!, _openHall = null!, _hallSend = null!, _hallRetire = null!, _hallCapacity = null!, _hallHealing = null!;
-    private AcceptDialog _hallDialog = null!;
+    private UiDialog _hallDialog = null!;
     private Label _hallSummary = null!, _hallSelection = null!, _homeSummary = null!;
     private VBoxContainer _hallRoster = null!;
     private readonly List<Button> _hallUnits = [];
@@ -34,9 +34,8 @@ public partial class Tabletop
             _hallSlot = _slot; _hallGeneration = hall.Generation; _storedUnit = 0; _hallKey = "";
             RefreshArmy(); _hallDialog.PopupCenteredClamped(new(700, 500), .9f);
         }); _openHall.Name = "OpenTownHall";
-        _hallDialog = new AcceptDialog { Title = "Town hall", Theme = application.Theme, Transient = true, Exclusive = false }; AddChild(_hallDialog);
-        var scroll = new ScrollContainer { CustomMinimumSize = new(630, 370) }; _hallDialog.AddChild(scroll);
-        var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; scroll.AddChild(body);
+        _hallDialog = new UiDialog { Title = "Town hall", Theme = _hudRoot.Theme }; _ownHudDialog(_hallDialog);
+        var body = _hallDialog.Content;
         _hallSummary = Text(body, "", 13);
         var upgrades = new HBoxContainer(); body.AddChild(upgrades);
         _hallCapacity = HallButton(upgrades, "Upgrade storage", () => HallAction("upgrade-capacity")); _hallCapacity.Name = "UpgradeHallCapacity";
@@ -46,7 +45,7 @@ public partial class Tabletop
         var actions = new HBoxContainer(); body.AddChild(actions);
         _hallSend = HallButton(actions, "Send to battlefield", () => HallAction("send", _storedUnit)); _hallSend.Name = "HallSend";
         _hallRetire = HallButton(actions, "Retire · no refund", () => HallAction("retire", _storedUnit)); _hallRetire.Name = "HallRetire";
-        _hallDialog.VisibilityChanged += () => { if (!_hallDialog.Visible) { _storedUnit = 0; _openHall.GrabFocus(); } };
+        _hallDialog.VisibilityChanged += () => { if (!_hallDialog.Visible) { _storedUnit = 0; if (_openHall.IsVisibleInTree()) _openHall.GrabFocus(); } };
     }
     private static Button HallButton(Node parent, string text, Action action)
     {
@@ -128,8 +127,8 @@ public partial class Tabletop
     }
     private void ObserveArmy(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _buyHome, _openHall, _hallCapacity, _hallHealing, _hallSend, _hallRetire }.Concat(_hallUnits)) application.ObserveControl(targets, button.Name, button);
-        application.ObserveControl(targets, "CloseTownHall", _hallDialog.GetOkButton());
+        foreach (Button button in new[] { _buyHome, _openHall, _hallCapacity, _hallHealing, _hallSend, _hallRetire }.Concat(_hallUnits)) Application.ObserveControl(targets, button.Name, button);
+        Application.ObserveControl(targets, "CloseTownHall", _hallDialog.GetOkButton());
         fields["TownHallOpen"] = _hallDialog.Visible; fields["TownHallText"] = _hallSummary.Text;
         fields["SelectedStoredUnit"] = _storedUnit; fields["ArmyHomes"] = Focus()?.Army; fields["HomeText"] = _homeSummary.Text;
         fields["HomeMarkers"] = _boards.GetValueOrDefault(_focus)?.GetNodeOrNull<Node3D>("ArmyHomes")?.GetChildren().Select(n => n.Name.ToString()).ToArray() ?? [];

@@ -27,13 +27,15 @@ hashes, byte counts and embedded dependencies.
 use it**. This is not an invented open-source license or permission to copy
 reference images. Only required game-ready exports are distributed; no editable
 Blender sources, reference archives, catalog files or source-repository caches.
-UI/audio retain their independent notices. The user separately approved
-continued existing third-party UI use with the exact words **yes, 3rd party ui is
-fine too**. This is user approval, not independent verification of creator-granted
-redistribution rights or a new license. The separately imported living research
-UI retains the [Worldtree import contract](worldtree.md#immutable-import-contract)
-and [notice](../src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui); its required
-Ledger Theme dependencies do not replace the application-wide UI or audio.
+UI/audio retain their independent notices. The earlier approval of third-party
+UI use (**yes, 3rd party ui is fine too**) is historical owner approval, not creator
+redistribution clearance. The current [woodland UI migration](ui-migration.md)
+replaces every live Trio pack dependency with the pinned authored native kit and
+licensed DejaVu Serif; music is unchanged. Original UI notices and exact removed
+member hashes remain attributable outside the runtime pack. The separately landed
+living research UI retains its [Worldtree import contract](worldtree.md#immutable-import-contract)
+and [notice](../src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui); its immutable
+members and production adapter are preserved alongside the application-wide kit.
 
 ## Earlier quality refresh (2026-10-08)
 
@@ -94,10 +96,12 @@ fixture, importer or assertion changes were made to obtain that pass.
 The [forest import report](forest-import.md) and
 [selection receipt](forest-import-receipt.json) own the later six-export refresh,
 required embedded-map closure, four standalone transparent decal textures and
-source-factor-faithful post-import correction. The current manifest pins the
-actual inspected source revision; no unused focal/library export or Ledger UI
-package is copied. The report distinguishes retained pre-rebase headless/native evidence from
-current inputs and the landed headless CI policy.
+source-factor-faithful post-import correction. The authored 3D manifest pins the
+actual inspected source revision; no unused focal/library export is copied.
+UI selection is owned separately by the
+[UI migration](ui-migration.md#source-and-runtime-boundary). The report distinguishes
+retained pre-rebase headless/native evidence from current inputs and the landed
+headless CI policy.
 Dreaming Forest game styling remains a separate next task.
 
 ## Detailed forest floors and surface overlays

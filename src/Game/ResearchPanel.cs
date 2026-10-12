@@ -5,6 +5,7 @@ namespace Game;
 public partial class Tabletop
 {
     private WorldtreeDialog _researchDialog = null!;
+    internal WorldtreeDialog? ResearchDialog => _researchDialog;
     private Button _openResearch = null!;
     private long _researchRevision = -1;
     private int _researchFocus;
@@ -12,15 +13,16 @@ public partial class Tabletop
     private string _researchFeedback = "";
     private void CreateResearch(Control cityControls, Control overlayHost)
     {
-        _openResearch = Button(cityControls, "Worldtree", () => { RefreshResearch(force: true); _researchDialog.Open(); });
+        _openResearch = Button(cityControls, "Worldtree", () => _researchDialog.Open());
         _openResearch.Name = "Research";
         _researchDialog = new WorldtreeDialog
         {
             Name = "WorldtreeResearchDialog",
-            Theme = application.Theme,
+            Theme = _hudRoot.Theme,
             Invoker = _openResearch
         };
         overlayHost.AddChild(_researchDialog);
+        _researchDialog.VisibilityChanged += () => { if (_researchDialog.IsVisibleInTree()) RefreshResearch(force: true); };
         _researchDialog.Research.Requested = technology =>
         {
             // Existing session sender captures current match/phase/turn and returns
@@ -39,10 +41,10 @@ public partial class Tabletop
     }
     private void ObserveResearch(Dictionary<string, object> targets)
     {
-        application.ObserveControl(targets, "Research", _openResearch);
+        Application.ObserveControl(targets, "Research", _openResearch);
         if (!_researchDialog.Visible) return;
-        application.ObserveControl(targets, "CloseResearch", _researchDialog.CloseButton);
+        Application.ObserveControl(targets, "CloseResearch", _researchDialog.CloseButton);
         foreach (Button button in _researchDialog.FindChildren("*", "Button", true, false).OfType<Button>())
-            application.ObserveControl(targets, button.Name.ToString(), button);
+            Application.ObserveControl(targets, button.Name.ToString(), button);
     }
 }
