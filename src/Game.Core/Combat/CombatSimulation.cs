@@ -51,11 +51,10 @@ internal sealed partial class CombatSimulation : IDisposable
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
     internal void ConfigureArena(IEnumerable<int> owners)
     { _arena = new(owners); RestoreHomes(); }
-    private int HomeIndex(ArmyAssignment assignment)
+    private static int HomeIndex(ArmyAssignment assignment)
     {
-        int[] cells = _configuration.Board.Front(Faction.Adventurers).Take(3).Concat(_configuration.Board.Rear(Faction.Adventurers).Take(3)).ToArray();
-        int index = Array.IndexOf(cells, assignment.Tile);
-        return index < 0 ? 0 : index;
+        if (assignment.Tile is < 0 or > 5) throw new ArgumentException("Legacy or invalid roster home refused.", nameof(assignment));
+        return assignment.Tile;
     }
     private CombatSquad NewSquad(int id, CombatUnit member)
         => new(id, member.Owner, member.Destination, member.Faction, member.Type, member.Identity.IsBoss,
@@ -81,7 +80,9 @@ internal sealed partial class CombatSimulation : IDisposable
         var member = new CombatUnit(new(id, type, owner, origin, destination, faction, rank, isBoss, level), profile.Health, profile,
             new(assignment is { Stored: true } ? UnitLifecycle.Stored : UnitLifecycle.Queued, default), new CombatAction.Waiting(), NewDecision(id, destination, 0))
         { Capabilities = capabilities, Assignment = assignment };
-        member = member with { SquadId = FindSquad(member) };
+        int squad = FindSquad(member);
+        int[] slots = Living().Where(u => u.SquadId == squad).Select(u => u.FormationSlot).ToArray();
+        member = member with { SquadId = squad, FormationSlot = Enumerable.Range(0, isBoss ? 1 : _configuration.Arena.SquadCapacity).First(slot => !slots.Contains(slot)) };
         _entities.Add(id, _world.Create(member)); return id;
     }
     public void Research(int city, ResearchState research, ResearchCatalog catalog)
@@ -110,7 +111,19 @@ internal sealed partial class CombatSimulation : IDisposable
         if (member.Location.Lifecycle == UnitLifecycle.Dying || !_squads.TryGetValue(member.SquadId, out CombatSquad? squad)) return member;
         return member with { Location = squad.Location with { Lifecycle = member.Location.Lifecycle }, Action = squad.Action, Decision = squad.Decision };
     }
-    private UnitState Project(CombatUnit member) => CombatProjection.Snapshot(ProjectMember(member) with { Profile = member.Profile with { Size = 1 } }, _tick, _work);
+    private UnitState Project(CombatUnit member)
+    {
+        CombatUnit projection = ProjectMember(member);
+        UnitState state = CombatProjection.Snapshot(projection with { Profile = member.Profile with { Size = 1 } }, _tick, _work);
+        if (projection.Action.Attack?.Target is not { } target) return state;
+        return state with
+        {
+            TargetId = target.Kind == CombatTargetKind.Unit && _squads.TryGetValue(target.Id, out CombatSquad? defender)
+                ? Members(defender).FirstOrDefault()?.Id ?? 0 : target.Id,
+            TargetCity = target.Kind != CombatTargetKind.Unit,
+            TargetKind = target.Kind switch { CombatTargetKind.Unit => SquadTargetKind.Squad, CombatTargetKind.City => SquadTargetKind.Keep, _ => SquadTargetKind.Watchpost }
+        };
+    }
     public UnitState[] Snapshot() => Living().Select(Project).ToArray();
     public UnitState[] Dying() => All().Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(Project).ToArray();
     public UnitState[] Soldiers(int city) => SoldierMembership(city).Select(Project).ToArray();
@@ -127,7 +140,7 @@ internal sealed partial class CombatSimulation : IDisposable
         UnitState pose = CombatProjection.Snapshot(projection with { Location = s.Location, Action = s.Action, Decision = s.Decision, Profile = projection.Profile with { Size = 1 } }, _tick);
         CombatTarget? target = s.Action.Attack?.Target;
         return new SquadState(s.Id, s.Owner, s.Destination, s.Faction, s.Type, s.IsBoss, members.Select(u => u.Id).ToArray(),
-            members.Where(u => u.Location.Lifecycle == UnitLifecycle.Alive).Select(u => u.Id).ToArray(), pose.Hex!, s.Decision with { Route = s.Decision.Route.ToArray(), Visited = s.Decision.Visited.ToArray() })
+            members.Where(u => u.Location.Lifecycle == UnitLifecycle.Alive).Select(u => u.Id).ToArray(), pose.Hex! with { Id = s.Id, City = 1 }, s.Decision with { Route = s.Decision.Route.ToArray(), Visited = s.Decision.Visited.ToArray() })
         {
             TargetId = target?.Id ?? 0,
             TargetKind = target is null ? SquadTargetKind.None : target.Kind switch
@@ -141,11 +154,12 @@ internal sealed partial class CombatSimulation : IDisposable
     }).ToArray();
     internal StructureState[] StructureSnapshots(IEnumerable<City> cities) => cities.SelectMany(city =>
     {
-        var structures = new List<StructureState> { new(city.Id, ArenaStructureKind.Keep, -1, _arena.Keep(city.Id), city.Health, HealthPoints.FromWhole(_cityHealth)) };
-        if (_watchposts.TryGetValue(city.Id, out StructureState? watchpost)) structures.Add(watchpost);
-        else structures.Add(new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), city.Eliminated ? 0 : HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth)));
+        var structures = new List<StructureState> { new(city.Id, ArenaStructureKind.Keep, -1, _arena.Keep(city.Id), city.Health, HealthPoints.FromWhole(_cityHealth)) { Active = !city.Eliminated } };
+        if (_watchposts.TryGetValue(city.Id, out StructureState? watchpost)) structures.Add(watchpost with { Active = !city.Eliminated });
+        else structures.Add(new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth)) { Active = !city.Eliminated });
         structures.AddRange(city.Towers.Values.OrderBy(t => t.Slot).Select(t => new StructureState(city.Id,
-            t.Type == Building.CatapultTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower, t.Slot, _arena.Tower(city.Id, t.Slot), city.Eliminated ? 0 : 1, 1, t.Level)));
+            t.Type == Building.CatapultTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower, t.Slot, _arena.Tower(city.Id, t.Slot), 1, 1, t.Level)
+        { Active = !city.Eliminated }));
         return structures;
     }).ToArray();
     private int _cityHealth = 100;
@@ -183,7 +197,9 @@ internal sealed partial class CombatSimulation : IDisposable
         member = member with { Assignment = assignment, Location = new(assignment.Stored ? UnitLifecycle.Stored : UnitLifecycle.Queued, default), Statuses = StatusState.Empty };
         // Hide the member's old claim while finding its destination group.
         Unit(id) = member with { SquadId = 0 };
-        Unit(id) = member with { SquadId = FindSquad(member) };
+        int squad = FindSquad(member);
+        int[] slots = Living().Where(u => u.SquadId == squad).Select(u => u.FormationSlot).ToArray();
+        Unit(id) = member with { SquadId = squad, FormationSlot = Enumerable.Range(0, _configuration.Arena.SquadCapacity).First(slot => !slots.Contains(slot)) };
         if (!All().Any(u => u.SquadId == old)) _squads.Remove(old);
     }
     internal void RestoreHomes()
@@ -211,6 +227,10 @@ internal sealed partial class CombatSimulation : IDisposable
         if (!_squads.TryGetValue(squadId, out CombatSquad? squad) || squad.Owner != owner || !_arena.CanDeploy(owner, cell, homes)
             || !roster.Any(u => u.SquadId == squadId && u.Assignment is { Stored: false })
             || _squads.Values.Any(s => s.Id != squadId && s.Owner == owner && s.DeploymentCell == cell && roster.Any(u => u.SquadId == s.Id && u.Assignment is { Stored: false }))) return false;
+        int home = _arena.DeploymentHome(owner, cell);
+        int tile = home;
+        foreach (CombatUnit member in roster.Where(u => u.SquadId == squadId && u.Assignment is { Stored: false }))
+            Unit(member.Id) = member with { Assignment = member.Assignment! with { Tile = tile } };
         _squads[squadId] = squad with { DeploymentCell = cell, Location = squad.Location with { Position = new(cell, 1) } }; return true;
     }
     internal void AuthorizeRecovery(IEnumerable<int> funded)
@@ -232,13 +252,20 @@ internal sealed partial class CombatSimulation : IDisposable
         return plan;
     }
     internal void Heal(IReadOnlyDictionary<int, int> plan) { foreach ((int id, int health) in plan) Unit(id) = Unit(id) with { Health = health }; }
+    internal void AwardExperience(IEnumerable<int> paidParticipants)
+    {
+        var eligible = paidParticipants.ToHashSet();
+        foreach (CombatUnit member in Living().Where(u => u.Faction == Faction.Adventurers && u.Location.Lifecycle == UnitLifecycle.Alive && eligible.Contains(u.Id)))
+            Unit(member.Id) = member with { Experience = checked(member.Experience + 1) };
+    }
     public void BeginWave(int wave = 1, IEnumerable<int>? unfed = null) => BeginWave(wave, unfed, []);
     internal void BeginWave(int wave, IEnumerable<int>? unfed, IEnumerable<City> cities)
     {
         var reserves = (unfed ?? []).ToHashSet(); City[] owners = cities.ToArray();
-        _wave = wave; _events.Clear(); _watchposts.Clear();
+        _wave = wave; _events.Clear();
+        foreach (int owner in _watchposts.Keys.Except(owners.Select(c => c.Id)).ToArray()) _watchposts.Remove(owner);
         foreach (City city in owners.Where(c => !c.Eliminated))
-            _watchposts.Add(city.Id, new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth)));
+            _watchposts[city.Id] = new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth));
         foreach (CombatUnit member in Living())
             Unit(member.Id) = member with
             {

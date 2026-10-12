@@ -522,23 +522,25 @@ public partial class Main : Node, IGameSession
         MatchSnapshot? state = SnapshotPayload.Decode(json);
         Timing?.Record("snapshot-decode-complete", state, OwnedTimingTrace.Digest(json));
         if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
-        SetState(state); return true;
+        try { SetState(state); return true; }
+        catch (ArgumentException error) { Feedback = error.Message; return false; }
     }
     private void SetState(MatchSnapshot? state)
     {
+        if (state is not null) SnapshotCompatibility.RequireSharedArena(state);
         if (State?.MatchId != state?.MatchId) _actionCues.Clear(state?.MatchId ?? "");
         State = state;
         Timing?.Record("state-applied", state);
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0, int squadId = 0, int cell = 0)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
         int owner = city == 0 ? PlayerId : city;
         Command request = Command.FromSnapshot(State, sequence, action, owner, slot, building, soldierType,
-            technology, resource, bundles, payment, unitId);
+            technology, resource, bundles, payment, unitId, squadId, cell);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -679,14 +681,16 @@ public partial class Main : Node, IGameSession
                 case "upgrade":
                 case "upgrade-capacity":
                 case "upgrade-healing": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "deploy-squad": SendAction(parts[0], squadId: int.Parse(parts[1], CultureInfo.InvariantCulture), cell: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
+                case "regroup-member": SendAction(parts[0], unitId: int.Parse(parts[1], CultureInfo.InvariantCulture), squadId: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
                 case "retire": SendAction(parts[0], unitId: int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
                 case "store":
-                case "send": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), unitId: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
+                case "send": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), unitId: int.Parse(parts[2], CultureInfo.InvariantCulture), squadId: parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 case "trade": SendAction("trade", int.Parse(parts[1], CultureInfo.InvariantCulture), resource: Enum.Parse<Game.Core.Resource>(parts[2], true), bundles: int.Parse(parts[3], CultureInfo.InvariantCulture)); break;
                 case "research-tech":
                     if (!TechnologyIds.TryParse(parts[1], out TechnologyId technology)) throw new ArgumentException("Unknown technology.");
                     SendAction("research-tech", technology: technology); break;
-                case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman); break;
+                case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman, squadId: parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 default: SendAction(parts[0]); break;
             }
         }

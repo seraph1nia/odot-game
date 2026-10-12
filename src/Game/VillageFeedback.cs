@@ -59,9 +59,13 @@ internal sealed partial class VillageFeedback : Node3D
     public void Combat(CombatEvent entry, int focus, double seconds, bool audible, Vector3? sampledSource, Vector3? sampledImpact)
     {
         int city = entry.Tower?.City ?? entry.Unit?.Destination ?? 0;
-        if (city != focus) return;
+        if (focus != 0 && city != focus) return;
         Vector3 center = new((city - 1) * 40, 0, 0);
         if (sampledImpact is not { } impact) return;
+        if (entry.Type is CombatEventType.StructureHit or CombatEventType.StructureDestroyed)
+        {
+            Spawn(impact, impact + Vector3.Up * .5f, seconds, .35, false); Sound(5, audible);
+        }
         if (entry.Type == CombatEventType.AttackStarted && (entry.Tower is not null || entry.Unit?.Class is UnitClass.Ranged or UnitClass.Magic))
         {
             Vector3 source = sampledSource ?? center + VillageLandscape.Defender + new Vector3(0, 1.4f, 0);

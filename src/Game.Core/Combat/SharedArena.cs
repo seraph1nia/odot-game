@@ -75,6 +75,7 @@ public sealed class SharedArena
     public int Watchpost(int owner) => _footprints.Single(f => f.Owner == owner && f.Kind == ArenaStructureKind.Watchpost).Cell;
     public int Tower(int owner, int slot) => _footprints.Single(f => f.Owner == owner && f.Slot == slot && f.Slot >= 0).Cell;
     public int Deployment(int owner, int home) => _sectors.Single(s => s.Owner == owner).DeploymentCells[home];
+    public int DeploymentHome(int owner, int cell) => Array.IndexOf(_sectors.Single(s => s.Owner == owner).DeploymentCells, cell);
     public int[] EnemyCells(int owner) => _sectors.Single(s => s.Owner == owner).EnemyCells.ToArray();
     public bool CanOccupy(int cell) => Board.Cells.Any(c => c.Id == cell) && !_staticCells.Contains(cell);
     public bool CanDeploy(int owner, int cell, int homes) => homes is >= 2 and <= 6 && _sectors.Any(s => s.Owner == owner && s.DeploymentCells.Take(homes).Contains(cell));

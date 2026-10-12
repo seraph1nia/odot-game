@@ -67,6 +67,8 @@ public sealed record SlotState(Building Type, int Level)
 public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin = 0, int Destination = 0)
 {
     public int SquadId { get; init; }
+    public int FormationSlot { get; init; }
+    public int Experience { get; init; }
     public HexUnitState? Hex { get; init; }
     public CombatDecisionState? Decision { get; init; }
     public UnitType Type { get; init; }
@@ -85,6 +87,7 @@ public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin 
     public bool Deployed { get; init; } = true;
     public int TargetId { get; init; }
     public bool TargetCity { get; init; }
+    public SquadTargetKind TargetKind { get; init; }
     public long AttackSequence { get; init; }
     public long ActionStartTick { get; init; }
     public long ImpactTick { get; init; }
@@ -482,6 +485,9 @@ public sealed class Match : IDisposable
             }
             foreach (City city in survivors)
             { city.Resources = awards[city.Id]; city.Research = city.Research.Income(points: 1); city.LastReward = new(Wave, completed.IsBoss, completed.Reward) { Research = 1 }; }
+            // Battle service belongs to each living paid participant, including
+            // fallen-owner survivors of this wave. Equipment tier stays fixed.
+            _combat.AwardExperience(Players.Values.Where(c => c.LastUpkeep?.Wave == Wave).SelectMany(c => c.LastUpkeep!.Participating));
             _combat.AuthorizeRecovery(survivors.SelectMany(c => c.LastUpkeep!.Funded));
             LastRewardedWave = Wave;
         }

@@ -14,9 +14,8 @@ public partial class EngineTests
         var navigation = new TabletopCamera(camera);
         var perimeter = new BattlefieldPerimeter(); AddChild(perimeter);
         Aabb content = BattlefieldFrame.Content(null, []);
-        var board = HexBoardDefinition.Default();
-        Check(board.Cells.All(cell => board.Anchors.All(anchor => content.HasPoint(VillageLayout.Hex(cell.Coordinate.Column, cell.Coordinate.R) + new Vector3(anchor.AnchorX / 1000f, 0, anchor.AnchorForward / 1000f)))),
-            "frame retains every army/enemy formation anchor");
+        Check(content.HasPoint(VillageLandscape.Home) && content.HasPoint(VillageLandscape.Defender),
+            "settlement frame retains Keep/defender; shared combat framing has its own arena component owner");
         Check(Enumerable.Range(0, 9).All(slot => content.HasPoint(VillageLayout.Slot(slot))), "frame retains all nine buildable plots");
         try
         {
@@ -100,8 +99,8 @@ public partial class EngineTests
                 Vector3 actual = readback.GetInstanceTransform(0).Origin;
                 Console.WriteLine($"MEASURE native terrain readback: standalone expected={expected}; actual={actual}; distinctReportedCenters={nativeCenters.Distinct().Count()}; devicePresent={RenderingServer.GetRenderingDevice() is not null}");
                 if (actual == expected)
-                    Check(board.Cells.Select(cell => VillageLayout.Hex(cell.Coordinate.Column, cell.Coordinate.R)).Concat(Enumerable.Range(0, 9).Select(VillageLayout.Slot))
-                        .All(point => nativeCenters.Any(center => center.DistanceTo(new(point.X, point.Z)) < .01f)), "native emitted floors retain all combat cells and buildable plot centers");
+                    Check(Enumerable.Range(0, 9).Select(VillageLayout.Slot).Concat(new[] { VillageLandscape.Home, VillageLandscape.Defender })
+                        .All(point => nativeCenters.Any(center => center.DistanceTo(new(point.X, point.Z)) < .01f)), "native settlement floors retain buildable plot and Keep/defender centers; shared combat cells have their own arena floor owner");
                 else
                     Check(actual == Vector3.Zero && RenderingServer.GetRenderingDevice() is null,
                         "Dummy has no MultiMesh transform readback: coordinate retention is bounded-helper proof only, not native buffer proof");

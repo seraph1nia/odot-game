@@ -137,6 +137,7 @@ public partial class Tabletop
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
         CreateResearch(city, root);
         CreateArmyControls(city, context, details);
+        CreateSquadControls(city);
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = .22f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 12);
         _counters = Text(match, "", 11);

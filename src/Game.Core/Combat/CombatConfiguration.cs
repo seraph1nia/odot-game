@@ -110,10 +110,11 @@ public sealed class CombatConfiguration
             throw new ArgumentException("Invalid squad capacity, damage or arena objectives.", nameof(rules));
         _ = HealthPoints.FromWhole(Arena.WatchpostHealth);
         Statuses = settings.Statuses; ArgumentNullException.ThrowIfNull(Statuses); Statuses.Validate();
+        if (settings.Board.Capacity != 1 || settings.Board.Id != "shared-watch-arena") throw new ArgumentException("Legacy individual combat board refused. Use the connected shared arena rules.", nameof(rules));
         Board = new(settings.Board); RulesVersion = settings.RulesVersion;
         RetryTicks = settings.RetryTicks; NoHealthProgressTicks = settings.NoHealthProgressTicks; MaximumWaveTicks = settings.MaximumWaveTicks;
         Defender = settings.Defender; DefenderDamage = HealthPoints.FromWhole(rules.DefenderDamage);
-        if (RulesVersion < 1 || RetryTicks <= 0 || NoHealthProgressTicks <= 0 || MaximumWaveTicks <= 0)
+        if (RulesVersion < SnapshotCompatibility.MinimumSquadRulesVersion || RetryTicks <= 0 || NoHealthProgressTicks <= 0 || MaximumWaveTicks <= 0)
             throw new ArgumentException("Combat versions, retry intervals and limits must be positive.", nameof(rules));
         Units = Array.AsReadOnly(Enum.GetValues<UnitType>().Select(type => Profile(rules, type)).ToArray());
         foreach (HexCombatProfile profile in Units)
@@ -141,7 +142,7 @@ public sealed class CombatConfiguration
         if (Units.Any(p => p.Researched(2).Damage > int.MaxValue / maxActors)
             || Towers.Any(p => p.Damage > int.MaxValue / maxActors) || DefenderDamage > int.MaxValue / maxActors)
             throw new ArgumentException("Damage could overflow a simultaneous accumulator.", nameof(rules));
-        long approachAllowance = (long)Board.Diameter * StatusPolicy.Duration(Units.Max(p => p.MoveTicks), 50)
+        long approachAllowance = (long)new SharedArena(Enumerable.Range(1, 4)).Board.Diameter * StatusPolicy.Duration(Units.Max(p => p.MoveTicks), 50)
             + Units.Max(p => (long)StatusPolicy.Duration(p.WindupTicks, 50) + StatusPolicy.Duration(p.RecoveryTicks, 50))
             + Units.Max(p => p.DeathTicks) + RetryTicks;
         if (NoHealthProgressTicks < approachAllowance)
@@ -239,7 +240,7 @@ public sealed class CombatConfiguration
             writer.Write(Arena.SwordsmanSecondaryDamage); writer.Write(Arena.BerserkerSecondaryDamage); writer.Write(Arena.CrossbowmanSecondaryDamage); writer.Write(Arena.MageSecondaryDamage);
             writer.Write(Arena.SwordsmanStructureDamage); writer.Write(Arena.BerserkerStructureDamage); writer.Write(Arena.CrossbowmanStructureDamage); writer.Write(Arena.MageStructureDamage); writer.Write(Arena.CatapultSecondaryDamage);
             writer.Write(Progression.Growth); writer.Write(Progression.MaximumExponentLevel);
-            writer.Write(Progression.BossHealthMultiplier); writer.Write(Progression.BossDamageMultiplier); writer.Write(6); // Boss size and size-budget semantics.
+            writer.Write(Progression.BossHealthMultiplier); writer.Write(Progression.BossDamageMultiplier); writer.Write(1); // One squad per logical hex, including single-member bosses.
             writer.Write(Board.Id); writer.Write(Board.Version); writer.Write(Board.Capacity);
             writer.Write(Board.Cells.Count);
             foreach (HexCell cell in Board.Cells)

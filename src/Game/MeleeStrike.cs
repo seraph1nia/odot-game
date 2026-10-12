@@ -53,16 +53,16 @@ internal sealed partial class MeleeStrike : Node3D
     {
         _actor = attacker.State; tick = _actor.Hex?.FrozenTick ?? tick;
         _phase = CombatVisualTiming.MeleePhase(_actor, tick);
-        Visible = attacker.Visible && _actor.Destination == focus && _phase != "none";
+        Visible = attacker.Visible && (focus == 0 || _actor.Destination == focus) && _phase != "none";
         if (!Visible) return;
         Vector3 source = attacker.StrikeOrigin;
-        bool sameCity = target is not null && target.State.Destination == _actor.Destination;
+        bool sameCity = target is not null;
         Vector3 destination = sameCity ? target!.GlobalPosition + new Vector3(0, .5f, 0)
             : _actor.Hex?.FrozenAim is { } aim ? layout.AimPosition(_actor, aim) + new Vector3(0, .5f, 0) : source + attacker.GlobalBasis.Z * 1.5f;
         _source = source; _target = destination;
         Vector3 groundSource = attacker.GlobalPosition + Vector3.Up * .035f;
         Vector3 groundTarget = new(destination.X, groundSource.Y, destination.Z);
-        _guide.Visible = _pointer.Visible = _phase == "intent";
+        _guide.Visible = _pointer.Visible = false; // The physical local engagement replaces long dashed hex explanations.
         _guide.GlobalPosition = groundSource;
         if (groundSource.DistanceSquaredTo(groundTarget) > .00001f)
         {

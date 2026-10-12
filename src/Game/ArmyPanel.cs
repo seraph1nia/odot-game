@@ -20,13 +20,13 @@ public partial class Tabletop
         if (game.State is not { } state) return null;
         if (_armyConfiguration is null || _armyFingerprint != state.ConfigurationFingerprint)
         {
-            _armyConfiguration = new(state.Rules.Army, new(state.Rules.Combat.Board)); _armyFingerprint = state.ConfigurationFingerprint;
+            _armyConfiguration = new(state.Rules.Army, new(state.Rules.Combat.Board), state.Rules.Arena.SquadCapacity); _armyFingerprint = state.ConfigurationFingerprint;
         }
         return _armyConfiguration;
     }
     private void CreateArmyControls(Node city, Node context, Node details)
     {
-        _buyHome = Button(city, "Buy unit space", () => { if (CanEdit()) game.SendAction("buy-home"); }); _buyHome.Name = "BuyHome";
+        _buyHome = Button(city, "Buy squad home", () => { if (CanEdit()) game.SendAction("buy-home"); }); _buyHome.Name = "BuyHome";
         _homeSummary = Text(details, "", 13);
         _openHall = Button(context, "Town hall roster", () =>
         {
@@ -62,10 +62,10 @@ public partial class Tabletop
         CityState? city = Focus(); ArmyState? army = city?.Army; ArmyConfiguration? config = UiArmy();
         ResourceCost? homePrice = army is null ? null : config?.HomeQuote(army.PurchasedHomes);
         _buyHome.Visible = army is not null && game.State?.Phase != Phase.Lobby;
-        _buyHome.Text = homePrice is { } price ? $"Buy unit space · {price.Gold} gold" : "All six unit spaces purchased";
+        _buyHome.Text = homePrice is { } price ? $"Buy squad home · {price.Gold} gold" : "All six squad homes purchased";
         _buyHome.Disabled = !CanEdit() || homePrice is not { } cost || !city!.Resources.TryPay(cost, out _);
-        _buyHome.TooltipText = !CanEdit() ? "Edit your unready, unpaused city during Building or Preparation." : "Buy the next physical six-size home. Town hall upgrades never buy battlefield space.";
-        _homeSummary.Text = army is null ? "" : "Battlefield homes (first-fit order):\n" + string.Join("\n", army.Homes.Select((h, i) => $"{i + 1}. Tile {h.Cell} · {(h.Purchased ? $"{h.Used}/6 size" : "locked")}"));
+        _buyHome.TooltipText = !CanEdit() ? "Edit your unready, unpaused city during Building or Preparation." : "Buy the next squad deployment home. Town hall upgrades never buy battlefield space.";
+        _homeSummary.Text = army is null ? "" : "Battlefield homes (first-fit order):\n" + string.Join("\n", army.Homes.Select((h, i) => $"{i + 1}. Squad home · {(h.Purchased ? $"{h.Used}/{army.SquadCapacity} members" : "locked")}"));
         _openHall.Visible = city?.Slots.ElementAtOrDefault(_slot)?.Type == Building.TownHall;
         _openHall.Disabled = !game.Connected;
         if (_hallSlot < 0 || city?.Slots.ElementAtOrDefault(_hallSlot) is not { Type: Building.TownHall } selected || selected.Generation != _hallGeneration)
@@ -74,7 +74,7 @@ public partial class Tabletop
         }
         TownHallState hall = army!.Halls.Single(h => h.Slot == _hallSlot);
         UnitState[] stored = city.Soldiers.Where(u => u.Assignment is { Stored: true } a && a.HallSlot == _hallSlot && a.HallGeneration == _hallGeneration).OrderBy(u => u.Assignment!.Tile).ThenBy(u => u.Assignment!.Anchor).ToArray();
-        _hallSummary.Text = $"Town hall · plot {_hallSlot + 1}\nStorage L{hall.CapacityLevel}/3 · {stored.Sum(u => u.Size)}/{hall.Capacity} size points\nHealing L{hall.HealingLevel}/3 · {hall.HealingPercent}% current max HP per actual production (rounded up).\nStored units pay battle food but never fight. Recovery requires food paid in the last completed battle.";
+        _hallSummary.Text = $"Town hall · plot {_hallSlot + 1}\nStorage L{hall.CapacityLevel}/3 · {stored.Length}/{hall.Capacity} individual places\nHealing L{hall.HealingLevel}/3 · {hall.HealingPercent}% current max HP per actual production (rounded up).\nStored units pay battle food but never fight. Recovery requires food paid in the last completed battle.";
         void Upgrade(Button button, ResourceCost? quote, string track, int level)
         {
             button.Text = quote is { } q ? $"{track} L{level + 1} · {ResourceText(q)}" : $"{track} complete";
@@ -87,43 +87,25 @@ public partial class Tabletop
         {
             _hallKey = key; _hallUnits.Clear();
             foreach (Node child in _hallRoster.GetChildren()) { _hallRoster.RemoveChild(child); child.QueueFree(); }
-            for (int tile = 0; tile < hall.Capacity / 6; tile++)
+            for (int tile = 0; tile < hall.Capacity; tile++)
             {
-                UnitState[] claims = stored.Where(u => u.Assignment!.Tile == tile).ToArray(); int used = claims.Sum(u => u.Size);
-                Text(_hallRoster, $"Reserve tile {tile + 1} · {used}/6 size · {6 - used} free", 12);
+                UnitState[] claims = stored.Where(u => u.Assignment!.Tile == tile).ToArray(); int used = claims.Length;
+                Text(_hallRoster, $"Reserve place {tile + 1} · {used}/1 member", 12);
                 foreach (UnitState unit in claims)
                 {
                     int id = unit.Id;
                     Button select = HallButton(_hallRoster, $"#{id} {ProgressionPresentation.UnitName(unit)} L{unit.Level} · size {unit.Size} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no paid recovery")}", () => { _storedUnit = id; RefreshArmy(); });
                     select.Name = "HallUnit" + id; select.AddThemeFontSizeOverride("font_size", 12); _hallUnits.Add(select);
                 }
-                if (used < 6) Text(_hallRoster, $"Empty reserve space · {6 - used} size points", 12);
+                if (used == 0) Text(_hallRoster, "Empty individual reserve place", 12);
             }
         }
         UnitState? chosen = stored.FirstOrDefault(u => u.Id == _storedUnit);
         foreach (Button button in _hallUnits) button.Modulate = button.Name == "HallUnit" + _storedUnit ? Colors.White : new Color(.85f, .85f, .85f);
         _hallSelection.Text = chosen is null ? "Select a stored unit. Selection changes nothing." : $"Selected #{chosen.Id} · wounds and level are retained when sent.";
-        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, chosen.Size) is not null;
+        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, 1, type: chosen.Type) is not null;
         _hallSend.Disabled = !CanEdit() || chosen is null || !fits; _hallRetire.Disabled = !CanEdit() || chosen is null;
-        _hallSend.TooltipText = chosen is null ? "Select a stored unit." : !fits ? "Battlefield homes are full. Buy a space or retire/store a field unit first." : "Insert at the first fitting purchased tile and free anchor; no healing or payment.";
-    }
-    private static void UpdateArmyMarkers(Node3D board, CityState city, MatchSnapshot state)
-    {
-        if (city.Army is not { } army) return;
-        Node3D? old = board.GetNodeOrNull<Node3D>("ArmyHomes");
-        if (old is not null && old.GetMeta("purchased").AsInt32() == army.PurchasedHomes)
-        { old.Visible = state.Phase is Phase.Building or Phase.Preparation; return; }
-        if (old is not null) { board.RemoveChild(old); old.QueueFree(); }
-        var markers = new Node3D { Name = "ArmyHomes", Visible = state.Phase is Phase.Building or Phase.Preparation };
-        markers.SetMeta("purchased", army.PurchasedHomes); board.AddChild(markers);
-        foreach ((ArmyHomeState home, int index) in army.Homes.Select((h, i) => (h, i)))
-        {
-            HexCoordinate coordinate = state.Rules.Combat.Board.Cells.Single(c => c.Id == home.Cell).Coordinate;
-            Vector3 position = VillageLayout.Hex(coordinate.Column, coordinate.R);
-            Label3D label = Label(markers, position + new Vector3(0, .12f, .95f), home.Purchased ? "" : $"Space {index + 1} · locked", 18);
-            label.Name = "Home" + index; label.Modulate = home.Purchased ? new Color("c7e6c5") : new Color("b9b5aa");
-            if (!home.Purchased) markers.AddChild(new Sprite3D { Name = "LockedHome" + index, Position = position + new Vector3(0, .35f, 0), Texture = UiAssets.Icon("Gold"), PixelSize = .014f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Shaded = false });
-        }
+        _hallSend.TooltipText = chosen is null ? "Select a stored unit." : !fits ? "Battlefield homes are full. Buy a space or retire/store a field unit first." : "Rejoin a matching squad or a free purchased home; no healing or recruitment payment.";
     }
     private void ObserveArmy(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {

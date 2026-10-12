@@ -22,24 +22,7 @@ public sealed record HexEntryDefinition(Faction Faction, int[] RearCells, int[] 
 public sealed record HexBoardDefinition(string Id, int Version, int Capacity, HexCellDefinition[] Cells,
     HexAnchor[] Anchors, HexEntryDefinition[] Entries, int[] SiegeCells)
 {
-    public static HexBoardDefinition Default()
-    {
-        var cells = new List<HexCellDefinition>();
-        for (int row = -5; row <= 1; row++)
-            for (int column = -1; column <= 1; column++)
-                cells.Add(new(cells.Count + 1, HexCoordinate.FromOffset(column, row),
-                    row == -5 ? DeploymentAffinity.Skeletons : row == 1 ? DeploymentAffinity.Adventurers : DeploymentAffinity.Neutral, []));
-        HexCellDefinition[] graph = cells.Select(c => c with
-        { Neighbors = cells.Where(n => n.Id != c.Id && n.Coordinate.Distance(c.Coordinate) == 1).Select(n => n.Id).ToArray() }).ToArray();
-        // Six distinct render anchors accommodate up to six size-one actors.
-        // Anchors carry no size or geometry-based capacity rule.
-        int[] x = [-900, 0, 900, -900, 0, 900], forward = [-550, -550, -550, 550, 550, 550];
-        HexAnchor[] anchors = Enumerable.Range(0, 6).Select(i => new HexAnchor(i + 1, x[i], forward[i])).ToArray();
-        int[] Row(int row, bool reverse = false) => graph.Where(c => c.Coordinate.R == row).OrderBy(c => Math.Abs(c.Coordinate.Column))
-            .ThenBy(c => reverse ? -c.Coordinate.Column : c.Coordinate.Column).Select(c => c.Id).ToArray();
-        return new("village-hex", 2, 6, graph, anchors,
-            [new(Faction.Adventurers, Row(1), Row(0)), new(Faction.Skeletons, Row(-5, true), Row(-4, true))], Row(0));
-    }
+    public static HexBoardDefinition Default() => new SharedArena([1]).Board.Definition();
 }
 
 public sealed class HexCell
@@ -173,7 +156,7 @@ public sealed class HexBoard
     public int Distance(int source, int destination) => _distances[(source, destination)];
     public int MovementDistance(Faction faction, int source, int destination) => _movementDistances.GetValueOrDefault((faction, source, destination), int.MaxValue);
     public int CityDistance(int source) => _cityDistances[source];
-    public bool Allows(Faction faction, int cell) => Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
+    public bool Allows(Faction faction, int cell) => Capacity == 1 || Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
     public ReadOnlyCollection<int> Rear(Faction faction) => _entries[faction].Rear;
     public ReadOnlyCollection<int> Front(Faction faction) => _entries[faction].Front;
     public HexTransition Transition(HexPosition source, HexPosition destination) => _transitions[(source, destination)];

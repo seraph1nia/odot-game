@@ -38,7 +38,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     public override void _Ready()
     {
         Node3D model = _model = UnitAssets.Instantiate(UnitAssets.Character(State.Type, State.Faction));
-        model.Scale = Vector3.One * 0.43f; AddChild(model);
+        model.Scale = Vector3.One * (State.IsBoss ? .68f : .43f); AddChild(model);
         (_player, _skeleton) = UnitAssets.Bind(model, State.Type);
         _rootBone = _skeleton.FindBone("root"); _handBone = _skeleton.FindBone(AssetCatalog.Unit(State.Type, State.Faction).StrikeSocket);
         _attackName = UnitAssets.AttackClip(State.Type);
@@ -78,7 +78,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         {
             Position = new(0, 0.015f, 0),
             Mesh = new CylinderMesh { TopRadius = 0.21f, BottomRadius = 0.21f, Height = 0.025f, RadialSegments = 12 },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new(State.Faction == Faction.Skeletons ? "bb4b43" : "487ecc"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = SharedArenaView.OwnerColor(State.Owner), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
         };
         AddChild(_marker);
         _statusBadge = new Label3D { Name = "StatusBadge", Position = new(0, 3.5f, 0), FontSize = 32, PixelSize = .018f, VerticalAlignment = VerticalAlignment.Bottom, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Modulate = new Color("b8f5ef"), OutlineModulate = new Color("233a3f"), OutlineSize = 3, NoDepthTest = true }; AddChild(_statusBadge);
@@ -114,13 +114,15 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         tick = state.Hex?.FrozenTick ?? tick;
         Visible = PresentationLimits.SamplesPose(state, focus);
         _statusBadge.Text = Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
-        _statusBadge.Visible = !Dead && _statusBadge.Text.Length > 0;
+        _statusBadge.Visible = false; // Compact squad summary owns default status presentation.
         _statusBadge.Modulate = state.Statuses.Burn is { } burn && tick < burn.ExpiresTick ? new Color("ffb078")
             : state.Statuses.Poison.Any(p => tick < p.ExpiresTick) ? new Color("b6ef78") : new Color("b8f5ef");
         Position = layout.Position(state, tick);
         float desired = layout.Facing(state, tick, units);
         Rotation = new(0, _facingTick is { } previousTick ? CombatVisualTiming.Facing(Rotation.Y, desired, Dead ? 0 : tick - previousTick) : desired, 0);
         _facingTick = tick;
+        if (!Dead && state.Class == UnitClass.Melee && state.Hex?.HoldsTransit != true)
+            Position += new Vector3(Mathf.Sin(desired), 0, Mathf.Cos(desired)) * (float)CombatVisualTiming.Attack(state, tick) * .65f;
         _walkingBlend = CombatVisualTiming.Walking(state.Hex, tick);
         _attackBlend = CombatVisualTiming.Attack(state, tick);
         _hitBlend = CombatVisualTiming.Hit(seconds, _hitAt, Dead, _attackBlend > 0);

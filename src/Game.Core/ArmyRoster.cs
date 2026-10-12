@@ -38,9 +38,11 @@ public sealed class ArmyConfiguration
             || settings.HomePrices.Any(p => p <= 0) || settings.HomePrices.Zip(settings.HomePrices.Skip(1)).Any(p => p.First >= p.Second))
             throw new ArgumentException("Four increasing positive home prices required.", nameof(settings));
         _prices = settings.HomePrices.ToArray();
-        _cells = board.Front(Faction.Adventurers).Take(3).Concat(board.Rear(Faction.Adventurers).Take(3)).ToArray();
-        if (_cells.Length != 6 || _cells.Distinct().Count() != 6) throw new ArgumentException("Six allied home cells required.", nameof(board));
-        _anchors = board.Anchors.OrderBy(a => a.AnchorForward).ThenBy(a => a.Id).Select(a => a.Id).ToArray();
+        ArgumentNullException.ThrowIfNull(board);
+        // Persistent home indexes are not battlefield hex identities. The
+        // shared arena maps the owner's six homes to physical deployment cells.
+        _cells = Enumerable.Range(0, 6).ToArray();
+        _anchors = [1];
     }
     public ArmySettings Definition() => new() { HomePrices = _prices.ToArray() };
     public int[] Prices() => _prices.ToArray();

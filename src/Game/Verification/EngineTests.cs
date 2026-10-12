@@ -33,6 +33,7 @@ public partial class EngineTests : Node
                 case "animation": Animation(); break;
                 case "worldtree": await Worldtree(); break;
                 case "receiving": await Receiving(); break;
+                case "arena": await Arena(); break;
                 case "assets": await AssetFidelityProbe.Run(this); return;
                 default: throw new ArgumentException("Unknown engine scenario: " + scenario);
             }
