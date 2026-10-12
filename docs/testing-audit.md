@@ -193,9 +193,13 @@ The construction/Resources spacing regression also strengthens this owner (see
 Real Button/TextParagraph/RichTextLabel metrics catch native title/cost line-box
 intersection and a caption omitted from the Button minimum; real ledger labels
 catch decorated-frame inset, column alignment, stock/upkeep intersection and
-stale deferred minimum-size allocation. Four current window sizes use production
-canvas scaling, starting/disconnected/max-int stocks exercise disabled/enabled
-controls and complete values. A settled container reproduces the old allocation;
+stale deferred minimum-size allocation. Whole-frame viewport containment and the
+12px right inset are checked through minimum growth and shrinkage, including
+combined disconnected/max-int stocks and numerical Preparation/Combat phase
+transitions with paused/disconnected context; panel-local safe bounds alone missed
+right-edge clipping. Four current window sizes use production canvas scaling,
+starting/disconnected/max-int stocks exercise disabled/enabled controls and
+complete values. A settled container reproduces the old allocation;
 the unchanged asset component supplies the unsafe-inset counterfactual. No pure
 C# test sees these native metrics. This adds bounded layout frames within the
 same 60s component allowance, no new harness, process or full-game journey.

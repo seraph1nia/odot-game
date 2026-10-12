@@ -15,6 +15,19 @@ public partial class EngineTests
     // Strengthen the existing Tier B owner: pure C# cannot see native font
     // shaping, Button margins/minimum-size or the imported frame's safe area.
     // A few deterministic layout frames, no new scene/process or rendered proof.
+    private static void CheckLedgerPlacement(Control host)
+    {
+        var ledger = host.GetNode<PanelContainer>("ResourceTable");
+        Rect2 bounds = ledger.GetGlobalRect();
+        Rect2 viewport = host.GetViewport().GetVisibleRect();
+        Check(viewport.Encloses(bounds), "resource ledger frame stays within horizontal and vertical viewport bounds");
+        Check(Mathf.IsEqualApprox(viewport.End.X - bounds.End.X, 12), "resource ledger retains its 12px right viewport inset through growth and shrinkage");
+        Check(ledger.Size == ledger.GetCombinedMinimumSize(), "ledger follows settled native minimum size after context/stock changes");
+        Check(bounds.End.Y < host.GetNode<PanelContainer>("BottomPanel").GetGlobalRect().Position.Y,
+            "padded resource/upkeep stack fits above the bottom HUD");
+        GD.Print($"LAYOUT ledgerBounds={bounds} viewport={viewport} rightInset={viewport.End.X - bounds.End.X}");
+    }
+
     private async Task ReceivingSpacing(Control host, Tabletop hud, ReceivingSession session, Match authority)
     {
         Button Find(string name) => host.FindChildren(name, "Button", true, false).OfType<Button>().Single();
@@ -75,7 +88,7 @@ public partial class EngineTests
         foreach (Vector2I size in new[] { new Vector2I(1100, 820), new Vector2I(1280, 720), new Vector2I(1920, 1080), new Vector2I(2200, 1640) })
         {
             GetWindow().Size = size;
-            foreach (var (disconnected, rich) in new[] { (false, false), (true, false), (false, true) })
+            foreach (var (disconnected, rich) in new[] { (false, false), (true, false), (false, true), (true, true), (false, false) })
             {
                 SetStocks(rich ? new(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue) : starting);
                 session.Acknowledge(); session.Connected = !disconnected;
@@ -100,7 +113,7 @@ public partial class EngineTests
                         Check(cost.GetThemeFont("normal_font").GetStringSize(cost.GetParsedText(), fontSize: cost.GetThemeFontSize("normal_font_size")).X <= cost.Size.X,
                             "complete untruncated construction quote fits: " + button.Name);
                         Check(!disconnected || button.Disabled, "disconnected construction stays disabled: " + button.Name);
-                        Check(!rich || !button.Disabled, "affordable construction stays enabled: " + button.Name);
+                        Check(!rich || disconnected || !button.Disabled, "affordable connected construction stays enabled: " + button.Name);
                         GD.Print($"LAYOUT {size} stretch={GetViewport().GetStretchTransform().Scale} {button.Name} disabled={button.Disabled} button={button.Size} min={button.GetCombinedMinimumSize()} title={title} cost={cost.GetRect()} costLine={CostBox(cost)} gap={cost.Position.Y - title.End.Y}");
                     }
                 }
@@ -115,9 +128,7 @@ public partial class EngineTests
                 }
                 Check(labels.All(a => labels.All(b => a == b || !a.GetGlobalRect().Intersects(b.GetGlobalRect()))),
                     "ledger header/stock/income/upkeep line boxes do not intersect");
-                Check(ledger.Size == ledger.GetCombinedMinimumSize(), "ledger follows settled native minimum size after context/stock changes");
-                Check(ledger.GetGlobalRect().End.Y < host.GetNode<PanelContainer>("BottomPanel").GetGlobalRect().Position.Y,
-                    "padded resource/upkeep stack fits above the bottom HUD");
+                CheckLedgerPlacement(host);
                 var table = body.GetChildren().OfType<GridContainer>().First();
                 Check(table.GetChild<Label>(1).GetGlobalRect().End.X == table.GetChild<Label>(4).GetGlobalRect().End.X
                     && table.GetChild<Label>(2).GetGlobalRect().End.X == table.GetChild<Label>(5).GetGlobalRect().End.X,
@@ -346,6 +357,32 @@ public partial class EngineTests
             before = session.Commands.Count; Click(farm);
             Check(session.Commands.Count == before + 1 && session.Results[^1].Accepted && match.Players[1].Slots[2].Type == Building.Farm,
                 "closing the real modal releases the host guard and resumes the actual HUD sender");
+
+            foreach (Phase phase in new[] { Phase.Preparation, Phase.Combat })
+            {
+                for (int turn = 0; turn < 3 && match.Phase != phase; turn++)
+                {
+                    session.Acknowledge(); session.SendAction("ready");
+                    peer.Acknowledge(); peer.SendAction("ready");
+                    Check(session.Results[^1].Accepted && peer.Results[^1].Accepted, "owned numerical authorities advance the receiving phase");
+                }
+                Check(match.Phase == phase, "receiving ledger exercises actual " + phase + " income/upkeep text");
+                ResourceCost stocks = match.Players[1].Resources;
+                foreach (var (disconnected, rich, paused) in new[] { (false, false, false), (true, false, false), (false, true, false), (false, true, true), (false, false, false) })
+                {
+                    session.Connected = true;
+                    session.Acknowledge(); session.SendAction(paused ? "pause" : "resume");
+                    Check(session.Results[^1].Accepted, "phase ledger context uses acknowledged pause/resume state");
+                    ResourceCost values = rich ? new(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue) : stocks;
+                    City city = match.Players[1];
+                    (city.Gold, city.Wood, city.Food, city.Stone, city.Metal, city.Cloth)
+                        = (values.Gold, values.Wood, values.Food, values.Stone, values.Metal, values.Cloth);
+                    session.Acknowledge(); session.Connected = !disconnected;
+                    Refresh(); await Frames(); await Frames();
+                    CheckLedgerPlacement(host);
+                    GD.Print($"LAYOUT phase={phase} disconnected={disconnected} rich={rich} paused={paused}");
+                }
+            }
         }
         finally
         {

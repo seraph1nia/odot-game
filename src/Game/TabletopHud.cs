@@ -46,7 +46,7 @@ public partial class Tabletop
         _resources.AddThemeStyleboxOverride("panel", frame);
         // Wrapped context can change its minimum after the deferred container
         // sort. Follow that native change rather than retaining a stale height.
-        _resources.MinimumSizeChanged += () => Callable.From(_resources.ResetSize).CallDeferred();
+        _resources.MinimumSizeChanged += () => Callable.From(ReflowResources).CallDeferred();
         var stack = _resources.GetNode<VBoxContainer>("Body");
         stack.AddThemeConstantOverride("separation", 10);
         var table = stack.GetChildren().OfType<GridContainer>().Single();
@@ -160,6 +160,12 @@ public partial class Tabletop
                 button.AddThemeStyleboxOverride(state, style);
             }
         }
+    }
+    private void ReflowResources()
+    {
+        _resources.ResetSize();
+        _resources.OffsetLeft = -12 - _resources.Size.X;
+        _resources.OffsetRight = -12;
     }
     private void CycleCity(int direction)
     {

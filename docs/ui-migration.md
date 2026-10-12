@@ -321,6 +321,11 @@ resource/upkeep rows have 4px separation and stack sections 10px. Deferred nativ
 minimum changes resize the panel after context wrapping instead of retaining an
 oversized intermediate allocation. Starting stocks settle at 288×340, disconnected
 context at 288×364, and six maximum-int stocks at 343×340, all with 40px safe inset.
+The shared receiving reflow now also re-pins the right edge after resetting the
+native minimum, retaining the 12px viewport inset for both economy refreshes and
+deferred minimum changes. The original spacing receipt below checked panel-local
+safe bounds and vertical fit, not horizontal viewport containment; its 343px
+allocation could extend beyond the viewport before this reflow correction.
 
 Focused receipt: `logs/20261012-182938-0082b1bf`, `test-engine --scenario receiving`,
 10.04s component / 16.53s including preparation. Four windows (1100×820,
@@ -329,12 +334,34 @@ Focused receipt: `logs/20261012-182938-0082b1bf`, `test-engine --scenario receiv
 exercise all Army/Production construction labels/costs, enabled/disabled states,
 complete resource/footer numbers, shaped title/caption boxes, native minima,
 content bounds, safe inset, column alignment and fit above the bottom HUD.
+The receiving fixture additionally checks whole-frame viewport containment and
+the retained right inset through starting/max-int stock growth and shrinkage,
+combined disconnected/max-int state, and real numerical Preparation/Combat phase
+transitions with ordinary, disconnected and paused context. These additions do
+not turn the original receipt into evidence for the corrected reflow.
 The existing authority/acknowledgment/rejection/research/modal/input checks pass.
 Fast C# receipt: `logs/20261012-182955-3eb480c9`, 466 core + 649 runner passed,
 2 Windows-only skips, 22.52s; excludes Deep. Locked restore and C# format completed
 with installed .NET 10.0.401 / Godot .NET 4.7.2 and auto-install disabled.
 
-These are implementation receipts, not final published-head CI acceptance.
+Review-fix receipt on `49cc54e2` plus the reflow working diff:
+`logs/review-ledger-reflow-final/test-engine-summary.json`, selected `receiving`,
+11.15s component / 28.58s including locked preparation. All four windows retained
+12px logical right inset through 288×340, 288×364, 343×340 and 343×364 Building
+allocations and return to starting stocks. At the restored 1920×1080 window
+(logical viewport 1457×820), actual Preparation/Combat income/upkeep text settled
+at 326×364, grew to 381×364 for max-int stocks (also with paused context), then
+shrank to 326×364, retaining the same inset and viewport containment. Existing
+construction/authority/modal/input/disposal assertions passed. Phase placement
+was checked only at that restored window size; phase label readability/pixels
+were not qualified. The first attempt, `logs/review-ledger-reflow`, failed at
+compilation because the fixture used an inaccessible `City.Resources` setter;
+no engine case ran. The fixture was corrected to assign public stock fields and
+the focused case rerun, without a waiver. Changed C# files were formatted with
+`--no-restore --include`; no full test/lint suite or other engine case ran in this
+review round. Installed tool versions and auto-install prohibitions were retained.
+
+These are local receipts, not final published-head CI acceptance.
 Headless shaped-line/control geometry does **not** prove artistic readability,
 rendered pixels/GPU, physical input, a full UI/session, or the screenshot's unknown
 viewport. Appearance, full-game journeys, graphical/private-display testing,

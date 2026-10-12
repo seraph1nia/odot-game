@@ -341,7 +341,7 @@ public partial class Tabletop : Node3D
             _incomeHeading.Text = economy.IncomeLabel; _incomeContext.Text = economy.Context; _incomeContext.Visible = economy.Context.Length > 0;
             foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>()) _incomes[resource.ToString()].Text = ProgressionPresentation.Income(focus?.ProductionIncome, resource);
             _upkeepLabel.Text = economy.UpkeepLabel; _upkeepValue.Text = economy.UpkeepValue;
-            Callable.From(_resources.ResetSize).CallDeferred();
+            Callable.From(ReflowResources).CallDeferred();
             _balanceLabel.Text = economy.BalanceLabel; _balanceValue.Text = economy.BalanceValue;
             _upkeep.Text = progression!.Food; _reward.Text = progression.Reward;
             _armyDetails.Text = progression.Army + "\nEnemy allocation:\n" + string.Join("\n", s?.Enemies.Where(u => u.Destination == _focus).Select(u => $"#{u.Id} {AssetCatalog.UnitName(u.Type, u.Faction)} · {(u.Deployed ? "deployed" : "queued")} · {ProgressionPresentation.StatusText(u.Statuses, s.Tick)}") ?? []);
