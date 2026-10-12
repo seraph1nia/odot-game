@@ -23,7 +23,7 @@ public sealed class CombatActionTests
     public void MoveCompletionPreservesHistoryAndCannotCompleteBeforeArrival()
     {
         var board = new HexBoard(HexBoardDefinition.Default());
-        HexTransition transition = board.Transition(new(11, 1), new(8, 1));
+        HexTransition transition = board.Transition(new(11, 1), new(board.Cell(11).Neighbors[0], 1));
         CombatAction.Moving move = CombatActions.Move(new CombatAction.Waiting(), transition, 100, 30);
         Assert.Equal(130, move.EndTick); Assert.Equal(transition.Destination, move.Destination);
         Assert.Throws<InvalidOperationException>(() => CombatActions.Complete(move, 129));

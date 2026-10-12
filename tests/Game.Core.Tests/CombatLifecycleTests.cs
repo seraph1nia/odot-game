@@ -11,8 +11,8 @@ public sealed class CombatLifecycleTests
         int mover = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
         int attacker = combat.Create(UnitType.Crossbowman, 1, 1, 1);
         UnitState unit = combat.Read(mover), enemy = combat.Read(attacker);
-        combat.Seed(unit with { Health = 100, Hex = CombatFixture.At(unit, 8, 1) });
-        combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 14, 1) });
+        combat.Seed(unit with { Health = 100, Hex = CombatFixture.At(unit, 17, 1) });
+        combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 20, 1) });
         combat.Step(1, []);
         Assert.Equal(UnitActionKind.Moving, combat.Read(mover).Hex!.Action);
         for (int tick = 2; tick <= 19; tick++) combat.Step(tick, []);
@@ -20,7 +20,7 @@ public sealed class CombatLifecycleTests
         return (combat, mover);
     }
     [Fact]
-    public void MovingDeathKeepsBothEndpointsAndTransitUntilExactExpiry()
+    public void MovingDeathReleasesLogicalClaimsImmediatelyAndRetainsFrozenCosmeticsUntilExpiry()
     {
         var (combat, mover) = MovingCasualty(); using (combat)
         {
@@ -28,17 +28,17 @@ public sealed class CombatLifecycleTests
             Assert.False(corpse.PendingImpact); Assert.DoesNotContain(combat.Snapshot(), u => u.Id == mover);
             Assert.Equal(19, frozen.DeathStartTick); Assert.Equal(67, frozen.DeathEndTick);
             Assert.Equal(18, frozen.FrozenMoveTicks); Assert.True(frozen.HoldsTransit);
-            PositionReservation[] positions = combat.Reservations.Positions.Where(r => r.UnitId == mover).ToArray();
-            Assert.Equal(2, positions.Length);
-            Assert.Contains(positions, r => r.Cell == frozen.Position.Cell && r.Anchor == frozen.Position.Anchor);
-            Assert.Contains(positions, r => r.Cell == frozen.Destination.Cell && r.Anchor == frozen.Destination.Anchor);
-            Assert.Equal(frozen.ActionSequence, Assert.Single(combat.Reservations.Transit, r => r.UnitId == mover).ActionSequence);
+            Assert.DoesNotContain(combat.Reservations.Positions, r => r.UnitId == corpse.SquadId);
+            Assert.DoesNotContain(combat.Reservations.Transit, r => r.UnitId == corpse.SquadId);
+            CombatReservations rebuilt = CombatReservations.Reconstruct(combat.Arena, combat.SquadSnapshots());
+            Assert.Equal(combat.Reservations.Positions, rebuilt.Positions);
+            Assert.Equal(combat.Reservations.Transit, rebuilt.Transit);
             for (long tick = 20; tick < frozen.DeathEndTick; tick++)
             {
                 combat.Step(tick, []);
                 Assert.Equal(frozen, Assert.Single(combat.Dying()).Hex);
-                Assert.Equal(JsonSerializer.Serialize(positions), JsonSerializer.Serialize(combat.Reservations.Positions.Where(r => r.UnitId == mover)));
-                Assert.Single(combat.Reservations.Transit, r => r.UnitId == mover);
+                Assert.DoesNotContain(combat.Reservations.Positions, r => r.UnitId == corpse.SquadId);
+                Assert.DoesNotContain(combat.Reservations.Transit, r => r.UnitId == corpse.SquadId);
             }
             Assert.DoesNotContain(combat.Events(), e => e.Unit?.Id == mover && e.Tick >= frozen.DeathStartTick && e.Type == CombatEventType.AttackStarted);
             combat.Step(frozen.DeathEndTick, []);
@@ -48,7 +48,7 @@ public sealed class CombatLifecycleTests
         }
     }
     [Fact]
-    public void DyingTransferIsRejectedWithoutChangingItsOriginReservations()
+    public void DyingTransferIsRejectedWithoutChangingFrozenIdentityOrOtherSquadClaims()
     {
         var (combat, mover) = MovingCasualty(); using (combat)
         {
@@ -61,10 +61,10 @@ public sealed class CombatLifecycleTests
         }
     }
     [Fact]
-    public void DisposalReleasesRetainedMoveReservationsAndDoesNotAffectAFreshCombat()
+    public void DisposalReleasesOtherSquadClaimsAndCosmeticsWithoutAffectingFreshCombat()
     {
         var (combat, _) = MovingCasualty();
-        Assert.NotEmpty(combat.Reservations.Transit); Assert.NotEmpty(combat.Events());
+        Assert.NotEmpty(combat.Reservations.Positions); Assert.NotEmpty(combat.Events());
         combat.Dispose(); combat.Dispose();
         Assert.True(combat.RegistryReleased); Assert.Empty(combat.Reservations.Positions); Assert.Empty(combat.Reservations.Transit);
         Assert.Empty(combat.Events()); Assert.Empty(combat.Admissions); Assert.Empty(combat.HealthProgressCities);

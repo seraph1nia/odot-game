@@ -28,7 +28,11 @@ internal sealed partial class CombatSimulation : IDisposable
     internal WorkCounters? Work
     {
         get => _work;
-        set { _work = value; _configuration.Work = value; }
+        set
+        {
+            _work = value; _configuration.Work = value;
+            value?.Support(WorkMetric.WorldViews, WorkMetric.UnitVisits, WorkMetric.UnitProjections, WorkMetric.RouteElementsCopied, WorkMetric.VisitedElementsCopied);
+        }
     }
     public long EventSequence { get; private set; }
     public bool IsDisposed { get; private set; }
@@ -40,7 +44,13 @@ internal sealed partial class CombatSimulation : IDisposable
     internal int[] HealthProgressCities => _healthProgress.ToArray();
     internal int RouteSearches => _routeSearches;
     internal CombatReservations Reservations => new(_squads.Values.Where(s => s.Alive)
-        .Select(s => new PositionReservation(1, s.Location.Position.Cell, 1, s.Id, s.Action.Sequence, s.Faction, 1)).ToArray(), []);
+        .Select(s => new PositionReservation(1, s.Location.Position.Cell, 1, s.Id, s.Action.Sequence, s.Faction, 1)).ToArray(),
+        _squads.Values.Where(s => s.Alive && s.Action is CombatAction.Moving).Select(s =>
+        {
+            var move = (CombatAction.Moving)s.Action;
+            return new TransitReservation(1, s.Location.Position.Cell, move.Destination.Cell,
+                _arena.Board.Transition(s.Location.Position, move.Destination).EdgeToken, s.Id, s.Action.Sequence);
+        }).ToArray());
     public WeaponProfile Profile(UnitType type, int rank = 0, bool isBoss = false, int level = 1) => _configuration.Unit(type, rank, isBoss, level).Runtime();
     private ref CombatUnit Unit(int id) => ref _world.Get<CombatUnit>(_entities[id]);
     internal CombatUnit Inspect(int id) => ProjectMember(Unit(id));
@@ -526,7 +536,10 @@ internal sealed partial class CombatSimulation : IDisposable
     public void EliminateArmy(int city) { _eliminatedOwners.Add(city); }
     public void Transfer(int id, int destination)
     {
-        CombatUnit member = Unit(id); CombatSquad squad = _squads[member.SquadId];
+        CombatUnit member = Unit(id);
+        if (member.Health <= 0 || member.Location.Lifecycle == UnitLifecycle.Dying)
+            throw new InvalidOperationException("A fallen member cannot redirect its squad.");
+        CombatSquad squad = _squads[member.SquadId];
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(destination);
         _squads[squad.Id] = squad with { Destination = destination, Decision = NewDecision(squad.Id, destination, checked(squad.Decision.Sequence + 1)) };
         foreach (CombatUnit m in Living().Where(u => u.SquadId == squad.Id)) Unit(m.Id) = m with { Identity = m.Identity with { Destination = destination } };

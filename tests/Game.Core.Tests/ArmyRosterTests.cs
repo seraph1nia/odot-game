@@ -31,7 +31,9 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
         Assert.Equal(2, units.Select(u => u.Assignment!.Tile).Distinct().Count());
         Assert.Equal(match.Army.HomeCells[0], units[0].Assignment!.Tile);
         Assert.All(units.Take(3), u => Assert.Equal(units[0].Assignment!.Tile, u.Assignment!.Tile));
-        Assert.Equal(6, units.Select(u => (u.Assignment!.Tile, u.Assignment.Anchor)).Distinct().Count());
+        Assert.Equal(2, units.Select(u => (u.Assignment!.Tile, u.Assignment.Anchor)).Distinct().Count());
+        Assert.Equal(2, units.Select(u => u.SquadId).Distinct().Count());
+        Assert.All(units.GroupBy(u => u.SquadId), squad => Assert.Equal(3, squad.Select(u => u.FormationSlot).Distinct().Count()));
         string before = State(match);
         Assert.False(Act(match, "recruit", 0).Accepted); Assert.Equal(before, State(match));
         int gold = city.Gold; Assert.True(Act(match, "buy-home").Accepted);
@@ -52,7 +54,8 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
         Assert.True(stored.Assignment!.Stored); Assert.False(stored.Deployed); Assert.Equal(3101, stored.Health);
         Assert.True(Act(match, "recruit", 0).Accepted);
         string full = State(match); Assert.False(Act(match, "send", 1, unit: veteran.Id).Accepted); Assert.Equal(full, State(match));
-        for (int i = 0; i < 2; i++) Assert.True(Act(match, "store", 1, unit: city.Soldiers.First(u => !u.Assignment!.Stored).Id).Accepted);
+        for (int i = 1; i < ArmyConfiguration.Capacity(city.Slots[1].CapacityLevel); i++)
+            Assert.True(Act(match, "store", 1, unit: city.Soldiers.First(u => !u.Assignment!.Stored).Id).Accepted);
         full = State(match); Assert.False(Act(match, "store", 1, unit: city.Soldiers.First(u => !u.Assignment!.Stored).Id).Accepted); Assert.Equal(full, State(match));
         Assert.False(Act(match, "sell", 1).Accepted); Assert.Equal(full, State(match));
         ResourceCost resources = city.Resources;
@@ -119,15 +122,19 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void FirstFitDoesNotPoolSizeAcrossHomesOrRepackSurvivors()
+    public void FirstFitReinforcesCompatibleSquadsWithoutPoolingHomesOrRepackingVeterans()
     {
+        // Tier A migration: home capacity counts homogeneous members, not size
+        // budgets. Preserve first-fit, full/type refusal and stable veteran claims.
         var config = new ArmyConfiguration(new(), new HexBoard(HexBoardDefinition.Default()));
-        UnitState Unit(int id, int size, int tile) => new(id, 100)
-        { Faction = Faction.Adventurers, Profile = new() { Size = size }, Assignment = new(-1, 0, tile, id) };
-        UnitState[] existing = [Unit(1, 4, config.HomeCells[0]), Unit(2, 4, config.HomeCells[1])];
-        Assert.Null(config.Find(existing, 2, 3));
-        ArmyAssignment? fitting = config.Find(existing, 2, 2);
-        Assert.NotNull(fitting); Assert.Equal(config.HomeCells[0], fitting.Tile);
-        Assert.Equal(config.HomeCells[1], existing[1].Assignment!.Tile);
+        UnitState Unit(int id, int tile) => new(id, 100)
+        { Faction = Faction.Adventurers, SquadId = tile + 1, Type = UnitType.Swordsman, Profile = new() { Size = 1 }, Assignment = new(-1, 0, tile, 1) };
+        UnitState[] existing = [Unit(1, 0), Unit(2, 0), Unit(3, 1), Unit(4, 1), Unit(5, 1)];
+        Assert.Null(config.Find(existing, 2, 1, type: UnitType.Mage));
+        Assert.Null(config.Find(existing, 2, 1, squadId: -1));
+        ArmyAssignment? fitting = config.Find(existing, 2, 1, type: UnitType.Swordsman, squadId: 1);
+        Assert.NotNull(fitting); Assert.Equal(0, fitting.Tile);
+        Assert.Null(config.Find(existing.Append(Unit(6, 0)), 2, 1, type: UnitType.Swordsman));
+        Assert.Equal(1, existing[2].Assignment!.Tile);
     }
 }

@@ -63,7 +63,7 @@ public sealed class ArmyProgressionTests
                 int ally = combat.Create(type, 1, 1, 1, rank: 2, level: level);
                 int enemy = combat.Create(type, 0, 1, 1, Faction.Skeletons, rank: 2, level: level);
                 Assert.Equal(combat.Read(ally).Profile, combat.Read(enemy).Profile);
-                Assert.Equal(2, combat.Read(ally).Size); Assert.Equal(level, combat.Read(enemy).Level);
+                Assert.Equal(1, combat.Read(ally).Size); Assert.Equal(level, combat.Read(enemy).Level);
             }
     }
 
@@ -120,7 +120,7 @@ public sealed class ArmyProgressionTests
         int ally = combat.Create(UnitType.Swordsman, 1, 1, 1, rank: 0, isBoss: true, level: 5);
         UnitState initial = combat.Read(ally); combat.Seed(initial with { Health = initial.Health - 100 });
         combat.Research(1, new(Owned: 1UL << (int)TechnologyId.MeleeFoundation), new()); combat.Transfer(ally, 2);
-        UnitState transferred = combat.Read(ally); Assert.Equal(5, transferred.Level); Assert.True(transferred.IsBoss); Assert.Equal(6, transferred.Size);
+        UnitState transferred = combat.Read(ally); Assert.Equal(5, transferred.Level); Assert.True(transferred.IsBoss); Assert.Equal(1, transferred.Size);
         Assert.Equal(initial.Health - 100, transferred.Health); Assert.Equal(111720, transferred.Profile.Health); Assert.Equal(6930, transferred.Profile.Damage);
         string json = JsonSerializer.Serialize(transferred, WireJson.Options);
         Assert.Equal(json, JsonSerializer.Serialize(JsonSerializer.Deserialize<UnitState>(json, WireJson.Options), WireJson.Options));
@@ -159,7 +159,7 @@ public sealed class ArmyProgressionTests
         UnitState reserve = city.Soldiers.Single(u => u.Id == mage.Id);
         Assert.Equal(UnitLifecycle.Reserve, reserve.Hex!.Lifecycle); Assert.False(reserve.Deployed); Assert.False(reserve.Participating);
         Assert.Equal(mage.Health, reserve.Health); Assert.Equal(5, reserve.Level); Assert.Equal(0, reserve.TargetId); Assert.False(reserve.PendingImpact);
-        Assert.DoesNotContain(match.Snapshot().Reservations.Positions, p => p.UnitId == mage.Id);
+        Assert.DoesNotContain(match.Snapshot().Reservations.Positions, p => p.UnitId == mage.SquadId);
         for (int step = 0; step < 120; step++) match.Step();
         Assert.Equal(mage.Health, city.Soldiers.Single(u => u.Id == mage.Id).Health); Assert.Equal(0, city.Food);
         match.SetConnected(1, true); Assert.Equal(0, city.Food); Assert.Equal(1, city.LastUpkeep.Wave);
@@ -210,8 +210,10 @@ public sealed class ArmyProgressionTests
         Act(match, "ready"); Assert.Equal(0, city.Food); Assert.Equal(12, city.LastUpkeep!.Paid);
         Assert.Equal(12, city.LastUpkeep.Participating.Length); Assert.Empty(city.LastUpkeep.Unfed);
         Assert.Equal(12, city.Soldiers.Count(u => u.Deployed && u.Participating));
-        Assert.All(city.Soldiers, u => Assert.Equal(u.Assignment!.Position, u.Hex!.Position));
-        Assert.All(city.Soldiers.GroupBy(u => u.Assignment!.Tile), home => Assert.InRange(home.Sum(u => u.Size), 1, 6));
+        var arena = new SharedArena([city.Id]);
+        Assert.All(city.Soldiers, u => Assert.Equal(new HexPosition(arena.Deployment(city.Id, u.Assignment!.Tile), 1), u.Hex!.Position));
+        Assert.All(city.Soldiers.GroupBy(u => u.Assignment!.Tile), home => Assert.Equal(3, home.Count()));
+        Assert.Equal(4, match.Snapshot().Reservations.Positions.Count(p => p.Faction == Faction.Adventurers));
         CityState projection = city.Snapshot(); projection.LastUpkeep!.Participating[0] = 999; projection.LastUpkeep.Funded[0] = 999;
         Assert.DoesNotContain(999, city.Snapshot().LastUpkeep!.Participating); Assert.DoesNotContain(999, city.Snapshot().LastUpkeep!.Funded);
         long revision = match.Revision; match.Snapshot(); Assert.Equal(revision, match.Revision); Assert.Equal(0, city.Food);
@@ -228,7 +230,7 @@ public sealed class ArmyProgressionTests
         {
             Health = 0,
             Deployed = true,
-            Hex = new(corpseId, 1, Faction.Adventurers, UnitLifecycle.Dying, new(19, 1), DeathEndTick: 5, Size: 2)
+            Hex = new(corpseId, 1, Faction.Adventurers, UnitLifecycle.Dying, new(19, 1), DeathEndTick: 5, Size: 1)
         });
         Prepare(match); var ledger = new CommandLedger(); Command ready = Request(match, "ready");
         Assert.True(ledger.Execute(ready, () => match.Apply(1, ready)).Accepted);
@@ -248,12 +250,16 @@ public sealed class ArmyProgressionTests
         Build(match, 0, Building.Barracks); Act(match, "recruit", 0);
         UnitState soldier = Assert.Single(city.Soldiers); Prepare(match); Act(match, "ready");
         Assert.Equal(0, city.LastUpkeep!.Paid); Assert.Equal(soldier.Id, Assert.Single(city.LastUpkeep.Unfed));
-        for (int step = 0; step < 1000 && city.Health == 10000; step++) match.Step();
+        var events = new List<CombatEvent>();
+        for (int step = 0; step < 1000 && city.Health == 10000; step++)
+        {
+            match.Step(); events.AddRange(match.Snapshot().CombatEvents.Where(e => e.Tick == match.Tick));
+        }
         Assert.True(city.Health < 10000); Assert.Equal(DefeatReason.None, match.DefeatReason);
         Assert.Equal(soldier.Health, Assert.Single(city.Soldiers).Health);
-        Assert.Contains(match.Snapshot().CombatEvents, e => e.Tower?.Type == Building.Empty && e.Type == CombatEventType.Impact && e.Landed);
-        Assert.DoesNotContain(match.Snapshot().CombatEvents, e => e.Unit?.Id == soldier.Id || !e.TargetCity && e.TargetId == soldier.Id);
-        Assert.DoesNotContain(match.Snapshot().Reservations.Positions, p => p.UnitId == soldier.Id);
+        Assert.Contains(events, e => e.Tower?.Type == Building.Empty && e.Type == CombatEventType.Impact && e.Landed);
+        Assert.DoesNotContain(events, e => e.Unit?.Id == soldier.Id || e.Unit is not null && !e.TargetCity && e.TargetId == soldier.Id);
+        Assert.DoesNotContain(match.Snapshot().Reservations.Positions, p => p.UnitId == soldier.SquadId);
     }
 
     [Fact]
@@ -267,23 +273,24 @@ public sealed class ArmyProgressionTests
         UnitState enemy = combat.Read(opponent); combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 11, 1) });
         for (int tick = 1; tick <= 300 && combat.Dying().Length == 0; tick++) combat.Step(tick, []);
         UnitState dying = Assert.Single(combat.Dying()); Assert.Equal(boss, dying.Id); Assert.Equal(3, dying.Level);
-        Assert.True(dying.IsBoss); Assert.Equal(6, dying.Size); Assert.Equal(initial.Profile, dying.Profile);
+        Assert.True(dying.IsBoss); Assert.Equal(1, dying.Size); Assert.Equal(initial.Profile, dying.Profile);
         Assert.Equal(0, dying.Health); Assert.Equal(UnitLifecycle.Dying, dying.Hex!.Lifecycle);
         Assert.Equal(dying.Id, Assert.Single(combat.Events(), e => e.Type == CombatEventType.Death).Unit!.Id);
     }
 
     [Fact]
-    public void UnfedReservesReturnNextWaveWithSameHealthWhileFedCapacityQueuesPay()
+    public void UnfedReservesReturnNextWaveWithSameHealthWhileFedSquadMembersPay()
     {
         using var combat = new CombatSimulation(new());
-        int reserve = combat.Create(UnitType.Mage, 1, 1, 1, level: 3); UnitState original = combat.Read(reserve);
+        int reserve = combat.Create(UnitType.Mage, 1, 1, 1, level: 3, assignment: new(-1, 0, 4, 1)); UnitState original = combat.Read(reserve);
         combat.Seed(original with { Health = original.Health - 100 });
-        _ = Enumerable.Range(0, 12).Select(_ => combat.Create(UnitType.Swordsman, 1, 1, 1, level: 4)).ToArray();
+        _ = Enumerable.Range(0, 12).Select(i => combat.Create(UnitType.Swordsman, 1, 1, 1, level: 4, assignment: new(-1, 0, i / 3, 1))).ToArray();
         var economy = new EconomyConfiguration(new());
         BattleFoodForecast forecast = BattleFood.Forecast(combat.Soldiers(1), 12, economy);
         Assert.Equal(12, forecast.Paid); Assert.Equal(12, forecast.Participating.Length); Assert.Equal(new[] { reserve }, forecast.Unfed);
         combat.BeginWave(1, forecast.Unfed); Assert.Equal(UnitLifecycle.Reserve, combat.Read(reserve).Hex!.Lifecycle);
-        Assert.Contains(combat.Soldiers(1), u => u.Participating && !u.Deployed);
+        Assert.Equal(12, combat.Soldiers(1).Count(u => u.Participating && u.Deployed));
+        Assert.Equal(4, combat.Reservations.Positions.Length);
         combat.BeginWave(2); UnitState returned = combat.Read(reserve);
         Assert.True(returned.Participating); Assert.Equal(original.Health - 100, returned.Health); Assert.Equal(3, returned.Level);
     }

@@ -71,8 +71,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             UnitState[] current = units.Concat(a.Combat.Dying()).ToArray();
             var currentIds = current.Select(u => u.Id).ToHashSet();
             Assert.Equal(64, current.Length + deaths.Count(id => !currentIds.Contains(id)));
-            var index = new HexOccupancy(a.Combat.Board); index.Rebuild(current.Select(u => ReservationOwner.FromSnapshot(u.Hex!)));
-            Assert.Equal(JsonSerializer.Serialize(index.Snapshot()), JsonSerializer.Serialize(a.Combat.Reservations));
+            CombatReservations rebuilt = CombatReservations.Reconstruct(a.Combat.Arena, a.Combat.SquadSnapshots());
+            Assert.Equal(JsonSerializer.Serialize(rebuilt), JsonSerializer.Serialize(a.Combat.Reservations));
             Assert.All(current.Where(u => u.Deployed), u => Assert.InRange(u.Hex!.Position.Cell, 1, 21));
             Assert.All(current.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
             MatchSnapshot first = a.Snapshot() with { MatchId = "normalized-session", Revision = 0 };
@@ -103,8 +103,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             UnitState[] current = match.Combat.Snapshot().Concat(match.Combat.Dying()).ToArray();
             var currentIds = current.Select(u => u.Id).ToHashSet();
             Assert.Equal(160, current.Length + deaths.Count(id => !currentIds.Contains(id)));
-            var index = new HexOccupancy(match.Combat.Board); index.Rebuild(current.Select(u => ReservationOwner.FromSnapshot(u.Hex!)));
-            Assert.Equal(JsonSerializer.Serialize(index.Snapshot()), JsonSerializer.Serialize(match.Combat.Reservations));
+            CombatReservations rebuilt = CombatReservations.Reconstruct(match.Combat.Arena, match.Combat.SquadSnapshots());
+            Assert.Equal(JsonSerializer.Serialize(rebuilt), JsonSerializer.Serialize(match.Combat.Reservations));
             Assert.All(current.Where(u => u.Deployed), u => Assert.InRange(u.Hex!.Position.Cell, 1, 21));
             Assert.All(current.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
         }

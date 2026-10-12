@@ -79,7 +79,7 @@ internal static class LargeBattle
                 Assert.Single(cell.Select(p => p.Faction).Distinct());
                 Assert.Equal(cell.Count(), cell.Select(p => p.Anchor).Distinct().Count());
             }
-            CombatReservations rebuilt = CombatReservations.Reconstruct(match.Configuration.Board, units.Select(u => CombatProjection.Snapshot(u, match.Tick).Hex!));
+            CombatReservations rebuilt = CombatReservations.Reconstruct(state.Arena!, state.Squads);
             Assert.Equal(JsonSerializer.Serialize(state.Reservations, WireJson.Options), JsonSerializer.Serialize(rebuilt, WireJson.Options));
             Assert.InRange(state.CombatEvents.Length, 0, CombatSimulation.HistoryLimit);
             Assert.All(state.CombatEvents, e => Assert.True(e.Tick >= match.Tick - CombatSimulation.HistoryTicks));

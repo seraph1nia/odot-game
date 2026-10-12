@@ -9,24 +9,25 @@ public sealed class CombatConfigurationTests
     [InlineData(UnitType.Berserker, 2, 20, 27, 1, 18, 54)]
     [InlineData(UnitType.Crossbowman, 2, 30, 30, 3, 18, 42)]
     [InlineData(UnitType.Mage, 2, 40, 30, 3, 24, 66)]
-    public void CandidateProfilesAreCentralizedAndResearchChangesOnlyHealthAndDamage(UnitType type, int cost, int initiative, int move, int range, int windup, int recovery)
+    public void CandidateProfilesAreCentralizedAndResearchChangesHealthAndBothDirectChannels(UnitType type, int cost, int initiative, int move, int range, int windup, int recovery)
     {
         var config = new CombatConfiguration(new()); HexCombatProfile p = config.Unit(type);
         Assert.Equal((cost, initiative, move, range, windup, recovery, 48), (p.Size, p.Initiative, p.MoveTicks, p.HexRange, p.WindupTicks, p.RecoveryTicks, p.DeathTicks));
-        Assert.Equal(p with { Health = HealthPoints.Ranked(p.Health, 2), Damage = HealthPoints.Ranked(p.Damage, 2) }, config.Unit(type, 2));
+        Assert.Equal(p with { Health = HealthPoints.Ranked(p.Health, 2), Damage = HealthPoints.Ranked(p.Damage, 2), SecondaryDamage = HealthPoints.Ranked(p.SecondaryDamage, 2) }, config.Unit(type, 2));
         using var combat = new CombatSimulation(new());
         int a = combat.Create(type, 1, 1, 1, rank: 2), b = combat.Create(type, 0, 1, 1, Faction.Skeletons, 2);
         Assert.Equal(combat.Read(a).Profile, combat.Read(b).Profile);
         Assert.Throws<ArgumentOutOfRangeException>(() => config.Unit(type, 3));
     }
     [Fact]
-    public void MageCandidateHasTwoVictimBenefitAndSingleTargetCadenceTradeoff()
+    public void MageCandidateHasWithinGroupSecondaryDamageAndSingleTargetCadenceTradeoff()
     {
         var c = new CombatConfiguration(new()); HexCombatProfile mage = c.Unit(UnitType.Mage), crossbow = c.Unit(UnitType.Crossbowman);
         Assert.Equal(1200, mage.Damage); Assert.Equal(2500, mage.Health);
         Assert.True((long)mage.Damage * crossbow.CadenceTicks < (long)crossbow.Damage * mage.CadenceTicks);
         Assert.True((long)mage.Damage * 2 * crossbow.CadenceTicks > (long)crossbow.Damage * mage.CadenceTicks);
-        Assert.Equal(1, mage.SplashHexRadius); Assert.Equal(2, mage.VictimCap);
+        Assert.Equal(400, mage.SecondaryDamage); Assert.Equal(0, crossbow.SecondaryDamage);
+        Assert.Equal(mage.StructureDamage, c.Unit(UnitType.Mage, rank: 2).StructureDamage);
         Assert.Equal(new ResourceCost(1, Cloth: 3), Catalogs.Units(new()).Single(u => u.Type == UnitType.Mage).Recruitment);
         // This is a profile check, not the still-required ordinary role fixture.
     }

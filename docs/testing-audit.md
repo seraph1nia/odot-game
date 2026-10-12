@@ -49,8 +49,54 @@ combat member fixtures or actual paid Match commands; no engine/world process.
 Estimated cost is seconds; the initial selected domain plus independent resource,
 economy, building transaction and Worldtree regression run passed 50 tests in 2s.
 This is partial domain coverage, not complete campaign/native/transport acceptance.
-The existing contradicted actor/occupancy cases have not yet been migrated in this
-staged implementation; their old guarantees must not be claimed for squad combat.
+Migration is staged; remaining old individual/city-isolation tests are not evidence
+for the new rules. No complete campaign/native/transport acceptance is implied.
+
+### Reservation and persistent roster migration
+
+Retired the unused `HexOccupancy`, `HexRouting`, `ReservationOwner`, city-filtered
+`CombatStage`, and the per-member reconstruction overload. `CombatReservations`
+now reconstructs current squad source claims and committed transits; `SharedArena`
+and `SquadMovement` remain the live routing/admission owners. `HexReachability`
+keeps its independent immutable graph-distance/parent checks.
+
+- Replaced `HexOccupancyTests` and size-budget rows in `UnitSizeTests` with
+  `SquadReservationTests`: exclusive sources, unique destinations, synchronized
+  friendly exchange, malformed identity/size/anchor/timing/transition/lifecycle,
+  inactive transit refusal, static footprint exclusion and immediate death release.
+  Actual authority movement verifies source ownership through tick 29 and arrival
+  at tick 30; no early destination claim or retained corpse transit.
+- Replaced old `HexRoutingTests` and retired `RoutingScoreEfficiencyTests`' unused
+  individual goal/cache policy. New real arena routes check shortest adjacent
+  detours, static/opponent blockage, availability after release and cross-sector
+  Keep approaches. No claim is made for the removed size-based ranged screen preference.
+- `AuthorityCombatTests` preserves paid openings, complete wire round trips,
+  decisions, bounded history, corpse resynchronization, all three authority modes,
+  pause and disposal. Reconstruction uses received squad identities, not member
+  cosmetics. Verified immutable topology/rules are reused across ticks instead of
+  rebuilding all-pairs geometry twice per snapshot.
+- `ArmyRoster/ArmyProgression/ArmyRecovery/CombatLifecycle` migrate home index versus
+  physical cell and member versus squad identity assertions, while retaining full
+  payment denial/nonmutation, independent hall upgrades/capacity, injuries, level,
+  food priority, paid recovery eligibility, healing ceiling/overflow, reconnect
+  retry, frozen death pose/expiry and registry disposal. Eliminated rosters retain
+  inactive identities; settlement/return commands remain denied. Fallen-member
+  redirection is explicitly rejected without mutation.
+- Direct research modifies both X/Y channels but not the separate structural
+  profile. Existing ranked-boss/research equivalence caught and repaired the
+  accidental structural modifier. Defense events are retained by sequence during
+  receiving tests, not by enlarging the authority's bounded history.
+
+The coherent selected persistence/shared-domain batch passed **54 tests in 11s**.
+The first retirement batch passed 47/48; its only failure was an already-in-range
+route fixture, corrected to a source requiring movement. The final coherent
+selection passed **103 tests in 13s**, including the genuine query work counters,
+all affected persistence/recovery/authority classes and shared-domain checks.
+These are Tier A numerical and codec proofs, not rendered/native transport or
+complete paid balance evidence.
+The retained broad diagnostic (341 passed / 148 failed) is still unresolved; no
+blanket golden update or full-fast-green claim is made. Legacy synthetic profiling
+and remaining actor-policy tests still require explicit migration.
 
 ## Runner and linked production-boundary groups
 

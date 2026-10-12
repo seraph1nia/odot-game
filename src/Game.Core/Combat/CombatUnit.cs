@@ -30,8 +30,6 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
     public CombatTarget? Target => Action is CombatAction.Windup or CombatAction.Recovery ? Action.Attack?.Target
         : Decision.ObjectiveId > 0 ? new(Decision.ObjectiveCity ? CombatTargetKind.City : CombatTargetKind.Unit, Decision.ObjectiveId)
         : Action.Attack?.Target;
-    public ReservationOwner Reservation => new(Id, Destination, Faction, Location.Lifecycle, Location.Position, Action.Sequence,
-        Action is CombatAction.Waiting, Action as CombatAction.Moving, Location.DeathStartTick, Location.DeathEndTick, Location.FrozenMoveTicks, Profile.Size);
     public HexPosePoint? Pose(long tick)
     {
         if (!Deployed) return null;
@@ -40,27 +38,6 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
         int elapsed = Location.Lifecycle == UnitLifecycle.Dying ? Location.FrozenMoveTicks
             : checked((int)Math.Clamp((Location.FrozenTick ?? tick) - move.StartTick, 0, duration));
         return new(Location.Position, move.Destination, move.Transition, elapsed, duration);
-    }
-}
-
-// Occupancy receives only the evidence needed for size/anchor/transit ownership.
-// It does not retain a competing action store or schedule attacks.
-internal sealed record ReservationOwner(int Id, int City, Faction Faction, UnitLifecycle Lifecycle, HexPosition Position,
-    long ActionSequence, bool Ready, CombatAction.Moving? Move = null, long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0, int Size = 2)
-{
-    public bool HoldsTransit => Move is not null;
-    public HexPosition Destination => Move?.Destination ?? default;
-    public int Transition => Move?.Transition ?? 0;
-    public long StartTick => Move?.StartTick ?? 0;
-    public long EndTick => Move?.EndTick ?? 0;
-
-    public static ReservationOwner FromSnapshot(HexUnitState state)
-    {
-        if (!Enum.IsDefined(state.Action)) throw new ArgumentException("Invalid projected action.", nameof(state));
-        return new(state.Id, state.City, state.Faction, state.Lifecycle, state.Position,
-            state.ActionSequence, state.Action == UnitActionKind.Waiting,
-            state.HoldsTransit ? new(state.ActionSequence, state.Destination, state.Transition, state.StartTick, state.EndTick) : null,
-            state.DeathStartTick, state.DeathEndTick, state.FrozenMoveTicks, state.Size);
     }
 }
 

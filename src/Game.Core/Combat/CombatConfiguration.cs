@@ -48,8 +48,7 @@ public sealed record HexCombatProfile(UnitType Type, int Health, int Damage, int
     {
         Health = HealthPoints.Ranked(Health, rank),
         Damage = HealthPoints.Ranked(Damage, rank),
-        SecondaryDamage = HealthPoints.Ranked(SecondaryDamage, rank),
-        StructureDamage = HealthPoints.Ranked(StructureDamage, rank)
+        SecondaryDamage = HealthPoints.Ranked(SecondaryDamage, rank)
     };
     internal WeaponProfile Runtime() => new(Health, Damage, HexRange, MoveTicks, WindupTicks, CadenceTicks)
     {
