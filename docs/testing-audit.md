@@ -35,6 +35,23 @@ where unambiguous. Costs are qualitative unless an actual receipt is named.
 | AssemblyInfo, Profiling/ProfileProgram, ProfileOptions, Measurements, OwnedProfileProcess, ProfileTests, WorkCounterTests, CampaignTrace, SnapshotProfile | Static lifetime isolation, explicit profile selection, cancellation/cleanup bounds, truthful metrics | Keep fast ownership/count correctness A. Profiling commands stay explicit diagnostics, not PR benchmarks. Shared in-process fallback still uses actual locked xUnit executor. |
 | Profiling/ReferenceTraces, ReferenceTraceTests, CombatReplayFixtureTests, LargeBattle, LargeBattleFixtureTests | Ordered replay golden hashes; synthetic stress input construction | Replay/golden rows move E (2 rows). Delete LargeBattleFixtureTests (4 rows) which pinned synthetic dimensions/roster counts and mostly validated the fixture against itself. Actual `test-scale` still runs production combat for 600 ticks and asserts identity conservation, faction/capacity/unique reservations, reconstruction, event bounds, admission, attacks and deaths. HexBoard tests retain malformed graph validation. No stress correctness guarantee is claimed by ordinary A. |
 
+## Shared arena domain migration
+
+`SharedArenaTests` and `SharedCombatTests` add Tier A production coverage for
+connected 1–4-player sectors, reserved objectives/weapon footprints, uncapped X/Y
+(including zero channels), member contribution/chill aggregation, deterministic
+friendly exchanges/destination conflicts/death release, simultaneous squad/member
+death and overkill, paid homogeneous recruitment/partial funding, physical Keep
+access while distant defenders live, fallen-owner survivors and bounded solo
+progress with exclusive occupancy. Legacy individual/city-isolation tests cannot
+cover these actor contracts. Inputs use immutable seeded policies, explicit
+combat member fixtures or actual paid Match commands; no engine/world process.
+Estimated cost is seconds; the initial selected domain plus independent resource,
+economy, building transaction and Worldtree regression run passed 50 tests in 2s.
+This is partial domain coverage, not complete campaign/native/transport acceptance.
+The existing contradicted actor/occupancy cases have not yet been migrated in this
+staged implementation; their old guarantees must not be claimed for squad combat.
+
 ## Runner and linked production-boundary groups
 
 Relative to `tests/DevRunner.Tests`; listed names omit `Tests.cs`.

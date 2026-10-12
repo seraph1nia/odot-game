@@ -1,6 +1,6 @@
 namespace Game.Core;
 
-internal enum CombatTargetKind { Unit, City }
+internal enum CombatTargetKind { Unit, City, Watchpost }
 
 internal sealed record CombatTarget
 {

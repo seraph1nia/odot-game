@@ -8,6 +8,7 @@ internal sealed record CombatLocation(UnitLifecycle Lifecycle, HexPosition Posit
 internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfile Profile, CombatLocation Location,
     CombatAction Action, CombatDecisionState Decision)
 {
+    public int SquadId { get; init; }
     public UnitCapabilities Capabilities { get; init; }
     public ArmyAssignment? Assignment { get; init; }
     public bool RecoveryEligible { get; init; }
@@ -83,6 +84,7 @@ internal static class CombatProjection
                 location.DeathStartTick, location.DeathEndTick, location.FrozenMoveTicks, location.AdmittedTick, location.FrozenTick, location.FrozenAim, unit.Profile.Size),
             Decision = unit.Decision with { Route = unit.Decision.Route.ToArray(), Visited = unit.Decision.Visited.ToArray() },
             Type = unit.Type,
+            SquadId = unit.SquadId,
             IsBoss = unit.Identity.IsBoss,
             Level = unit.Identity.Level,
             Faction = unit.Faction,
@@ -136,6 +138,6 @@ internal static class CombatProjection
         };
         return new(new(state.Id, state.Type, state.Owner, state.Origin, state.Destination, state.Faction, state.Rank, state.IsBoss, state.Level), state.Health, profile,
             new(hex.Lifecycle, hex.Position, hex.AdmittedTick, hex.DeathStartTick, hex.DeathEndTick, hex.FrozenMoveTicks, hex.FrozenTick, hex.FrozenAim), action, decision)
-        { Capabilities = state.Capabilities, Assignment = state.Assignment, RecoveryEligible = state.RecoveryEligible, Statuses = state.Statuses.Detach() };
+        { SquadId = state.SquadId, Capabilities = state.Capabilities, Assignment = state.Assignment, RecoveryEligible = state.RecoveryEligible, Statuses = state.Statuses.Detach() };
     }
 }

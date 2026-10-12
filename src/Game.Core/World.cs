@@ -8,6 +8,7 @@ public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Ar
 public sealed record Rules
 {
     public CombatSettings Combat { get; init; } = new();
+    public ArenaSettings Arena { get; init; } = new();
     public ResearchSettings Research { get; init; } = new();
     public ArmySettings Army { get; init; } = new();
     public int CityHealth { get; init; } = 100;
@@ -65,6 +66,7 @@ public sealed record SlotState(Building Type, int Level)
 }
 public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin = 0, int Destination = 0)
 {
+    public int SquadId { get; init; }
     public HexUnitState? Hex { get; init; }
     public CombatDecisionState? Decision { get; init; }
     public UnitType Type { get; init; }
@@ -114,6 +116,9 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
 }
 public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Phase Phase, bool Paused, int Wave, int Turn, int TurnSerial, Rules Rules, CityState[] Players, UnitState[] Enemies)
 {
+    public ArenaState? Arena { get; init; }
+    public SquadState[] Squads { get; init; } = [];
+    public StructureState[] Structures { get; init; } = [];
     public ulong CombatSeed { get; init; }
     public int CombatRulesVersion { get; init; }
     public int DecisionAlgorithmVersion { get; init; } = 1;
@@ -140,14 +145,14 @@ public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Pha
     public CombatEvent[] CombatEvents { get; init; } = [];
 }
 public enum ConstructionPayment { Standard, GoldRecovery }
-public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase, int TurnSerial, string Action, int City = 0, int Slot = -1, Building Building = Building.Empty, UnitType SoldierType = UnitType.Swordsman, long ExpectedGeneration = 0, int ExpectedExpansionCount = -1, Resource Resource = Resource.Wood, int Bundles = 0, TechnologyId Technology = TechnologyId.None, ConstructionPayment Payment = ConstructionPayment.Standard, int UnitId = 0, int ExpectedHomeCount = -1, int ExpectedTrackLevel = -1)
+public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase, int TurnSerial, string Action, int City = 0, int Slot = -1, Building Building = Building.Empty, UnitType SoldierType = UnitType.Swordsman, long ExpectedGeneration = 0, int ExpectedExpansionCount = -1, Resource Resource = Resource.Wood, int Bundles = 0, TechnologyId Technology = TechnologyId.None, ConstructionPayment Payment = ConstructionPayment.Standard, int UnitId = 0, int ExpectedHomeCount = -1, int ExpectedTrackLevel = -1, int SquadId = 0, int Cell = 0)
 {
     // Capture contextual expectations once, after the caller reserves identity.
     // Retries resend this Command, never reconstruct it from newer state.
     public static Command FromSnapshot(MatchSnapshot snapshot, long sequence, string action, int city,
         int slot = -1, Building building = Building.Empty, UnitType soldierType = UnitType.Swordsman,
         TechnologyId technology = TechnologyId.None, Resource resource = Resource.Wood, int bundles = 0,
-        ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0)
+        ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0, int squadId = 0, int cell = 0)
     {
         CityState? target = snapshot.Players.FirstOrDefault(p => p.Id == city);
         SlotState? instance = target is not null && slot is >= 0 and < 9 ? target.Slots[slot] : null;
@@ -159,7 +164,7 @@ public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase,
         };
         return new(sequence, snapshot.MatchId, snapshot.Phase, snapshot.TurnSerial, action, city, slot, building,
             soldierType, instance?.Generation ?? 0, target is null ? -1 : target.Slots.Count(s => s.Purchased) - 5,
-            resource, bundles, technology, payment, unitId, target?.Army?.PurchasedHomes ?? -1, track);
+            resource, bundles, technology, payment, unitId, target?.Army?.PurchasedHomes ?? -1, track, squadId, cell);
     }
 }
 public sealed record CommandResult(long Sequence, bool Accepted, string Message);
@@ -171,7 +176,7 @@ public sealed class City
     private readonly ArmyConfiguration _army;
     internal City(int id, Rules rules, CombatSimulation combat, EconomyConfiguration economy, CombatConfiguration configuration, ArmyConfiguration? army = null)
     {
-        Id = id; Gold = rules.StartingGold; Wood = rules.StartingWood; Health = HealthPoints.FromWhole(rules.CityHealth); _combat = combat; _economy = economy; _configuration = configuration; _army = army ?? new(rules.Army, configuration.Board);
+        Id = id; Gold = rules.StartingGold; Wood = rules.StartingWood; Health = HealthPoints.FromWhole(rules.CityHealth); _combat = combat; _economy = economy; _configuration = configuration; _army = army ?? new(rules.Army, configuration.Board, rules.Arena.SquadCapacity);
         Defender = new(id, -1, Building.Empty, 1);
     }
     public int Id { get; }
@@ -238,7 +243,7 @@ public sealed class Match : IDisposable
         _ = HealthPoints.FromWhole(Rules.DefenderDamage);
         _ = Catalogs.Units(Rules);
         Configuration = new(Rules);
-        Army = new(Rules.Army, Configuration.Board);
+        Army = new(Rules.Army, Configuration.Board, Rules.Arena.SquadCapacity);
         Economy = new(Rules);
         Campaign = new(Rules.Campaign, Configuration);
         ConfigurationFingerprint = RulesIdentity.Combine(Configuration.Fingerprint, Economy.Fingerprint, Campaign.Fingerprint);
@@ -247,7 +252,8 @@ public sealed class Match : IDisposable
         _unitCatalog = Catalogs.Units(Rules);
         CombatSeed = combatSeed ?? BinaryPrimitives.ReadUInt64LittleEndian(RandomNumberGenerator.GetBytes(sizeof(ulong)));
         _combat = new(Rules, Configuration, CombatSeed);
-        _settlementCommands = new(Economy, Army, Configuration, _combat);
+        _combat.SetCityHealth(Rules.CityHealth);
+        _settlementCommands = new(Economy, Army, _combat);
     }
     public const int StepsPerSecond = 60;
     public Rules Rules { get; }
@@ -280,7 +286,7 @@ public sealed class Match : IDisposable
     {
         if (Phase != Phase.Lobby || Players.Count >= 4) return null;
         var city = new City(_nextPlayer++, Rules, _combat, Economy, Configuration, Army);
-        Players.Add(city.Id, city); Revision++;
+        Players.Add(city.Id, city); _combat.ConfigureArena(Players.Keys); Revision++;
         return city;
     }
     public void SetConnected(int id, bool connected)
@@ -297,6 +303,9 @@ public sealed class Match : IDisposable
         return new(Id, Revision, Tick, Phase, Paused, Wave, Turn, TurnSerial,
         Rules with { Army = Army.Definition(), Combat = Rules.Combat with { Board = Configuration.Board.Definition() }, Campaign = Campaign.Definition() }, Players.Values.Select(p => p.Snapshot(soldiers.GetValueOrDefault(p.Id) ?? [], Phase is Phase.Victory or Phase.Defeat)).ToArray(), units.Living.Where(u => u.Faction == Faction.Skeletons).ToArray())
         {
+            Arena = _combat.Arena,
+            Squads = _combat.SquadSnapshots(),
+            Structures = _combat.StructureSnapshots(Players.Values),
             TotalWaves = Campaign.TotalWaves,
             LastRewardedWave = LastRewardedWave,
             WaveCatalog = Campaign.Definition().Waves,
@@ -343,7 +352,7 @@ public sealed class Match : IDisposable
         {
             if (Phase != Phase.Lobby) return Reject("Match already started.");
             foreach (int absent in Players.Values.Where(p => !p.Connected).Select(p => p.Id).ToArray()) Players.Remove(absent);
-            _roster = Players.Keys.ToArray(); Phase = Phase.Building; Revision++;
+            _roster = Players.Keys.ToArray(); _combat.ConfigureArena(_roster); Phase = Phase.Building; Revision++;
             return new(command.Sequence, true, "Match started.");
         }
         if (Phase is not (Phase.Building or Phase.Preparation) || city.Eliminated) return Reject("Only living cities can act during building.");
@@ -425,7 +434,7 @@ public sealed class Match : IDisposable
         foreach (int dead in _roster.Where(id => Players[id].Eliminated))
             foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
                 for (int n = 0; n < entry.Count; n++) Spawn(dead, living[assigned++ % living.Length].Id, entry);
-        _combat.BeginWave(Wave, food.Values.SelectMany(f => f.Unfed));
+        _combat.BeginWave(Wave, food.Values.SelectMany(f => f.Unfed), Players.Values);
         UpdateEngagements([]);
     }
     private void Spawn(int origin, int destination, SpawnEntry entry) => _combat.Create(entry.Type, 0, origin, destination, Faction.Skeletons, entry.Rank, entry.IsBoss, entry.Level);
@@ -440,14 +449,14 @@ public sealed class Match : IDisposable
         {
             city.Ready = false; city.Defender = city.Defender with { PendingImpact = false };
             foreach (TowerState tower in city.Towers.Values.ToArray()) city.Towers[tower.Slot] = tower with { PendingImpact = false };
-            _combat.EliminateArmy(city.Id);
+            _combat.EliminateArmy(city.Id); // Only future participation; current survivors keep fighting.
         }
         City[] survivors = Players.Values.Where(p => !p.Eliminated).ToArray();
         if (survivors.Length == 0) { DefeatReason = DefeatReason.AllCitiesFallen; Phase = Phase.Defeat; _combat.StopActions(Players.Values); return; }
         CombatUnit[] enemies = _combat.EnemyMembership();
         int[] cleared = survivors.Where(c => !enemies.Any(e => e.Destination == c.Id)).Select(c => c.Id).ToArray();
         int next = 0;
-        foreach (CombatUnit enemy in enemies.Where(e => Players[e.Destination].Eliminated))
+        foreach (CombatUnit enemy in enemies.Where(e => Players[e.Destination].Eliminated).GroupBy(e => e.SquadId).Select(g => g.First()))
             _combat.Transfer(enemy.Id, survivors[next++ % survivors.Length].Id);
         if (next != 0) enemies = _combat.EnemyMembership();
         foreach (int city in cleared) _combat.TrackClearedAdmission(city);

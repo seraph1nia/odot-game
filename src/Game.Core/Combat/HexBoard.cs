@@ -80,8 +80,8 @@ public sealed class HexBoard
         ArgumentNullException.ThrowIfNull(definition);
         if (definition.Cells is null || definition.Anchors is null || definition.Entries is null || definition.SiegeCells is null)
             throw new ArgumentException("Missing board data.", nameof(definition));
-        if (string.IsNullOrWhiteSpace(definition.Id) || definition.Version < 1 || definition.Capacity != 6
-            || definition.Cells.Length is < 2 or > 256 || definition.Anchors.Length != 6)
+        if (string.IsNullOrWhiteSpace(definition.Id) || definition.Version < 1 || definition.Capacity is not (1 or 6)
+            || definition.Cells.Length is < 2 or > 256 || definition.Anchors.Length != definition.Capacity)
             throw new ArgumentException("Invalid board identity or bounded capacity/topology.", nameof(definition));
         Id = definition.Id; Version = definition.Version; Capacity = definition.Capacity;
         if (definition.Cells.Any(c => c is null || c.Neighbors is null || c.Id <= 0 || !Enum.IsDefined(c.Affinity)
@@ -108,9 +108,9 @@ public sealed class HexBoard
         }
         _distances = distances.ToFrozenDictionary(); Diameter = distances.Values.Max();
         if (definition.Anchors.Any(f => f is null || f.Id <= 0 || Math.Abs((long)f.AnchorX) > 10000 || Math.Abs((long)f.AnchorForward) > 10000)
-            || definition.Anchors.Select(f => f.Id).Distinct().Count() != 6
-            || definition.Anchors.Select(f => (f.AnchorX, f.AnchorForward)).Distinct().Count() != 6)
-            throw new ArgumentException("Six distinct bounded render anchors are required.", nameof(definition));
+            || definition.Anchors.Select(f => f.Id).Distinct().Count() != definition.Capacity
+            || definition.Anchors.Select(f => (f.AnchorX, f.AnchorForward)).Distinct().Count() != definition.Capacity)
+            throw new ArgumentException("Distinct bounded render anchors matching board capacity are required.", nameof(definition));
         Anchors = Array.AsReadOnly(definition.Anchors.OrderBy(f => f.Id).ToArray());
         _anchors = Anchors.ToFrozenDictionary(f => f.Id);
         if (definition.Entries.Length != 2 || definition.Entries.Any(e => e is null || e.RearCells is null || e.FrontCells is null)

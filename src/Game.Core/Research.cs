@@ -32,7 +32,12 @@ public readonly record struct UnitCapabilities(int FoundationPercent = 0, int Di
     public WeaponProfile Apply(WeaponProfile profile)
     {
         Validate();
-        return profile with { Health = Scale(profile.Health, FoundationPercent), Damage = Scale(Scale(profile.Damage, FoundationPercent), DirectDamagePercent) };
+        return profile with
+        {
+            Health = Scale(profile.Health, FoundationPercent),
+            Damage = Scale(Scale(profile.Damage, FoundationPercent), DirectDamagePercent),
+            SecondaryDamage = Scale(Scale(profile.SecondaryDamage, FoundationPercent), DirectDamagePercent)
+        };
     }
     internal UnitCapabilities Merge(UnitCapabilities other) => new(Math.Max(FoundationPercent, other.FoundationPercent), Math.Max(DirectDamagePercent, other.DirectDamagePercent),
         Math.Max(ReductionPercent, other.ReductionPercent), Math.Max(BurnPercent, other.BurnPercent), Math.Max(PoisonPercent, other.PoisonPercent), Math.Max(ChillPercent, other.ChillPercent));

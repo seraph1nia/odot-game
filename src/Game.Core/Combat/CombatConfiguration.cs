@@ -13,7 +13,7 @@ public sealed record DefenseTiming(int WindupTicks, int RecoveryTicks, int Victi
 }
 public sealed record CombatSettings
 {
-    public int RulesVersion { get; init; } = 5;
+    public int RulesVersion { get; init; } = 6;
     public StatusRules Statuses { get; init; } = new();
     public HexBoardDefinition Board { get; init; } = HexBoardDefinition.Default();
     public UnitSpace Swordsman { get; init; } = new(2, 10, 30, 48);
@@ -42,9 +42,19 @@ public sealed record HexCombatProfile(UnitType Type, int Health, int Damage, int
     int HexRange, int MoveTicks, int WindupTicks, int RecoveryTicks, int DeathTicks, int VictimCap = 1, int SplashHexRadius = 0)
 {
     public int CadenceTicks => checked(WindupTicks + RecoveryTicks);
-    public HexCombatProfile Researched(int rank) => this with { Health = HealthPoints.Ranked(Health, rank), Damage = HealthPoints.Ranked(Damage, rank) };
+    public int SecondaryDamage { get; init; }
+    public int StructureDamage { get; init; }
+    public HexCombatProfile Researched(int rank) => this with
+    {
+        Health = HealthPoints.Ranked(Health, rank),
+        Damage = HealthPoints.Ranked(Damage, rank),
+        SecondaryDamage = HealthPoints.Ranked(SecondaryDamage, rank),
+        StructureDamage = HealthPoints.Ranked(StructureDamage, rank)
+    };
     internal WeaponProfile Runtime() => new(Health, Damage, HexRange, MoveTicks, WindupTicks, CadenceTicks)
     {
+        SecondaryDamage = SecondaryDamage,
+        StructureDamage = StructureDamage,
         Size = Size,
         Initiative = Initiative,
         DeathTicks = DeathTicks,
@@ -75,6 +85,7 @@ public sealed class CombatConfiguration
     internal DefenseProfile BuiltInDefense { get; }
     internal DefenseProfile Tower(Building type, int level) => _towerProfiles[(type, level)];
     public StatusRules Statuses { get; }
+    public ArenaSettings Arena { get; }
     public int RulesVersion { get; }
     public HexBoard Board { get; }
     public ReadOnlyCollection<HexCombatProfile> Units { get; }
@@ -91,6 +102,13 @@ public sealed class CombatConfiguration
         ArgumentNullException.ThrowIfNull(rules);
         CombatSettings settings = rules.Combat;
         ArgumentNullException.ThrowIfNull(settings);
+        Arena = rules.Arena; ArgumentNullException.ThrowIfNull(Arena);
+        if (Arena.SquadCapacity is < 1 or > 12 || Arena.WatchpostHealth <= 0 || Arena.RallyDurationTicks <= 0
+            || Arena.RallyDamageReductionPercent is < 0 or > 100 || Arena.DefenderRange < 1 || Arena.ArrowRange < 1 || Arena.CatapultRange < 1
+            || new[] { Arena.SwordsmanSecondaryDamage, Arena.BerserkerSecondaryDamage, Arena.CrossbowmanSecondaryDamage, Arena.MageSecondaryDamage,
+                Arena.SwordsmanStructureDamage, Arena.BerserkerStructureDamage, Arena.CrossbowmanStructureDamage, Arena.MageStructureDamage, Arena.CatapultSecondaryDamage }.Any(d => d < 0))
+            throw new ArgumentException("Invalid squad capacity, damage or arena objectives.", nameof(rules));
+        _ = HealthPoints.FromWhole(Arena.WatchpostHealth);
         Statuses = settings.Statuses; ArgumentNullException.ThrowIfNull(Statuses); Statuses.Validate();
         Board = new(settings.Board); RulesVersion = settings.RulesVersion;
         RetryTicks = settings.RetryTicks; NoHealthProgressTicks = settings.NoHealthProgressTicks; MaximumWaveTicks = settings.MaximumWaveTicks;
@@ -119,7 +137,7 @@ public sealed class CombatConfiguration
             p => new DefenseProfile(p.Damage, p.WindupTicks, checked(p.CadenceTicks - p.WindupTicks), p.VictimCap, p.SplashHexRadius));
         // Reject values that could overflow the shared same-tick accumulator
         // even if every deployed body plus all nine towers hit one victim.
-        int maxActors = checked(Board.Cells.Count * Board.Capacity + 14);
+        int maxActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 40);
         if (Units.Any(p => p.Researched(2).Damage > int.MaxValue / maxActors)
             || Towers.Any(p => p.Damage > int.MaxValue / maxActors) || DefenderDamage > int.MaxValue / maxActors)
             throw new ArgumentException("Damage could overflow a simultaneous accumulator.", nameof(rules));
@@ -146,13 +164,25 @@ public sealed class CombatConfiguration
         HexCombatProfile original = _profiles[type];
         int health = Progression.ScaleWhole(original.Health / HealthPoints.Scale, level);
         int damage = Progression.ScaleWhole(original.Damage / HealthPoints.Scale, level);
-        if (isBoss) { health = checked(health * Progression.BossHealthMultiplier); damage = checked(damage * Progression.BossDamageMultiplier); }
+        int secondary = Progression.ScaleWhole(original.SecondaryDamage / HealthPoints.Scale, level);
+        int structural = Progression.ScaleWhole(original.StructureDamage / HealthPoints.Scale, level);
+        if (isBoss)
+        {
+            health = checked(health * Progression.BossHealthMultiplier); damage = checked(damage * Progression.BossDamageMultiplier);
+            secondary = checked(secondary * Progression.BossDamageMultiplier); structural = checked(structural * Progression.BossDamageMultiplier);
+        }
         HexCombatProfile resolved = (original with
-        { Health = HealthPoints.FromWhole(health), Damage = HealthPoints.FromWhole(damage), Size = isBoss ? 6 : original.Size }).Researched(rank);
+        {
+            Health = HealthPoints.FromWhole(health),
+            Damage = HealthPoints.FromWhole(damage),
+            SecondaryDamage = HealthPoints.FromWhole(secondary),
+            StructureDamage = HealthPoints.FromWhole(structural),
+            Size = isBoss ? 6 : original.Size
+        }).Researched(rank);
         WeaponProfile modified = capabilities.Apply(resolved.Runtime());
-        resolved = resolved with { Health = modified.Health, Damage = modified.Damage };
-        int maximumActors = checked(Board.Cells.Count * Board.Capacity + 14);
-        if (UnitCapabilities.Scale(UnitCapabilities.Scale(resolved.Damage, 10), 20) > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
+        resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage };
+        int maximumActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 40);
+        if (UnitCapabilities.Scale(UnitCapabilities.Scale(Math.Max(Math.Max(resolved.Damage, resolved.SecondaryDamage), resolved.StructureDamage), 10), 20) > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
         _resolved.Add(key, resolved); return resolved;
     }
     internal static HexCombatProfile Profile(Rules rules, UnitType type)
@@ -168,7 +198,23 @@ public sealed class CombatConfiguration
         int windup = type switch { UnitType.Swordsman => rules.MeleeWindupTicks, UnitType.Berserker => c.BerserkerWindupTicks, UnitType.Crossbowman => rules.RangedWindupTicks, _ => c.MageWindupTicks };
         int recovery = type switch { UnitType.Swordsman or UnitType.Crossbowman => checked(rules.AttackTicks - windup), UnitType.Berserker => c.BerserkerRecoveryTicks, _ => c.MageRecoveryTicks };
         return new(type, HealthPoints.FromWhole(health), HealthPoints.FromWhole(damage), space.Size, space.Initiative, range,
-            space.MoveTicks, windup, recovery, space.DeathTicks, type == UnitType.Mage ? c.MageVictimCap : 1, type == UnitType.Mage ? c.MageSplashHexRadius : 0);
+            space.MoveTicks, windup, recovery, space.DeathTicks, type == UnitType.Mage ? c.MageVictimCap : 1, type == UnitType.Mage ? c.MageSplashHexRadius : 0)
+        {
+            SecondaryDamage = HealthPoints.FromWhole(type switch
+            {
+                UnitType.Swordsman => rules.Arena.SwordsmanSecondaryDamage,
+                UnitType.Berserker => rules.Arena.BerserkerSecondaryDamage,
+                UnitType.Crossbowman => rules.Arena.CrossbowmanSecondaryDamage,
+                _ => rules.Arena.MageSecondaryDamage
+            }),
+            StructureDamage = HealthPoints.FromWhole(type switch
+            {
+                UnitType.Swordsman => rules.Arena.SwordsmanStructureDamage,
+                UnitType.Berserker => rules.Arena.BerserkerStructureDamage,
+                UnitType.Crossbowman => rules.Arena.CrossbowmanStructureDamage,
+                _ => rules.Arena.MageStructureDamage
+            })
+        };
     }
     internal static TowerDefinition[] TowerProfiles(Rules rules)
     {
@@ -186,7 +232,13 @@ public sealed class CombatConfiguration
             // BinaryWriter integers are little endian; fields/collections have
             // fixed order, explicit lengths, and no runtime object hashes.
             new ResearchCatalog().Write(writer, prices: false); Statuses.Write(writer);
-            writer.Write(RulesVersion); writer.Write(Progression.Growth); writer.Write(Progression.MaximumExponentLevel);
+            writer.Write(RulesVersion);
+            writer.Write(SharedArena.SectorWidth); writer.Write(SharedArena.Depth); writer.Write(1); // arena layout/movement contract version
+            writer.Write(Arena.SquadCapacity); writer.Write(Arena.WatchpostHealth); writer.Write(Arena.RallyDamageReductionPercent); writer.Write(Arena.RallyDurationTicks);
+            writer.Write(Arena.DefenderRange); writer.Write(Arena.ArrowRange); writer.Write(Arena.CatapultRange);
+            writer.Write(Arena.SwordsmanSecondaryDamage); writer.Write(Arena.BerserkerSecondaryDamage); writer.Write(Arena.CrossbowmanSecondaryDamage); writer.Write(Arena.MageSecondaryDamage);
+            writer.Write(Arena.SwordsmanStructureDamage); writer.Write(Arena.BerserkerStructureDamage); writer.Write(Arena.CrossbowmanStructureDamage); writer.Write(Arena.MageStructureDamage); writer.Write(Arena.CatapultSecondaryDamage);
+            writer.Write(Progression.Growth); writer.Write(Progression.MaximumExponentLevel);
             writer.Write(Progression.BossHealthMultiplier); writer.Write(Progression.BossDamageMultiplier); writer.Write(6); // Boss size and size-budget semantics.
             writer.Write(Board.Id); writer.Write(Board.Version); writer.Write(Board.Capacity);
             writer.Write(Board.Cells.Count);
@@ -210,7 +262,7 @@ public sealed class CombatConfiguration
             writer.Write(Units.Count);
             foreach (HexCombatProfile p in Units)
             {
-                writer.Write((int)p.Type); writer.Write(p.Health); writer.Write(p.Damage); writer.Write(p.Size); writer.Write(p.Initiative);
+                writer.Write((int)p.Type); writer.Write(p.Health); writer.Write(p.Damage); writer.Write(p.SecondaryDamage); writer.Write(p.StructureDamage); writer.Write(p.Size); writer.Write(p.Initiative);
                 writer.Write(p.HexRange); writer.Write(p.MoveTicks); writer.Write(p.WindupTicks); writer.Write(p.RecoveryTicks); writer.Write(p.DeathTicks);
                 writer.Write(p.VictimCap); writer.Write(p.SplashHexRadius);
             }
