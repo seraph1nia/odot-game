@@ -34,8 +34,26 @@ public partial class Tabletop
         foreach (string name in new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" })
             rows.Add(new() { ["name"] = name, ["stock"] = "0", ["income"] = "0" });
         _resources.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Resources", ["rows"] = rows });
+        // Receiving-only safe area: the immutable woodland frame has 40px
+        // decorated nine-slice corners, but the asset's generic inset is 16px.
+        // Keep all ledger text inside the central area without changing artwork
+        // or the theme inherited by unrelated panels.
+        var frame = (StyleBoxTexture)_resources.GetThemeStylebox("panel").Duplicate();
+        frame.ContentMarginLeft = frame.TextureMarginLeft;
+        frame.ContentMarginTop = frame.TextureMarginTop;
+        frame.ContentMarginRight = frame.TextureMarginRight;
+        frame.ContentMarginBottom = frame.TextureMarginBottom;
+        _resources.AddThemeStyleboxOverride("panel", frame);
+        // Wrapped context can change its minimum after the deferred container
+        // sort. Follow that native change rather than retaining a stale height.
+        _resources.MinimumSizeChanged += () => Callable.From(_resources.ResetSize).CallDeferred();
         var stack = _resources.GetNode<VBoxContainer>("Body");
+        stack.AddThemeConstantOverride("separation", 10);
         var table = stack.GetChildren().OfType<GridContainer>().Single();
+        table.AddThemeConstantOverride("h_separation", 16);
+        table.AddThemeConstantOverride("v_separation", 4);
+        table.GetChild<Label>(1).HorizontalAlignment = HorizontalAlignment.Right;
+        table.GetChild<Label>(2).HorizontalAlignment = HorizontalAlignment.Right;
         _incomeHeading = table.GetChild<Label>(2);
         var labels = _resources.Get("value_labels").AsGodotDictionary();
         foreach (string name in new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" })
@@ -45,7 +63,9 @@ public partial class Tabletop
         }
         _incomeContext = Text(stack, "", 11);
         Text(stack, "Upkeep", 12);
-        var upkeep = new GridContainer { Name = "UpkeepTable", Columns = 2 }; upkeep.AddThemeConstantOverride("v_separation", 2); stack.AddChild(upkeep);
+        var upkeep = new GridContainer { Name = "UpkeepTable", Columns = 2 };
+        upkeep.AddThemeConstantOverride("h_separation", 16);
+        upkeep.AddThemeConstantOverride("v_separation", 4); stack.AddChild(upkeep);
         _compactUpkeep = upkeep;
         _upkeepLabel = Text(upkeep, "Next battle", 12); _upkeepValue = Text(upkeep, "0 food", 12);
         _balanceLabel = Text(upkeep, "Food after payment", 12); _balanceValue = Text(upkeep, "0", 12);

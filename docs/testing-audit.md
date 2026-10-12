@@ -188,6 +188,20 @@ member are removed; original upstream hashes remain separately archived and live
 research authority is not replaced by a demo. Real HUD quote/denial/action checks
 replace the removed verification-only portable quote coverage.
 
+The construction/Resources spacing regression also strengthens this owner (see
+[measured layout receipt](ui-migration.md#construction-and-resources-spacing)).
+Real Button/TextParagraph/RichTextLabel metrics catch native title/cost line-box
+intersection and a caption omitted from the Button minimum; real ledger labels
+catch decorated-frame inset, column alignment, stock/upkeep intersection and
+stale deferred minimum-size allocation. Four current window sizes use production
+canvas scaling, starting/disconnected/max-int stocks exercise disabled/enabled
+controls and complete values. A settled container reproduces the old allocation;
+the unchanged asset component supplies the unsafe-inset counterfactual. No pure
+C# test sees these native metrics. This adds bounded layout frames within the
+same 60s component allowance, no new harness, process or full-game journey.
+No existing authority/modal/input assertions are removed; pixels/readability,
+GPU, session acceptance and the reported screenshot viewport remain unproven.
+
 The cross-subtree invitation regression strengthens this B receiving fixture:
 research opens through the production Tabletop callback, then the production
 GameApplication invitation factory/opening boundary suspends it. Native Tab,

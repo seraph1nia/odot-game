@@ -282,3 +282,61 @@ from filters. `.github/workflows/ci.yml` invokes the landed headless `ci-source`
 `ci-linux-package` and `ci-windows` gates; no graphical qualification is selected
 by those ordinary gates.
 No fullscreen or unrelated desktop capture is used for this migration.
+
+## Construction and Resources spacing
+
+Follow-up receiving-only fix, based on main `1d97f8a`. The supplied cropped
+building-options and Resources images show collisions/edge crowding; their
+2235×249 and 720×696 crop dimensions do **not** establish a full viewport or
+reproduce its scale. No new screenshot or graphical/full-game run was authorized.
+
+Native baseline `receiving` measured DejaVuSerif at the existing 11px override:
+14px line height, 11px ascent and 3px descent. Construction buttons were 32px
+high (native minimum 32), including a blank title line; the independently anchored
+cost Control started at y=8 and had height 21. A settled real GridContainer with
+the same inherited theme, font override and old receiving margins reproduces
+Magic academy's shaped first title line at y=2..16 and cost line at y=8..22:
+**8px vertical intersection**, not just intersecting Control bounds. The previous
+non-woodland receiving code also used this overlay/blank-line technique; history
+alone therefore does not prove the migration uniquely caused the screenshot.
+
+An initial standalone counterfactual assertion failed. Assigning its size before
+font/style overrides clamped it to 54px while the eventual minimum was 32px;
+its title line was y=13..27 and cost y=30..44, unlike the measured production
+allocation. It was rejected, not treated as native instability or waived. The
+retained counterfactual uses the actual container's settled native minimum.
+
+Construction now reserves a caption line using the real caption font height in
+Button content margins; native title shaping/wrapping and minimum size remain
+Godot-owned. For the current catalog, title lines occupy y=6..20 and cost lines
+y=24..38, with **4px gap**, **6px vertical** and **8px horizontal interior padding**,
+and a 44px minimum height. Caption width also contributes to the minimum, so
+costs are complete rather than ellipsized. Font sizes, captions/actions and
+normal/disabled semantics are retained; unrelated quote consumers are unchanged.
+
+Resources keeps the original frame/immutable asset bytes but overrides only the
+receiving panel's content inset from 16px to its 40px decorated nine-slice corners.
+Stock/income headings align with their distinct right-aligned value columns;
+resource/upkeep rows have 4px separation and stack sections 10px. Deferred native
+minimum changes resize the panel after context wrapping instead of retaining an
+oversized intermediate allocation. Starting stocks settle at 288×340, disconnected
+context at 288×364, and six maximum-int stocks at 343×340, all with 40px safe inset.
+
+Focused receipt: `logs/20261012-182938-0082b1bf`, `test-engine --scenario receiving`,
+10.04s component / 16.53s including preparation. Four windows (1100×820,
+1280×720, 1920×1080, 2200×1640) exercise production canvas stretch approximately
+1×, 0.878×, 1.317×, 2×; starting, disconnected and maximum-int stock states
+exercise all Army/Production construction labels/costs, enabled/disabled states,
+complete resource/footer numbers, shaped title/caption boxes, native minima,
+content bounds, safe inset, column alignment and fit above the bottom HUD.
+The existing authority/acknowledgment/rejection/research/modal/input checks pass.
+Fast C# receipt: `logs/20261012-182955-3eb480c9`, 466 core + 649 runner passed,
+2 Windows-only skips, 22.52s; excludes Deep. Locked restore and C# format completed
+with installed .NET 10.0.401 / Godot .NET 4.7.2 and auto-install disabled.
+
+These are implementation receipts, not final published-head CI acceptance.
+Headless shaped-line/control geometry does **not** prove artistic readability,
+rendered pixels/GPU, physical input, a full UI/session, or the screenshot's unknown
+viewport. Appearance, full-game journeys, graphical/private-display testing,
+other engine selections and package/transport qualification were not locally
+run for this follow-up. Current-head outer validation owns broader delivery gates.

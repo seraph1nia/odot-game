@@ -37,7 +37,7 @@ internal static class UiAssets
             _ => ""
         };
     }
-    internal static void Cost(Button button, ResourceCost cost)
+    internal static void Cost(Button button, ResourceCost cost, bool stacked = false)
     {
         RichTextLabel? label = button.GetNodeOrNull<RichTextLabel>("Cost");
         if (label is null)
@@ -55,6 +55,30 @@ internal static class UiAssets
         if (cost.Metal > 0) parts.Add($"{cost.Metal} metal");
         if (cost.Cloth > 0) parts.Add($"{cost.Cloth} cloth");
         label.Modulate = button.Disabled ? new Color(1, 1, 1, 0.6f) : Colors.White;
-        label.Text = "[center]" + string.Join(" · ", parts) + "[/center]";
+        string caption = string.Join(" · ", parts);
+        label.Text = "[center]" + caption + "[/center]";
+        if (!stacked) return;
+
+        // Construction titles use the Button's native shaped/wrapped text box.
+        // Reserve a separate caption line in its content margins, so the native
+        // minimum size includes BOTH lines rather than an ignored child overlay.
+        const int padding = 6, gap = 4, horizontalPadding = 8;
+        Font font = label.GetThemeFont("normal_font");
+        int fontSize = label.GetThemeFontSize("normal_font_size");
+        float height = Mathf.Ceil(font.GetHeight(fontSize));
+        button.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        button.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
+        button.CustomMinimumSize = new(Mathf.Ceil(font.GetStringSize(caption, fontSize: fontSize).X) + horizontalPadding * 2, 0);
+        foreach (string state in ApplicationTheme.ButtonStates)
+        {
+            var style = (StyleBox)button.GetThemeStylebox(state).Duplicate();
+            style.ContentMarginLeft = style.ContentMarginRight = horizontalPadding;
+            style.ContentMarginTop = padding;
+            style.ContentMarginBottom = padding + height + gap;
+            button.AddThemeStyleboxOverride(state, style);
+        }
+        label.AutowrapMode = TextServer.AutowrapMode.Off;
+        label.OffsetLeft = horizontalPadding; label.OffsetRight = -horizontalPadding;
+        label.OffsetTop = -padding - height; label.OffsetBottom = -padding;
     }
 }

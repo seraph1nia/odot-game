@@ -378,10 +378,10 @@ public partial class Tabletop : Node3D
             {
                 button.Visible = BuildingGroup(type) == _constructionGroup;
                 BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
-                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog) : "") + "\n ";
+                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog) : "");
                 button.AddThemeFontSizeOverride("font_size", 11);
                 button.Disabled = !edit || slot.Type != Building.Empty || build is null || !slot.Purchased || !me!.Resources.TryPay(build.Construction, out _);
-                UiAssets.Cost(button, build?.Construction ?? default);
+                UiAssets.Cost(button, build?.Construction ?? default, stacked: true);
                 button.TooltipText = explanation.Length > 0 ? explanation : build is null || focus is null ? "" : CostExplanation(build.Construction, focus.Resources);
             }
             BuildingDefinition? lumbermill = s?.BuildingCatalog.FirstOrDefault(b => b.Type == Building.Lumbermill);
