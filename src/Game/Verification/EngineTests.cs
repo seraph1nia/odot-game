@@ -22,11 +22,14 @@ public partial class EngineTests : Node
                 ["--supervised", "--engine-component-probe", "worldtree"] => "worldtree",
                 _ => throw new ArgumentException("Select one engine scenario.")
             };
+            Console.WriteLine($"MEASURE component invocation: executable={OS.GetExecutablePath()}; runtime={System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}; root={System.Environment.GetEnvironmentVariable("DOTNET_ROOT")}; rootX64={System.Environment.GetEnvironmentVariable("DOTNET_ROOT_X64")}; rollForward={System.Environment.GetEnvironmentVariable("DOTNET_ROLL_FORWARD")}; args={string.Join(' ', ClientSettings.EngineArguments())}");
             Main.Emit(new GameEvent("engine-ready", Message: scenario));
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             switch (scenario)
             {
-                case "settings": await Settings(); await UiComponents(); break;
+                case "settings": await Settings(); await CameraBoundaries(); await UiComponents(); PrepareRendererRestart(0); break;
+                case "renderer-forward": RendererStartup("forward_plus"); PrepareRendererRestart(1); break;
+                case "renderer-compatibility": RendererStartup("gl_compatibility"); break;
                 case "animation": Animation(); break;
                 case "worldtree": await Worldtree(); break;
                 case "receiving": await Receiving(); break;
@@ -45,6 +48,9 @@ public partial class EngineTests : Node
 
     private async Task Settings()
     {
+        Check(!Godot.FileAccess.FileExists("user://renderer.cfg") && ProjectSettings.GetSetting("rendering/renderer/rendering_method").AsString() == "forward_plus"
+            && RenderingServer.GetCurrentRenderingMethod() == "forward_plus" && RenderingServer.GetCurrentRenderingDriverName() == "vulkan",
+            "fresh native headless configuration requests and reports Forward+ / Vulkan before settings, not just a menu label");
         var ui = new Control(); AddChild(ui);
         using Theme theme = ApplicationTheme.Create();
         ClientSettings Create()
@@ -106,9 +112,93 @@ public partial class EngineTests : Node
         Check(fallback.Graphics["forest_theme"] == 2 && fallback.Graphics["magic"] == 1 && fallback.Graphics["weather"] == 2 && fallback.MasterVolume == 37,
             "invalid saved art fields fallback independently, leaving valid weather/audio intact");
         DestroySettings(fallback);
+        // Headless proves the production signal -> ConfigFile startup request,
+        // not GPU initialization. Active method stays authoritative for resources.
+        ClientSettings rendererSettings = Create(); rendererSettings.Open();
+        var renderer = rendererSettings.Dialog.Content.FindChildren("Graphics_renderer", "OptionButton", true, false).OfType<OptionButton>().Single();
+        var volumetric = rendererSettings.Dialog.Content.FindChildren("Graphics_volumetric", "OptionButton", true, false).OfType<OptionButton>().Single();
+        var rendererApply = rendererSettings.Dialog.FooterContent.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single();
+        Check(rendererSettings.Graphics.DesiredMethod == "forward_plus", "fresh requested renderer is real Forward+ default, not Compatibility");
+        using (var stale = new ConfigFile())
+        {
+            stale.SetValue("rendering", "renderer/rendering_method", "gl_compatibility");
+            Check(stale.Save("user://renderer.cfg") == Error.Ok, "owned stale startup override fixture");
+        }
+        Check(renderer.AllowReselect && renderer.Selected == 0, "real renderer OptionButton permits explicit same-value re-selection");
+        PopupMenu rendererPopup = renderer.GetPopup();
+        Console.WriteLine($"MEASURE renderer popup wiring: indexPressed={rendererPopup.GetSignalConnectionList(PopupMenu.SignalName.IndexPressed).Count}; idPressed={rendererPopup.GetSignalConnectionList(PopupMenu.SignalName.IdPressed).Count}");
+        Check(rendererPopup.GetSignalConnectionList(PopupMenu.SignalName.IndexPressed).Count > 0, "actual OptionButton owns the popup index signal path");
+        renderer.AllowReselect = false;
+        rendererPopup.EmitSignal(PopupMenu.SignalName.IndexPressed, 0L); rendererApply.EmitSignal(BaseButton.SignalName.Pressed);
+        using (var oldControl = new ConfigFile())
+        {
+            Check(oldControl.Load("user://renderer.cfg") == Error.Ok && oldControl.GetValue("rendering", "renderer/rendering_method").AsString() == "gl_compatibility",
+                "same-value native popup selection without AllowReselect reproduces retained stale startup override");
+        }
+        renderer.AllowReselect = true;
+        rendererPopup.EmitSignal(PopupMenu.SignalName.IndexPressed, 0L);
+        rendererSettings.Dialog.FooterContent.FindChildren("CancelGraphics", "Button", true, false).OfType<Button>().Single().EmitSignal(BaseButton.SignalName.Pressed);
+        rendererApply.EmitSignal(BaseButton.SignalName.Pressed);
+        using (var canceled = new ConfigFile())
+        {
+            Check(canceled.Load("user://renderer.cfg") == Error.Ok && canceled.GetValue("rendering", "renderer/rendering_method").AsString() == "gl_compatibility", "Cancel preserves existing startup choice");
+        }
+        // Native popup index signal exercises OptionButton's actual built-in
+        // handler and re-selection policy. ItemSelected would bypass both;
+        // IdPressed is not connected by this native OptionButton.
+        rendererPopup.EmitSignal(PopupMenu.SignalName.IndexPressed, 0L);
+        Check(!volumetric.Disabled && !volumetric.IsItemDisabled(1), "requested Forward+ permits next-launch volumetric configuration");
+        volumetric.EmitSignal(OptionButton.SignalName.ItemSelected, 1L); rendererApply.EmitSignal(BaseButton.SignalName.Pressed);
+        using (var repaired = new ConfigFile())
+        {
+            Check(repaired.Load("user://renderer.cfg") == Error.Ok && repaired.GetValue("rendering", "renderer/rendering_method").AsString() == "forward_plus"
+                && repaired.GetValue("rendering", "rendering_device/driver").AsString() == "vulkan", "explicit same-default selection repairs stale startup override before next engine initialization");
+        }
+        Check(rendererSettings.Graphics.Effective(false)["volumetric"] == 0 && rendererSettings.Graphics.Effective(true)["volumetric"] == 1,
+            "unsupported active method masks volumetric without destroying the supported requested preference");
+        renderer.EmitSignal(OptionButton.SignalName.ItemSelected, 1L); rendererApply.EmitSignal(BaseButton.SignalName.Pressed);
+        Check(volumetric.Disabled == !AtmosphereController.ForwardPlus, "Compatibility request cannot pretend unsupported fog is active");
+        DestroySettings(rendererSettings);
+        using (var cleanup = new ConfigFile())
+        {
+            cleanup.Load("user://settings.cfg"); cleanup.SetValue("visuals", "renderer", 0); cleanup.Save("user://settings.cfg");
+        }
+        DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath("user://renderer.cfg"));
         RemoveChild(ui); ui.Free();
     }
 
+    private void RendererStartup(string expected)
+    {
+        string requested = ProjectSettings.GetSetting("rendering/renderer/rendering_method").AsString();
+        string active = RenderingServer.GetCurrentRenderingMethod(), driver = RenderingServer.GetCurrentRenderingDriverName();
+        Check(requested == expected, "native next-process project override applies saved request: " + expected);
+        Console.WriteLine($"MEASURE renderer startup: requested={requested}; active={active}; driver={driver}; forwardPlus={AtmosphereController.ForwardPlus}");
+        // The headless driver is not proof that a Vulkan GPU can start. Its
+        // actual capability, not the persisted request, owns effective options.
+        var preferences = new GraphicsPreferences();
+        Check(preferences.Effective(AtmosphereController.ForwardPlus)["volumetric"] == (AtmosphereController.ForwardPlus ? 1 : 0),
+            "headless startup keeps actual-method volumetric fallback separate from request");
+        var atmosphere = new AtmosphereController(); AddChild(atmosphere);
+        try
+        {
+            atmosphere.Apply(preferences);
+            Check(atmosphere.Environment.VolumetricFogEnabled == AtmosphereController.ForwardPlus,
+                "production environment application enables fog only for supported active method");
+            preferences.Edit("atmosphere", 0); atmosphere.Apply(preferences);
+            Check(!atmosphere.Environment.VolumetricFogEnabled, "atmosphere Off still disables the actual fog resource");
+        }
+        finally { RemoveChild(atmosphere); atmosphere.Free(); }
+    }
+    private void PrepareRendererRestart(int selected)
+    {
+        var ui = new Control(); AddChild(ui);
+        using Theme theme = ApplicationTheme.Create();
+        var settings = new ClientSettings(); AddChild(settings); settings.Initialize(ui, theme); settings.Open();
+        var renderer = settings.Dialog.Content.FindChildren("Graphics_renderer", "OptionButton", true, false).OfType<OptionButton>().Single();
+        renderer.EmitSignal(OptionButton.SignalName.ItemSelected, (long)selected);
+        settings.Dialog.FooterContent.FindChildren("ApplyGraphics", "Button", true, false).OfType<Button>().Single().EmitSignal(BaseButton.SignalName.Pressed);
+        DestroySettings(settings); RemoveChild(ui); ui.Free();
+    }
     private static void DestroySettings(ClientSettings settings)
     {
         UiDialog dialog = settings.Dialog;

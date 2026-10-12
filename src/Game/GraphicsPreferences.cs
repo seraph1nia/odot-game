@@ -9,7 +9,7 @@ internal sealed class GraphicsPreferences
     internal static readonly GraphicsOption[] Options =
     [
         new("quality", "Graphics quality", "Display and performance", ["Low", "Medium", "High", "Ultra", "Custom"], 1),
-        new("renderer", "Renderer (next launch)", "Display and performance", ["Forward+ / Vulkan", "Compatibility / OpenGL"], 0),
+        new("renderer", "Renderer", "Display and performance", ["Forward+ / Vulkan", "Compatibility / OpenGL"], 0),
         new("vsync", "VSync", "Display and performance", ["Off", "On"], 1),
         new("fps", "FPS limit", "Display and performance", ["30", "60", "120", "Unlimited"], 1),
         new("scale", "Render scale", "Display and performance", ["70%", "85%", "100%"], 2),

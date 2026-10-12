@@ -70,13 +70,20 @@ public partial class EngineTests
             var prior = tree.Get("snapshot").AsGodotDictionary().Duplicate(true);
             Click(buttons["primary_left"].As<Button>());
             Check(dialog.Research.Description.Text.Contains("Melee Foundation", StringComparison.Ordinal), "native socket click reaches GUI through application input boundary");
+            // With duplicate bottom information removed, a 620px host can now fit
+            // the tree. Force a genuinely constrained native scroll fixture.
+            host.Size = new(host.Size.X, 520);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             var scroll = dialog.FindChildren("*", "ScrollContainer", true, false).OfType<ScrollContainer>().Single();
             scroll.ScrollVertical = 0;
-            Vector2 wheelPosition = scroll.GetGlobalRect().GetCenter();
+            Vector2 wheelPosition = scroll.GetGlobalRect().Position + new Vector2(20, 20);
             GetViewport().PushInput(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition, ButtonIndex = MouseButton.WheelDown, Pressed = true }, true);
             GetViewport().PushInput(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition, ButtonIndex = MouseButton.WheelDown, Pressed = false }, true);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(scroll.ScrollVertical > 0, "native wheel reaches modal scroll through application input boundary");
+            host.Size = new(host.Size.X, 620);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             tree.Get("action").As<Button>().GrabFocus();
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = true });
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = false });
@@ -103,7 +110,8 @@ public partial class EngineTests
                 && sibling["sap"].As<Control>().Get("progress").AsDouble() == 0, "actual child tween finishes independently");
             tree.Call("select_node", "terminal_left_a_2"); tree.Call("request_action"); Refresh();
             Check(dialog.Research.Description.Text.Contains("stone per building turn", StringComparison.Ordinal)
-                && tree.Get("points_label").As<Label>().Text.StartsWith("Research points", StringComparison.Ordinal), "adapter displays actual production benefit and existing research currency");
+                && !tree.Get("points_label").As<Label>().Visible && !tree.GetNode<Control>("SelectedNodeFooter").Visible,
+                "single hover surface displays benefit without duplicate currency/footer information");
             await ToSignal(tree, "awakening_finished");
             var snapshot = tree.Get("snapshot").AsGodotDictionary().Duplicate(true);
             var malformed = snapshot.Duplicate(true); malformed["points"] = -1;
@@ -143,16 +151,18 @@ public partial class EngineTests
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = false });
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(second.Description.Text.Contains("Magic Foundation", StringComparison.Ordinal), "native Enter press/release inspects focused tree node through actual signal");
-            last.GrabFocus(); Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, Pressed = true });
+            Check(second.HoverDetailsVisible && standaloneButtons["primary_center"].As<Button>().TooltipText.Length == 0,
+                "keyboard focus reaches the sole details surface without native duplicate tooltip");
+            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, Pressed = true });
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            Check(GetViewport().GuiGetFocusOwner() == second.Tree.Get("action").As<Button>(), "native Tab reaches available request footer");
+            Check(GetViewport().GuiGetFocusOwner() == second.Tree.Get("action").As<Button>(), "native Tab reaches focused node purchase within hover surface");
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, Pressed = false });
             TechnologyId intent = TechnologyId.None; second.Requested = id => intent = id;
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = true });
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Enter, Pressed = false });
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(intent == TechnologyId.MagicFoundation && !match.Players[1].Research.Has(intent), "native footer Enter press/release emits intent without allocating locally");
-            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, Pressed = true });
+            last.GrabFocus(); Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, Pressed = true });
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(GetViewport().GuiGetFocusOwner() == outside, "native forward Tab escapes component into host");
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, Pressed = false });

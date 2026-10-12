@@ -34,6 +34,9 @@ public partial class Tabletop
     {
         if (_researchDialog is null) return;
         var state = game.State;
+        // Read the current authoritative city balance even while the dialog is
+        // closed; sending an intent never spends points in presentation state.
+        _openResearch.Text = $"Worldtree ({Focus()?.Research.Points ?? 0})";
         if (!force && (!_researchDialog.Visible || _researchRevision == state?.Revision && _researchFocus == _focus && _researchConnected == game.Connected && _researchFeedback == game.Feedback)) return;
         _researchRevision = state?.Revision ?? -1; _researchFocus = _focus; _researchConnected = game.Connected;
         _researchFeedback = game.Feedback;

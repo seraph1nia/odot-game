@@ -59,6 +59,13 @@ consolidation into the existing minimal settings engine case, and
 owns selection and supervision. Current-head gates belong to the outer validation
 phases, not historical component receipts.
 
+## Framing, renderer and Worldtree evidence
+
+[Batch findings and local evidence](view-renderer-worldtree.md) distinguish native
+headless camera/control/resource checks from unexecuted rendered/GPU/live-session
+acceptance, and retain the new failed runtime-invocation receipt and its correction.
+These local implementation receipts are not final PR-head or CI qualification.
+
 ## Overhaul measurements (2026-10-11)
 
 Baseline source: `d7f1728` (the actual `origin/main` head when audited).

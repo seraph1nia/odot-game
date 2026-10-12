@@ -9,6 +9,8 @@ internal sealed partial class VillageLandscape : Node3D
     internal static Vector3 Defender => VillageLayout.Hex(-1, 0);
     private readonly LandscapeAssets _assets;
     internal IReadOnlyList<ForestMagic.Site> MagicSites { get; private set; } = [];
+    private readonly IReadOnlyList<ForestMagic.Site> _sourceMagicSites = [];
+    private Rect2? _battlefieldInner;
     private readonly Dictionary<(int Column, int Row), Node3D> _tiles = [];
     private readonly List<Node3D> _static = [];
     private readonly Dictionary<(string Kind, int X, int Z), MultiMeshInstance3D> _terrain = [];
@@ -25,6 +27,32 @@ internal sealed partial class VillageLandscape : Node3D
     private readonly List<(string Name, MultiMeshInstance3D Batch)> _paths = [];
     private float[][] _bridgeLandings = [];
     private (int Left, int Right, int Back, int Front)? _range;
+    private BattlefieldPerimeter? _perimeter;
+
+    internal void CoverBattlefield(Rect2 content, Rect2 cameraBoundary)
+    {
+        Rect2 inner = content.Grow(BattlefieldFrame.Margin);
+        if (_perimeter is null) { _perimeter = new BattlefieldPerimeter { Name = "OpaqueCloudPerimeter" }; AddChild(_perimeter); }
+        _perimeter.Cover(inner, cameraBoundary.Merge(inner));
+        if (_battlefieldInner != inner)
+        {
+            _battlefieldInner = inner;
+            foreach (Node3D node in _static) node.Visible = inner.HasPoint(new(node.Position.X, node.Position.Z));
+            // Keep the four bounded magical accents on real ground inside the
+            // compact landscape, not visibly hovering above the exterior fog.
+            MagicSites = _sourceMagicSites.Select(site =>
+            {
+                Vector2 point = new Vector2(site.Ground.X, site.Ground.Z).Clamp(inner.Position + Vector2.One * 3, inner.End - Vector2.One * 3);
+                Vector3 ground = new(point.X, 0, point.Y); ground.Y = GroundSurface(ground);
+                return site with { Ground = ground };
+            }).ToArray();
+        }
+        // Fixed playable-content extent, independent of camera travel/aspect.
+        // Ground outside this compact region is replaced by the opaque backstop.
+        Populate((
+            (int)Math.Floor(inner.Position.X / 3) - 1, (int)Math.Ceiling(inner.End.X / 3) + 1,
+            (int)Math.Floor(inner.Position.Y / VillageLayout.RowStep) - 1, (int)Math.Ceiling(inner.End.Y / VillageLayout.RowStep) + 1));
+    }
 
     internal VillageLandscape(Node3D parent, LandscapeAssets assets)
     {
@@ -63,7 +91,7 @@ internal sealed partial class VillageLandscape : Node3D
         _bridgeSubstratesRemoved = GroundGeometry.AdaptBridge(_bridge);
         for (int slot = 0; slot < 9; slot++) PlotOutline(slot);
         ComposeVillage();
-        MagicSites = new[]
+        _sourceMagicSites = MagicSites = new[]
         {
             ("Mushroom hollow", -3, 4, "spore_growth", .6f, "9bcfc9"),
             ("Bridge lantern", 2, 6, "moss_wash", .8f, "efd3a0"),
@@ -288,8 +316,13 @@ internal sealed partial class VillageLandscape : Node3D
             Back: Math.Min(-6, (int)Math.Floor((min.Z - travel.Y * 2) / VillageLayout.RowStep) - 3),
             Front: Math.Max(7, (int)Math.Ceiling((max.Z + travel.Y * 2) / VillageLayout.RowStep) + 3));
         if (_range is { } previous) range = (Math.Min(range.Left, previous.Left), Math.Max(range.Right, previous.Right), Math.Min(range.Back, previous.Back), Math.Max(range.Front, previous.Front));
+        Populate(range);
+    }
+    private void Populate((int Left, int Right, int Back, int Front) range)
+    {
         if (_range == range) return;
         _range = range;
+        foreach (ScatterGroup group in _scatter.Values) group.Placements.Clear();
         foreach (var key in _tiles.Keys.Where(k => k.Column < range.Left || k.Column > range.Right || k.Row < range.Back || k.Row > range.Front).ToArray())
         { Node3D tile = _tiles[key]; this.RemoveChild(tile); tile.QueueFree(); _tiles.Remove(key); }
         for (int row = range.Back; row <= range.Front; row++) for (int column = range.Left; column <= range.Right; column++)
@@ -297,20 +330,24 @@ internal sealed partial class VillageLandscape : Node3D
             if (_tiles.ContainsKey((column, row))) continue;
             var cell = new Node3D { Position = VillageLayout.Hex(column, row) }; this.AddChild(cell); _tiles[(column, row)] = cell;
             // Fixed coordinate pattern; no tall props in the playable region or its foreground sightlines.
-            bool originalScatter = (row < 3 || row > 14 || column is < -12 or > 12)
+            bool originalScatter = (_battlefieldInner is null || _battlefieldInner.Value.Grow(-2).HasPoint(new(cell.Position.X, cell.Position.Z)))
+                && (row < 3 || row > 14 || column is < -12 or > 12)
                 && (row < 3 || DetailedGround.ClearOfRoutes(cell.Position.X, cell.Position.Z, .7f));
             Vector3 originalFoot = new(0, DetailedGround.Elevation(column, row) - VillageLayout.Height(column, row), 0);
             if (originalScatter && (column <= -5 || row <= -7 && column >= 5) && Math.Abs(column * 17 + row * 31) % 7 == 0)
                 _assets.Place(cell, "props/kit_pine.glb", originalFoot, 1.5f, atmosphere: true);
             else if (originalScatter && (column <= -5 || column >= 5 || row <= -7 || row >= 7) && Math.Abs(column * 13 + row * 23) % 19 == 0)
                 _assets.Place(cell, "environment/components/forest_boulder.glb", originalFoot, .5f);
-            foreach (GroundDecoration detail in DetailedGround.Scatter(column, row)) Scatter(detail, column, row);
         }
+        foreach (var (column, row) in _tiles.Keys)
+            foreach (GroundDecoration detail in DetailedGround.Scatter(column, row))
+                if (_battlefieldInner is null || _battlefieldInner.Value.Grow(-2).HasPoint(new(detail.X, detail.Z))) Scatter(detail, column, row);
         RebuildTerrain();
         RebuildScatter();
     }
     private void RebuildTerrain()
     {
+        foreach (var batch in _terrain.Values) batch.Multimesh.InstanceCount = 0;
         var placements = _tiles.Keys.Select(k => (Kind: DetailedGround.Base(k.Column, k.Row), k.Column, k.Row, Turns: DetailedGround.FloorTurns(k.Column, k.Row)))
             .Concat(DetailedGround.Watercourse().Concat(DetailedGround.BankTrail()).Concat(DetailedGround.WoodlandTrail())
                 .Where(p => _tiles.ContainsKey((p.Column, p.Row))).Select(p => (Kind: p.Connector.Asset, p.Column, p.Row, p.Connector.Turns)));
