@@ -44,8 +44,8 @@ Use the requested Pi profile `openai/gpt-6.1-sol`, effort `high`.
    Escape, resize, disconnect and free-during-awakening. The component case does not qualify
    rendered window stacking or pixels.
 4. Existing headless source gate: `mise run ci-source --startup-timeout-ms 60000`
-   includes broader A, all four minimal engine cases, and the bounded default
-   failure/solo/playing-host transport cases. No deep/UI journey. Targeted
+   selects the [current headless CI coverage](verification.md#ci-coverage),
+   with no deep/UI journey. Targeted
    `test-network --scenario playing-host-lifecycle` is useful for entry-point
    changes; do not blindly repeat passed transport for documentation-only inputs.
 5. Package boundary: after verifying installed template marker/files, sequential

@@ -96,10 +96,12 @@ fixture, importer or assertion changes were made to obtain that pass.
 The [forest import report](forest-import.md) and
 [selection receipt](forest-import-receipt.json) own the later six-export refresh,
 required embedded-map closure, four standalone transparent decal textures and
-source-factor-faithful post-import correction. The current manifest pins the
-actual inspected source revision; no unused focal/library export or Ledger UI
-package is copied. The report distinguishes retained pre-rebase headless/native evidence from
-current inputs and the landed headless CI policy.
+source-factor-faithful post-import correction. The authored 3D manifest pins the
+actual inspected source revision; no unused focal/library export is copied.
+UI selection is owned separately by the
+[UI migration](ui-migration.md#source-and-runtime-boundary). The report distinguishes
+retained pre-rebase headless/native evidence from current inputs and the landed
+headless CI policy.
 Dreaming Forest game styling remains a separate next task.
 
 ## Detailed forest floors and surface overlays

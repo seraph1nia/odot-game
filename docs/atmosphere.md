@@ -127,8 +127,10 @@ The native Graphics tab has scrollable Display/performance, Atmosphere/weather,
 Existing display mode/resolution, Audio, About, kit styling, focus restoration
 and selectors remain. Display changes preview immediately; **Apply graphics** keeps them and **Cancel graphics changes** restores
 the last applied state. **Apply & close** keeps changes and closes only Settings;
-Escape/window-close discards unapplied graphics changes. A deliberate window resize
-outside Settings is saved, even when the initial launch supplied a transient display
+Escape or the Settings header close discards unapplied graphics changes.
+The [shared foreground dialog contract](ui-migration.md#discovered-live-consumers)
+owns modal input and focus; closing the application window still exits the client.
+A deliberate window resize outside Settings is saved, even when the initial launch supplied a transient display
 override; untouched launch overrides and cancelled in-dialog previews are not saved.
 Audio retains immediate application/save. Native keyboard focus follows the scroll
 container.

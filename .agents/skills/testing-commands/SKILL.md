@@ -65,13 +65,11 @@ native client package; it does not prepare source or implicitly export. CI share
 source preparation before overlapping completed C# binaries and headless network
 workers. Engine cases run separately and serially, each with fresh owned preferences.
 They instantiate production components in a minimal scene, never Main, the full
-application or world. The `settings` case retains selected woodland resources,
-modal input/lifetime/nested resize and Settings input/services; `receiving` owns
-actual HUD quotes/actions and cross-subtree invitation/research scope. `receiving` binds
-actual HUD/Worldtree Controls to an in-memory transport adapter and real numerical
-Match authority; it does not boot a game session or certify transport. [Worldtree
-coverage](../../../docs/worldtree.md#verification-and-limits) describes its
-source/package probe boundary. Network scenarios use real headless application
+application or world. See the coverage ledger for
+[`settings` resources/input/services](../../../docs/testing-audit.md#woodland-component-consolidation)
+and [`receiving` HUD/actions/foreground research scope](../../../docs/testing-audit.md#combined-tabletop-receiving-coverage-2026-10-12),
+and [Worldtree coverage](../../../docs/worldtree.md#verification-and-limits) for
+its source/package probe boundary. Network scenarios use real headless application
 peers; they are integration, not component tests.
 
 One worker owns each child's ordered event reader. Ports use cross-process lease
