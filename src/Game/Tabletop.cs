@@ -364,7 +364,7 @@ public partial class Tabletop : Node3D
             SlotState slot = SelectedPlot(focus) ?? new(Building.Empty, 0);
             TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
             BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
-            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{AssetCatalog.BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel ?? 2}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level, research: focus!.Research, technologies: s!.TechnologyCatalog) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : $"{HealthPoints.Format(tower?.Damage ?? 0)} damage every {tower?.CadenceTicks} ticks · {(tower?.SplashHexRadius > 0 ? $"radius {tower.SplashHexRadius} hex · up to {tower.VictimCap} enemies" : "single target · no splash")}");
+            _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{AssetCatalog.BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel ?? 2}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level, research: focus!.Research, technologies: s!.TechnologyCatalog) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : TowerDamageDescription(tower));
             if (home is not null) _detail.Text = $"Army plot {home.Number} · {home.State} · {home.Used}/6 spots\n" + _detail.Text;
             string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
             if (explanation.Length != 0) _detail.Text += "\n" + explanation;
@@ -406,7 +406,7 @@ public partial class Tabletop : Node3D
                 button.Visible = baseTower;
                 button.Text = name + "\n "; UiAssets.Cost(button, quote ?? default);
                 button.Disabled = !edit || !baseTower || quote is not { } cost || !me!.Resources.TryPay(cost, out _);
-                button.TooltipText = next is null ? "" : $"{HealthPoints.Format(next.Damage)} damage every {next.CadenceTicks} ticks · {(next.SplashHexRadius == 0 ? "single target · no splash" : $"radius {next.SplashHexRadius} hex · up to {next.VictimCap} enemies")}\n" + (focus is null || quote is null ? "" : CostExplanation(quote.Value, focus.Resources));
+                button.TooltipText = next is null ? "" : TowerDamageDescription(next) + "\n" + (focus is null || quote is null ? "" : CostExplanation(quote.Value, focus.Resources));
             }
             _upgrade.Visible = slot.Type != Building.TownHall && !baseTower;
             _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true, research: focus!.Research, technologies: s!.TechnologyCatalog) : "")}\n ";
@@ -461,6 +461,10 @@ public partial class Tabletop : Node3D
     }
     private static string BuildingGroup(Building type) => type switch
     { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.ResearchTower or Building.TownHall => "Army", Building.ArrowTower or Building.CatapultTower or Building.RapidArrowTower or Building.BombardTower => "Defense", Building.Market => "Trade", _ => "Production" };
+    private static string TowerDamageDescription(TowerDefinition? tower) => tower is null ? "" :
+        $"{HealthPoints.Format(tower.Damage)} damage every {tower.CadenceTicks} ticks · " +
+        (tower.VictimCap == 1 ? "single target · no splash" :
+            $"{(tower.SplashHexRadius == 0 ? "same-cell splash · " : "")}radius {tower.SplashHexRadius} hex · up to {tower.VictimCap} enemies");
     private static string BuildingName(Building type) => AssetCatalog.BuildingName(type);
     private static string ResourceText(ResourceCost cost) => string.Join(" / ", Enum.GetValues<Game.Core.Resource>().Where(r => cost.Amount(r) > 0).Select(r => $"{cost.Amount(r)} {r}"));
     private static string CostExplanation(ResourceCost cost, ResourceCost stocks) => ProgressionPresentation.CostExplanation(cost, stocks);

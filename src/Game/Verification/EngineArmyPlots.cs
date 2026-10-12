@@ -32,6 +32,9 @@ public partial class EngineTests
             hud.RefreshHud(1, -1);
             Button Button(string name) => host.FindChildren(name, "Button", true, false).OfType<Button>().Single();
             Label Detail() => host.FindChildren("SelectedPlot", "Label", true, false).OfType<Label>().Single();
+            void CheckInspection(string expected) => Check(Detail().Text.Contains(expected, StringComparison.Ordinal)
+                && dialogs.Any(d => d.Content.FindChildren("*", "Label", true, false).OfType<Label>().Any(l => l.Text.Contains(expected, StringComparison.Ordinal))),
+                "selected tower and Details receive authoritative damage description: " + expected);
             void Receive()
             {
                 if (receiver is not null) { RemoveChild(receiver); receiver.Free(); }
@@ -74,6 +77,9 @@ public partial class EngineTests
             Check(receiver!.Bounds[5] is not null && Detail().Text.Contains("TowerOccupied · 6/6", StringComparison.Ordinal)
                 && receiver.GetNode<Label3D>("Home5").Text.Contains("all 6 spots", StringComparison.Ordinal),
                 "actual imported tower bounds, label and selected inspection expose whole-plot occupation");
+            CheckInspection("single target · no splash");
+            Check(Button("BombardUpgrade").TooltipText.Contains("radius 1 hex · up to 3 enemies", StringComparison.Ordinal),
+                "default bombard preview retains authoritative radius and victim cap");
             match.Players[1].Metal = 0;
             await Click("BombardUpgrade"); hud.RefreshHud(1, 14);
             Check(!session.Results[^1].Accepted && match.Players[1].Towers[14].Type == Building.ArrowTower
@@ -88,17 +94,63 @@ public partial class EngineTests
             Check(session.State.Players[0].Towers.Single() is { Type: Building.BombardTower, Level: 2 }
                 && Detail().Text.Contains("Bombard tower", StringComparison.Ordinal) && !Button("BombardUpgrade").Visible,
                 "accepted upgraded artwork/inspection consumes authoritative path and removes duplicate upgrades");
+            CheckInspection("radius 1 hex · up to 3 enemies");
             Pick(9); await Click("ArrowTower"); session.Acknowledge(); hud.RefreshHud(1, 9); Receive(); Pick(9, roof: true);
             Check(Button("RapidArrowUpgrade").TooltipText.Contains("single target · no splash", StringComparison.Ordinal), "faster arrow preview explicitly excludes splash");
             await Click("RapidArrowUpgrade"); session.Acknowledge(); hud.RefreshHud(1, 9); Receive(); Pick(9, roof: true);
             Check(session.State.Players[0].Towers.Single(t => t.Slot == 9) is { Type: Building.RapidArrowTower, Level: 2 },
                 "second real native path acknowledges faster single-target arrow upgrade");
-            Pick(10); await Click("ArrowTower"); session.Acknowledge(); hud.RefreshHud(1, 10); Receive();
+            CheckInspection("single target · no splash");
+            Pick(10); await Click("CatapultTower"); session.Acknowledge(); hud.RefreshHud(1, 10); Receive(); Pick(10, roof: true);
+            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            await Click("Upgrade"); session.Acknowledge(); hud.RefreshHud(1, 10);
+            Check(session.Results[^1].Accepted && session.State.Players[0].Towers.Single(t => t.Slot == 10).Level == 2,
+                "native legacy army catapult upgrade retains its independent level path");
+            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            session.SendAction("build", 1, Building.CatapultTower); session.Acknowledge(); hud.RefreshHud(1, 1);
+            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            await Click("Upgrade"); session.Acknowledge(); hud.RefreshHud(1, 1);
+            Check(session.Results[^1].Accepted && session.State.Players[0].Towers.Single(t => t.Slot == 1).Level == 2,
+                "native legacy city catapult upgrade retains its independent level path");
+            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
             // Retained snapshots with all capacity tower-blocked disable recruitment.
             session.SendAction("build", 0, Building.Barracks); session.Acknowledge(); hud.RefreshHud(1, 0); await Frames();
             Check(Button("Recruit").Disabled, "actual recruitment UI excludes all tower occupied slots, including initially owned army plots");
             Check(!hud.IsInsideTree() && hud.GetChildCount() == 0 && host.Theme == theme,
                 "army fixture uses production current native resources and no application/world startup");
+            foreach (var (timing, expected) in new[]
+            {
+                (new DefenseTiming(30, 90, 4, 0), "same-cell splash · radius 0 hex · up to 4 enemies"),
+                (new DefenseTiming(30, 90, 1, 2), "single target · no splash")
+            })
+            {
+                using var configured = new Match(new Rules { StartingGold = 100, StartingWood = 100, Combat = new() { BombardTower = timing } });
+                configured.Join(); configured.Join();
+                Check(configured.Apply(1, Command.FromSnapshot(configured.Snapshot(), 1, "start", 1)).Accepted, "configured preview authority starts");
+                configured.Players[1].Stone = 100; configured.Players[1].Metal = 100;
+                var previewSession = new ReceivingSession(configured);
+                var previewHost = new Control { Theme = theme };
+                host.AddChild(previewHost);
+                var previewHud = new Tabletop(previewSession);
+                try
+                {
+                    previewHud.InitializeHud(previewHost, dialog => previewHost.AddChild(dialog), () => false, () => { });
+                    previewSession.SendAction("build", 9, Building.ArrowTower); previewSession.Acknowledge(); previewHud.RefreshHud(1, 9);
+                    var button = previewHost.FindChildren("BombardUpgrade", "Button", true, false).OfType<Button>().Single();
+                    Check(button.TooltipText.Contains(expected, StringComparison.Ordinal)
+                        && previewHud.DetailModals.OfType<UiDialog>().Any(d => d.Content.FindChildren("*", "Label", true, false).OfType<Label>().Any(l => l.Text.Contains(expected, StringComparison.Ordinal))),
+                        "configured bombard preview and Details describe victim cap before radius");
+                    button.EmitSignal(BaseButton.SignalName.Pressed);
+                    Check(previewSession.Results[^1].Accepted, "configured native bombard upgrade accepted");
+                    previewSession.Acknowledge(); previewHud.RefreshHud(1, 9);
+                    Check(previewHost.FindChildren("SelectedPlot", "Label", true, false).OfType<Label>().Single().Text.Contains(expected, StringComparison.Ordinal),
+                        "configured selected bombard receives the same authoritative description as its preview");
+                }
+                finally
+                {
+                    host.RemoveChild(previewHost); previewHost.Free(); previewHud.Free();
+                }
+            }
         }
         finally
         {
