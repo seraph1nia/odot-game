@@ -1,6 +1,6 @@
 # Compact battlefield, renderer selection and Worldtree
 
-## Product changes
+## Battlefield framing
 
 `BattlefieldFrame` derives presentation content from every authority combat cell
 and formation anchor, all nine buildable plots, home/defender silhouettes and
@@ -23,27 +23,18 @@ inside the cloud bank, and local travel stays bounded. Resize/HUD/content refits
 rebuild that envelope. Zoom-out stops at the fitted overview, rather than exposing
 more dead terrain. This is presentation framing, not deletion of combat space.
 
-Worldtree's HUD opener shows `Worldtree (X)` from the focused city's authoritative
-unspent balance, even when the dialog is closed. Costs are not deducted by intent.
-The native imported component remains byte-identical: the adapter hides its old
-footer/points section and moves the existing action into one hover/focus surface.
-There is no extra bottom description or native duplicate tooltip. Meaningful
-costs/effects and actual denials are concise bullets; prerequisite/availability
-boilerplate and healing/level disclaimers are absent. Hover/focus previews do not
-change the canonical selected node underneath a covering modal. Existing topology,
-tweens, inactive sockets, scrolling, keyboard traversal, purchase intent and
-foreground suspension/current-authority restoration remain.
+[Worldtree controls and details](worldtree.md#reachable-game-feature) owns the HUD
+balance, single details surface and pointer/keyboard purchase route; its
+[authority contract](worldtree.md#authority-deterministic-effects-and-persistence)
+owns intent and acknowledgment semantics.
 
 ## Established renderer mechanism, not a hardware diagnosis
 
-Forward+ / Vulkan has already been the real desktop fresh default since the landed
-renderer batch (`d7f1728`): `project.godot` requests `forward_plus`/`vulkan`, and the
-preferences default agrees. Ordinary play/dev does not force Compatibility; owned
-graphical verification deliberately does. Saved Compatibility and explicit CLI
-fallbacks are preserved. The previous label actually said **next launch**, not
-next release; it referred to process startup, not an unavailable product feature.
-The label is now simply Renderer and status names active method/driver, saved
-request, draft request and any Apply/restart requirement.
+[Renderer selection](atmosphere.md#renderer-selection) and
+[Settings behavior](atmosphere.md#settings-behavior) own defaults, fallbacks,
+persistence, active-versus-requested capability and restart guidance. The findings
+below explain the reproduced defect, not a separate renderer contract. The prior
+label said **next launch**, not next release; it referred to process startup.
 
 The established settings defect combined native selection and change-only
 persistence: OptionButton did not allow re-selection, and a same-value selection
@@ -55,14 +46,9 @@ none), with the same desired value + Apply, now writes the native startup overri
 Turning only `AllowReselect` off reproduces the retained stale override; Cancel
 leaves that fixture untouched. Untouched startup overrides are never silently reset.
 
-The capability gate has always required the **active `forward_plus` method**, not
-just a Vulkan API/label. Selecting Vulkan cannot change a running Compatibility
-or Mobile method into Forward+. Previously unsupported-active controls also made
-next-launch fog configuration inaccessible. A pending Forward+ request now permits
-configuration with an explicit next-launch explanation, while effective resources
-still use the active method's fallback. The supported active method can enable the
-actual Environment fog resource; Compatibility cannot. Atmospheric effects Off
-or fog intensity Off still disables volumetric fog deliberately.
+Previously unsupported-active controls also made next-launch fog configuration
+inaccessible. The corrected configuration path and its active-method fallback are
+documented in [Settings behavior](atmosphere.md#settings-behavior).
 
 The focused test drives actual Settings signals -> Apply -> owned `settings.cfg`
 and `renderer.cfg`, then awaits the child and intentionally restarts the **same
@@ -200,12 +186,9 @@ These are new failures, not an inherited accepted crash or waived success:
 
 ## Review R1: hover-only Research transit
 
-The shared dismissal path now places the existing details surface before checking
-its current viewport-space socket, panel and bounded horizontal transit strip.
-Socket ownership respects ancestor clipping; clipping cannot enlarge the gap.
-Native canvas transforms apply to hit geometry and viewport confinement. The
-existing keyboard-focus owner and foreground suspension/restoration remain intact;
-no timeout, duplicate panel or new popup supervisor was added.
+The current dismissal and placement contract belongs to
+[Worldtree controls and details](worldtree.md#reachable-game-feature).
+The receipts below retain the defect reproduction and focused regression coverage.
 
 Coverage admission: pure C# and the previous click/focus fixture missed the
 observable defect: a frame between socket exit and panel entry hid the only
@@ -246,11 +229,9 @@ not qualify physical mouse/compositor behavior or rendered appearance.
 
 ## Review R2: covered-socket hover ownership
 
-Pointer-only socket entry now checks the existing visible panel at its current
-placement in native viewport coordinates before replacing its owner. Explicit
-socket selection and native keyboard focus remain separate, deliberate owner
-changes. The panel stays mouse-transparent; R1 gap/clipping/dismissal and
-foreground scope behavior are unchanged.
+The current pointer, click and keyboard ownership contract belongs to
+[Worldtree controls and details](worldtree.md#reachable-game-feature).
+The receipts below retain the covered-socket defect and its focused regression.
 
 Coverage admission: the previous fixture entered the panel and jumped to Research,
 checking visibility but not ownership over covered sockets. Pure C# cannot detect

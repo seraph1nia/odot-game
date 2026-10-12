@@ -292,20 +292,20 @@ Structures, including the home and defender, SHALL be centered by their ground f
 - **AND** they do not cover buildable plots or obstruct the battle approach
 
 ### Requirement: Continuous countryside view coverage
-At 1100x820 and 1280x720 and after supported viewport or HUD changes, all visible world area SHALL be covered by the authored countryside without exposing the terrain patch perimeter, its exterior slab walls or the flat environment background beyond it. Coverage SHALL include every permitted camera zoom and pan position when navigation is available. Extending scenery SHALL NOT enlarge the fitted overview bounds so as to shrink the playable village; at the default/reset overview all nine plots, home, defender and the battle approach SHALL remain visible above the HUD. Authored river edges and terrain transitions SHALL join coherently throughout visible coverage, and tall scenery SHALL remain clear of plot and battle sightlines. Terrain SHALL reuse imported geometry/shared material resources and bounded chunked instancing rather than instantiate a separate full scene per ordinary floor cell.
+At 1100x820 and 1280x720 and after supported viewport or HUD changes, the visible battlefield SHALL use compact authored countryside bounded by opaque grey clouds, without exposing cut terrain edges or the flat environment background beyond them. Coverage SHALL include every permitted camera zoom and pan position when navigation is available; navigation SHALL NOT pass the cloud envelope. Fitted overview bounds SHALL derive from playable content rather than exterior scenery; at the default/reset overview all nine plots, home, defender and the battle approach SHALL remain visible above the HUD. [Battlefield framing](../../../docs/view-renderer-worldtree.md#battlefield-framing) owns the implementation details. Authored river edges and terrain transitions SHALL join coherently throughout visible coverage, and tall scenery SHALL remain clear of plot and battle sightlines. Terrain SHALL reuse imported geometry/shared material resources and bounded chunked instancing rather than instantiate a separate full scene per ordinary floor cell.
 
 #### Scenario: Fill the overview after resizing
 - **WHEN** the client displays or resizes the default city overview at either supported verification size
-- **THEN** countryside covers the entire visible world area with its outer perimeter offscreen
+- **THEN** compact countryside and its opaque cloud boundary cover the visible world area without exposing cut terrain edges
 - **AND** the plots and battle approach remain readable and selectable above the HUD
 
 #### Scenario: Cover camera travel limits
 - **WHEN** the player navigates to a permitted zoom or pan limit
-- **THEN** the visible world area remains filled with coherently joined countryside
+- **THEN** coherently joined countryside and the cloud boundary retain coverage, and the camera stays within the boundary
 - **AND** Reset view restores the complete playable composition
 
 ### Requirement: Menu shares the starting countryside
-The start screen and multiplayer entry backdrop SHALL render the same terrain arrangement, elevations, home, defender, nine empty plots with the starting five-purchased/four-locked appearance, river, bridge and static decorations as a fresh starting village, with consistent asset scale, materials and lighting. Menu framing SHALL fill the background around its readable controls and use the same landscape coverage rules for its viewport. Menu scenery SHALL remain non-interactive and SHALL NOT create a gameplay session, connect to an authority or expose match actions. Returning to the menu SHALL restore the empty starting countryside without retaining a previous match's purchased expansions, constructed buildings or units. Source and exported graphical clients SHALL provide this same presentation; headless roles SHALL remain free of visual instantiation.
+The start screen and multiplayer entry backdrop SHALL reuse the starting village's terrain composition, elevations, home, defender, nine empty plots with the starting five-purchased/four-locked appearance, river, bridge and static decoration assets, with consistent asset scale, materials and lighting. Menu framing SHALL fill the background around its readable controls using viewport-derived countryside coverage, rather than the compact battlefield cloud boundary. Menu scenery SHALL remain non-interactive and SHALL NOT create a gameplay session, connect to an authority or expose match actions. Returning to the menu SHALL restore the empty starting countryside without retaining a previous match's purchased expansions, constructed buildings or units. Source and exported graphical clients SHALL provide this same presentation; headless roles SHALL remain free of visual instantiation.
 
 #### Scenario: Enter a solo match from the menu
 - **WHEN** the player views the start screen and then starts a fresh solo match

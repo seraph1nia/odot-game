@@ -170,9 +170,9 @@ Compatibility's Low desired FXAA is unsupported and honestly falls back to **Off
 Medium/default desired MSAA 2× also uses **Off** by the matched cost policy. Desired
 values are retained, Forward+2×/FXAA remains unchanged, explicit supported High4× /
 shadows/SSAO remains unchanged, and Ultra's TAA fallback remains supported MSAA2×.
-Unsupported choices are disabled and actual/applied versus desired-draft/effective
-labels explain these distinctions. The previous FXAA claim is withdrawn: property
-setter/getter state was not active capability proof. Authoritative renderer code at
+Actual/applied versus desired-draft/effective labels explain these distinctions;
+choice availability follows the active/pending Forward+ policy above. The previous
+FXAA claim is withdrawn: property setter/getter state was not active capability proof. Authoritative renderer code at
 locked engine hash `ed1daf0bf` returns before applying non-Off screen-space AA on
 Compatibility. Matched MSAA-off cost proof and new actual Off witnesses are separate
 from historical unsupported FXAA assertions.
