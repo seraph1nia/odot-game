@@ -128,6 +128,33 @@ public partial class EngineTests
             Click(nodes["primary_left"].As<Button>()); await Frames();
             Check(!action.Disabled && dialog.Research.Description.Text.Contains("3 research points", StringComparison.Ordinal), "native foundation selection shows the actual three-point catalog cost");
             await InvitationScope(join, dialog, farm, () => session.Commands.Count);
+            session.SendAction("pause"); session.Acknowledge(); Refresh(slot: 2);
+            Check(session.Results[^1].Accepted && session.State.Paused && action.Disabled && dialog.Research.Description.Text.EndsWith("Paused", StringComparison.Ordinal),
+                "paused Building research shows its current denial before an invitation");
+            GameApplication.ShowJoinConfirmation(join); await Frames();
+            var peer = new ReceivingSession(match, 2);
+            peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
+            Check(peer.Results[^1].Accepted && !session.State.Paused && !dialog.Visible && action.Disabled,
+                "another player's acknowledged resume reaches the HUD while research remains suspended");
+            Click(join.GetCancelButton());
+            Check(dialog.Visible && !action.Disabled && dialog.Research.Description.Text.EndsWith("Available.", StringComparison.Ordinal)
+                && dialog.Research.Description.Text.Contains("3 research points", StringComparison.Ordinal)
+                && tree.Get("snapshot").AsGodotDictionary()["available"].AsGodotArray().Any(v => v.AsString() == "primary_left")
+                && dialog.Research.Feedback.Text == session.Feedback && nodes["primary_left"].As<Button>().HasFocus(),
+                "invitation dismissal refreshes current availability, price, description and feedback before restoring research focus");
+            action.GrabFocus(); GameApplication.ShowJoinConfirmation(join); await Frames();
+            peer.Acknowledge(); peer.SendAction("pause"); session.Acknowledge(); Refresh(slot: 2);
+            Check(peer.Results[^1].Accepted && session.State.Paused && !dialog.Visible, "another player's acknowledged pause arrives while the enabled purchase is covered");
+            Click(join.GetCancelButton());
+            Check(action.Disabled && dialog.Research.Description.Text.EndsWith("Paused", StringComparison.Ordinal)
+                && tree.Get("snapshot").AsGodotDictionary()["available"].AsGodotArray().Count == 0
+                && tree.Get("snapshot").AsGodotDictionary()["selected"].AsString() == "primary_left" && nodes["root"].As<Button>().HasFocus(),
+                "restoration applies current denial and preserves selection while falling back from a disabled purchase focus");
+            before = session.Commands.Count;
+            PressKey(Key.Enter); await Frames();
+            Check(session.Commands.Count == before && match.Players[1].Research.Points == 30, "Enter after denied restoration cannot submit or spend research");
+            peer.Acknowledge(); peer.SendAction("resume"); session.Acknowledge(); Refresh(slot: 2);
+            Click(nodes["primary_left"].As<Button>()); await Frames();
             action.GrabFocus(); PressKey(Key.Enter); await Frames(); Refresh(slot: 2);
             Check(session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.MeleeFoundation }
                 && session.Results[^1].Accepted && match.Players[1].Research.Points == 27, "production Worldtree sender purchases through real Match authority");
@@ -138,7 +165,18 @@ public partial class EngineTests
                 && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 27, "real acknowledged snapshot updates the receiving Worldtree");
             Click(nodes["secondary_left_a"].As<Button>()); await Frames();
             Check(!action.Disabled && dialog.Research.Description.Text.Contains("6 research points", StringComparison.Ordinal), "native specialization now receives the actual six-point prerequisite quote");
-            Click(action); session.Acknowledge(); Refresh(slot: 2); await ToSignal(tree, "awakening_finished");
+            Click(action); GameApplication.ShowJoinConfirmation(join); await Frames();
+            session.Acknowledge(); Refresh(slot: 2);
+            Check(!dialog.Visible && tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 27,
+                "accepted specialization acknowledgment does not activate covered research");
+            Click(join.GetCancelButton());
+            Check(tree.Get("snapshot").AsGodotDictionary()["points"].AsInt32() == 21
+                && tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "secondary_left_a")
+                && nodes["secondary_left_b"].As<Button>().TooltipText.Contains("Permanently locked", StringComparison.Ordinal)
+                && tree.Get("points_label").As<Label>().Text == $"Research points  {session.State.Players[0].Research.Points} · progress {session.State.Players[0].Research.Progress}/3"
+                && dialog.Research.Feedback.Text == session.Results[^1].Message,
+                "covered acknowledgment restores authoritative acquired nodes, points/progress, sibling lock and command feedback");
+            await ToSignal(tree, "awakening_finished");
             Check(match.Players[1].Research.Has(TechnologyId.Guardian) && match.Players[1].Research.Points == 21, "production specialization request pays its real authority price");
             Click(nodes["secondary_left_b"].As<Button>()); await Frames();
             before = session.Commands.Count;
@@ -184,10 +222,10 @@ public partial class EngineTests
 // Transport stand-in only: capture with the same Command.FromSnapshot helper as
 // Main, execute the real numerical authority, then explicitly deliver snapshots.
 // It owns no duplicate purchasing, pricing, research or presentation logic.
-internal sealed class ReceivingSession(Match authority) : IGameSession
+internal sealed class ReceivingSession(Match authority, int player = 1) : IGameSession
 {
     public MatchSnapshot State { get; private set; } = authority.Snapshot();
-    public int PlayerId => 1;
+    public int PlayerId => player;
     public bool Connected { get; set; } = true;
     public string Status => Connected ? "Connected" : "Disconnected";
     public string Feedback { get; private set; } = "";

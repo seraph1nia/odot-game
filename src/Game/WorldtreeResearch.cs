@@ -118,7 +118,8 @@ public partial class WorldtreeDialog : Control
             _suspendedFocus = null;
             if (!IsInsideTree() || IsQueuedForDeletion()) return;
             Show();
-            if (focus is not null && IsInstanceValid(focus) && !focus.IsQueuedForDeletion() && focus.IsVisibleInTree() && IsAncestorOf(focus)) focus.GrabFocus();
+            if (focus is not null && IsInstanceValid(focus) && !focus.IsQueuedForDeletion() && focus.IsVisibleInTree() && IsAncestorOf(focus)
+                && focus.FocusMode != FocusModeEnum.None && focus is not BaseButton { Disabled: true }) focus.GrabFocus();
             else FocusContent();
         }
     }

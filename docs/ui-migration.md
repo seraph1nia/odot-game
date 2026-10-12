@@ -59,6 +59,9 @@ modal is open. Leave confirmation temporarily suspends the underlying Settings
 key scope; closure restores it. Join confirmation suspends the Tabletop research
 host by hiding its scope, preserving the selected native focus target; every
 invitation dismissal restores that scope before the existing service callback.
+The Tabletop research visibility boundary refreshes the current accepted session
+projection on both ordinary opening and restoration, before focus returns; a
+purchase control newly disabled by that snapshot uses the existing root fallback.
 The receiving fixture constructs the actual application invitation above the
 later HUD subtree, without starting the application or using Steam credentials.
 Dialogs are outside layout containers under the
@@ -229,6 +232,19 @@ before the selected passes; no deadline or expected state was relaxed. Changed
 C# was formatted after locked restore. Full suites/lint, animation/assets/standalone
 Worldtree, transport/export/package/hosted CI, Steam pairing and graphical checks
 were not executed in this review-fix round; the outer gates remain authoritative.
+
+The restoration-freshness review fix based on `3b01bae` passed the single focused
+headless `test-engine --scenario receiving --startup-timeout-ms 60000` selection:
+**114 checks**, 8.00s component / 22.95s including locked preparation. Evidence is
+`logs/review-r3/receiving/test-engine-summary.json` and its
+`engine-receiving/engine.log`; `logs/review-r3/focused.log` retains starting
+HEAD/tree and freshly verified installed SDK/engine identities. The new checks
+cover a peer resume and opposite pause during coverage, disabled-focus fallback,
+no denied Enter spend, and an accepted specialization acknowledgment delivered
+while hidden. All earlier receiving/input/authority checks remain. Changed C# was
+formatted after locked restore. No full C#/lint suites, other engine selections,
+transport/package/hosted CI, real Steam or graphical checks ran in this round;
+this selected pass is partial, not final publication clearance.
 
 Final village/building/army/research/combat/multiplayer live-game journeys and
 refreshed screenshots, native GPU/compositor/performance/physical input/listening,

@@ -13,7 +13,7 @@ public partial class Tabletop
     private string _researchFeedback = "";
     private void CreateResearch(Control cityControls, Control overlayHost)
     {
-        _openResearch = Button(cityControls, "Worldtree", () => { RefreshResearch(force: true); _researchDialog.Open(); });
+        _openResearch = Button(cityControls, "Worldtree", () => _researchDialog.Open());
         _openResearch.Name = "Research";
         _researchDialog = new WorldtreeDialog
         {
@@ -22,6 +22,7 @@ public partial class Tabletop
             Invoker = _openResearch
         };
         overlayHost.AddChild(_researchDialog);
+        _researchDialog.VisibilityChanged += () => { if (_researchDialog.IsVisibleInTree()) RefreshResearch(force: true); };
         _researchDialog.Research.Requested = technology =>
         {
             // Existing session sender captures current match/phase/turn and returns

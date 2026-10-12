@@ -202,6 +202,22 @@ owned state, three-frame synchronization and the 60s bound are reused; estimated
 incremental cost is a few dozen layout frames, not a second journey. These checks
 do not certify desktop focus or rendered pixels.
 
+The restoration-freshness regression extends the same receiving case with real
+commands from two numerical-authority session adapters: paused Building research
+is covered, the peer resumes and its accepted snapshot is delivered while hidden,
+then native Stay must restore enabled purchase, current cost/description/feedback
+and prior focus immediately. The opposite peer pause must disable purchase and
+use the existing root-focus fallback without spending on Enter. A specialization
+request sent before coverage is acknowledged while hidden; dismissal must project
+its acquired node, spent points/progress, exclusive sibling lock and actual result
+feedback. The prior constant-state invitation checks missed these transitions;
+rules tests cannot exercise the visibility callback before focus restoration.
+This remains Tier B with the same owned Controls, snapshot delivery, frame waits
+and deadline. Estimated added cost is a few frame waits plus the already-owned
+awakening, not a new application or transport journey. Ordinary opening and
+invitation restoration now share the Tabletop visibility refresh boundary; the
+opener no longer carries a duplicate refresh.
+
 Observed implementation cost: receiving **62 checks, 7.07s component / 12.92s
 including locked preparation**, `logs/20261012-082246-34c944ee/`; Settings **89
 checks, 1.96s / 6.91s**, `logs/20261012-081718-ddd7dd77/`; landed Worldtree **74
