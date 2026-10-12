@@ -2,11 +2,13 @@
 
 ## Reachable game feature
 
-Open **Worldtree** in the city controls (the stable observation target remains
-`Research`), without selecting a plot. Select a native socket by click or native
-Tab/Enter, read its description below the tree, and press **Research** in the
-selected-node footer. The footer shows the actual cost and authority-provided
-reason. Acquired, prerequisite-locked, unaffordable and inactive nodes remain
+Open **Worldtree (X)** in the city controls (the stable observation target remains
+`Research`), without selecting a plot. X is the current authoritative unspent city
+research balance, including while the dialog is closed; sending a request does not
+spend it locally. Hover a native socket or reach it with keyboard focus to read
+concise effects, cost and actual purchase denials in one shared details surface.
+Press **Research** there, or Tab from an available focused socket into that action.
+The bottom description/footer and native duplicate tooltips are not displayed. Acquired, prerequisite-locked, unaffordable and inactive nodes remain
 inspectable. Foreign cities and disconnected/paused/ready/fallen cities are
 read-only. Close/Escape restores the invoker when the window is focused. Settings
 remains available through its normal application entry, not inside research.
@@ -23,7 +25,9 @@ containers. `GameApplication.IsModalOpen` selects among the application's dialog
 world picking/drag/zoom. Application input consumption is restricted to embedded
 Window dialogs, allowing this in-viewport overlay to receive native GUI events.
 The panel does not pause the cooperative match. A bounded
-scroll host retains descriptions and the canonical 900×560 minimum component.
+scroll host retains the canonical 900×560 minimum component. The shared hover/focus
+surface follows its native socket and is clamped to the viewport; its informational
+background does not block picking other sockets.
 Physical control/branch identities survive selection, snapshots and resize.
 
 ## Bounded node design

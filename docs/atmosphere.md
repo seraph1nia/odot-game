@@ -144,6 +144,12 @@ engine's native `user://renderer.cfg` project-settings override for **next launc
 There is no automatic restart that could drop a live game. Finish/leave the session
 and relaunch deliberately. CLI renderer/FPS/display overrides stay transient;
 merely running a check or changing audio does not overwrite renderer preference.
+Explicitly selecting the same renderer and applying it also writes that startup
+override, repairing a stale override even when the saved settings value already
+matches. Cancel does not perform that repair. The Renderer label has no release
+promise; status separates active method/driver, saved request and draft/restart.
+See [framing and renderer findings](view-renderer-worldtree.md) for the current
+headless reproduction, corrected selection path and remaining GPU uncertainty.
 
 VSync offers portable On/Off. Adaptive is deliberately not offered because the
 engine has no portable present-mode support query; a driver can reject VSync
@@ -154,8 +160,11 @@ arguments are read before the application `--` separator on Linux and Windows;
 Windows runtime coverage is classified separately in the qualification status.
 Render scale affects 3D only (70/85/100%), leaving the UI at native resolution.
 AA is mutually exclusive Off/FXAA/TAA/MSAA 2×/4×. FXAA/TAA, SSIL and volumetric fog are
-Forward+-only in this product; unsupported choices are disabled with a supported
-AA fallback and saved desired preferences retained. Godot **4.7.2** also supports
+Forward+-only in this product. Unsupported active methods use a supported AA/fog
+fallback and retain saved desired preferences. A pending Forward+ request can
+configure next-launch features, but does not enable them in the active renderer;
+the controls explain Apply/restart. With active and requested Compatibility,
+unsupported choices remain disabled. Godot **4.7.2** also supports
 Compatibility SSAO and glow; these use their native implementation, not overlays.
 Compatibility's Low desired FXAA is unsupported and honestly falls back to **Off**;
 Medium/default desired MSAA 2× also uses **Off** by the matched cost policy. Desired

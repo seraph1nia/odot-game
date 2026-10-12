@@ -52,18 +52,22 @@ public static class WorldtreeProjection
         if (slot.Technology == TechnologyId.None)
             return id switch
             {
-                "root" => $"Established village · not a purchase. Base income: {state?.Rules.BaseGold ?? 2} gold per production. Research belongs to each city.",
-                "trunk_1" => "Established shared knowledge · not a purchase. Each shared wave clear grants every surviving city 1 research point. Choose one specialization per combat class; the other is permanently locked.",
-                "trunk_2" => $"Established research system · not a purchase. Research towers supply progress each production (level 1: {state?.Rules.Research.TowerLevelOneProgress ?? 1}; level 2: {state?.Rules.Research.TowerLevelTwoProgress ?? 2}). Every 3 progress becomes 1 research point; carry is retained after sales.",
-                _ => "Inactive slot · no implemented research, cost or benefit. The canonical artwork is retained; this node cannot be purchased."
+                "root" => $"The Common Watch\n• {state?.Rules.BaseGold ?? 2} gold per production\n• City-specific research",
+                "trunk_1" => "Shared knowledge\n• +1 point per shared wave clear\n• One specialization per combat class",
+                "trunk_2" => $"Research towers\n• Progress per production: L1 {state?.Rules.Research.TowerLevelOneProgress ?? 1} / L2 {state?.Rules.Research.TowerLevelTwoProgress ?? 2}\n• 3 progress → 1 point",
+                _ => "Dormant possibility\n• Inactive slot"
             };
         TechnologyDefinition? node = state?.TechnologyCatalog.FirstOrDefault(n => n.Id == slot.Technology);
         if (node is null) return "Waiting for authoritative research catalog.";
         string benefit = node.Production is { } production
-            ? $"Each {AssetCatalog.BuildingName(production.Building)} produces +{production.ExtraPerProducer} {production.Resource.ToString().ToLowerInvariant()} per building turn, at either level. No output without the producer; selling removes its output."
-            : ProgressionPresentation.CapabilityText(node.Benefit) + ". Applies to existing and newly recruited " + string.Join(", ", node.EligibleTypes.Select(type => AssetCatalog.UnitName(type))) + "; no healing or level change.";
-        string requirement = node.Prerequisite == TechnologyId.None ? "No prerequisite." : "Requires " + Title(Slots.Single(s => s.Technology == node.Prerequisite).VisualId) + ".";
-        string choice = node.Tier == 2 ? " Choosing this specialization permanently locks the other specialization and its descendants for this class." : "";
-        return $"{Title(id)} · {node.Cost} research points\n{benefit}\n{requirement}{choice}\n{ProgressionPresentation.ResearchAccess(state, city, player, connected, slot.Technology).Reason}";
+            ? $"+{production.ExtraPerProducer} {production.Resource.ToString().ToLowerInvariant()} per building turn / {AssetCatalog.BuildingName(production.Building)}"
+            : ProgressionPresentation.CapabilityText(node.Benefit) + " · " + string.Join(", ", node.EligibleTypes.Select(type => AssetCatalog.UnitName(type)));
+        string choice = node.Tier == 2 ? "\n• Locks the other specialization" : "";
+        var access = ProgressionPresentation.ResearchAccess(state, city, player, connected, slot.Technology);
+        string reason = access.Reason == "Available during building/preparation" ? "Building/preparation only" : access.Reason;
+        foreach (WorldtreeSlot known in Slots.Where(s => s.Technology != TechnologyId.None))
+            reason = reason.Replace(TechnologyIds.Name(known.Technology), Title(known.VisualId), StringComparison.Ordinal);
+        string denial = access.Available ? "" : "\n• " + reason;
+        return $"{Title(id)}\n• {node.Cost} points\n• {benefit}{choice}{denial}";
     }
 }

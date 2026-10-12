@@ -10,6 +10,7 @@ internal sealed partial class ForestMagic : Node3D
     internal static bool DecalsSupported => AtmosphereController.ForwardPlus && RenderingServer.GetRenderingDevice() is not null;
     internal sealed record Site(string Name, Vector3 Ground, Color Color, string Decal, float Footprint);
     private VillageLandscape? _landscape;
+    private IReadOnlyList<Site>? _sites;
     private readonly List<OmniLight3D> _lights = [];
     private readonly List<Decal> _decals = [];
     private readonly List<GpuParticles3D> _particles = [];
@@ -64,8 +65,8 @@ internal sealed partial class ForestMagic : Node3D
     };
     internal void View(VillageLandscape? landscape)
     {
-        if (_landscape == landscape) return;
-        _landscape = landscape;
+        if (_landscape == landscape && _sites == landscape?.MagicSites) return;
+        _landscape = landscape; _sites = landscape?.MagicSites;
         // No world-space leftovers after a city switch, even if the old node
         // has already been queued for deletion. All particles use local coords.
         foreach (GpuParticles3D emitter in _particles) { emitter.Emitting = false; emitter.Visible = false; emitter.Restart(); }

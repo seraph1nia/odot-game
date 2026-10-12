@@ -9,6 +9,14 @@ internal static class WoodlandMotion
 {
     private static readonly Dictionary<(ulong Material, bool Water), ShaderMaterial> Materials = [];
     private static Shader? _shader;
+    // Release only after this lifetime's landscape consumers have been freed.
+    // Static derived materials otherwise retain authored textures past native
+    // RenderingServer teardown in a short-lived component process.
+    internal static void ReleaseDerivedMaterials()
+    {
+        foreach (ShaderMaterial material in Materials.Values) material.Dispose();
+        Materials.Clear(); _shader?.Dispose(); _shader = null;
+    }
     internal static void Foliage(Node3D node, string asset)
     {
         foreach (MeshInstance3D mesh in node.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())

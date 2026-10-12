@@ -65,6 +65,7 @@ public partial class Tabletop : Node3D
     private Vector2 _frameSize;
     private float _framePanelHeight;
     private int _frameFocus;
+    private Aabb _frameContent;
     private bool _wasConnected;
     private Button _mine = null!, _farm = null!, _barracks = null!, _upgrade = null!, _recruit = null!, _ranged = null!, _ready = null!, _pause = null!, _start = null!, _reconnect = null!, _fresh = null!, _invite = null!;
     private int _focus;
@@ -285,7 +286,8 @@ public partial class Tabletop : Node3D
         FrameCamera();
         _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !Application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
         mark = ReplayMark("Camera", mark);
-        if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape)) landscape.Cover(_camera, WorldArea(), TabletopCamera.Travel);
+        if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape))
+            landscape.CoverBattlefield(BattlefieldFrame.GroundRect(_frameContent), new Rect2(_navigation.Boundary.Position - new Vector2(Center(_focus).X, Center(_focus).Z), _navigation.Boundary.Size));
         mark = ReplayMark("Landscape", mark);
         UpdateHealthBars();
         UpdateInspector();
@@ -457,30 +459,15 @@ public partial class Tabletop : Node3D
     {
         Vector2 size = GetViewport().GetVisibleRect().Size;
         float hud = _panel.Size.Y;
-        if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == _focus) return;
+        Aabb content = BattlefieldFrame.Content(game.State, _buildingBounds.GetValueOrDefault(_focus)?.OfType<Aabb>() ?? []);
+        if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == _focus && content == _frameContent) return;
         foreach ((int id, Node3D board) in _boards) board.Visible = id == _focus;
         foreach (UnitView unit in _units.Values) unit.Visible = unit.State.Deployed && unit.State.Destination == _focus;
         if (_frameFocus != _focus) _navigation.Reset();
-        _frameSize = size; _framePanelHeight = hud; _frameFocus = _focus;
+        _frameSize = size; _framePanelHeight = hud; _frameFocus = _focus; _frameContent = content;
         Vector3 center = Center(Math.Max(1, _focus));
-        float pitch = Mathf.DegToRad(34), azimuth = Mathf.DegToRad(28);
-        Vector3 direction = new(Mathf.Sin(azimuth) * Mathf.Cos(pitch), Mathf.Sin(pitch), Mathf.Cos(azimuth) * Mathf.Cos(pitch));
-        Vector3 target = center + new Vector3(0, 0, -0.5f);
-        _camera.Position = target + direction * 45; _camera.LookAt(target);
-        Vector3 right = _camera.GlobalBasis.X, up = _camera.GlobalBasis.Y;
-        float minX = float.PositiveInfinity, maxX = float.NegativeInfinity, minY = float.PositiveInfinity, maxY = float.NegativeInfinity;
-        // Includes terrain edges, fully upgraded roofs and the entire authoritative approach.
-        foreach (float x in new[] { -10.5f, 12f }) foreach (float z in new[] { -15f, 15f }) foreach (float y in new[] { -1.5f, 5.2f })
-        {
-            Vector3 p = new(x, y, z); float px = p.Dot(right), py = p.Dot(up);
-            minX = Math.Min(minX, px); maxX = Math.Max(maxX, px); minY = Math.Min(minY, py); maxY = Math.Max(maxY, py);
-        }
-        float usable = Math.Max(1, size.Y - hud);
-        float width = Math.Max(1, size.X - 240);
-        _camera.Size = Math.Max((maxY - minY + 1.2f) * size.Y / usable, (maxX - minX + 1.2f) * size.Y / width);
-        target = center + right * ((minX + maxX) / 2 + _camera.Size * 120 / size.Y) + up * ((minY + maxY) / 2 - _camera.Size * hud / size.Y / 2);
-        _camera.Position = target + direction * 45; _camera.LookAt(target);
-        _navigation.Fit();
+        BattlefieldFrame.FitCamera(_camera, content, center, size, hud);
+        _navigation.Fit(new Rect2(BattlefieldFrame.GroundRect(content).Position + new Vector2(center.X, center.Z), BattlefieldFrame.GroundRect(content).Size), GetViewport().GetVisibleRect());
     }
     private void UpdateWorld(MatchSnapshot state)
     {
