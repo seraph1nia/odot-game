@@ -140,8 +140,8 @@ public sealed class CombatConfiguration
             for (int level = 1; level <= 6; level++) _ = Unit(type, rank: 2, level: level);
         _ = Unit(UnitType.Swordsman, rank: 2, isBoss: true, level: 3);
         _ = Unit(UnitType.Swordsman, rank: 2, isBoss: true, level: 5);
-        Fingerprint = ComputeFingerprint();
         ActorDecisionFingerprint = ComputeFingerprint(actorNamespace: true);
+        Fingerprint = ComputeFingerprint();
     }
 
     public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default)
@@ -234,6 +234,11 @@ public sealed class CombatConfiguration
             foreach (TowerDefinition p in towerIdentity)
             { writer.Write((int)p.Type); writer.Write(p.Level); writer.Write(p.Damage); writer.Write(p.WindupTicks); writer.Write(p.CadenceTicks); writer.Write(p.VictimCap); writer.Write(p.SplashHexRadius); }
             writer.Write(RetryTicks); writer.Write(NoHealthProgressTicks); writer.Write(MaximumWaveTicks);
+            if (!actorNamespace)
+            {
+                writer.Write(ActorDecisionFingerprint.A); writer.Write(ActorDecisionFingerprint.B);
+                writer.Write(ActorDecisionFingerprint.C); writer.Write(ActorDecisionFingerprint.D);
+            }
         }
         byte[] hash = SHA256.HashData(stream.ToArray());
         return new(BinaryPrimitives.ReadUInt64LittleEndian(hash), BinaryPrimitives.ReadUInt64LittleEndian(hash.AsSpan(8)),
