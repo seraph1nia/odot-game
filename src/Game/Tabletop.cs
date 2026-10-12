@@ -341,7 +341,7 @@ public partial class Tabletop : Node3D
             _incomeHeading.Text = economy.IncomeLabel; _incomeContext.Text = economy.Context; _incomeContext.Visible = economy.Context.Length > 0;
             foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>()) _incomes[resource.ToString()].Text = ProgressionPresentation.Income(focus?.ProductionIncome, resource);
             _upkeepLabel.Text = economy.UpkeepLabel; _upkeepValue.Text = economy.UpkeepValue;
-            Callable.From(_resources.ResetSize).CallDeferred();
+            Callable.From(ReflowResources).CallDeferred();
             _balanceLabel.Text = economy.BalanceLabel; _balanceValue.Text = economy.BalanceValue;
             _upkeep.Text = progression!.Food; _reward.Text = progression.Reward;
             _armyDetails.Text = progression.Army + "\nEnemy allocation:\n" + string.Join("\n", s?.Enemies.Where(u => u.Destination == _focus).Select(u => $"#{u.Id} {AssetCatalog.UnitName(u.Type, u.Faction)} · {(u.Deployed ? "deployed" : "queued")} · {ProgressionPresentation.StatusText(u.Statuses, s.Tick)}") ?? []);
@@ -378,10 +378,10 @@ public partial class Tabletop : Node3D
             {
                 button.Visible = BuildingGroup(type) == _constructionGroup;
                 BuildingDefinition? build = s?.BuildingCatalog.FirstOrDefault(b => b.Type == type);
-                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog) : "") + "\n ";
+                button.Text = BuildingName(type) + (build?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(build, research: focus?.Research ?? default, technologies: s!.TechnologyCatalog) : "");
                 button.AddThemeFontSizeOverride("font_size", 11);
                 button.Disabled = !edit || slot.Type != Building.Empty || build is null || !slot.Purchased || !me!.Resources.TryPay(build.Construction, out _);
-                UiAssets.Cost(button, build?.Construction ?? default);
+                UiAssets.Cost(button, build?.Construction ?? default, stacked: true);
                 button.TooltipText = explanation.Length > 0 ? explanation : build is null || focus is null ? "" : CostExplanation(build.Construction, focus.Resources);
             }
             BuildingDefinition? lumbermill = s?.BuildingCatalog.FirstOrDefault(b => b.Type == Building.Lumbermill);

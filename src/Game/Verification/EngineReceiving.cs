@@ -12,6 +12,138 @@ public partial class EngineTests
     // no Main/GameApplication/world, network, screenshots or new test framework.
     // Estimated cost: native layout frames + three existing child awakenings,
     // under the ordinary 60s component bound; actual timings belong to the runner.
+    // Strengthen the existing Tier B owner: pure C# cannot see native font
+    // shaping, Button margins/minimum-size or the imported frame's safe area.
+    // A few deterministic layout frames, no new scene/process or rendered proof.
+    private static void CheckLedgerPlacement(Control host)
+    {
+        var ledger = host.GetNode<PanelContainer>("ResourceTable");
+        Rect2 bounds = ledger.GetGlobalRect();
+        Rect2 viewport = host.GetViewport().GetVisibleRect();
+        Check(viewport.Encloses(bounds), "resource ledger frame stays within horizontal and vertical viewport bounds");
+        Check(Mathf.IsEqualApprox(viewport.End.X - bounds.End.X, 12), "resource ledger retains its 12px right viewport inset through growth and shrinkage");
+        Check(ledger.Size == ledger.GetCombinedMinimumSize(), "ledger follows settled native minimum size after context/stock changes");
+        Check(bounds.End.Y < host.GetNode<PanelContainer>("BottomPanel").GetGlobalRect().Position.Y,
+            "padded resource/upkeep stack fits above the bottom HUD");
+        GD.Print($"LAYOUT ledgerBounds={bounds} viewport={viewport} rightInset={viewport.End.X - bounds.End.X}");
+    }
+
+    private async Task ReceivingSpacing(Control host, Tabletop hud, ReceivingSession session, Match authority)
+    {
+        Button Find(string name) => host.FindChildren(name, "Button", true, false).OfType<Button>().Single();
+        var ledger = host.GetNode<PanelContainer>("ResourceTable");
+        var body = ledger.GetNode<VBoxContainer>("Body");
+        Rect2 TitleBox(Button button, bool firstLine = false)
+        {
+            StyleBox style = button.GetThemeStylebox(button.Disabled ? "disabled" : "normal");
+            using var paragraph = new TextParagraph();
+            paragraph.Width = button.Size.X - style.GetMinimumSize().X;
+            paragraph.AddString(button.Text, button.GetThemeFont("font"), button.GetThemeFontSize("font_size"));
+            Vector2 size = paragraph.GetSize();
+            float y = style.ContentMarginTop + (button.Size.Y - style.GetMinimumSize().Y - size.Y) / 2;
+            float width = firstLine ? paragraph.GetLineSize(0).X : Enumerable.Range(0, paragraph.GetLineCount()).Max(i => paragraph.GetLineSize(i).X);
+            return new(new(style.ContentMarginLeft + (paragraph.Width - width) / 2, y), new(width, firstLine ? paragraph.GetLineSize(0).Y : size.Y));
+        }
+        Rect2 CostBox(RichTextLabel cost) => new(cost.Position + new Vector2((cost.Size.X - cost.GetLineWidth(0)) / 2, cost.GetLineOffset(0)),
+            new(cost.GetLineWidth(0), cost.GetLineHeight(0)));
+        bool SafeArea(PanelContainer panel)
+        {
+            var style = (StyleBoxTexture)panel.GetThemeStylebox("panel");
+            Control content = panel.GetNode<Control>("Body");
+            return content.Position.X >= style.TextureMarginLeft && content.Position.Y >= style.TextureMarginTop
+                && panel.Size.X - content.GetRect().End.X >= style.TextureMarginRight
+                && panel.Size.Y - content.GetRect().End.Y >= style.TextureMarginBottom;
+        }
+
+        // Retained pre-fix counterfactuals, using actual controls/font/theme.
+        // The blank title line allocated 32px, but the independent 21px cost
+        // overlay began at y=8, intersecting the first native 14px title line.
+        // Use a real container: assigning Size before font/style overrides
+        // clamped the first attempted reconstruction to 54px, not the actual
+        // production 32px. That rejected fixture did not reproduce this defect.
+        var oldGrid = new GridContainer { Columns = 1, Theme = host.Theme, CustomMinimumSize = new(278, 0) };
+        host.AddChild(oldGrid);
+        var old = new Button { Text = "Magic academy\n ", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        old.AddThemeFontSizeOverride("font_size", 11); oldGrid.AddChild(old);
+        foreach (string state in ApplicationTheme.ButtonStates)
+        {
+            var style = (StyleBox)old.GetThemeStylebox(state).Duplicate();
+            style.ContentMarginTop = style.ContentMarginBottom = 2;
+            old.AddThemeStyleboxOverride(state, style);
+        }
+        UiAssets.Cost(old, new(Gold: 5, Wood: 2, Stone: 3));
+        var oldLedger = (PanelContainer)UiAssets.Component("resource_ledger", host);
+        oldLedger.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Resources" });
+        await Frames();
+        Check(old.Size.Y == old.GetCombinedMinimumSize().Y, "counterfactual uses settled native container minimum, not an eager fixed height");
+        Check(TitleBox(old, firstLine: true).Intersects(CostBox(old.GetNode<RichTextLabel>("Cost"))), "pre-fix shaped title/cost line boxes intersect (counterfactual)");
+        Check(!SafeArea(oldLedger), "generic asset ledger inset fails decorated-corner safe area (counterfactual)");
+        GD.Print($"LAYOUT counterfactual titleLine={TitleBox(old, true)} costLine={CostBox(old.GetNode<RichTextLabel>("Cost"))} ledgerInset={oldLedger.GetNode<Control>("Body").Position}");
+        oldGrid.Free(); oldLedger.Free();
+
+        City city = authority.Players[1];
+        ResourceCost starting = city.Resources;
+        void SetStocks(ResourceCost stocks) => (city.Gold, city.Wood, city.Food, city.Stone, city.Metal, city.Cloth)
+            = (stocks.Gold, stocks.Wood, stocks.Food, stocks.Stone, stocks.Metal, stocks.Cloth);
+        foreach (Vector2I size in new[] { new Vector2I(1100, 820), new Vector2I(1280, 720), new Vector2I(1920, 1080), new Vector2I(2200, 1640) })
+        {
+            GetWindow().Size = size;
+            foreach (var (disconnected, rich) in new[] { (false, false), (true, false), (false, true), (true, true), (false, false) })
+            {
+                SetStocks(rich ? new(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue) : starting);
+                session.Acknowledge(); session.Connected = !disconnected;
+                foreach (string group in new[] { "Army", "Production" })
+                {
+                    Find(group + "Choices").EmitSignal(BaseButton.SignalName.Pressed);
+                    hud.RefreshHud(1, 1); await Frames(); await Frames();
+                    foreach (Button button in host.FindChildren("*", "Button", true, false).OfType<Button>()
+                        .Where(b => b.IsVisibleInTree() && b.GetParent() is GridContainer && b.HasNode("Cost")))
+                    {
+                        var cost = button.GetNode<RichTextLabel>("Cost");
+                        StyleBox style = button.GetThemeStylebox(button.Disabled ? "disabled" : "normal");
+                        Rect2 title = TitleBox(button);
+                        float glyphHeight = cost.GetThemeFont("normal_font").GetHeight(cost.GetThemeFontSize("normal_font_size"));
+                        Check(title.Size.Y >= button.GetThemeFont("font").GetHeight(button.GetThemeFontSize("font_size"))
+                            && title.Position.Y >= style.ContentMarginTop && cost.Position.Y - title.End.Y >= 4
+                            && !title.Intersects(CostBox(cost)),
+                            "native shaped title and cost have distinct padded line boxes: " + button.Name);
+                        Check(button.Size.Y >= button.GetCombinedMinimumSize().Y && cost.Size.Y >= glyphHeight && cost.Size.Y >= cost.GetContentHeight()
+                            && cost.Position.X >= 8 && button.Size.X - cost.GetRect().End.X >= 8 && button.Size.Y - cost.GetRect().End.Y >= 6,
+                            "caption fits native height and button minimum/interior: " + button.Name);
+                        Check(cost.GetThemeFont("normal_font").GetStringSize(cost.GetParsedText(), fontSize: cost.GetThemeFontSize("normal_font_size")).X <= cost.Size.X,
+                            "complete untruncated construction quote fits: " + button.Name);
+                        Check(!disconnected || button.Disabled, "disconnected construction stays disabled: " + button.Name);
+                        Check(!rich || disconnected || !button.Disabled, "affordable connected construction stays enabled: " + button.Name);
+                        GD.Print($"LAYOUT {size} stretch={GetViewport().GetStretchTransform().Scale} {button.Name} disabled={button.Disabled} button={button.Size} min={button.GetCombinedMinimumSize()} title={title} cost={cost.GetRect()} costLine={CostBox(cost)} gap={cost.Position.Y - title.End.Y}");
+                    }
+                }
+                Check(SafeArea(ledger), "all resource/upkeep content stays inside decorated-frame safe inset");
+                Label[] labels = ledger.FindChildren("*", "Label", true, false).OfType<Label>().Where(l => l.IsVisibleInTree() && l.Text.Length > 0).ToArray();
+                Rect2 bounds = body.GetGlobalRect();
+                foreach (Label label in labels)
+                {
+                    Rect2 rect = label.GetGlobalRect();
+                    Check(bounds.Encloses(rect) && label.Size.Y >= label.GetCombinedMinimumSize().Y && label.Size.Y >= label.GetThemeFont("font").GetHeight(label.GetThemeFontSize("font_size")), "ledger native label fits safe content and font height: " + label.Text);
+                    Check(label.GetThemeFont("font").GetStringSize(label.Text, fontSize: label.GetThemeFontSize("font_size")).X <= label.Size.X, "ledger value is complete: " + label.Text);
+                }
+                Check(labels.All(a => labels.All(b => a == b || !a.GetGlobalRect().Intersects(b.GetGlobalRect()))),
+                    "ledger header/stock/income/upkeep line boxes do not intersect");
+                CheckLedgerPlacement(host);
+                var table = body.GetChildren().OfType<GridContainer>().First();
+                Check(table.GetChild<Label>(1).GetGlobalRect().End.X == table.GetChild<Label>(4).GetGlobalRect().End.X
+                    && table.GetChild<Label>(2).GetGlobalRect().End.X == table.GetChild<Label>(5).GetGlobalRect().End.X,
+                    "stock and income headers align to their distinct right-aligned value columns");
+                Check(table.GetThemeConstant("v_separation") >= 4 && body.GetThemeConstant("separation") >= 10, "resource rows and upkeep/footer retain separate gaps");
+                GD.Print($"LAYOUT {size} ledger={ledger.Size} minimum={ledger.GetCombinedMinimumSize()} safeInset={body.Position} content={body.Size}");
+            }
+        }
+        SetStocks(starting);
+        session.Acknowledge(); session.Connected = true;
+        GetWindow().Size = new(1920, 1080);
+        Find("ProductionChoices").EmitSignal(BaseButton.SignalName.Pressed);
+        hud.RefreshHud(1, 1); await Frames();
+    }
+
     private async Task Receiving()
     {
         GetWindow().Size = new(1920, 1080);
@@ -61,6 +193,8 @@ public partial class EngineTests
                 Check(control.IsVisibleInTree() && control.GetGlobalRect().HasArea(), "native receiving target is laid out: " + control.Name);
                 this.Click(control.GetGlobalRect().GetCenter());
             }
+            Refresh(); await Frames();
+            await ReceivingSpacing(host, hud, session, match);
             Refresh(); await Frames();
             Check(!hud.IsInsideTree() && hud.GetChildCount() == 0, "receiving controller has no world, camera, landscape or application startup");
             Check(Stock("Wood").Text == "6" && Stock("Gold").Text == "12", "real resource-ledger native labels receive starting authority stock");
@@ -223,6 +357,32 @@ public partial class EngineTests
             before = session.Commands.Count; Click(farm);
             Check(session.Commands.Count == before + 1 && session.Results[^1].Accepted && match.Players[1].Slots[2].Type == Building.Farm,
                 "closing the real modal releases the host guard and resumes the actual HUD sender");
+
+            foreach (Phase phase in new[] { Phase.Preparation, Phase.Combat })
+            {
+                for (int turn = 0; turn < 3 && match.Phase != phase; turn++)
+                {
+                    session.Acknowledge(); session.SendAction("ready");
+                    peer.Acknowledge(); peer.SendAction("ready");
+                    Check(session.Results[^1].Accepted && peer.Results[^1].Accepted, "owned numerical authorities advance the receiving phase");
+                }
+                Check(match.Phase == phase, "receiving ledger exercises actual " + phase + " income/upkeep text");
+                ResourceCost stocks = match.Players[1].Resources;
+                foreach (var (disconnected, rich, paused) in new[] { (false, false, false), (true, false, false), (false, true, false), (false, true, true), (false, false, false) })
+                {
+                    session.Connected = true;
+                    session.Acknowledge(); session.SendAction(paused ? "pause" : "resume");
+                    Check(session.Results[^1].Accepted, "phase ledger context uses acknowledged pause/resume state");
+                    ResourceCost values = rich ? new(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue) : stocks;
+                    City city = match.Players[1];
+                    (city.Gold, city.Wood, city.Food, city.Stone, city.Metal, city.Cloth)
+                        = (values.Gold, values.Wood, values.Food, values.Stone, values.Metal, values.Cloth);
+                    session.Acknowledge(); session.Connected = !disconnected;
+                    Refresh(); await Frames(); await Frames();
+                    CheckLedgerPlacement(host);
+                    GD.Print($"LAYOUT phase={phase} disconnected={disconnected} rich={rich} paused={paused}");
+                }
+            }
         }
         finally
         {
