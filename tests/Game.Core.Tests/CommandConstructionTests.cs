@@ -45,7 +45,7 @@ public sealed class CommandConstructionTests
         MatchSnapshot state = match.Snapshot();
         Assert.Equal(new Command(1, "defaults", Phase.Lobby, 1, "recruit", 1, ExpectedExpansionCount: 0, ExpectedHomeCount: 2),
             Command.FromSnapshot(state, 1, "recruit", 1));
-        foreach (int slot in new[] { -1, 9, int.MaxValue })
+        foreach (int slot in new[] { -1, ArmyConfiguration.TotalPlots, int.MaxValue })
         {
             Command invalid = Command.FromSnapshot(state, 2, "upgrade-capacity", 1, slot);
             Assert.Equal(slot, invalid.Slot); Assert.Equal(0, invalid.ExpectedGeneration); Assert.Equal(-1, invalid.ExpectedTrackLevel);

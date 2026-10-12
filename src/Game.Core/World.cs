@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 namespace Game.Core;
 
 public enum Phase { Lobby, Building, Preparation, Combat, Victory, Defeat }
-public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, ResearchTower = 7, ArrowTower, CatapultTower, Stonecutter, MetalMine, Weaver, Market, TownHall }
+public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, ResearchTower = 7, ArrowTower, CatapultTower, Stonecutter, MetalMine, Weaver, Market, TownHall, RapidArrowTower, BombardTower }
 public sealed record Rules
 {
     public CombatSettings Combat { get; init; } = new();
@@ -150,11 +150,14 @@ public sealed record Command(long Sequence, string MatchId, Phase ExpectedPhase,
         ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0)
     {
         CityState? target = snapshot.Players.FirstOrDefault(p => p.Id == city);
-        SlotState? instance = target is not null && slot is >= 0 and < 9 ? target.Slots[slot] : null;
+        SlotState? instance = target is null ? null : ArmyConfiguration.IsArmyPlot(slot)
+            ? target.Army?.Homes.FirstOrDefault(h => h.PlotId == slot)?.Plot
+            : slot is >= 0 and < ArmyConfiguration.PlotOffset ? target.Slots[slot] : null;
         int track = action switch
         {
             "upgrade-capacity" => instance?.CapacityLevel ?? -1,
             "upgrade-healing" => instance?.HealingLevel ?? -1,
+            "upgrade-tower" => instance?.Level ?? -1,
             _ => -1
         };
         return new(sequence, snapshot.MatchId, snapshot.Phase, snapshot.TurnSerial, action, city, slot, building,
@@ -200,14 +203,22 @@ public sealed class City
     public bool Eliminated => Health <= 0;
     public SlotState[] Slots { get; } = Enumerable.Range(0, 9).Select(i => new SlotState(Building.Empty, 0) { Purchased = i < 5 }).ToArray();
     public int ExpansionCount => Slots.Count(s => s.Purchased) - 5;
-    public int PurchasedHomes { get; internal set; } = 2;
+    public SlotState[] ArmyPlots { get; } = Enumerable.Range(0, ArmyConfiguration.PlotCount)
+        .Select(i => new SlotState(Building.Empty, 0) { Purchased = i < 2 }).ToArray();
+    public int PurchasedHomes => ArmyPlots.Count(p => p.Purchased);
+    internal SlotState Plot(int id) => ArmyConfiguration.IsArmyPlot(id) ? ArmyPlots[id - ArmyConfiguration.PlotOffset] : Slots[id];
+    internal void SetPlot(int id, SlotState plot)
+    {
+        if (ArmyConfiguration.IsArmyPlot(id)) ArmyPlots[id - ArmyConfiguration.PlotOffset] = plot;
+        else Slots[id] = plot;
+    }
     internal long NextBuildingGeneration { get; set; } = 1;
     public IReadOnlyList<UnitState> Soldiers => _combat.Soldiers(Id);
     public int DefenderCooldown { get; set; }
     public TowerState Defender { get; set; }
     public CityState Snapshot() => Snapshot(_combat.Soldiers(Id));
     internal CityState Snapshot(UnitState[] soldiers, bool terminal = false) => new(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
-    { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+    { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots, ArmyPlots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray()), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
 }
 
 public sealed class Match : IDisposable

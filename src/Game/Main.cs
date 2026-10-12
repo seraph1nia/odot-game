@@ -674,6 +674,7 @@ public partial class Main : Node, IGameSession
                     break;
                 case "build-recovery": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), payment: ConstructionPayment.GoldRecovery); break;
                 case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
+                case "upgrade-tower": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true)); break;
                 case "buy-plot":
                 case "sell":
                 case "upgrade":

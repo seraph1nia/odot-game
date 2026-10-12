@@ -66,7 +66,15 @@ internal sealed partial class Runner
         if (city.Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6)) return;
         int next = city.Army.PurchasedHomes - 2;
         Require(next < city.Army.HomePrices.Length && city.Gold >= city.Army.HomePrices[next], "ordinary quoted expansion funds the next role's physical home");
-        if (actualInput) await ClickAck(client, "BuyHome", token); else await Action(client, "buy-home", token);
+        int selected = actualInput ? (await UiProtocol.Probe(client, options.StartupTimeout, token)).SelectedSlot : -1;
+        await BuyArmyPlot(client, token, actualInput);
+        if (actualInput && selected >= 0) await Pick(client, selected, token);
+    }
+    private async Task BuyArmyPlot(Child client, CancellationToken token, bool actualInput = true)
+    {
+        int plot = Latest(client).Players.Single(p => p.Id == client.PlayerId).Army!.Homes.First(h => !h.Purchased).PlotId;
+        if (actualInput) { await Pick(client, plot, token); await ClickAck(client, "BuyPlot", token); }
+        else await Action(client, $"buy-plot {plot}", token);
     }
     private async Task UiSwords(Child client, int slot, int target, CancellationToken token, bool actualInput = true)
     {
@@ -78,7 +86,8 @@ internal sealed partial class Runner
             {
                 int next = city.Army.PurchasedHomes - 2;
                 if (next >= city.Army.HomePrices.Length || city.Gold < city.Army.HomePrices[next]) break;
-                if (actualInput) await ClickAck(client, "BuyHome", token); else await Action(client, "buy-home", token);
+                await BuyArmyPlot(client, token, actualInput);
+                if (actualInput) await Pick(client, slot, token);
                 continue;
             }
             int food = city.Food; GameEvent recruit = actualInput && _inputWitnesses.Add("Recruit") ? await ClickAck(client, "Recruit", token) : await Action(client, $"recruit {slot}", token);

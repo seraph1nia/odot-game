@@ -9,7 +9,22 @@ public sealed class DefensePolicyTests
     {
         var defaults = new CombatConfiguration(new());
         Assert.Equal(new DefenseProfile(200, 12, 48, 1, 0), defaults.BuiltInDefense);
-        Assert.Equal(5, defaults.RulesVersion);
+        Assert.Equal(6, defaults.RulesVersion);
+        Assert.Equal(new TowerDefinition[]
+        {
+            new(Building.ArrowTower, 1, 500, 12, 60, 1, 0), new(Building.ArrowTower, 2, 700, 12, 60, 1, 0),
+            new(Building.CatapultTower, 1, 600, 30, 120, 3, 0), new(Building.CatapultTower, 2, 800, 30, 120, 3, 0),
+            new(Building.RapidArrowTower, 2, 700, 6, 30, 1, 0), new(Building.BombardTower, 2, 800, 30, 120, 3, 1)
+        }, defaults.Towers);
+        var towerSettings = new CombatConfiguration(new()
+        {
+            Combat = new()
+            { ArrowTower = new(8, 32, 3, 2), CatapultTower = new(19, 61, 4, 2), RapidArrowTower = new(3, 17, 4, 2), BombardTower = new(20, 80, 5, 2) }
+        });
+        Assert.Equal(new DefenseProfile(700, 8, 32, 1, 0), towerSettings.Tower(Building.ArrowTower, 2));
+        Assert.Equal(new DefenseProfile(800, 19, 61, 4, 2), towerSettings.Tower(Building.CatapultTower, 2));
+        Assert.Equal(new DefenseProfile(700, 3, 17, 1, 0), towerSettings.Tower(Building.RapidArrowTower, 2));
+        Assert.Equal(new DefenseProfile(800, 20, 80, 5, 2), towerSettings.Tower(Building.BombardTower, 2));
         var custom = new CombatConfiguration(new() { Combat = new() { Defender = new(7, 23, 3, 2) } });
         Assert.Equal(new DefenseProfile(200, 7, 23, 3, 2), custom.BuiltInDefense);
         Assert.NotEqual(defaults.Fingerprint, custom.Fingerprint);

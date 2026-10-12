@@ -14,6 +14,7 @@ public partial class EngineTests
     // under the ordinary 60s component bound; actual timings belong to the runner.
     private async Task Receiving()
     {
+        await ArmyPlots();
         GetWindow().Size = new(1920, 1080);
         using Theme theme = ApplicationTheme.Create();
         var applicationCanvas = new CanvasLayer { Layer = 10 };

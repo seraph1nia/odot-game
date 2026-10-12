@@ -1,0 +1,163 @@
+# Army plots and tower authority batch
+
+## Contract and owners
+
+Baseline main source: `1d97f8a814009ab7e5665579cea518e302eacb62`.
+Gameplay controls and concrete values are in
+[gameplay](gameplay.md#defense-towers-on-army-plots).
+
+- `City.ArmyPlots` owns six persistent `SlotState` instances. City construction
+  slots remain 0–8; army command IDs are 9–14, displayed as Army 1–6.
+- `SettlementCommands` owns direct `buy-plot`, paid construction, exclusive
+  `upgrade-tower`, selling and all rejection/payment transitions. Existing
+  Match ownership/phase/ready/pause guards and AuthoritySession retry ledgers
+  remain the admission boundary. The old `buy-home` wire action is an alias
+  buying one actual locked plot, not a parallel capacity allocation or UI.
+- `ArmyConfiguration` owns placement order, quotes and projections. Production
+  recruit/Send paths pass the actual per-plot ownership/type array; arbitrary
+  purchase order never becomes first-fit order. A tower consumes the whole six
+  persistent roster spots. This is not a new combat-terrain reservation rule.
+- `CombatConfiguration`, existing DefenseActor/CombatSimulation and victim
+  selection own timing, actual radius damage, resistance, target filtering and
+  attribution. No cosmetic projectile applies numerical damage.
+- Production `ArmyPlotView`, Tabletop selection/picking/inspection/action
+  bindings and snapshots expose the changes. Artwork is the existing main
+  arrow/bombard/plinth palette; no source asset bytes, dependencies or locks
+  changed. Both new variants also use the existing city-plot drawing path.
+
+## Paid-capacity and upgrade ledger
+
+The old purchase was one six-size home, not one soldier. It now buys the chosen
+six-size army plot. Both models start with two owned plots, retain four further
+prices **5/8/12/18 gold**, and normally allow three size-two soldiers per plot.
+City-land acquisition prices remain independent. No capacity is made free,
+no second land charge is added, and Town hall capacity/recovery is unchanged.
+
+The base Arrow tower retains **4 gold + 3 wood**, 5 HP damage and 12/60 ticks.
+New native upgrades are separate final L2 identities:
+
+| Path | Additional payment | Damage | Windup / cadence | Footprint |
+| --- | --- | --- | --- | --- |
+| `RapidArrowTower` | 4 G + 2 W + 2 S | 7 HP | 6 / 30 ticks | One enemy, no splash |
+| `BombardTower` | 4 G + 2 W + 2 S + 1 M | 8 HP | 30 / 120 ticks | Up to three enemies within one hex of primary |
+
+These are existing Arrow/Catapult upgrade quotes, not a new technology catalog.
+The four legacy Arrow/Catapult L1/L2 profiles retain their original damage,
+windup/cadence and default victim footprint. In particular, legacy Arrow L2 is
+12/60, and legacy Catapult splash has radius zero (same-cell, up to three).
+The legacy scripted `upgrade` remains valid; the native base-arrow actions
+choose the explicitly new rapid/radius paths. Selling uses component-wise half
+of actual construction plus upgrade investment, retains land, removes the actor
+and releases all six persistent spots. Generation/level conflicts and retries
+cannot duplicate payment or upgrade investment.
+
+Protocol 13 rejects older peers before new IDs/types can be interpreted. Combat
+rules 6 and the full configuration/snapshot identity include all six actual
+profiles. No compatibility hash is forged or substituted.
+
+## Causal diagnosis — retained failures, not refreshed goldens
+
+The first implementation unintentionally accelerated legacy Arrow L2 and gave
+legacy Catapult a one-hex radius. Its changed full combat fingerprint was also
+used as the seeded salt for **every** actor, rerolling units/defenders even when
+no new feature was used. The initial broad failure receipt is
+`logs/20261012-191851-0deb48dc/`: historical first-clear tick 433 became 343,
+with changed casualties, late-pause eligibility and resource availability.
+That run failed and cancelled core coverage; it is not a passing receipt.
+
+A partial correction stabilized unit/defender decisions but still coupled
+legacy tower ties to the full new identity and still changed the legacy
+Catapult footprint. The disconfirming receipt
+`logs/20261012-192215-5e566793/` retained **7 core failures** (473 passes):
+RulesVersion assertion 5 versus 6; six historical economy variants with
+1551 versus 1641 terminal timing, Defeat versus continued Building, eliminated
+city differences, and growth stock 7 versus 10 metal. Runner then passed 649,
+with two Windows-specific skips. None of those failures was waived.
+
+The final correction separates the explicit new variants from the four old
+profiles. Seeded tie-breaking retains the exact original v5 serialization of
+**all actual legacy settings**, while full compatibility identity serializes
+current rules and all six profiles. Meaningful legacy profile changes still
+change the decision salt. New variant-only metadata does not reroll otherwise
+unchanged unit, defender or tower decisions. The original economy fixture
+assertions, paid prices, casualty identities, outcomes and resource goldens
+remain unchanged. The intentional RulesVersion assertion now verifies version
+6 **and the complete exact six-profile set**, configured legacy timing/splash,
+rapid non-splash and new bombard radius, rather than weakening the assertion.
+
+The paired regression uses seeds 0, 1, 123 and the historical economy seed
+14056307608042553509. It changes only new Rapid/Bombard timing/radius metadata,
+keeps the same three deployed enemies/base tower/positions/sequence/price, and
+compares the first actual tower selection. One-condition counterfactual changes
+**only** the selector salt back to full configuration identity:
+
+| Seed | Original namespace / actual target | Full-identity counterfactual target |
+| --- | --- | --- |
+| 0 | 1 / 1 | 3 |
+| 1 | 2 / 2 | 3 |
+| 123 | 1 / 1 | 2 |
+| 14056307608042553509 | 3 / 3 | 1 |
+
+Earliest changed action is the initial attack selection at numerical tick 0 in
+this minimal direct-action fixture, before any projectile impact or resource
+change. Both sides paid the same 4 G + 3 W and retain 8 G/3 W; their base profile
+is 500 hundredths damage, 12 windup, 60 cadence, one target, zero radius.
+The preserved legacy salt is
+`79d304d3da6d850ff756b29178073f1d48f34d35259e183e4028e84cc991d693`.
+For the explicit counterfactual metadata (Rapid 3/17 ticks; Bombard 20/80,
+cap 4, radius 2), truthful full identity is
+`0050759aa39220ec3b97cb7f6ee1b413e2eb294d5ca6f7c75f8ef0718739508c`.
+These values are diagnostic inputs, not shipping balance or known-seed branches.
+Actual JSON/profile/stock outputs are in the targeted TRX below. A paired
+180-step production Match replay also retains identical unit and defender/base
+arrow state when only the new variant metadata changes.
+
+## Executed verification
+
+Preinstalled Linux x86_64 SDK **10.0.401** and Godot .NET **4.7.2-stable** were
+selected explicitly through their existing executable paths, with
+`MISE_AUTO_INSTALL=0`, locked restore and no tool acquisition. Matching installed
+export templates were inspected, not installed. No alternate tool roots used.
+
+| Receipt | Selected coverage | Result |
+| --- | --- | --- |
+| `logs/20261012-193345-201ec925/` | `test-core --filter 'FullyQualifiedName~ArmyPlotTowerTests\|FullyQualifiedName~EconomyArmyFixtureTests\|FullyQualifiedName~DefensePolicyTests\|FullyQualifiedName~SplashTowerTests\|FullyQualifiedName~CommandConstructionTests'` | 48 passed, zero skipped; 3.41s. Partial targeted coverage, including unchanged historical accounting and causal outputs |
+| `logs/20261012-193636-4685d599/` | `test-engine --scenario receiving` | Passed; 14.30s including source preparation, 9.28s component. Existing native receiving/modal checks plus new army receiver |
+| `logs/20261012-193650-decfd88c/` | `test-fast`, excludes `Tier=Deep` | 484 core and 649 runner passed; two Windows-native argument skips; 20.85s completed-binary suite |
+
+Locked restore, solution compilation and `dotnet format Odot.slnx --no-restore`
+also passed. A first source import encountered unrecognized UIDs in the initial
+local import cache (`logs/20261012-191333-3af9692b/`); subsequent normal import
+resolved the cache without source asset changes. Do not count that failed
+preparation as an engine pass.
+
+Tier A proves arbitrary direct purchases, stale/foreign/unfunded guards, every
+army plot, full-footprint unit exclusion, first-fit after purchase/store/Send/
+retirement/sale, generation/level conflicts, actual payments/refunds, compressed
+snapshot load, serialized remote requests/retries and credential resume.
+Clustered/adjacent/separated/foreign/friendly/dying targets verify authoritative
+new bombard radius versus arrow single-target damage, one hit per victim,
+attribution and dead/transferred-primary misses.
+
+Tier B hosts only the real HUD, ArmyPlotView and native camera in the existing
+minimal owned EngineTests scene. It loads current fonts/UI/tower resources,
+uses production roof/ground-ray picking and selection, dispatches actual native
+Control input for purchase/build/both upgrades, verifies real authority results,
+stale rejection feedback and delayed acknowledgment, and disables recruitment
+when all owned plots have towers. It never starts Tabletop._Ready, Main, a world
+or an application session. It does not prove a full world mouse gesture, rendered
+presentation, GPU pixels, compositor focus or a live multiplayer UI session.
+
+## Limits and remaining gates
+
+No full application/world/campaign, graphical/private-display/screenshot, live
+Steam pairing, package/export/real transport process or release qualification
+was executed for this batch. The existing graphical fixtures were updated to
+select real army plots instead of the removed button, but were not run. The
+pure serialized authority fixture is not a network-delivery witness. Snapshot
+load and live credential resume are the existing persistence boundary; no new
+authoritative disk-save facility is claimed. New tower/army balance is not
+qualified by the unchanged finite legacy openings or fast tests.
+
+Full no-mistakes review/test/lint/docs/publication/CI is a separate subsequent
+handoff gate; these local receipts alone are not a ready PR or merge approval.
