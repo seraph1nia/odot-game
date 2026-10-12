@@ -27,12 +27,22 @@ public sealed class WoodlandUiAssetTests
             Assert.DoesNotContain("fixture", path, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("prototype", path, StringComparison.OrdinalIgnoreCase);
         }
-        Assert.Equal(46, paths.Count);
+        Assert.Equal(22, paths.Count);
         Assert.Contains("fonts/LICENSE-DejaVu.txt", paths);
         Assert.Contains("components/modal.tscn", paths);
-        Assert.Contains("components/skill_tree.tscn", paths);
-        // The landed Worldtree has its own immutable inventory; do not relabel
-        // those additional members as part of the original 46-member kit pin.
+        Assert.Contains("components/resource_ledger.tscn", paths);
+        using JsonDocument upstream = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory!.FullName, "docs", "asset-history", "woodland-ui", "upstream-manifest.json")));
+        JsonElement original = upstream.RootElement;
+        Assert.Equal(manifest.RootElement.GetProperty("revision").GetString(), original.GetProperty("revision").GetString());
+        Assert.Equal(46, original.GetProperty("files").EnumerateObject().Count());
+        string[] excluded = ["skill_tree", "army_roster", "city_navigation", "match_controls", "quoted_action", "session_feedback", "unit_inspection", "upkeep_summary"];
+        string[] extensions = [".gd", ".gd.uid", ".tscn"];
+        HashSet<string> omitted = excluded.SelectMany(component => extensions.Select(extension => "components/" + component + extension)).ToHashSet();
+        foreach (JsonProperty member in original.GetProperty("files").EnumerateObject())
+        {
+            if (omitted.Contains(member.Name)) Assert.False(File.Exists(Path.Combine(root, member.Name)), "Unused portable member remains: " + member.Name);
+            else Assert.Equal(member.Value.GetString(), manifest.RootElement.GetProperty("files").GetProperty(member.Name).GetString());
+        }
         using JsonDocument authored = JsonDocument.Parse(File.ReadAllText(Path.Combine(game, "Assets", "Authored", "manifest.json")));
         JsonElement worldtree = authored.RootElement.GetProperty("worldtree");
         Assert.Equal("https://github.com/seraph1nia/odot-game-assets.git", worldtree.GetProperty("source").GetString());

@@ -89,7 +89,7 @@ internal static class SteamProbe
             || UiAssets.Texture("art/menu_seal.png").GetSize() != new Vector2(192, 192)
             || ((StyleBoxTexture)theme.GetStylebox("panel", "PanelContainer")).Texture.ResourcePath != "res://UI/art/woodland/branch_frame.svg")
             throw new InvalidOperationException("Woodland theme/font/art did not load from the active resource pack.");
-        foreach (string component in new[] { "army_roster", "city_navigation", "match_controls", "modal", "quoted_action", "resource_ledger", "session_feedback", "skill_tree", "unit_inspection", "upkeep_summary" })
+        foreach (string component in new[] { "modal", "resource_ledger" })
         {
             Control loaded = UiAssets.Component(component, owner);
             try
@@ -114,6 +114,6 @@ internal static class SteamProbe
         }
         if (ResourceLoader.Exists("res://Verification/ui_resources.gd"))
             throw new InvalidOperationException("Client contains the retired competing UI verification launcher.");
-        Main.Emit(new GameEvent("ui-payload", Message: "Woodland theme, licensed serif font, original seal, branch art, all ten production scenes and bundled UI provenance/notices loaded; retired UI launcher absent. Headless resources only, not rendered pixels or gameplay binding."));
+        Main.Emit(new GameEvent("ui-payload", Message: "Woodland theme, licensed serif font, original seal, branch art, both selected kit scenes and bundled UI provenance/notices loaded; retired UI launcher absent. Headless resources only, not rendered pixels or gameplay binding."));
     }
 }

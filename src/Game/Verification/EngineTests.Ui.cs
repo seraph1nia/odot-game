@@ -10,7 +10,7 @@ public partial class EngineTests
         GetWindow().Size = new(1100, 820);
         _ui = new Control { Theme = ApplicationTheme.Create(), MouseFilter = Control.MouseFilterEnum.Ignore };
         AddChild(_ui); _ui.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        foreach (string component in new[] { "army_roster", "city_navigation", "match_controls", "modal", "quoted_action", "resource_ledger", "session_feedback", "skill_tree", "unit_inspection", "upkeep_summary" })
+        foreach (string component in new[] { "modal", "resource_ledger" })
         {
             Control loaded = UiAssets.Component(component, _ui);
             Check(loaded.IsNodeReady(), "production scene loads: " + component);
@@ -22,18 +22,6 @@ public partial class EngineTests
         Check(((StyleBoxTexture)theme.GetStylebox("panel", "PanelContainer")).Texture.ResourcePath == "res://UI/art/woodland/branch_frame.svg", "woodland branch resource loads");
         Check(((StyleBoxFlat)theme.GetStylebox("focus", "Button")).BorderWidthTop == 2, "independent native focus border");
         Check(ApplicationTheme.ButtonStates.Select(s => theme.GetStylebox(s, "Button").ResourcePath).Distinct().Count() == 4, "four distinct native states");
-        Control quote = UiAssets.Component("quoted_action", _ui);
-        string requested = "";
-        quote.Connect("requested", Callable.From<string>(id => requested = id));
-        quote.Call("set_data", new Godot.Collections.Dictionary { ["id"] = "build-farm", ["title"] = "Bakery", ["quote"] = "4 wood", ["enabled"] = true, ["reason"] = "Authoritative fixture quote", ["icon"] = "wood" });
-        quote.GetNode<Button>("Body/Action").EmitSignal(BaseButton.SignalName.Pressed);
-        Check(requested == "build-farm" && quote.GetNode<Label>("Body/Quote").Text == "4 wood", "opaque quote intent and supplied cost projection");
-        quote.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Bakery", ["enabled"] = false, ["reason"] = "Insufficient wood" });
-        Check(quote.GetNode<Button>("Body/Action").Disabled && quote.GetNode<Label>("Body/Reason").Text == "Insufficient wood", "disabled quote retains exact supplied reason");
-        quote.Hide();
-        // The superseded compact Tabletop tree's center arithmetic is no longer
-        // production behavior. EngineWorldtree owns the actual 24/23 native graph;
-        // Receiving exercises its real catalog/prerequisite/cost sender bindings.
         await ModalInput();
         await SettingsServices();
         Theme themeResource = _ui.Theme;
@@ -278,14 +266,73 @@ public partial class EngineTests
         hidden.Free(); replacement.Free(); friends.Free(); invite.Free();
         await Frames();
     }
-    private static void Click(Vector2 point)
+    private async Task InvitationScope(UiDialog join, WorldtreeDialog research, Control background, Func<int> requests)
     {
-        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Position = point, GlobalPosition = point, Pressed = true });
-        Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Position = point, GlobalPosition = point, Pressed = false });
+        int accepted = 0, declined = 0, before = requests();
+        join.Confirmed += () => accepted++;
+        join.Canceled += () => declined++;
+        Control original = GetViewport().GuiGetFocusOwner();
+        Button purchase = research.Research.Tree.Get("action").As<Button>();
+        Vector2 backgroundClose = research.CloseButton.GetGlobalRect().GetCenter();
+        async Task Open()
+        {
+            GameApplication.ShowJoinConfirmation(join); await Frames();
+            Check(join.Visible && !research.IsVisibleInTree() && GetViewport().GuiGetFocusOwner() == join.GetCancelButton(),
+                "actual application invitation suspends the later Tabletop research subtree and defaults to Stay");
+            Click(backgroundClose); await Frames();
+            Check(join.Visible && requests() == before, "invitation scrim blocks pointer input to covered research Close");
+        }
+        async Task Restored()
+        {
+            await Frames();
+            Check(!join.Visible && research.IsVisibleInTree() && GetViewport().GuiGetFocusOwner() == original && requests() == before,
+                "invitation dismissal restores research visibility and prior focus without purchase or close");
+        }
+        await Open();
+        foreach (bool shift in new[] { false, true })
+        {
+            PressKey(Key.Tab, shift); await Frames();
+            Check(join.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "foreground invitation owns native Tab; shift=" + shift);
+        }
+        PressKey(Key.Escape); await Restored();
+        Check(declined == 1 && accepted == 0, "Escape declines the invitation instead of closing research");
+        foreach (var (key, side) in new[] { (Key.Left, Side.Left), (Key.Right, Side.Right), (Key.Up, Side.Top), (Key.Down, Side.Bottom) })
+        {
+            await Open();
+            Button stay = join.GetCancelButton();
+            stay.SetFocusNeighbor(side, stay.GetPathTo(purchase));
+            stay.GrabFocus(); PressKey(key); await Frames();
+            Check(join.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "foreground invitation contains native " + key);
+            PressKey(Key.Enter); await Restored();
+        }
+        Check(declined == 5 && accepted == 0, "directional input and Enter activate only Stay, never research");
+        await Open(); Click(join.HeaderClose.GetGlobalRect().GetCenter()); await Restored();
+        Check(declined == 6 && accepted == 0, "invitation header close declines and restores research");
+        await Open(); join.Hide(); await Restored();
+        Check(declined == 6 && accepted == 0, "external invitation cancellation restores scope without activation");
+        await Open(); join.GetOkButton().GrabFocus(); PressKey(Key.Enter); await Restored();
+        Check(accepted == 1 && declined == 6, "explicit Join activates only the foreground invitation callback");
+        foreach (var (key, side) in new[] { (Key.Left, Side.Left), (Key.Right, Side.Right), (Key.Up, Side.Top), (Key.Down, Side.Bottom) })
+        {
+            original.SetFocusNeighbor(side, original.GetPathTo(background));
+            original.GrabFocus(); PressKey(key); await Frames();
+            Check(research.IsAncestorOf(GetViewport().GuiGetFocusOwner()) && requests() == before, "restored research contains outgoing native " + key + " without activating the HUD");
+            original.SetFocusNeighbor(side, "");
+        }
+        original.GrabFocus(); PressKey(Key.Tab); await Frames();
+        Check(research.IsAncestorOf(GetViewport().GuiGetFocusOwner()), "research resumes its ordinary native Tab scope after invitation dismissal");
+        PressKey(Key.Tab, true); await Frames();
+        Check(GetViewport().GuiGetFocusOwner() == original, "research resumes reverse Tab and its prior selection");
     }
-    private static void PressKey(Key key)
+    private void Click(Vector2 point)
     {
-        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = true });
-        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false });
+        GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point }, true);
+        GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Position = point, GlobalPosition = point, Pressed = true }, true);
+        GetViewport().PushInput(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Position = point, GlobalPosition = point, Pressed = false }, true);
+    }
+    private static void PressKey(Key key, bool shift = false)
+    {
+        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, ShiftPressed = shift, Pressed = true });
+        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, ShiftPressed = shift, Pressed = false });
     }
 }

@@ -103,8 +103,9 @@ qualification; do not update receipt counts without executing their owner suites
 The migration's former `test-ui-resources` command, launcher, probe and SceneTree
 entry were redundant with the landed EngineTests owner. Their meaningful 38
 resource/modal/input/Settings-service assertions were consolidated into the existing
-`settings` engine case, selected by ordinary source CI. All ten original scenes,
-font/seal/branch/button states, supplied quote intent/disabled reason,
+`settings` engine case, selected by ordinary source CI. The later selected-subset
+cleanup removes eight unused portable scene loads and two portable-only quote
+assertions. Both selected kit scenes, font/seal/branch/button states,
 outside-click blocking, Tab/Escape, later-menu sibling picking, Audio input/service,
 draft/Apply/persistence and both window bounds remain. The superseded compact
 research-center footprint assertions are replaced by the landed `worldtree` case
@@ -145,7 +146,7 @@ selection with owned state, real controls and bounded frame waits. Added cost is
 estimated at a few frame waits, not matched timing or graphical qualification.
 
 The existing offline Steam/native-payload probe also consumes the woodland Theme,
-font metrics, seal/branch textures, all ten production Control scenes and bundled
+font metrics, seal/branch textures, both selected kit Control scenes and bundled
 JSON provenance/nonempty notices from the active `res://` root. Exported clients
 retain the guarded `Verification/EngineTests.tscn` for the landed exported
 Worldtree component dispatch, while excluding the retired ui-resources launcher.
@@ -182,8 +183,24 @@ covers prerequisites, 3/6/9 quotes, exclusive sibling, production offshoot,
 intent-before-acknowledgment, rejection without acquisition, Close/focus return,
 resumed HUD commands and owned Control/controller disposal. Existing Settings
 and landed Worldtree assertions remain separate owners, not duplicated journeys.
-The obsolete compact-center layout helper is removed; neither the immutable
-portable skill_tree member nor live research authority is replaced by a demo.
+The obsolete compact-center layout helper and unused portable skill_tree runtime
+member are removed; original upstream hashes remain separately archived and live
+research authority is not replaced by a demo. Real HUD quote/denial/action checks
+replace the removed verification-only portable quote coverage.
+
+The cross-subtree invitation regression strengthens this B receiving fixture:
+research opens through the production Tabletop callback, then the production
+GameApplication invitation factory/opening boundary suspends it. Native Tab,
+Shift-Tab, all four focus directions, Enter, Escape, header/pointer close and
+external dismissal must affect only the invitation, never purchase or close
+research. Dismissal restores research visibility, selection/focus, traversal and
+ordinary purchase intent through the existing session sender. The application
+CanvasLayer precedes the later HUD subtree as in production. No application,
+world, Steam pairing or credentials are started. Sibling-only Settings/Friends
+checks miss that input order; pure C# cannot route Godot native input. Existing
+owned state, three-frame synchronization and the 60s bound are reused; estimated
+incremental cost is a few dozen layout frames, not a second journey. These checks
+do not certify desktop focus or rendered pixels.
 
 Observed implementation cost: receiving **62 checks, 7.07s component / 12.92s
 including locked preparation**, `logs/20261012-082246-34c944ee/`; Settings **89

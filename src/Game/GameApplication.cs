@@ -90,10 +90,7 @@ public partial class GameApplication(Main session) : Node
         _steamStatus.OffsetLeft = 14; _steamStatus.OffsetRight = -14; _steamStatus.OffsetTop = -46; _steamStatus.OffsetBottom = -14;
         var ornament = new TextureRect { Texture = UiAssets.Texture("art/woodland/woodland_corners.svg"), CustomMinimumSize = new(180, 84), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
         content.AddChild(ornament);
-        _join = new UiDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Confirmation = true, Theme = Theme };
-        AddDialog(_join);
-        UiAssets.Decorate(_join.GetOkButton(), "AcceptJoin");
-        UiAssets.Decorate(_join.GetCancelButton(), "DeclineJoin");
+        _join = CreateJoinConfirmation(root, Theme, () => _tabletop?.ResearchDialog);
         _leave = new UiDialog { Name = "LeaveConfirmation", Title = "Return to menu?", OkButtonText = "Return to menu", CancelButtonText = "Cancel", Confirmation = true, Theme = Theme };
         AddDialog(_leave);
         _leave.Confirmed += ConfirmReturn;
@@ -218,6 +215,20 @@ public partial class GameApplication(Main session) : Node
         Settings.Close(false);
         session.ReturnToMenu();
     }
+    internal static UiDialog CreateJoinConfirmation(Control host, Theme theme, Func<WorldtreeDialog?> research)
+    {
+        var join = new UiDialog { Name = "JoinConfirmation", Title = "Join your friend?", DialogText = "Leave the current game and join your friend's invitation? Your current solo or hosted game will end.", OkButtonText = "Join game", CancelButtonText = "Stay here", Confirmation = true, Theme = theme };
+        host.AddChild(join);
+        UiAssets.Decorate(join.GetOkButton(), "AcceptJoin");
+        UiAssets.Decorate(join.GetCancelButton(), "DeclineJoin");
+        join.VisibilityChanged += () => research()?.SetInputScope(!join.Visible);
+        return join;
+    }
+    internal static void ShowJoinConfirmation(UiDialog join)
+    {
+        join.PopupCenteredClamped(new(500, 190), 0.9f);
+        join.GetCancelButton().GrabFocus();
+    }
     public void OpenJoinConfirmation(Action accept, Action decline)
     {
         if (_exiting || _join.Visible) { decline(); return; }
@@ -225,8 +236,7 @@ public partial class GameApplication(Main session) : Node
         _leave.Hide(); _leaveGeneration = -1;
         Settings.Close(false);
         _joinAccepted = accept; _joinDeclined = decline;
-        _join.PopupCenteredClamped(new(500, 190), 0.9f);
-        _join.GetCancelButton().GrabFocus();
+        ShowJoinConfirmation(_join);
     }
     internal void CancelJoinConfirmation()
     {

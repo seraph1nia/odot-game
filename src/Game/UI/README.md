@@ -10,7 +10,11 @@ resource name.
 Only production native Godot resources are included: no preview project,
 showcase, fixtures, reference raster, build tools, Blender or generated caches.
 The portable package identity is recorded in the manifest's `package` record;
-its production members are recorded in `files`. The archive itself was absent
+the selected 22 receiving-game members are recorded in `files`, not all 46
+original package members. The [original inventory](../../../docs/asset-history/woodland-ui/README.md)
+preserves all source hashes and package provenance separately. Eight unused
+portable component triples are omitted; live gameplay keeps its C# receivers
+and separately pinned Worldtree. The archive itself was absent
 in the read-only source checkout: these game resources were verified/copied
 directly from the pinned source members, **not claimed loaded from that ZIP**. Receiving
 Godot regenerates native SVG/font imports locally. The additional landed

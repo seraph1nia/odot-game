@@ -5,6 +5,7 @@ namespace Game;
 public partial class Tabletop
 {
     private WorldtreeDialog _researchDialog = null!;
+    internal WorldtreeDialog? ResearchDialog => _researchDialog;
     private Button _openResearch = null!;
     private long _researchRevision = -1;
     private int _researchFocus;

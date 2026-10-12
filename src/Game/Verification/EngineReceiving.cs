@@ -16,6 +16,10 @@ public partial class EngineTests
     {
         GetWindow().Size = new(1920, 1080);
         using Theme theme = ApplicationTheme.Create();
+        var applicationCanvas = new CanvasLayer { Layer = 10 };
+        AddChild(applicationCanvas);
+        var applicationHost = new Control { Theme = theme, MouseFilter = Control.MouseFilterEnum.Ignore };
+        applicationCanvas.AddChild(applicationHost); applicationHost.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         var host = new Control { Theme = theme, MouseFilter = Control.MouseFilterEnum.Ignore };
         AddChild(host); host.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         using var match = new Match();
@@ -24,6 +28,7 @@ public partial class EngineTests
         match.Players[1].Research = new(30);
         var session = new ReceivingSession(match);
         var hud = new Tabletop(session);
+        UiDialog join = GameApplication.CreateJoinConfirmation(applicationHost, theme, () => hud.ResearchDialog);
         bool suspended = false;
         try
         {
@@ -47,10 +52,7 @@ public partial class EngineTests
             void Click(Control control)
             {
                 Check(control.IsVisibleInTree() && control.GetGlobalRect().HasArea(), "native receiving target is laid out: " + control.Name);
-                Vector2 position = control.GetGlobalRect().GetCenter();
-                GetViewport().PushInput(new InputEventMouseMotion { Position = position, GlobalPosition = position }, true);
-                GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = true }, true);
-                GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position, ButtonIndex = MouseButton.Left, Pressed = false }, true);
+                this.Click(control.GetGlobalRect().GetCenter());
             }
             Refresh(); await Frames();
             Check(!hud.IsInsideTree() && hud.GetChildCount() == 0, "receiving controller has no world, camera, landscape or application startup");
@@ -125,7 +127,8 @@ public partial class EngineTests
             Check(session.Commands.Count == before && !match.Players[1].Research.Has(TechnologyId.Guardian), "native and forged prerequisite intent cannot escape receiving eligibility guard");
             Click(nodes["primary_left"].As<Button>()); await Frames();
             Check(!action.Disabled && dialog.Research.Description.Text.Contains("3 research points", StringComparison.Ordinal), "native foundation selection shows the actual three-point catalog cost");
-            Click(action); Refresh(slot: 2);
+            await InvitationScope(join, dialog, farm, () => session.Commands.Count);
+            action.GrabFocus(); PressKey(Key.Enter); await Frames(); Refresh(slot: 2);
             Check(session.Commands[^1] is { Action: "research-tech", City: 1, Technology: TechnologyId.MeleeFoundation }
                 && session.Results[^1].Accepted && match.Players[1].Research.Points == 27, "production Worldtree sender purchases through real Match authority");
             Check(!tree.Get("snapshot").AsGodotDictionary()["acquired"].AsGodotArray().Any(v => v.AsString() == "primary_left")
@@ -171,6 +174,7 @@ public partial class EngineTests
         }
         finally
         {
+            RemoveChild(applicationCanvas); applicationCanvas.Free();
             RemoveChild(host); host.Free(); hud.Free();
         }
         Check(!GodotObject.IsInstanceValid(host) && !GodotObject.IsInstanceValid(hud), "receiving owner frees its real Controls and world-free controller");

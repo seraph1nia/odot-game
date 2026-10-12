@@ -4,9 +4,12 @@
 
 The game consumes the accepted native kit from `odot-game-assets`, incorporating
 its woodland HUD/menu presentation and the landed living Worldtree, not the
-superseded flat Ledger palette. The original compact skill-tree payload remains
-immutable but is not the live game research surface. The [kit manifest](../src/Game/UI/manifest.json) owns
-the exact source revision, production member hashes and source-relative paths,
+superseded flat Ledger palette. The receiving runtime selects 22 original kit
+members; eight unused portable component triples, including the compact local
+allocator, are not shipped. The [original 46-member inventory](asset-history/woodland-ui/README.md)
+preserves exact upstream hashes and provenance separately, without upstream edits.
+The [kit manifest](../src/Game/UI/manifest.json) owns
+the exact source revision, selected member hashes and source-relative paths,
 API/inventory/migration/coverage/woodland bindings, theme generator, original seal
 source, reference hashes and catalog package identity. See
 [notices and acquisition boundary](../src/Game/UI/README.md),
@@ -15,7 +18,7 @@ source, reference hashes and catalog package identity. See
 members retain their separate exact asset-main revision/inventory under
 [the authored manifest](../src/Game/Assets/Authored/manifest.json) and
 [Worldtree import contract](worldtree.md#immutable-import-contract); the original
-46-member kit pin is not expanded or rewritten to hide that second binding.
+46-member kit provenance is not expanded or relabeled to hide that second binding.
 
 Game import/export and live UI checks are the receiving-project qualification;
 source-member integrity does not establish runtime acceptance. `hud.png` remains
@@ -53,19 +56,25 @@ remains, including fallback restoration. These receiving-boundary regressions
 live in `src/Game/Verification/EngineTests.Ui.cs`.
 The game still explicitly blocks picking/held-world gestures/commands while a
 modal is open. Leave confirmation temporarily suspends the underlying Settings
-key scope; closure restores it. Dialogs are outside layout containers under the
+key scope; closure restores it. Join confirmation suspends the Tabletop research
+host by hiding its scope, preserving the selected native focus target; every
+invitation dismissal restores that scope before the existing service callback.
+The receiving fixture constructs the actual application invitation above the
+later HUD subtree, without starting the application or using Steam credentials.
+Dialogs are outside layout containers under the
 application's viewport-sized overlay. Tabletop teardown frees its owned overlays.
 Settings footer composition remains extensible for actual later controls; no
 Forest Theme/Magical Effects feature or speculative settings service is added.
 
 ### Research adaptation, not an invented allocation economy
 
-The portable `skill_tree.tscn` has a one-point shared root and exactly three
+The upstream portable compact tree has a one-point shared root and exactly three
 independent chains, with local allocation. The actual game instead has three
 class foundations costing three points each, each with two exclusive
 specialization/mastery chains costing six/nine points. Feeding game data to that
-allocator would change rules or pretend it matches. It is therefore retained as
-an unchanged production payload member, **not instantiated as game authority**.
+allocator would change rules or pretend it matches. It is therefore excluded
+from the receiving runtime, with its original hashes retained in the historical
+inventory and its canonical upstream source unchanged.
 The landed Worldtree instead projects the actual catalog and acknowledged acquired
 set into the immutable living tree; structural roots are established systems,
 not purchases. Locked/owned nodes remain inspectable; the native purchase control
@@ -150,10 +159,13 @@ transient renderer overrides. Native header/footer rectangles are measured at
 attempt (`logs/20261011-080053-bbef46f4/`) failed because it added UI to a root busy
 initializing; the corrected fixture owned its UI children directly. Its logs remain.
 
-Those checks now live in the existing minimal `EngineTests` scene under
-`mise run test-engine --scenario settings`, including routine source CI selection.
-The redundant probe/launcher/SceneTree-entry/task chain was removed, not its
-meaningful assertions. The landed supervisor supplies isolated preferences,
+Live resource/modal/Settings checks now live in the existing minimal `EngineTests`
+scene under `mise run test-engine --scenario settings`, including routine source
+CI selection. The subsequent selected-subset cleanup removes eight unused
+portable scene loads and two portable-only quote assertions. Actual quotes,
+denials and action intent remain exercised through the real C# HUD and Worldtree
+in `receiving`. These historical counts are not current selection counts.
+The redundant probe/launcher/SceneTree-entry/task chain was removed. The landed supervisor supplies isolated preferences,
 marker validation, engine logs, deadline and awaited cleanup. Added headless
 regressions cover nested confirmation scope across Settings resize, current
 per-open invokers after old controls are freed, invalid explicit invokers and
@@ -197,6 +209,26 @@ receiving boundary with external/missing keyboard focus. Changed C# was formatte
 kit bytes were unchanged. This remains partial review-fix worktree evidence, not
 final-head full-suite, package, CI, Steam-pair or graphical acceptance; none of
 those checks ran in this round.
+
+The invitation/subset review-fix worktree based on `e104f748` passed focused
+headless `receiving` (**102 checks**, 7.91s component / 13.75s with preparation),
+`settings` (**79 checks**, 1.96s / 6.90s), and the filtered
+`WoodlandUiAssetTests` contract (**one test**, zero skips). Receipts are under
+`logs/review-r1-r2/{receiving-final,settings-final,inventory}/`; raw command output
+and verified installed SDK/engine hashes are retained in that same evidence root.
+The lower Settings count removes only eight unused portable scene loads and two
+portable quote assertions; live HUD quotes/actions and Worldtree research authority
+remain exercised by receiving. Cross-subtree invitation tests cover native keys,
+pointer blocking, dismissal/restoration and the resumed real research sender.
+The shared pointer fixture now injects viewport-local coordinates, including at
+stretched sizes, and keyboard assertions retain the existing frame barrier.
+Earlier attempts in this round are preserved separately: new inventory code first
+failed CA1861, then fixture development exposed mismatched pointer coordinates
+and an immediate keyboard assertion without that barrier. Each was corrected
+before the selected passes; no deadline or expected state was relaxed. Changed
+C# was formatted after locked restore. Full suites/lint, animation/assets/standalone
+Worldtree, transport/export/package/hosted CI, Steam pairing and graphical checks
+were not executed in this review-fix round; the outer gates remain authoritative.
 
 Final village/building/army/research/combat/multiplayer live-game journeys and
 refreshed screenshots, native GPU/compositor/performance/physical input/listening,
