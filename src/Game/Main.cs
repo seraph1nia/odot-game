@@ -778,10 +778,11 @@ public partial class Main : Node, IGameSession
     {
         if (_finished || _role != SessionRole.Guest) return;
         _finished = true; Connected = false; Status = type == "connection-failed" ? "Connection failed" : "Disconnected"; Feedback = message;
-        Emit(new(type, Message: message));
         SessionGeneration++;
         ReleaseGuestPump();
         ResetRpcNode(); Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); _peer?.Close();
+        // Responses to this event must be queued against the post-loss generation.
+        Emit(new(type, Message: message));
         if (_automated) GetTree().Quit(type == "connection-failed" ? 1 : 0);
     }
 
