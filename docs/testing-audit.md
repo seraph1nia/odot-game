@@ -445,13 +445,30 @@ now proves four paid recruits with actual unused physical capacity; separate
 paid six-unit/capacity and three-city transfer guards remain.
 
 The rebuilt paid selection passed 11 cases; broader fast and occupied-front
-witness diagnostics subsequently failed. The preserved required occupied-front
-assertion still lacks a legal qualified paid transcript and blocks completion.
-Latest coverage, exact failures, passed filters and unexecuted native/transport/
-package/pipeline checks are recorded in that checkpoint. Source compilation and
-pure numerical affordability do not qualify retained graphical consumers or
-rendered forecast artwork. Immutable MAIN resource-ledger bytes/provenance are
-retained; the native C# receiving caller supplies its supported heading field.
+setup diagnostics subsequently failed and remain preserved. Firstmate then
+authorized the split paid progression and focused production admission witnesses,
+not another speculative paid schedule to force incidental seeded occupancy.
+The paid default-rule witness retains resource/funding/allocation/transfer and
+survivor identity. The focused numerical witness deliberately establishes the
+explicit nonempty occupied-source guard across eight role/death cases, preserving
+source positions/health/ownership and legal incoming identity/capacity through
+actual transfer and admission. One bounded same-input spatial counterfactual
+proves occupied source forces rear admission versus legal front admission without
+that occupation. This is numerical setup, not a paid campaign or rendered proof.
+The old assertions and inherited malformed/capacity/foreign/atomic/death-release
+negative coverage are inventoried in the checkpoint; no product admission or
+balance behavior was modified.
+
+Full fast coverage now passes 509 Core/649 Runner (two Windows-platform skips).
+The minimal headless native receiving owner also passes, including landed plot/
+tower/modal/resource controls and new speed/input/ack, imported forecast rigs,
+framing/picking/inspector, actual three settlements and stale preview cleanup.
+Final focused split/board/occupancy requalification passes 39 cases after paid
+receipt strengthening. Historical failures, exact receipts and unexecuted live
+transport/package/pipeline checks are recorded in the checkpoint. No full native
+application/world/UI journey or rendered forecast/GPU qualification is claimed.
+Immutable MAIN resource-ledger bytes/provenance are retained; the native C#
+receiving caller supplies its supported heading field.
 
 ## Remaining risks / deliberately unclaimed guarantees
 

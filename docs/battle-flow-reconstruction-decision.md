@@ -12,9 +12,11 @@ content-derived framing are retained. Protocol advances beyond landed MAIN's
 13 to 14. Full-sale resource debit/gold credit projection and focused atomic
 negative tests are new reconstruction. Specialist and hall schedules are paid
 from default rules and actual city-owned IDs; focused tests passed. Native
-consumers were migrated/compiled but not launched. No pipeline is active.
+graphical economy consumers were migrated/compiled but not launched. The
+minimal headless native receiving component subsequently passed. No pipeline is
+active.
 
-## Unresolved six-mode experiment disposition
+## Historical six-mode experiment disposition
 
 The preserved assessment authorized alternative 1: one opening Metal Mine,
 four paid units and an early/late Lumbermill control. The obsolete expected
@@ -74,6 +76,19 @@ Firstmate authorized option 1 on 2026-10-13. The new six-mode causal comparison
 and paid research/native-consumer schedules are implemented and focused tests
 passed, without changing rules or the single-mine/four-unit control. See
 [battle-flow-reconstruction-coverage.md](battle-flow-reconstruction-coverage.md)
-for named independent negative coverage, exact failed/passed checks, residual
-policy differences and the new occupied-frontage qualification blocker.
-The task remains incomplete and no owning no-mistakes run has started.
+for named independent negative coverage, exact failed/passed checks and residual
+policy differences. The subsequent `paid-frontage-witness` disposition authorized
+separating default-rule paid progression from deliberately occupied production
+admission, rather than forcing seed 109's incidental front positions. Both
+contracts, stronger source/identity/capacity/negative protection and the bounded
+same-input spatial counterfactual are implemented and qualified there. Original
+setup failures remain failures, not admission defects or passes.
+
+The full fast C# selection passed 509 Core/649 Runner (two Windows-platform skips).
+The minimal headless native receiving component, including actual imported rigs,
+speed/input/ack, framing/picking/inspector and three settlements, passed. Final
+focused split-witness/occupancy/board requalification passed 39 cases. No price,
+combat, movement, admission or death-lease product rule changed for the fixture
+replacement. The committed batch is ready for delivery handoff; no owning
+no-mistakes run, push, PR or CI has started yet. Live transport, new export/package
+and rendered/GPU acceptance are not claimed.

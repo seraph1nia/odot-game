@@ -100,10 +100,10 @@ were grouped by changed preparation boundary:
   Mage and melee equipment are actually affordable when choosing support.
 
 Focused requalification of those changed classes passed **72/73**, no skips,
-`logs/20261013-094045-ade12e54/`. One frontage witness remains blocked below.
-These are partial checks, not a complete suite or inherited waiver.
+`logs/20261013-094045-ade12e54/`. One frontage witness remained blocked at that
+checkpoint. This was partial coverage, not a complete suite or inherited waiver.
 
-## Remaining blocker: actual occupied cleared-forward band
+## Preserved frontage setup failures
 
 `VillageStrategyTests.OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(seed:109)`
 has a deliberately preserved `Assert.NotEmpty(held)` against real friendly
@@ -121,26 +121,126 @@ roster, but **no friendly occupies the required enemy front band at transfer**.
   assertions following that guard have not executed.
 
 No production change, guessed ID, seed reroll, weakened frontage/admission guard,
-free resources or outcome acceptance was used to hide this. The same frontage
-obstacle has now failed twice; implementation stops for firstmate assistance.
-A coherent legal tier-before-refill receiving schedule could be investigated
-next (current policy fills twelve low-tier troops early, leaving no refill slots
-for later tier upgrades), or existing direct occupied-front admission coverage
-could be examined for an explicitly authorized replacement. Neither alternative
-is implemented or claimed equivalent at this checkpoint.
+free resources or outcome acceptance hid these failures. Implementation stopped
+at `d0d4a40284195257ef31b442d5784e57458f957d` for firstmate assistance. The empty
+held setup is an observed setup failure, **not** an established admission defect.
+Original failed receipts and their unexecuted downstream assertions remain so.
 
-## Limits / next step
+## Authorized split: paid progression and genuinely occupied production admission
 
-Last source build passed. Locks/tools/assets remain pinned. All evidence and
-checkpoint source are task-local. The guard refusal stamped 1791884334 in the
-status file is preserved; fresh actual `pwd -P` and Git top-level both resolve to
-`/home/bart/.treehouse/odot-game-b83784/2/odot-game`, on the named task branch.
-This driver has not invoked a pipeline from `/home/bart` or any other checkout.
-A future supported no-mistakes invocation must explicitly enter this worktree.
+Firstmate's `paid-frontage-witness` disposition on 2026-10-13 rejects further
+speculative tier/refill-order changes to force seed 109's incidental positions.
+The combined fixture is replaced by two independently established contracts:
 
-Complete fast verification, native receiving component, bounded transport/package,
-no-mistakes, push/PR/CI remain unexecuted for the completed rebuilt batch. No
-full application/world/UI journey, graphical process/private display/screenshot,
-GPU qualification or live Steam is authorized or claimed. Fix/dispose the
-frontage blocker through firstmate, then finish grouped qualification and one
-fresh owning no-mistakes handoff; do not publish the current checkpoint as green.
+1. `VillageStrategyTests.PaidThreeCityProgressionPreservesClearedTransferIdentityAndCompletes(seed:109)`
+   runs the same bounded legal six-paid-unit specialized default-rule opening
+   and earned investment. Every construction, upgrade, home purchase, sale and
+   recruit checks actual quoted resource debit/refund. Actual births record
+   owner/type/level; both cities' upkeep covers their real funded IDs. Wave 2
+   allocates twelve enemies, including four from fallen city 3, after exactly
+   six production events. At actual transfer tick 1037, city 1 is cleared with
+   eight real paid soldiers at cells 11–14, **not** enemy-front cells 4–6. Incoming
+   origin/owner/type/profile/identity and positive bounded health are retained;
+   friendly wounds/profile/home assignment are preserved. The ordinary admission
+   bound executes, the wave clears into wave 3 without defeat, and nonempty
+   survivors retain their paid birth identities. This is not an occupied-front
+   proof and is no longer named or claimed as one.
+2. `HexBattleTests.RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes`
+   strengthens the existing focused production boundary, across four incoming
+   roles with and without retained death leases. It deliberately seeds three
+   living city-2 defenders in cells 4–6 with normal already-committed attack
+   deadlines. Its explicit **`Assert.NotEmpty(held)`** additionally verifies that
+   every seeded source ID is actually deployed there before the real city-1
+   elimination/transfer. It checks unchanged living source positions, health,
+   ownership and profile through transfer and first admission; incoming exact
+   identity/health/profile/deadline, legal destination/owner/faction and placement;
+   per-cell capacity; exact first admitted ID; actual landed engagement and
+   health progress; completion, nonempty owned surviving source identities, and
+   no friendly occupation of the protected enemy rear. It uses the existing
+   deterministic numerical setup (`CampaignFixture.Three(first:1)`, defender
+   damage zero), **not** default-rule paid recruitment or a campaign proof.
+
+### Earliest divergence and bounded counterfactual
+
+The paid path derives deployment/movement from purchases and ordinary combat;
+its actual cleared waiting soldiers remain in cells 11–14 at transfer. The
+focused occupied path explicitly establishes source positions 4–6 at tick 25
+before elimination/transfer at tick 27, with existing normal committed attacks.
+That spatial setup is the earliest purposeful divergence, before admission is
+called, not a failure to honor already-occupied source space.
+
+`HexBattleTests.OccupiedSourceRatherThanSeededPaidOutcomeDeterminesLegalIncomingBand`
+runs one smallest practical counterfactual through the same production helper:
+same incoming Swordsman and source IDs/ownership/health/profiles/deadlines, same
+elimination and admission tick 27, but the source positions move to their own
+front instead. Held source 3 admits into legal enemy rear cell 2; held source 0
+admits into legal enemy front cell 5. Both complete with survivors, and the occupied
+case preserves all source positions. The eight-role/death cases admit at tick
+27 or the actual compatible death release at tick 48, engage and complete. No
+product defect is demonstrated; no admission, movement, cadence, death lease,
+economy, squad or balance implementation is changed to make the tests pass.
+
+### Meaningful old assertion / negative coverage inventory
+
+| Original combined witness guard | Concrete replacement / negative coverage |
+| --- | --- |
+| Paid Farm/mines/recovery Lumbermill/Barracks and six funded recruits; no final income spent | New named paid progression checks accepted contextual commands, published costs/refunds and actual resource deltas, birth IDs, first-entry metal 12/food 9, six paid upkeep per equipped city |
+| First clear → wave 2; city 3 eliminated; twelve actually allocated enemies | Same paid progression retains these guards, adds production count 6 and per-living-city count 6 plus fallen-origin count 4; `SessionFlowTests.SerializedThreeCityTransferPreservesIdentityAndNextWaveAllocation` proves serialized allocation |
+| Receiving-city elimination and a cleared surviving city before actual transfer | Same paid progression preserves the bounded actual elimination/transfer and no own-city enemies; nonempty living paid roster retained |
+| Genuinely nonempty deployed occupied enemy-front source | Strengthened eight-case `RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes`, not an assumption about the paid seed; explicit nonempty/all-ID guard and unchanged held positions through transfer/admission |
+| Admission exists, meets first bound, and is a deployed unit from another origin | Both replacements; focused boundary additionally asserts exact transferred/admitted ID, profile/health/deadline, owner/faction/destination, capacity and legal band |
+| Combat completes → wave 3 / no defeat | Paid progression retains exact wave-3 result and proves paid owned survivor IDs; focused numerical admission proves actual landed attack/health progress, completion, positive surviving source identity and legal final positions |
+| Capacity and faction/ownership protection; no invalid or partial reservations | Retained `HexOccupancyTests.SharedSizesAndFactionProtectionApplyEvenWhenCapacityIsFree`, `SourceDestinationAndTransitReserveAtomicallyAndIndependentMovesCanStartTogether`, `ReconstructionRejectsConflictsWithoutMutatingTheCurrentIndexAndTransferReleasesAllLocks`; occupied boundary asserts actual capacity/ownership and protected rear exclusion |
+| Malformed topology/anchors/deployment, overflow and non-owning paid placement | Retained `HexBoardTests.MalformedTopologyAnchorsAndDeploymentAreRejected`, `CombatConfigurationTests.OverflowAndFractionalHexRangesAreRejected`, `ArmyRosterTests.PaidRecruitmentUsesFirstFitAndRejectsFullWithoutPayment`, `RetireAndHallTransfersPreserveIdentityWoundsAndRejectFullDestinations`; ordinary authority foreign-city/nonmutation guards remain independently tested |
+| Compatible cumulative death leases / bounded queued admission | Retained `HexBattleTests.ClearedProtectedEntryBoundUsesCumulativeCompatibleDeathReleases`; strengthened role/death cases forbid early deployment, pin the first bound and first admitted ID |
+
+Only the historical seed-position coupling is retired. The nonempty occupied
+contract is explicitly established, stronger downstream protection executes, and
+no old meaningful contract is silently deleted, skipped or accepted arbitrarily.
+
+## Completed local qualification / delivery handoff
+
+- Initial split focused selection passed **39/39**, no skips:
+  `logs/20261013-100435-64ca71b4/`.
+- Full fast C# `test-fast --jobs 1` passed **509 Core**, **649 Runner**, zero
+  failures: `logs/20261013-100509-3f689a65/`. Two Windows-native argument cases
+  are explicit platform skips on Linux. No Godot/graphics in this selection.
+  The immutable asset/provenance check now passes with restored MAIN bytes.
+- Headless `test-engine --scenario receiving` passed in **27.45 s**, including
+  its sequential locked restore/build/import and **22.58 s** component phase:
+  `logs/20261013-100705-74a8bf19/`. Existing owned harness, minimal Controls/rigs,
+  no Main/application/world. This exercises landed army plot/tower controls,
+  resource ledger, Worldtree/modal bindings and the new `BattleFlow` component:
+  real speed pointer/keyboard/ack/disconnect behavior, Settings separation,
+  actual imported idle enemy rigs, native bounds picking and inspector,
+  forecast-inclusive content framing, all three actual Ready settlements and
+  final construction, manifest consumption and stale preview cleanup.
+- Final focused selection after strengthening all paid quote/refund receipts and
+  logging actual source positions passed **39/39**, zero skips/failures:
+  `logs/20261013-100950-0a755712/`. This is the same named split/occupancy/board
+  selection; not another full-suite claim. No relevant native product inputs
+  changed after the successful receiving run.
+- Final `dotnet format Odot.slnx --no-restore` and sequential solution build
+  passed, zero warnings/errors. An earlier combined format/build command hit
+  its external 180 s limit with an empty build log and no remaining owned child;
+  it is **not** a pass. A process-local `UseSharedCompilation=false` build then
+  passed in 26.87 s without touching the unrelated long-lived compiler server.
+  This discriminates shared compiler use, not a proven diagnosis or deadline
+  waiver; historical failure remains `logs/reconstruction/build13.log` and
+  caller evidence. Final nonshared build took 6.59 s.
+
+Locks/tools/assets remain pinned. All evidence and checkpoint source are task-
+local. The guard refusal stamped 1791884334 remains preserved; actual `pwd -P`
+and Git top-level both resolve to the named task worktree. This driver has not
+invoked a pipeline from `/home/bart` or any other checkout. A future supported
+no-mistakes invocation must explicitly enter this worktree.
+
+No live ENet transport, export/package probes, no-mistakes, push/PR/CI have run
+for this completed batch. C# authority requests/retry/resume/codec/protocol
+rejection and the headless receiving boundary are qualified; they are not a live
+transport or published package claim. Existing old packages cannot qualify the
+new protocol 14 build. No full application/world/UI journey, graphical process/
+private display/screenshot, GPU qualification, desktop focus or live Steam is
+authorized or claimed. Native imported rig/input/geometry proof is not pixel/
+aesthetic acceptance. Delivery still requires the one fresh owning no-mistakes
+handoff and exact-head non-draft PR with mandatory CI green, without a waiver.

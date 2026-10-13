@@ -130,9 +130,18 @@ Firstmate subsequently authorized a coherent causal replacement. The
 [reconstruction coverage checkpoint](battle-flow-reconstruction-coverage.md)
 records its passing paid selection, cross-mode strength/damage/survivor proofs,
 independent negative-coverage mapping, legal retained-native material schedules,
-broader failed checks/corrections, and the remaining occupied-frontage blocker.
-No completed full qualification, pipeline, push, PR or CI is claimed. Native
-receiving and transport/package checks have not yet run in this reconstruction.
+broader failed checks/corrections and the authorized occupied-frontage witness
+split. The default-rule paid progression proves actual earned transfer/survivor
+identity; focused numerical admission establishes genuinely nonempty occupied
+source and preserves its positions, capacity, ownership and incoming identity.
+The historical incidental seed-position coupling is not an admission defect.
+
+Local qualification now passes 509 Core/649 Runner fast cases (two explicit
+Windows-platform skips), plus the minimal headless native receiving component
+with real imported rigs/speed input/ack/picking/inspector and actual settlements.
+Final focused split-witness/board/occupancy requalification passes 39 cases. Full
+no-mistakes, push, PR, mandatory CI and live transport/new-package verification
+are not yet claimed.
 No full application/world/UI journey, graphical display, screenshot, GPU,
 desktop focus or live Steam qualification is authorized or claimed. A minimal
 headless native component can prove imported resources, input/picking and geometry,

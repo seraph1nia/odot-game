@@ -191,11 +191,32 @@ public sealed class HexBattleTests(ITestOutputHelper output)
     [InlineData(UnitType.Crossbowman, true)]
     [InlineData(UnitType.Mage, true)]
     public void RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes(UnitType type, bool retainedDeaths)
+        => Redistribute(type, retainedDeaths, occupiedFront: true);
+
+    private sealed record RedistributionProof(UnitState Incoming, UnitState Admitted, UnitState[] Source, long Bound);
+
+    // Tier A discriminating counterfactual: same identities/profiles/commitments,
+    // change only source positions. Occupied opposing front must force legal
+    // rear admission; empty front must permit melee front admission. This is
+    // deterministic numerical setup, never a paid campaign/rendering claim.
+    [Fact]
+    public void OccupiedSourceRatherThanSeededPaidOutcomeDeterminesLegalIncomingBand()
+    {
+        RedistributionProof held = Redistribute(UnitType.Swordsman, retainedDeaths: false, occupiedFront: true);
+        RedistributionProof empty = Redistribute(UnitType.Swordsman, retainedDeaths: false, occupiedFront: false);
+        Assert.Equal((held.Incoming.Id, held.Incoming.Health, held.Incoming.Profile, held.Incoming.ReadyTick),
+            (empty.Incoming.Id, empty.Incoming.Health, empty.Incoming.Profile, empty.Incoming.ReadyTick));
+        Assert.Equal(held.Source.Select(u => (u.Id, u.Owner, u.Health, u.Type, u.Profile, u.ReadyTick)),
+            empty.Source.Select(u => (u.Id, u.Owner, u.Health, u.Type, u.Profile, u.ReadyTick)));
+        Assert.Equal(held.Bound, empty.Bound); Assert.NotEqual(held.Admitted.Hex!.Position.Cell, empty.Admitted.Hex!.Position.Cell);
+    }
+
+    private RedistributionProof Redistribute(UnitType type, bool retainedDeaths, bool occupiedFront)
     {
         using var match = new Match(new Rules { Campaign = CampaignFixture.Three(first: 1), DefenderDamage = 0 }, combatSeed: 123);
         match.Join(); match.Join(); VillageStrategyTests.Act(match, 1, "start");
-        for (int n = 0; n < 4; n++)
-            foreach (int city in new[] { 1, 2 }) VillageStrategyTests.Act(match, city, "ready");
+        for (int n = 0; n < 3; n++)
+            foreach (int city in new[] { 1, 2 }) Assert.True(VillageStrategyTests.Act(match, city, "ready").Accepted);
         int oldTarget = match.Enemies.Single(e => e.Destination == 2).Id;
         foreach (UnitState unit in match.Enemies) match.Combat.Remove(unit.Id);
         int incoming = match.Combat.Create(type, 0, 1, 1, Faction.Skeletons);
@@ -218,14 +239,19 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         // The cleared city retains ordinary committed attacks against its old
         // target. Their normal miss/recovery deadlines let arrivals engage;
         // do not fabricate an extra-long recovery to manufacture that proof.
-        foreach (int cell in match.Combat.Board.Front(Faction.Skeletons))
+        int[] sourceCells = match.Combat.Board.Front(Faction.Skeletons).ToArray();
+        int[] sourceIds = new int[sourceCells.Length];
+        for (int index = 0; index < sourceCells.Length; index++)
         {
+            int cell = sourceCells[index];
             UnitType guardType = cell == 6 ? UnitType.Mage : UnitType.Swordsman;
+            int position = occupiedFront ? cell : match.Combat.Board.Front(Faction.Adventurers)[index];
             int id = match.Combat.Create(guardType, 2, 2, 2);
+            sourceIds[index] = id;
             UnitState guard = match.Combat.Read(id); long guardReady = 24 + guard.Profile.CadenceTicks;
             match.Combat.Seed(guard with
             {
-                Hex = CombatFixture.At(guard, cell, 1) with
+                Hex = CombatFixture.At(guard, position, 1) with
                 { Action = UnitActionKind.Windup, ActionSequence = 1, StartTick = 24, EndTick = guardReady },
                 TargetId = oldTarget,
                 AttackSequence = 1,
@@ -248,12 +274,27 @@ public sealed class HexBattleTests(ITestOutputHelper output)
                         { Lifecycle = UnitLifecycle.Dying, DeathStartTick = anchor == 1 ? 0 : 24, DeathEndTick = anchor == 1 ? 48 : 72 }
                     });
                 }
+        UnitState[] source = sourceIds.Select(match.Combat.Read).ToArray();
+        int[] held = source.Where(u => u.Health > 0 && u.Deployed && sourceCells.Contains(u.Hex!.Position.Cell)).Select(u => u.Id).ToArray();
+        if (occupiedFront)
+        {
+            Assert.NotEmpty(held); Assert.Equal(sourceIds, held);
+            Assert.All(source, u => { Assert.Equal(2, u.Owner); Assert.Equal(2, u.Destination); Assert.Equal(Faction.Adventurers, u.Faction); });
+        }
+        else Assert.Empty(held);
         UnitState before = match.Combat.Read(incoming); CombatFixture.Steps(match, 2);
         Assert.True(match.Players[1].Eliminated);
         UnitState transferred = Assert.Single(match.Enemies);
         Assert.Equal((before.Id, before.Health, before.Profile, before.ReadyTick),
             (transferred.Id, transferred.Health, transferred.Profile, transferred.ReadyTick));
-        Assert.Equal(2, transferred.Destination); Assert.False(transferred.PendingImpact);
+        Assert.Equal(2, transferred.Destination); Assert.Equal(1, transferred.Origin);
+        Assert.Equal(0, transferred.Owner); Assert.Equal(Faction.Skeletons, transferred.Faction); Assert.False(transferred.PendingImpact);
+        foreach (UnitState guard in source)
+        {
+            UnitState preserved = match.Combat.Read(guard.Id);
+            Assert.Equal((guard.Id, guard.Owner, guard.Destination, guard.Health, guard.Profile, guard.Hex!.Position),
+                (preserved.Id, preserved.Owner, preserved.Destination, preserved.Health, preserved.Profile, preserved.Hex!.Position));
+        }
         long bound = retainedDeaths ? 48 : 27;
         Assert.Equal(bound, Assert.Single(match.Snapshot().Admissions).FirstAdmissionBound);
         while (match.Tick < bound)
@@ -261,8 +302,15 @@ public sealed class HexBattleTests(ITestOutputHelper output)
             Assert.False(match.Combat.Read(incoming).Deployed); match.Step();
             Assert.Equal(bound, Assert.Single(match.Snapshot().Admissions).FirstAdmissionBound);
         }
-        Assert.Contains(match.Combat.Read(incoming).Hex!.Position.Cell, match.Combat.Board.Rear(Faction.Skeletons));
+        UnitState admitted = match.Combat.Read(incoming);
+        Assert.Contains(admitted.Hex!.Position.Cell, occupiedFront || admitted.Class != UnitClass.Melee
+            ? match.Combat.Board.Rear(Faction.Skeletons) : match.Combat.Board.Front(Faction.Skeletons));
         Assert.Equal(bound, Assert.Single(match.Snapshot().Admissions).AdmissionTick);
+        Assert.Equal(incoming, Assert.Single(match.Snapshot().Admissions).FirstUnitId);
+        Assert.Equal((before.Id, before.Health, before.Profile, 2, 0), (admitted.Id, admitted.Health, admitted.Profile, admitted.Destination, admitted.Owner));
+        foreach (UnitState guard in source) Assert.Equal(guard.Hex!.Position, match.Combat.Read(guard.Id).Hex!.Position);
+        foreach (var cell in match.Snapshot().Reservations.Positions.GroupBy(p => (p.City, p.Cell)))
+            Assert.InRange(cell.Sum(p => p.Size), 0, match.Combat.Board.Capacity);
         bool attacked = false, healthProgress = false;
         while (match.Phase == Phase.Combat && match.Tick < 1200)
         {
@@ -272,8 +320,15 @@ public sealed class HexBattleTests(ITestOutputHelper output)
         }
         Assert.True(attacked); Assert.True(healthProgress); Assert.Equal(Phase.Building, match.Phase);
         Assert.Equal(DefeatReason.None, match.DefeatReason); Assert.Empty(match.Enemies);
-        Assert.All(match.Players[2].Soldiers, u => Assert.DoesNotContain(u.Hex!.Position.Cell, match.Combat.Board.Rear(Faction.Skeletons)));
-        output.WriteLine($"Transferred {type}: retainedDeaths={retainedDeaths}, transfer=27, admission={bound}, completion={match.Tick}, remaining soldier HP={match.Players[2].Soldiers.Sum(u => u.Health)}.");
+        Assert.NotEmpty(match.Players[2].Soldiers);
+        Assert.All(match.Players[2].Soldiers, u =>
+        {
+            Assert.Contains(u.Id, sourceIds); Assert.Equal(2, u.Owner); Assert.Equal(2, u.Destination);
+            UnitState original = source.Single(s => s.Id == u.Id); Assert.Equal(original.Profile, u.Profile);
+            Assert.DoesNotContain(u.Hex!.Position.Cell, match.Combat.Board.Rear(Faction.Skeletons));
+        });
+        output.WriteLine($"Numerical transfer {type}: occupiedFront={occupiedFront}, held={held.Length}, retainedDeaths={retainedDeaths}, transfer=27, admission={bound}, admittedCell={admitted.Hex!.Position.Cell}, completion={match.Tick}, remaining soldier HP={match.Players[2].Soldiers.Sum(u => u.Health)}.");
+        return new(before, admitted, source, bound);
     }
     private sealed record RoleRun(int ClearTick, int SupportEndTick, int Health, int SecondaryHits, Dictionary<int, decimal> Damage, long[] ImpactTicks, int? FirstSupportDamageTick, int SupportId, int[] EnemyTargets);
     private static RoleRun Role(UnitType support, int screen, int enemies, UnitType enemy = UnitType.Swordsman)
