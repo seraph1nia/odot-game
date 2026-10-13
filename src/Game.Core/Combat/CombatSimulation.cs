@@ -525,6 +525,23 @@ internal sealed partial class CombatSimulation : IDisposable
         tower = defense.Start(target.Id, _tick); defense.Commit(city, tower);
         EmitTower(CombatEventType.AttackStarted, tower, Members(target).FirstOrDefault(), defense.Profile.Damage, false, []);
     }
+    private HexPosePoint? TargetPose(CombatUnit member)
+    {
+        if (member.Target is not { } target) return null;
+        if (target.Kind != CombatTargetKind.Unit)
+        {
+            // Routing stores the exact physical objective cell; the old
+            // ObjectiveCity flag alone cannot distinguish Keep from Watchpost.
+            int cell = member.Action is CombatAction.Moving && member.Decision.ObjectiveCell > 0 ? member.Decision.ObjectiveCell
+                : target.Kind == CombatTargetKind.City ? _arena.Keep(target.Id) : _arena.Watchpost(target.Id);
+            return new(new(cell, 1));
+        }
+        // Retained casualties are still available during simultaneous resolution.
+        // Capture a value pose, never a live target reference or an occupancy lease.
+        CombatUnit? defender = All().Where(u => u.SquadId == target.Id && u.Deployed)
+            .OrderBy(u => u.Location.Lifecycle == UnitLifecycle.Dying ? 1 : 0).FirstOrDefault();
+        return defender is null ? null : ProjectMember(defender).Pose(_tick);
+    }
     private void Kill(CombatUnit member)
     {
         CombatUnit projected = ProjectMember(member); bool deployed = member.Location.Lifecycle == UnitLifecycle.Alive;
@@ -538,6 +555,7 @@ internal sealed partial class CombatSimulation : IDisposable
                 DeathStartTick = _tick,
                 DeathEndTick = checked(_tick + member.Profile.DeathTicks),
                 FrozenTick = _tick,
+                FrozenAim = TargetPose(projected),
                 FrozenMoveTicks = projected.Action is CombatAction.Moving move ? checked((int)(_tick - move.StartTick)) : 0
             }
         };

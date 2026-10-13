@@ -612,6 +612,60 @@ three-preparation timing still awaits actual prerequisite integration. Remaining
 broad failures and twenty-wave paid strategy/balance/transport/native/package
 checks remain unexecuted since this seam.
 
+## Coherent legacy combat-suite replacement (2026-10-13)
+
+`HexBattleTests`, `SplashTowerTests` and `DefensePolicyTests` were replaced as one
+subsystem against the current squad/X-Y/physical-objective owners, not repaired
+assertion by assertion to retain individual combat. The retained initial broad
+receipt executed **36 old rows: 4 passed / 32 failed** across these classes
+(22 HexBattle, 8 SplashTower, 6 DefensePolicy). Those failures remain in
+`logs/20261013-002324-d9cf5e7b/core-results/tests.trx`. The new classes execute
+**27 focused rows**, with existing new suites owning overlapping protections.
+No independent paid economy, authority, codec or persistent-member suite was
+removed. `CombatFixture.Group` creates members through actual homogeneous grouping
+then supplies an explicit numerical pose; it is not another combat simulator.
+
+| Removed old contract | Replacement behavior / executable coverage | Retained negative control / limitation |
+| --- | --- | --- |
+| Individual size-budget anchors, automatic member packing and protected rear exclusion | SharedArena/SquadReservation/CombatTests: one squad claim, stable member slots, actual paid deployment, queue conservation, connected routes and progress | Static exclusion, duplicate/hostile/staggered claims, destination conflict and immediate death release; formation geometry remains separate native evidence |
+| Cleared-city teleport, cumulative corpse leases and fixed protected-entry admission deadlines | SharedCombat/WorldTests: physical rescue, fallen-owner survivors, source-preserving group preference redirection, current-battle/future-participation distinction | No magical Keep shield, terminal defeat precedence, future eliminated command denial; obsolete admission DTO/runner consumers still require a separate migration |
+| Member-local routing/cache guarantees and blocked size bands | CombatPolicy/SharedArena: one actual BFS per deciding squad, reachable target selection, released-cell reconsideration, immutable committed move | Independent graph oracle, static detours, malformed transitions, seeded observation/insertion invariance retained |
+| Capped/cross-hex Mage splash and deterministic lowest-ID primary | SplashTower: ranked five-member X/Y profiles, all four zero-channel combinations, exact fractional HP and seeded primary within one group | Adjacent enemy group and friendly remain unchanged; only nonzero contributions appear as victims; StatusEffect covers actual damaged-member attribution |
+| First member death or sector transfer invalidates an entire strike | SplashTower and ArmyPlotTower: group commitment survives member loss and nonteleporting preference redirection | Final group loss and out-of-range group miss without acquiring a nearby replacement; no free retarget or overkill transfer |
+| Moving individual source/destination splash clusters | HexBattle/SplashTower: one committed group uses source through tick129 and destination at exact tick130; typed reconstruction matches actual claims | Single-target and X/Y range-invalid misses, unaffected neighboring groups, nonparticipating/dying members excluded |
+| Death-facing tied to a live target and cosmetic-death occupancy | HexBattle: immutable frozen target pose, exact expiry, moving Watchpost objective and released source/transit | Target relocation cannot change a retained corpse; captured objective is actual Watchpost, not owning Keep; native artistic facing not proven |
+| Recovery-boundary last-hit ordering | HexBattle/DefensePolicy/SharedCombat: lethal boundary cannot start another cycle; squad, Watchpost and tower contributions gathered against pre-impact members | Four committed impacts remain landed despite mutual deaths, actual health capped once, no duplicate defense impact or corpse claim |
+| Old two-victim role-win/casualty goldens | HexBattle paired physical screen/exposed control plus current X/Y, cadence and member-contribution coverage | Same support identity/initial shot timing; protection changes received HP, not invented rate; repeated paid comparative twenty-wave balance is still pending |
+| All towers/defender share a virtual city origin | DefensePolicy: distinct Watchpost/tower origins, physical source/type snapshot, all four paid tower cycles/ranges and shared pause | Range-invalid miss, no nearby replacement hit, no soldier body for a weapon, no duplicate impact |
+| Cap/radius settings are the defense damage algorithm | DefensePolicy: actual six-profile catalog X/Y/range, configured cycle/fingerprint and actor identity | Invalid slot and cross-owner commit refuse; unused legacy profile/config cap/radius fields remain a separate retirement seam, not an active second simulator |
+| Tower ownership disappears when its Keep falls | DefensePolicy/ArmyPlotTower/World: cease pending fire, retain paid purchase/type/generation and inactive physical weapon for spectator | No fictitious tower destruction/refund, eliminated sell refuses without mutation; paid upgrade/ownership/retry/resume/codec coverage retained |
+
+New defense fixtures use accepted paid build/upgrade and readiness/pause commands
+with declared numerical material stocks; they do not prove an earned early-game
+Catapult opening. The component source is deliberately bounded (eight readiness
+rounds, finite combat ticks), disposed on setup failure, and uses no child process.
+
+Initial replacement selection: **25 passed / 1 failed / 26 total, 4s**. The failure
+caught a real casualty projection regression: `FrozenAim` was no longer captured.
+The necessary production fix captures a value target pose at death without a
+live reference or logical lease. Source review then identified the moving
+structure distinction; a new focused witness reproduced **Watchpost expected
+cell32 / actual Keep cell60**. Routing now freezes the exact objective cell for
+that case. A nullable-struct assertion compile error before that reproduction is
+retained separately; it was not a runtime/tool crash. Initial coherent selection
+passed 208/208, then final affected selection after the Watchpost fix passed
+**209 / 0 failed / 0 skipped, 41s**, including the 27 replacements and their
+consolidated shared/paid/authority/persistence/status regressions. Exact receipts:
+`logs/shared-arena-task/combat-replacement.txt`, `casualty-objective-02.txt`,
+`combat-replacement-coherent-02.txt` and their adjacent TRX directories. Source
+replacement and the narrow production diff were inspected; targeted formatting
+and `git diff --check` passed.
+
+This is a coherent focused Tier A batch, not full-fast green. No broad retry,
+engine process, real transport/package, paid deep campaign, graphical acceptance,
+pipeline or publication was performed. The unlanded three-preparation work was
+not imported, implemented or inferred from these current-phase fixtures.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints

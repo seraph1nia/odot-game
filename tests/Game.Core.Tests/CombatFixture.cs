@@ -13,6 +13,22 @@ internal static class CombatFixture
             new(UnitLifecycle.Alive, new(cell, 1)), new CombatAction.Waiting(), new(0, 0, 0))
         { Assignment = assignment });
     }
+    // Explicit numerical group setup for focused combat tests. Creating all
+    // members before deployment uses the real homogeneous grouping owner;
+    // member stats/actions are never reimplemented in a fixture simulator.
+    public static int[] Group(CombatSimulation combat, UnitType type, int count, int owner, Faction faction, int cell, int destination = 1, int rank = 0)
+    {
+        int home = 0;
+        if (faction == Faction.Adventurers)
+        {
+            int[] used = combat.Soldiers(owner).Where(u => u.Assignment is { Stored: false }).Select(u => u.Assignment!.Tile).Distinct().ToArray();
+            home = Enumerable.Range(0, 6).First(h => !used.Contains(h));
+        }
+        int[] members = Enumerable.Range(0, count).Select(_ => combat.Create(type, owner, destination, destination, faction, rank,
+            assignment: faction == Faction.Adventurers ? new(-1, 0, home, 1) : null)).ToArray();
+        foreach (int id in members) combat.Seed(combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, 1)) });
+        return members;
+    }
     public static HexUnitState At(UnitState unit, int cell, int anchor) => new(unit.Id, unit.Destination, unit.Faction, UnitLifecycle.Alive,
         new(cell, anchor), ActionSequence: unit.Hex?.ActionSequence ?? 0, Size: unit.Profile.Size);
     public static void Change(Match match, int id, Func<UnitState, UnitState> update) => match.Combat.Seed(update(match.Combat.Read(id)));
