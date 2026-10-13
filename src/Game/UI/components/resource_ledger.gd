@@ -19,7 +19,7 @@ func refresh() -> void:
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 1)
 	$Body.add_child(grid)
-	for heading in ["Resource", "Stock", data.get("income_heading", "Income/production")]:
+	for heading in ["Resource", "Stock", data.get("income_heading", "Income/turn")]:
 		var l = WatchUI.label(grid, str(heading), "ContextLabel")
 		l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	for item in data.get("rows", []):

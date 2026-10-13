@@ -93,7 +93,7 @@ Historical compiler exit139/core, later retry build0/focused Core1/Runner0,
 phase cutoff exit143 and refused custody recovery are failures, not exemptions
 or a Test waiver. Fresh validation of this branch is required.
 
-## Current reconstruction checkpoint
+## Initial reconstruction checkpoint
 
 Task-local raw evidence lives under ignored `logs/reconstruction/` and the
 runner's separately named `logs/<run-id>/` directories. Locked SDK 10.0.401,
@@ -121,20 +121,19 @@ A common, fully paid **wave-2** refill after production 2 keeps the receiving ci
 alive; it adds no second opening mine or free equipment. The attempted replacement
 retains the original mine rather than replacing it with Research Tower/Market
 sales; independent research/transaction/recovery negatives remain elsewhere.
-This changes the old experiment's intermediate transcript and requires an
-explicit disposition, not a blanket refresh:
+The initial checkpoint required an explicit disposition, not a blanket refresh.
+Its unavailable arrow upgrade, changed refill outcome and incomplete both-city
+expansion are historical failed attempts, preserved in the
+[decision note](battle-flow-reconstruction-decision.md).
 
-- Old-arrow/no-arrow, home-only and producer-only represent baseline interventions.
-  Old-arrow's subsequent Catapult upgrade currently lacks wood at preparation 2.
-- Refill-only now clears wave 3 with both cities living, contrary to its old
-  one-eliminated-city outcome assertion.
-- Growth now clears wave 3 too; player 1 expands/recruits, but the final-only
-  receiving-city trainer schedule cannot yet buy/upgrade/recruit beyond six.
-
-See the task's reconstruction decision note before expanding this fixture. No
-full fast suite, native receiving component, transport/package check, no-mistakes
-run, push, PR or CI has yet been executed for this rebuilt batch. No full
-application/world/campaign/UI journey, graphical display, screenshot, GPU,
+Firstmate subsequently authorized a coherent causal replacement. The
+[reconstruction coverage checkpoint](battle-flow-reconstruction-coverage.md)
+records its passing paid selection, cross-mode strength/damage/survivor proofs,
+independent negative-coverage mapping, legal retained-native material schedules,
+broader failed checks/corrections, and the remaining occupied-frontage blocker.
+No completed full qualification, pipeline, push, PR or CI is claimed. Native
+receiving and transport/package checks have not yet run in this reconstruction.
+No full application/world/UI journey, graphical display, screenshot, GPU,
 desktop focus or live Steam qualification is authorized or claimed. A minimal
 headless native component can prove imported resources, input/picking and geometry,
 not that the formation renders attractively or a full network session works.

@@ -54,6 +54,72 @@ public sealed class PaidPreparationScheduleTests
         Assert.Contains(match.Players[1].Soldiers, u => u.Type == UnitType.Mage);
     }
 
+    // Paid preparation counterpart of the retained native economy consumer.
+    // Independent synthetic research/trade negatives do not prove this legal
+    // joint material schedule. No engine journey, grants or balance changes.
+    [Fact]
+    public void PaidResearchLandMarketAndReceivingTrainerFundTheFinalMixedVeteranArmy()
+    {
+        using var match = new Match(combatSeed: EconomyArmyFixtureTests.Seed); match.Join(); match.Join();
+        void Send(int p, string action, int slot = -1, Building building = Building.Empty,
+            ConstructionPayment payment = ConstructionPayment.Standard, Resource resource = Resource.Metal)
+        {
+            CommandResult result = match.Apply(p, Command.FromSnapshot(match.Snapshot(), 1, action, p, slot, building,
+                payment: payment, technology: action == "research-tech" ? TechnologyId.MeleeFoundation : TechnologyId.None,
+                resource: resource, bundles: action == "trade" ? 1 : 0));
+            Assert.True(result.Accepted, $"P{p} W{match.Wave} T{match.Turn} {action} {slot}: {result.Message}");
+        }
+        void Ready() { Send(1, "ready"); Send(2, "ready"); }
+        void FillCity(int p, int slot, int target)
+        {
+            while (match.Players[p].Soldiers.Count < target)
+            {
+                if (!match.Snapshot().Players.Single(c => c.Id == p).Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6)) Send(p, "buy-home");
+                Send(p, "recruit", slot);
+            }
+        }
+        Send(1, "start");
+        foreach (int p in new[] { 1, 2 })
+        {
+            Send(p, "build", 0, Building.Farm); Send(p, "build", 1, Building.MetalMine); Send(p, "build", 2, Building.Barracks);
+            Send(p, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
+        }
+        Ready(); Send(2, "recruit", 2); Send(2, "recruit", 2); Ready();
+        foreach (int p in new[] { 1, 2 }) Send(p, "build", 4, Building.Stonecutter);
+        FillCity(2, 2, 4); FillCity(1, 2, 4); Ready(); Clear(match, 1);
+        Ready(); Ready(); FillCity(2, 2, 6); Send(2, "sell", 2); Send(2, "build", 2, Building.CatapultTower);
+        Send(1, "buy-plot", 5); Send(1, "build", 5, Building.ResearchTower); FillCity(1, 2, 6);
+        Ready(); Clear(match, 2);
+        Send(2, "buy-plot", 5); Send(2, "build", 5, Building.Barracks);
+        Send(1, "upgrade", 1); Ready(); Send(2, "upgrade", 5); Ready(); Send(1, "upgrade", 5);
+        City owner = match.Players[1]; UnitState veteran = owner.Soldiers.First(u => u.Health < u.Profile.Health);
+        Send(1, "research-tech"); Assert.True(owner.Research.Has(TechnologyId.MeleeFoundation));
+        Assert.Equal(veteran.Health, owner.Soldiers.Single(u => u.Id == veteran.Id).Health);
+        Send(1, "sell", 5); Send(1, "sell", 4); Send(1, "build", 5, Building.Market);
+        Assert.True(owner.Research.Has(TechnologyId.MeleeFoundation));
+        Assert.Equal(veteran.Health, owner.Soldiers.Single(u => u.Id == veteran.Id).Health);
+        Send(1, "trade", 5); Send(1, "upgrade", 2); Send(1, "recruit", 2);
+        CityState before = match.Snapshot().Players[0]; MarketRate rate = match.Snapshot().MarketRates.Single(r => r.Resource == Resource.Food);
+        BattleFoodForecast projection = BattleFood.Project(before, true, rate)!;
+        Send(1, "trade", 5, resource: Resource.Food);
+        Assert.Equal(before.Gold + rate.Gold, owner.Gold); Assert.Equal(before.Food - rate.Units, owner.Food);
+        Assert.Equal(projection.Available, match.Snapshot().Players[0].FoodForecast!.Available);
+        Send(1, "sell", 3); Send(1, "build", 3, Building.Lumbermill);
+        Send(2, "sell", 4); Send(2, "upgrade", 2);
+        FillCity(1, 2, 9); FillCity(2, 5, 9);
+        Assert.All(match.Players.Values, c => Assert.Single(c.Slots, s => s.Type == Building.MetalMine));
+        Ready();
+        Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(9, match.ProductionCount);
+        foreach (CityState city in match.Snapshot().Players)
+        {
+            Assert.Equal(9, city.Soldiers.Length); Assert.Equal(3, city.Army!.PurchasedHomes);
+            Assert.Equal(9, city.LastUpkeep!.Paid); Assert.Empty(city.LastUpkeep.Unfed);
+            Assert.Equal(city.Soldiers.Select(u => u.Id).Order(), city.LastUpkeep.Funded.Order());
+            Assert.Contains(city.Soldiers, u => u.Level == 1); Assert.Contains(city.Soldiers, u => u.Level == 2);
+        }
+        Clear(match, 3); Assert.All(match.Players.Values, c => Assert.False(c.Eliminated));
+    }
+
     [Fact]
     public void PaidHallAndIndependentUpgradeTracksRetainThreeLaterRecoverySettlements()
     {

@@ -42,12 +42,18 @@ public sealed class VillageAuthorityTests
         Assert.True(Send(Request("build", 2, Building.ResearchTower)).Accepted); Assert.True(Send(Request("build", 3, Building.ResearchTower)).Accepted);
         Assert.True(Send(Request("upgrade", 2)).Accepted); Assert.True(Send(Request("upgrade", 3)).Accepted);
         Assert.True(Send(Request("build", 1, Building.ResearchTower)).Accepted); Assert.True(Send(Request("upgrade", 1)).Accepted);
+        // This declared high-stock authority/quote fixture is not a battle
+        // witness. Pay for enough actual research capacity in production 2 to
+        // exercise final-preparation purchase/recruitment without a fourth edit.
+        foreach (int slot in new[] { 4, 5 })
+        {
+            Assert.True(Send(Request("sell", slot)).Accepted);
+            Assert.True(Send(Request("build", slot, Building.ResearchTower)).Accepted);
+            Assert.True(Send(Request("upgrade", slot)).Accepted);
+        }
         Assert.True(Send(Request("ready")).Accepted);
         Assert.True(Send(Request("upgrade", 7)).Accepted);
-        Assert.True(Send(Request("ready")).Accepted);
-        Assert.Equal(Phase.Combat, session.Phase); Assert.Equal(3, session.Snapshot().ProductionCount);
-        for (int tick = 0; tick < 3000 && session.Phase == Phase.Combat; tick++) session.Step();
-        Assert.Equal(Phase.Building, session.Phase);
+        Assert.Equal(Phase.Preparation, session.Phase); Assert.Equal(2, session.Snapshot().ProductionCount);
         Assert.True(Send(Request("sell", 1)).Accepted); Assert.True(Send(Request("build", 1, building)).Accepted); Assert.True(Send(Request("upgrade", 1)).Accepted);
         TechnologyId foundation = Catalogs.Class(role) switch { UnitClass.Melee => TechnologyId.MeleeFoundation, UnitClass.Ranged => TechnologyId.RangedFoundation, _ => TechnologyId.MagicFoundation };
         Command rank = Request("research-tech") with { Technology = foundation }; Assert.True(Send(rank).Accepted);

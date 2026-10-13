@@ -89,7 +89,7 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void OrdinaryPaidSixUnitOpeningClearsAndCanAffordItsFirstHome()
+    public void OrdinaryPaidFourUnitOpeningClearsAndCanAffordItsFirstHome()
     {
         using var match = new Match(combatSeed: 1); City city = match.Join()!; Assert.True(Act(match, "start").Accepted);
         while (match.Phase is Phase.Building or Phase.Preparation)
@@ -98,7 +98,9 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
                 Assert.True(match.Apply(1, plan.Command(match.Snapshot(), 1)).Accepted);
             Assert.True(Act(match, "ready").Accepted);
         }
-        Assert.Equal(6, city.Soldiers.Count); Assert.Equal(2, city.PurchasedHomes); Assert.Equal(6, city.LastUpkeep!.Paid);
+        Assert.Equal(4, city.Soldiers.Count); Assert.Equal(2, city.PurchasedHomes); Assert.Equal(4, city.LastUpkeep!.Paid);
+        Assert.NotNull(match.Army.Find(city.Soldiers, city.PurchasedHomes, 2));
+        Assert.Equal(city.Soldiers.Select(u => u.Id), city.LastUpkeep.Funded);
         while (match.Phase == Phase.Combat || match.Combat.HasDeaths) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave); Assert.False(city.Eliminated);
         output.WriteLine($"Paid opening: survivors={city.Soldiers.Count}, gold={city.Gold}, wood={city.Wood}, stone={city.Stone}, food={city.Food}");

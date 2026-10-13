@@ -428,6 +428,31 @@ requires one PR reviewer. Existing `source`, `linux-package`, `windows-package`
 contexts are preserved. Forge PR/head/check results belong to delivery, not these
 local timing receipts.
 
+## Preservation-first battle-flow reconstruction coverage (2026-10-13)
+
+The obsolete six independent phase/tick/ID goldens in the paid growth transcript
+are replaced by one six-mode same-seed Tier A comparison. It asserts actual
+quote/payment/production receipts, empty-capacity non-equipment, early versus
+late investment, identical player-1 pre-intervention controls, both-city paid
+expansion, equipped strength, damage and survivors. It preserves the single-mine,
+four-paid-unit opening; no product balances or enemy IDs are substituted. The
+removed experimental Research Tower/Market chain maps to named independent
+research/trade/payment/capacity/recovery/production/atomic tests and a new default-
+rule paid joint schedule in the [coverage checkpoint](battle-flow-reconstruction-coverage.md).
+Three new paid schedule cases and four complete-sale boundary cases use direct
+C# rules/commands, not another application journey. The ordinary army opening
+now proves four paid recruits with actual unused physical capacity; separate
+paid six-unit/capacity and three-city transfer guards remain.
+
+The rebuilt paid selection passed 11 cases; broader fast and occupied-front
+witness diagnostics subsequently failed. The preserved required occupied-front
+assertion still lacks a legal qualified paid transcript and blocks completion.
+Latest coverage, exact failures, passed filters and unexecuted native/transport/
+package/pipeline checks are recorded in that checkpoint. Source compilation and
+pure numerical affordability do not qualify retained graphical consumers or
+rendered forecast artwork. Immutable MAIN resource-ledger bytes/provenance are
+retained; the native C# receiving caller supplies its supported heading field.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints

@@ -69,7 +69,7 @@ public partial class Tabletop
         var rows = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         foreach (string name in new[] { "Gold", "Food", "Wood", "Stone", "Metal", "Cloth" })
             rows.Add(new() { ["name"] = name, ["stock"] = "0", ["income"] = "0" });
-        _resources.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Resources", ["rows"] = rows });
+        _resources.Call("set_data", new Godot.Collections.Dictionary { ["title"] = "Resources", ["income_heading"] = "Income/production", ["rows"] = rows });
         // Receiving-only safe area: the immutable woodland frame has 40px
         // decorated nine-slice corners, but the asset's generic inset is 16px.
         // Keep all ledger text inside the central area without changing artwork

@@ -11,7 +11,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
     [Theory]
     [InlineData(109UL)]
     // A reproducible frontage witness, not a balance sample. First-fit paid homes
-    // use a Stonecutter-backed L3 receiving opening; seed 109 retains every
+    // use a paid six-unit opening and later Stonecutter-backed receiving investment; seed 109 retains every
     // cleared-frontage, bounded admission, retained identity and survival assertion.
     public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
     {
@@ -19,8 +19,10 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         foreach (int id in new[] { 1, 2 })
         {
             Assert.True(Act(match, id, "build", 0, Building.Farm).Accepted);
-            Assert.True(Act(match, id, "build", 1, Building.Barracks).Accepted);
             Assert.True(Act(match, id, "build", 2, Building.MetalMine).Accepted);
+            Assert.True(Act(match, id, "build", 4, Building.MetalMine).Accepted);
+            Assert.True(match.Apply(id, Command.FromSnapshot(match.Snapshot(), 1, "build", id, 3, Building.Lumbermill,
+                payment: ConstructionPayment.GoldRecovery)).Accepted);
         }
         void Invest(int id)
         {
@@ -31,11 +33,29 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         }
         void Prepare(bool firstWave)
         {
+            if (firstWave)
+            {
+                for (int preparation = 0; preparation < 2; preparation++)
+                    foreach (int player in new[] { 1, 2, 3 }) Assert.True(Act(match, player, "ready").Accepted);
+                foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "build", 1, Building.Barracks).Accepted);
+                // Retain the witness's two-city insertion order with actual
+                // affordable two-unit batches, not guessed friendly IDs. All
+                // twelve recruits now pay in final preparation from sixteen
+                // metal per equipped city; no final income is spent here.
+                for (int batch = 0; batch < 3; batch++)
+                    foreach (int player in new[] { 1, 2 })
+                        for (int recruit = 0; recruit < 2; recruit++) Assert.True(Act(match, player, "recruit", 1).Accepted);
+                foreach (int player in new[] { 1, 2, 3 }) Assert.True(Act(match, player, "ready").Accepted);
+                Assert.All(match.Players.Values.Where(c => c.Id != 3), c => { Assert.Equal(6, c.Soldiers.Count); Assert.Equal(6, c.LastUpkeep!.Paid); });
+                return;
+            }
+            Assert.True(Act(match, 1, "sell", 4).Accepted);
+            Assert.True(Act(match, 1, "build", 4, Building.Stonecutter).Accepted);
             while (match.Phase is Phase.Building or Phase.Preparation)
             {
                 foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
                 {
-                    if (city.Id == 1 || firstWave && city.Id == 2) Invest(city.Id);
+                    if (city.Id == 1) Invest(city.Id);
                     else if (city.Id == 2 && match.Phase == Phase.Preparation) Assert.True(Act(match, 2, "recruit", 1).Accepted);
 
                     Assert.True(Act(match, city.Id, "ready").Accepted);

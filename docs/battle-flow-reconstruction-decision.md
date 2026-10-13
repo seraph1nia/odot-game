@@ -65,6 +65,15 @@ was weakened merely to make the latest run pass.
    Do not use a common second mine, free recruits or rule/stat/wave changes to
    force the old outcomes.
 
-Until disposition, the source checkpoint deliberately retains the failing
-assertions. Full fast/native/transport/package and one fresh no-mistakes validation
-remain unexecuted. No PR is published and the task is not complete.
+At this initial checkpoint the source deliberately retained the failing
+assertions; no PR was published and the task was not complete.
+
+## Disposition received
+
+Firstmate authorized option 1 on 2026-10-13. The new six-mode causal comparison
+and paid research/native-consumer schedules are implemented and focused tests
+passed, without changing rules or the single-mine/four-unit control. See
+[battle-flow-reconstruction-coverage.md](battle-flow-reconstruction-coverage.md)
+for named independent negative coverage, exact failed/passed checks, residual
+policy differences and the new occupied-frontage qualification blocker.
+The task remains incomplete and no owning no-mistakes run has started.

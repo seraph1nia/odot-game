@@ -128,8 +128,14 @@ public sealed class SplashTowerTests
         {
             Assert.True(VillageStrategyTests.Act(match, 1, "build", 0, Building.Stonecutter).Accepted);
             Assert.True(VillageStrategyTests.Act(match, 1, "build", 1, Building.MetalMine).Accepted);
-            Assert.True(VillageStrategyTests.Act(match, 1, "build", 2, Building.Lumbermill).Accepted);
+            Assert.True(VillageStrategyTests.Act(match, 1, "build", 3, Building.Stonecutter).Accepted);
+            Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "build", 1, 2, Building.Lumbermill,
+                payment: ConstructionPayment.GoldRecovery)).Accepted);
             for (int n = 0; n < 2; n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+            // Two actual stone producers fund the three-stone tower before the
+            // final settlement; paid producer refunds supply its four wood.
+            Assert.True(VillageStrategyTests.Act(match, 1, "sell", 3).Accepted);
+            Assert.True(VillageStrategyTests.Act(match, 1, "sell", 1).Accepted);
         }
         Assert.True(VillageStrategyTests.Act(match, 1, "build", 4, building).Accepted);
         for (int n = 0; n < (building == Building.CatapultTower ? 1 : 3); n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);

@@ -131,20 +131,9 @@ internal sealed partial class Runner
         for (int production = 0; production < 2; production++)
         {
             await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
-            if (production == 0) { await Pick(client, 1, token); await ClickAck(client, "Upgrade", token); }
         }
-        await Pick(client, 1, token); await ClickAck(client, "Sell", token);
-        await ClickAck(client, "ResearchTower", token);
-
-        await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token); await UiClear(client, observer, 2, token);
-        await UiReadyPair(client, observer, token);
-        await Pick(client, 1, token); await ClickAck(client, "Upgrade", token);
-        await UiReadyPair(client, observer, token);
-        UnitState veteran = Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.First(u => u.Health < u.Profile.Health);
-        await Click(client, "Research", token); await Click(client, "ResearchMelee", token); await ClickAck(client, "TechMeleeFoundation", token); await Click(client, "CloseResearch", token);
-        await Pick(client, 1, token); await ClickAck(client, "Sell", token); await ClickAck(client, "MetalMine", token);
-        CityState rebuilt = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-        Require(rebuilt.Research.Has(TechnologyId.MeleeFoundation) && rebuilt.Soldiers.Single(u => u.Id == veteran.Id).Health == veteran.Health, "selling research tower preserves technology and veteran wounds");
+        // Retain the only equipment mine. Paid land, not replacing that producer,
+        // makes research progress and wave-3 replenishment jointly affordable.
         CityState full = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(full.Slots.Where(s => s.Purchased).All(s => s.Type != Building.Empty), "five purchased plots are full before expansion");
         await Pick(client, 5, token);
@@ -154,6 +143,19 @@ internal sealed partial class Runner
         UiObservation bought = await WaitUi(client, p => !p.LockedMarkers.Contains("Locked5", StringComparer.Ordinal), "accepted purchase removes gold marker", token);
         Require(bought.SelectedSlot == 5, "buy marker does not change plot selection");
         Require(State(expansion).Players.Single(p => p.Id == client.PlayerId).Slots[5].Purchased, "actual plot purchase permanently opens selected land");
+        await ClickAck(client, "ResearchTower", token);
+        await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token); await UiClear(client, observer, 2, token);
+        await Action(observer, "buy-plot 5", token); await Action(observer, "build 5 barracks", token);
+        await Pick(client, 1, token); await ClickAck(client, "Upgrade", token);
+        await UiReadyPair(client, observer, token);
+        await Action(observer, "upgrade 5", token);
+        await UiReadyPair(client, observer, token);
+        await Pick(client, 5, token); await ClickAck(client, "Upgrade", token);
+        UnitState veteran = Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.First(u => u.Health < u.Profile.Health);
+        await Click(client, "Research", token); await Click(client, "ResearchMelee", token); await ClickAck(client, "TechMeleeFoundation", token); await Click(client, "CloseResearch", token);
+        await Pick(client, 5, token); await ClickAck(client, "Sell", token);
+        CityState rebuilt = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        Require(rebuilt.Research.Has(TechnologyId.MeleeFoundation) && rebuilt.Soldiers.Single(u => u.Id == veteran.Id).Health == veteran.Health, "selling research tower preserves technology and veteran wounds");
         await Pick(client, 4, token); await ClickAck(client, "Sell", token);
         await Pick(client, 5, token); await ClickAck(client, "Market", token);
         async Task FundGold(int target, int metalReserve, int foodReserve)
@@ -202,6 +204,10 @@ internal sealed partial class Runner
         await client.Send("key Enter"); await WaitUi(client, p => p.Width == 1100 && p.Height == 820 && !p.DropdownOpen, "expanded economy at 1100x820", token);
         await Click(client, "CloseSettings", token); await Checkpoint(client, "economy-market-1100", token);
         await EconomyInspector(client, "economy-inspector-1100", token);
+        // The early trainer used the wood otherwise spent on this upgrade.
+        // Its existing Stonecutter refund legally funds the structural witness;
+        // no common second mine or waived affordability is introduced.
+        await Action(observer, "sell 4", token); await Action(observer, "upgrade 2", token);
         await Click(client, "City" + observer.PlayerId, token); await Pick(client, 2, token);
         UiObservation upgraded = await WaitUi(client, p => p.BuildingVariants.Length == 9 && p.BuildingVariants[2] == 2, "actual Catapult structural upgrade", token);
         Require(upgraded.PlotHeights.Length == 9 && upgraded.PlotHeights[0] < upgraded.PlotHeights[3] && upgraded.PlotHeights[3] < upgraded.PlotHeights[6], "three actual terrace heights");

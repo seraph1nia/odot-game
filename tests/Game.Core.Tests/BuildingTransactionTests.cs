@@ -155,7 +155,9 @@ public sealed class BuildingTransactionTests
             Assert.True(Send(command).Accepted); Assert.Equal(after, JsonSerializer.Serialize(session.Snapshot(), WireJson.Options));
         }
         CityState result = session.Snapshot().Players.Single(p => p.Id == player);
-        Assert.True(result.Slots[8].Purchased); Assert.Equal(Building.Empty, result.Slots[1].Type); Assert.Equal(2, result.Stone);
+        Assert.True(result.Slots[8].Purchased); Assert.Equal(Building.Empty, result.Slots[1].Type);
+        Assert.Equal(2, session.Snapshot().ProductionCount);
+        Assert.Equal(1, result.Stone); // two income - two construction + one refund, no final income yet.
     }
 
     [Fact]
