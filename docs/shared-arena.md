@@ -103,6 +103,19 @@ and simultaneous last-enemy/last-Keep defeat precedence. `SharedStateTests` cove
 real paid veteran reinforcement, stable member/group/formation identity through
 serialization, deployment home-claim transfer and explicit legacy refusal.
 
+## Provisional paid campaign measurements
+
+[Paid squad baselines](paid-squad-baselines.md) record actual legal investments,
+individual attrition/food/healing, Keep/Watchpost pressure and battle lengths for
+finite solo/cooperative seeds. They distinguish fourteen passing verification
+rows from twelve actual victories and two pure-ranged defeats, and retain fallen
+cooperative Keeps rather than equating team victory with complete rescue.
+Economics-sensitive results are **provisional**: the current three Building
+incomes plus fourth income-free Preparation edit are not the approved unlanded
+three-preparation/speed/preview flow. No replacement phase or compensating
+income/damage was implemented. Final timing integration and calibration remain
+required; see the coverage ledger for exact executed scope.
+
 ## Native presentation
 
 The production native squad panel provides member HP/equipment/service/status

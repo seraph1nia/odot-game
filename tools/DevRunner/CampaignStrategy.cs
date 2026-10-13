@@ -20,6 +20,10 @@ internal static class CampaignStrategy
     private static readonly int[] ProducerSlots = [0, 1, 3, 4];
     private static readonly Resource[] SaleOrder = [Resource.Cloth, Resource.Metal, Resource.Food, Resource.Stone, Resource.Wood];
     private static readonly (int Slot, Building Type)[] Core = [(0, Building.Farm), (1, Building.MetalMine), (2, Building.Barracks), (3, Building.Lumbermill), (4, Building.Stonecutter)];
+    // A ranged opening must earn wood for equipment, not field an empty army
+    // after spending every END's wood on the generic melee producer sequence.
+    private static readonly (int Slot, Building Type)[] RangedCore = [(0, Building.Farm), (1, Building.MetalMine), (3, Building.Lumbermill), (4, Building.Lumbermill), (2, Building.ArcheryRange)];
+    private static readonly (int Slot, Building Type)[] Ranged = [(5, Building.Stonecutter), (6, Building.Market), (7, Building.Mine)];
     private static readonly (int Slot, Building Type)[] Frontline = [(5, Building.Market), (6, Building.Mine)];
     private static readonly (int Slot, Building Type)[] Mixed = [(8, Building.Market), (5, Building.Weaver), (6, Building.Arcanum), (7, Building.ArcheryRange)];
     private static readonly (int Slot, Building Type)[] Towers = [(8, Building.Market), (5, Building.ArrowTower), (6, Building.CatapultTower), (7, Building.ArrowTower)];
@@ -115,13 +119,13 @@ internal static class CampaignStrategy
             if (city.Slots[4].Type == Building.Stonecutter) return new("sell", 4);
             if (city.Slots[4].Type == Building.Empty && Affordable(state.BuildingCatalog.Single(b => b.Type == Building.Mine).Construction)) return new("build", 4, Building.Mine);
         }
-        foreach ((int slot, Building type) in Core)
+        foreach ((int slot, Building type) in family == "ranged" ? RangedCore : Core)
             if (Construction(slot, type) is EconomyAction founding) return founding;
         int soldierTier = Math.Min(maximumTier, 1 + (state.Wave + 1) / 3);
         if (Upgrade(2, soldierTier) is EconomyAction soldierUpgrade) return soldierUpgrade;
         foreach (int slot in ProducerSlots)
             if (Upgrade(slot, 2) is EconomyAction producerUpgrade) return producerUpgrade;
-        (int Slot, Building Type)[] branch = family switch { "mixed" => Mixed, "towers" => Towers, "research" => Research, "reserve" => Reserve, _ => Frontline };
+        (int Slot, Building Type)[] branch = family switch { "ranged" => state.Wave == 1 ? [] : Ranged, "mixed" => Mixed, "towers" => Towers, "research" => Research, "reserve" => Reserve, _ => Frontline };
         foreach ((int slot, Building type) in branch)
         {
             // Reserve investment follows the first field expansion; it must not
@@ -217,10 +221,14 @@ internal static class CampaignStrategy
     }
     private static (UnitType Type, int Target)[] Targets(string family, int wave)
     {
+        if (family == "ranged") return [(UnitType.Crossbowman, wave == 1 ? 6 : wave < 5 ? 12 : 18)];
         if (wave == 1) return [(UnitType.Swordsman, 6)];
         return family switch
         {
-            "mixed" => [(UnitType.Swordsman, 10), (UnitType.Mage, wave < 10 ? 2 : 3), (UnitType.Crossbowman, wave < 10 ? 2 : 3), (UnitType.Berserker, 2)],
+            // Six physical homogeneous homes: three melee groups and one per
+            // support/Berserker role. The former 10/2/2/2 target required seven
+            // homes and could retire/refill forever while starving support.
+            "mixed" => [(UnitType.Swordsman, 9), (UnitType.Mage, 3), (UnitType.Crossbowman, 3), (UnitType.Berserker, 3)],
             "towers" => [(UnitType.Swordsman, wave < 8 ? 10 : 14)],
             "research" => [(UnitType.Swordsman, 16)],
             _ => [(UnitType.Swordsman, wave < 5 ? 12 : 18)]

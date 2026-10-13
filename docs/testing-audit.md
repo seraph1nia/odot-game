@@ -748,6 +748,80 @@ still unlanded and was neither imported nor duplicated. Full-fast green, earned
 repeated-seed twenty-wave balance, actual eliminated-spectator transport, packages,
 full native acceptance and final delivery remain separate unfinished work.
 
+## Paid strategy, research and provisional campaign replacement (2026-10-13)
+
+Instruction011 authorizes this coherent numerical batch, **not final redesigned
+balance**. The actual current source has three Building END incomes/heals and a
+fourth income-free Preparation edit. The unlanded three-preparation/speed/preview
+ship was not implemented, imported or simulated. Spending the third income in
+that extra edit is a precise final-calibration dependency. See the
+[measured paid baselines](paid-squad-baselines.md) for outcomes, resource/attrition
+comparisons, timing dependency and unresolved pure-ranged/cooperative Keep risks.
+
+| Retired fixture/contract | Replacement and preserved negative control |
+| --- | --- |
+| Recovered exact ticks476/481/845/872, HP/ID arrays, size-six homes and forced isolated-city winner/loser policy goldens in EconomyArmyFixture | One earned serialized two-owner opening verifies full homogeneous Sword homes refuse Crossbow support without mutation; real land/equipment payments, old refused request after expansion, accepted retries and credential rebind retain outcomes. Empty paid land creates/heals no member; deployment succeeds only to an available purchased home, and second occupancy refuses without mutation. No stock/HP/member setter is used. |
+| Old home-index-as-hex placement and reserve cost hidden behind seeded treasury | PaidCampaignFixture uses accepted quotes/commands, default rules and reconstructed physical claims. An actual wounded first-clear veteran cannot afford its Hall before another real END; refusal leaves the entire snapshot unchanged. Paid storage, actual production healing and return preserve identity/HP/equipment/service. Individual Hall capacity and funded-but-nonparticipating stored members remain covered independently by ArmyRecovery/BattleFood/Settlement suites. |
+| Guardian/Frost support stacked at the same member-anchor cell; duplicated insertion/status-expiry journeys | Two bounded 73-tick three-member group comparisons use distinct real cells and production actions/statuses. Guardian changes received injury without changing enemy impact count; Frost changes actual enemy impact count and retained member HP. These are explicit numerical fixtures, not free paid-campaign troops. ResearchLifecycle retains mean chill/immutable movement commitment/expiry, CombatTests retains insertion/observation/state/event invariance, StatusEffect retains status/periodic negatives. |
+| Affordable Mage must be recruited even without a compatible homogeneous home | ResearchWitness preserves support priority when actual home, quote and food all fit; an incompatible Sword home never receives a Mage. Accepted investments validate exact resource/point payments and profile/HP nonhealing. Ordinary earned Fire/live burn plus prerequisite/exclusive Frost refusal remain; research-access/cue, codec, rank and overflow negatives are unchanged. |
+| Alternative-economic-curve calibration and size-six/home-pose assertions in ArmyBalance | Default-price paired 2-home/L1/basic-Hall controls use the same paid driver and preserve normal melee victory, real restricted capacity/equipment, forbidden Hall upgrades, actual healing/investment and no stall assertions. No substitute economy or damage curve is authored. Four selected deep rows execute ten current-source campaigns, not a binary winner golden or final pricing certificate. |
+| Mixed target10/2/2/2 implicitly requires seven homogeneous homes | Verification policy targets9/3/3/3, three Sword groups and one group per other role. All actual payment/ownership and six-home bounds still apply. Three retained legacy mixed acceptance rows still require full victory, recurring metal/cloth recruitment, all four roles, economic investments and normal production witnesses; their investments now share paid/claim guards. |
+| New pure-ranged baseline accidentally measures an empty army | Retained first attempt fielded zero units and fell at764 ticks. A real purchased two-Lumbermill opening earns equipment wood and fields two paid Crossbowmen; both seeds still lose W1 (854/823 ticks). Baseline validation records these defeats rather than asserting they are victories, masking the issue or changing prices/damage/production. |
+| Hall individual tile6 interpreted as a field home in restoration/wave entry | Actual paid reserve campaigns reproduced the production exception at W5/W7. Both existing pose owners now leave stored actors off-grid, with Stored lifecycle, no participation or claims. The bounded five-wave earned seed123 regression requires a real slot>=6, paid investment and actual healing; ordinary field-home index refusal is not relaxed. |
+
+`PaidCampaignFixture` is a verification driver of the sole production Match, not
+another simulator or child supervisor. Its accepted-command receipts, per-wave
+entry/exit member states, food, healing and investment are recorded without
+credentials. Current-wave food totals exclude stale receipts retained on fallen
+owners. Attacker attribution uses landed member `Impact`/victim IDs, not `Hit`
+(which projects the victim); initial zero counters are retained and explicitly
+superseded by the corrected two-case receipt. Structured horizon metadata keeps a
+five-wave regression distinct from a twenty-wave baseline.
+
+First failures and selected receipts (all under `logs/shared-arena-task/strategy-batch/`):
+- `initial.txt` / `initial-results/initial.trx`: unchanged legacy A **7 passed /
+  12 failed / 19 total, 6s**. Failures were obsolete fixed tick/HP/admission poses
+  and support priority without physical capacity; no golden was refreshed.
+- `mixed-before.txt`: unchanged compiled old-policy mixed acceptance **3/3, 3s**,
+  seeds0/1/123. Seeds1/123 before/after measured comparison is in the baseline doc.
+- `build.txt`: xUnit Single-overload and constant receipt-property analyzers;
+  `build-04.txt`: two collection assertions and formatting. Corrected source,
+  not analyzer suppression. All final solution builds passed **0 warnings/errors**.
+- `fixtures.txt`: first replacements **12 passed / 1 failed / 13, 11s**. The
+  attempted Hall was genuinely unaffordable, so the witness now preserves refusal
+  then earns its missing stone. `hall.txt`: focused corrected witness **1/1, 2s**.
+- `baselines.txt`, `logs/20261013-080505-2b5742c3`: initial 14-row deep matrix
+  **12 passed / 2 failed, 63.69s**; both reserve failures exposed stored tile lookup,
+  not insufficient campaign damage. Two empty-ranged defeats were recorded, not
+  campaign wins. `storage-ranged.txt`: **2 passed / 3 failed / 5, 3s**, exposing the
+  second BeginWave pose mapping after the restoration-only fix. Both boundaries
+  were corrected. `storage-ranged-02.txt`: affected **5/5, 6s**.
+- `coherent-fast.txt`, `logs/20261013-082534-0e2f9092`: broader affected A
+  **154 core / 49 runner passed, no failures/skips, 29.94s**, filtered economy,
+  research, army, payment/resources, authority/session, reservations and lifecycle.
+  This is not a full-fast run. After final helper/receipt guards,
+  `final-fixtures.txt`: **14/14, 13s** (overlapping, not added to those counts).
+- `final-baselines.txt`, `logs/20261013-083156-9ba5f0a1`: all 14 finite horizon
+  rows passed **67.66s**. Actual outcomes were **12 victories / 2 W1 defeats**;
+  test pass does not mean pure-ranged viability. This is not all deep coverage.
+- `final-controls.txt`, `logs/20261013-083304-9020427c`: **7/7, 22.48s**,
+  four paired control rows plus three retained strict mixed-victory rows.
+- `final-rescue.txt`, `logs/20261013-083907-57daadcd`: corrected real attacker
+  attribution **2/2, 50.25s**, 686/607 foreign-origin member impacts. Team victory
+  still has **2 / 1 fallen owners** respectively; no all-Keeps rescue or actual
+  eliminated-spectator transport claim is made.
+
+Original/malformed/research/economy negative suites were not removed. New baseline
+rows can record an honest defeat, while existing ordinary victory acceptance and
+investment controls remain strict. Exact paid transcripts/per-wave facts and
+original failures are retained. No damage/economy/phase authoring, tool/dependency/
+asset locks, graphics, developer preferences, model/session settings, process
+supervision, full pipeline, push or publication were changed. Source/diff review,
+formatting and whitespace checks cover the checkpoint. Final economics-sensitive
+recalibration, pure-ranged follow-up, complete deep/full-fast qualification,
+eliminated-spectator/reconnect transport, packages and native aiming/animation/
+resources remain unfinished.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints

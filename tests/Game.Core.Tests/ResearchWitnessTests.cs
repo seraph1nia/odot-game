@@ -20,12 +20,12 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
                 for (int actions = 0; actions < 100; actions++)
                 {
                     MatchSnapshot state = match.Snapshot(); EconomyAction? action = city.Id == 1 ? CampaignStrategy.ResearchWitness(state, city.Id) : CampaignStrategy.Next(state, city.Id);
-                    if (action is null) break; Assert.True(match.Apply(city.Id, action.Command(state, city.Id)).Accepted);
+                    if (action is null) break; PaidCampaignFixture.Apply(match, city.Id, action);
                 }
                 if (city.Id == 1)
                     foreach (TechnologyId id in new[] { TechnologyId.MagicFoundation, TechnologyId.Fire })
                         if (match.Economy.Research.Eligibility(city.Research, id).Available)
-                        { Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "research-tech", 1, Technology: id)).Accepted); output.WriteLine($"W{match.Wave}: {id}, points={city.Research.Points}, productions={match.ProductionCount}"); }
+                        { PaidCampaignFixture.Apply(match, 1, new("research-tech", Technology: id)); output.WriteLine($"W{match.Wave}: {id}, points={city.Research.Points}, productions={match.ProductionCount}"); }
                 if (city.Id == 1 && match.Phase == Phase.Preparation) output.WriteLine($"W{match.Wave} army={string.Join(',', city.Soldiers.Select(u => u.Type))} stocks={city.Resources} buildings={string.Join(',', city.Slots.Select(s => s.Type))}");
                 Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
             }
@@ -38,11 +38,14 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
     [Theory]
     [InlineData(1UL)]
     [InlineData(16366921918512773030UL)]
-    public void ResearchInvestmentFieldsAffordableSupportBeforeOptionalMelee(ulong seed)
+    public void EarnedResearchPolicyPrioritizesSupportOnlyWhenItsPhysicalHomeAndFoodCanFit(ulong seed)
     {
         using var match = new Match(combatSeed: seed); match.Join(); match.Join();
         Assert.True(VillageStrategyTests.Act(match, 1, "start").Accepted);
-        int competingRecruitments = 0;
+        // Tier A earned policy/receipt comparison. Affordability alone is not
+        // deployment: a partly filled Sword home cannot accept a Mage. Retain
+        // priority when a real compatible home exists and no speculative spend.
+        int competingRecruitments = 0, incompatibleHomes = 0;
         bool burn = false;
         for (int steps = 0; steps < 30000 && match.Phase is not (Phase.Victory or Phase.Defeat) && match.Wave <= 10 && !burn; steps++)
         {
@@ -58,28 +61,27 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
                     EconomyAction? action = CampaignStrategy.ResearchWitness(state, city.Id);
                     if (action is null) break;
                     RecruitmentQuote mage = quote.RecruitmentQuotes.Single(q => q.Type == UnitType.Mage && q.Level == 1);
-                    if (action.Action == "recruit" && quote.Soldiers.Count(u => u.Type == UnitType.Mage) < 2
+                    bool supportReady = quote.Soldiers.Count(u => u.Type == UnitType.Mage) < 2
                         && quote.Slots.Any(s => s.Type == Building.Arcanum) && quote.Resources.TryPay(mage.Cost, out _)
-                        && quote.Food >= (quote.FoodForecast?.Demand ?? 0) + mage.Upkeep)
-                    {
-                        competingRecruitments++;
-                        Assert.Equal(UnitType.Mage, action.Unit);
-                        int prior = quote.Soldiers.Length;
-                        Assert.True(match.Apply(city.Id, action.Command(state, city.Id)).Accepted);
-                        Assert.Equal(UnitType.Mage, city.Soldiers[prior].Type);
-                    }
-                    else Assert.True(match.Apply(city.Id, action.Command(state, city.Id)).Accepted);
+                        && quote.Food >= (quote.FoodForecast?.Demand ?? 0) + mage.Upkeep;
+                    bool homeFits = match.Army.Find(quote.Soldiers, quote.Army!.PurchasedHomes,
+                        plots: quote.Army.Homes.Select(h => h.Plot).ToArray(), type: UnitType.Mage) is not null;
+                    if (action.Action == "recruit" && supportReady && homeFits)
+                    { competingRecruitments++; Assert.Equal(UnitType.Mage, action.Unit); }
+                    if (action.Action == "recruit" && supportReady && !homeFits)
+                    { incompatibleHomes++; Assert.NotEqual(UnitType.Mage, action.Unit); }
+                    PaidCampaignFixture.Apply(match, city.Id, action);
                 }
                 foreach (TechnologyId id in new[] { TechnologyId.MagicFoundation, TechnologyId.Fire })
                     if (match.Economy.Research.Eligibility(city.Research, id).Available && city.Soldiers.Any(u => u.Type == UnitType.Mage))
-                        Assert.True(match.Apply(city.Id, Command.FromSnapshot(match.Snapshot(), match.Revision + 1,
-                            "research-tech", city.Id, technology: id)).Accepted);
+                        PaidCampaignFixture.Apply(match, city.Id, new("research-tech", Technology: id));
                 Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
             }
             if (match.Phase == Phase.Preparation && match.Players.Values.All(c => c.Ready)) match.Step();
         }
         Assert.True(competingRecruitments > 0, "Opening must exercise affordable support competing with a melee refill.");
         Assert.True(burn, $"No live burn by W{match.Wave}, {match.Phase}");
+        output.WriteLine($"PROVISIONAL current-source research policy seed={seed}: real support priority={competingRecruitments}, incompatible-home melee decisions={incompatibleHomes}, burn wave={match.Wave}, production={match.ProductionCount}");
     }
     [Fact]
     public void CurrentStatusesBaselinePauseAndDetachWithoutReplay()
@@ -124,8 +126,8 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
         int Fight(UnitCapabilities capabilities)
         {
             using var combat = new CombatSimulation(new Rules { DefenderDamage = 0 });
-            int attacker = combat.Create(role, 1, 1, 1, capabilities: capabilities); UnitState ally = combat.Read(attacker); combat.Seed(ally with { Hex = CombatFixture.At(ally, 11, 1) });
-            int defender = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons, level: 3); UnitState enemy = combat.Read(defender); combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 8, 1) });
+            int attacker = combat.Create(role, 1, 1, 1, capabilities: capabilities); UnitState ally = combat.Read(attacker); combat.Seed(ally with { Hex = CombatFixture.At(ally, 23, 1) });
+            int defender = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons, level: 3); UnitState enemy = combat.Read(defender); combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 24, 1) });
             int total = 0; long cursor = 0;
             for (int tick = 1; tick <= 400; tick++) { combat.Step(tick, []); total += combat.Events().Where(e => e.Sequence > cursor && e.Type == CombatEventType.Hit).Sum(e => e.Periodic.Sum(p => p.Damage)); cursor = combat.EventSequence; }
             return total;

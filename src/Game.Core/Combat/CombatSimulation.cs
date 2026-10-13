@@ -223,10 +223,13 @@ internal sealed partial class CombatSimulation : IDisposable
         {
             CombatUnit? first = Living().FirstOrDefault(u => u.SquadId == squad.Id);
             if (first is null) continue;
-            int deployment = squad.DeploymentCell > 0 ? squad.DeploymentCell : _arena.Deployment(first.Owner > 0 ? first.Owner : 1, first.Assignment is null ? 0 : HomeIndex(first.Assignment));
+            // Hall slots count individuals and can exceed the six field-home
+            // indexes. Stored actors have no deployment pose or occupancy.
+            bool stored = first.Assignment is { Stored: true };
+            int deployment = stored ? 0 : squad.DeploymentCell > 0 ? squad.DeploymentCell : _arena.Deployment(first.Owner > 0 ? first.Owner : 1, first.Assignment is null ? 0 : HomeIndex(first.Assignment));
             _squads[squad.Id] = squad with
             {
-                Location = new(first.Assignment is { Stored: true } ? UnitLifecycle.Stored : UnitLifecycle.Alive, new(deployment, 1)),
+                Location = new(stored ? UnitLifecycle.Stored : UnitLifecycle.Alive, stored ? default : new(deployment, 1)),
                 Action = CombatActions.Cancel(squad.Action, _tick),
                 Decision = NewDecision(squad.Id, squad.Destination, squad.Decision.Sequence),
                 RallyDisruptedUntil = 0,
@@ -294,10 +297,11 @@ internal sealed partial class CombatSimulation : IDisposable
             CombatUnit[] all = Living().Where(u => u.SquadId == squad.Id).ToArray();
             if (all.Length == 0) continue;
             bool enemy = squad.Faction == Faction.Skeletons;
-            int cell = squad.DeploymentCell > 0 ? squad.DeploymentCell : _arena.Deployment(squad.Owner > 0 ? squad.Owner : 1, all[0].Assignment is null ? 0 : HomeIndex(all[0].Assignment!));
+            bool stored = all.All(u => u.Location.Lifecycle == UnitLifecycle.Stored);
+            int cell = stored ? 0 : squad.DeploymentCell > 0 ? squad.DeploymentCell : _arena.Deployment(squad.Owner > 0 ? squad.Owner : 1, all[0].Assignment is null ? 0 : HomeIndex(all[0].Assignment!));
             _squads[squad.Id] = squad with
             {
-                Location = new(enemy ? UnitLifecycle.Queued : all.Any(u => u.Location.Lifecycle == UnitLifecycle.Alive) ? UnitLifecycle.Alive : UnitLifecycle.Reserve, new(cell, 1)),
+                Location = new(stored ? UnitLifecycle.Stored : enemy ? UnitLifecycle.Queued : all.Any(u => u.Location.Lifecycle == UnitLifecycle.Alive) ? UnitLifecycle.Alive : UnitLifecycle.Reserve, stored ? default : new(cell, 1)),
                 Action = new CombatAction.Waiting(squad.Action.Sequence, squad.Action.AttackSequence, _tick),
                 Decision = NewDecision(squad.Id, squad.Destination, checked(squad.Decision.Sequence + 1)),
                 RallyDisruptedUntil = 0
