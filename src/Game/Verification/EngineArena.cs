@@ -131,6 +131,9 @@ public partial class EngineTests
                 rig.Sample(member, roster.Tick, .1, 0, formation, byId); await Frames();
                 Check(rig.Visible && rig.Clip == "idle" && rig.Position.IsEqualApprox(formation.Position(member, roster.Tick)), "genuine native member rig samples accepted shared formation without independent motion");
                 Check(rig.State.Health == member.Health && match.Snapshot().Players[0].Soldiers.Single(u => u.Id == member.Id).Health == member.Health, "native pose sampling never feeds cosmetics back into individual health");
+                var observed = System.Text.Json.JsonSerializer.SerializeToElement(rig.Observe(), WireJson.Options);
+                Check(observed.GetProperty("SquadId").GetInt32() == member.SquadId && observed.GetProperty("FormationSlot").GetInt32() == member.FormationSlot
+                    && !observed.TryGetProperty("Size", out _), "production native rig observation carries squad/formation identity, not retired member-size metadata");
             }
             finally { RemoveChild(rig); rig.Free(); }
         }

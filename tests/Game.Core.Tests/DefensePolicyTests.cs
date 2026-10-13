@@ -41,7 +41,7 @@ public sealed class DefensePolicyTests
     public void DefenseCatalogPublishesActualXYRangeAndConfiguredCycleWithoutASeparateActor()
     {
         var configuration = new CombatConfiguration(new());
-        Assert.Equal(new DefenseProfile(200, 12, 48, 1, 0), configuration.BuiltInDefense);
+        Assert.Equal(new DefenseProfile(200, 12, 48), configuration.BuiltInDefense);
         foreach (var (type, level, x, y, windup, cadence, range) in new[]
         {
             (Building.ArrowTower, 1, 500, 0, 12, 60, 4), (Building.ArrowTower, 2, 700, 0, 12, 60, 4),

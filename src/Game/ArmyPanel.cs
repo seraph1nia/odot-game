@@ -88,7 +88,7 @@ public partial class Tabletop
                 foreach (UnitState unit in claims)
                 {
                     int id = unit.Id;
-                    Button select = HallButton(_hallRoster, $"#{id} {ProgressionPresentation.UnitName(unit)} L{unit.Level} · size {unit.Size} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no paid recovery")}", () => { _storedUnit = id; RefreshArmy(); });
+                    Button select = HallButton(_hallRoster, $"#{id} {ProgressionPresentation.UnitName(unit)} L{unit.Level} · squad {unit.SquadId} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no paid recovery")}", () => { _storedUnit = id; RefreshArmy(); });
                     select.Name = "HallUnit" + id; select.AddThemeFontSizeOverride("font_size", 12); _hallUnits.Add(select);
                 }
                 if (used == 0) Text(_hallRoster, "Empty individual reserve place", 12);

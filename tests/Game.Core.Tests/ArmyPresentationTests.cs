@@ -12,7 +12,7 @@ public sealed class ArmyPresentationTests
         UnitState Unit(int id, bool stored) => new(id, 2901)
         {
             Owner = 1,
-            Profile = new(4000, 1000, 1, 30, 12, 60) { Size = 2 },
+            Profile = new(4000, 1000, 1, 30, 12, 60),
             Assignment = new(stored ? 1 : -1, stored ? 3 : 0, stored ? 0 : 17, id),
             Hex = new(id, 1, Faction.Adventurers, stored ? UnitLifecycle.Stored : UnitLifecycle.Alive, stored ? default : new(17, id)),
             Deployed = !stored

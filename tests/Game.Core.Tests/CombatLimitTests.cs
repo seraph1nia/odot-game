@@ -20,10 +20,10 @@ public sealed class CombatLimitTests
             {
                 NoHealthProgressTicks = 500,
                 MaximumWaveTicks = waveLimit,
-                Swordsman = new(2, 10, 1, 48),
-                Berserker = new(2, 20, 1, 48),
-                Crossbowman = new(2, 30, 1, 48),
-                Mage = new(2, 40, 1, 48)
+                Swordsman = new(10, 1, 48),
+                Berserker = new(20, 1, 48),
+                Crossbowman = new(30, 1, 48),
+                Mage = new(40, 1, 48)
             }
         };
         var match = new Match(rules, combatSeed: 123);

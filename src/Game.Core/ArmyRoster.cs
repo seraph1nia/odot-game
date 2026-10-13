@@ -68,10 +68,10 @@ public sealed class ArmyConfiguration
         if (health < 1 || maximum < health || percent is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(health));
         return checked((int)Math.Min(maximum, (long)health + ((long)maximum * percent + 99) / 100));
     }
-    public ArmyAssignment? Find(IEnumerable<UnitState> soldiers, int purchased, int size, int hallSlot = -1, long generation = 0, int capacity = 0,
+    public ArmyAssignment? Find(IEnumerable<UnitState> soldiers, int purchased, int hallSlot = -1, long generation = 0, int capacity = 0,
         IReadOnlyList<SlotState>? plots = null, UnitType? type = null, int squadId = 0)
     {
-        if (size is < 1 or > 6 || purchased is < 2 or > 6 || squadId < -1) throw new ArgumentOutOfRangeException(nameof(size));
+        if (purchased is < 2 or > 6 || squadId < -1 || capacity < 0) throw new ArgumentOutOfRangeException(nameof(purchased));
         UnitState[] claims = soldiers.Where(u => u.Health > 0 && u.Assignment is not null)
             .Where(u => hallSlot < 0 ? !u.Assignment!.Stored : u.Assignment!.HallSlot == hallSlot && u.Assignment.HallGeneration == generation).ToArray();
         if (hallSlot >= 0)

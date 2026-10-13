@@ -64,6 +64,7 @@ public sealed record SlotState(Building Type, int Level)
     public int CapacityLevel { get; init; }
     public int HealingLevel { get; init; }
 }
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin = 0, int Destination = 0)
 {
     public int SquadId { get; init; }
@@ -81,7 +82,6 @@ public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin 
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool RecoveryEligible { get; init; }
     public bool IsBoss { get; init; }
-    public int Size => Profile.Size;
     public int Rank { get; init; }
     public int Owner { get; init; }
     public bool Deployed { get; init; } = true;
@@ -117,6 +117,7 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
     public ArmyState? Army { get; init; }
     public bool Eliminated => Health <= 0;
 }
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Phase Phase, bool Paused, int Wave, int Turn, int TurnSerial, Rules Rules, CityState[] Players, UnitState[] Enemies)
 {
     public ArenaState? Arena { get; init; }
@@ -128,7 +129,6 @@ public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Pha
     public CombatFingerprint ConfigurationFingerprint { get; init; }
     public UnitState[] DyingBodies { get; init; } = [];
     public CombatReservations Reservations { get; init; } = new([], []);
-    public AdmissionBound[] Admissions { get; init; } = [];
     public EngagementProgress[] Engagements { get; init; } = [];
     public DefeatReason DefeatReason { get; init; }
     public StallDiagnostic? Stall { get; init; }
@@ -318,7 +318,7 @@ public sealed class Match : IDisposable
         Rules with { Army = Army.Definition(), Combat = Rules.Combat with { Board = Configuration.Board.Definition() }, Campaign = Campaign.Definition() }, Players.Values.Select(p => p.Snapshot(soldiers.GetValueOrDefault(p.Id) ?? [], Phase is Phase.Victory or Phase.Defeat)).ToArray(), units.Living.Where(u => u.Faction == Faction.Skeletons).ToArray())
         {
             Arena = _combat.Arena,
-            Squads = _combat.SquadSnapshots(),
+            Squads = units.Squads,
             Structures = _combat.StructureSnapshots(Players.Values),
             TotalWaves = Campaign.TotalWaves,
             LastRewardedWave = LastRewardedWave,
@@ -338,7 +338,6 @@ public sealed class Match : IDisposable
             ConfigurationFingerprint = ConfigurationFingerprint,
             DyingBodies = units.Dying,
             Reservations = _combat.Reservations,
-            Admissions = _combat.Admissions,
             Engagements = _engagements.Values.ToArray(),
             DefeatReason = DefeatReason,
             Stall = Stall,
@@ -480,12 +479,10 @@ public sealed class Match : IDisposable
         City[] survivors = Players.Values.Where(p => !p.Eliminated).ToArray();
         if (survivors.Length == 0) { DefeatReason = DefeatReason.AllCitiesFallen; Phase = Phase.Defeat; _combat.StopActions(Players.Values); return; }
         CombatUnit[] enemies = _combat.EnemyMembership();
-        int[] cleared = survivors.Where(c => !enemies.Any(e => e.Destination == c.Id)).Select(c => c.Id).ToArray();
         int next = 0;
         foreach (CombatUnit enemy in enemies.Where(e => Players[e.Destination].Eliminated).GroupBy(e => e.SquadId).Select(g => g.First()))
             _combat.Transfer(enemy.Id, survivors[next++ % survivors.Length].Id);
         if (next != 0) enemies = _combat.EnemyMembership();
-        foreach (int city in cleared) _combat.TrackClearedAdmission(city);
         _combat.AdmitEntries();
         if (enemies.Length != 0)
         {

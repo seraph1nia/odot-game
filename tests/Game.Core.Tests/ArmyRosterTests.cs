@@ -128,13 +128,13 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
         // budgets. Preserve first-fit, full/type refusal and stable veteran claims.
         var config = new ArmyConfiguration(new(), new HexBoard(HexBoardDefinition.Default()));
         UnitState Unit(int id, int tile) => new(id, 100)
-        { Faction = Faction.Adventurers, SquadId = tile + 1, Type = UnitType.Swordsman, Profile = new() { Size = 1 }, Assignment = new(-1, 0, tile, 1) };
+        { Faction = Faction.Adventurers, SquadId = tile + 1, Type = UnitType.Swordsman, Profile = new(), Assignment = new(-1, 0, tile, 1) };
         UnitState[] existing = [Unit(1, 0), Unit(2, 0), Unit(3, 1), Unit(4, 1), Unit(5, 1)];
-        Assert.Null(config.Find(existing, 2, 1, type: UnitType.Mage));
-        Assert.Null(config.Find(existing, 2, 1, squadId: -1));
-        ArmyAssignment? fitting = config.Find(existing, 2, 1, type: UnitType.Swordsman, squadId: 1);
+        Assert.Null(config.Find(existing, 2, type: UnitType.Mage));
+        Assert.Null(config.Find(existing, 2, squadId: -1));
+        ArmyAssignment? fitting = config.Find(existing, 2, type: UnitType.Swordsman, squadId: 1);
         Assert.NotNull(fitting); Assert.Equal(0, fitting.Tile);
-        Assert.Null(config.Find(existing.Append(Unit(6, 0)), 2, 1, type: UnitType.Swordsman));
+        Assert.Null(config.Find(existing.Append(Unit(6, 0)), 2, type: UnitType.Swordsman));
         Assert.Equal(1, existing[2].Assignment!.Tile);
     }
 }

@@ -60,7 +60,7 @@ internal static class CombatProjection
             Hex = new(unit.Id, unit.Destination, unit.Faction, location.Lifecycle, location.Position, action.Kind,
                 move?.Destination ?? default, move?.Transition ?? 0, action.Sequence,
                 move?.StartTick ?? attack?.StartTick ?? 0, move?.EndTick ?? action.ReadyTick,
-                location.DeathStartTick, location.DeathEndTick, location.FrozenMoveTicks, location.AdmittedTick, location.FrozenTick, location.FrozenAim, unit.Profile.Size),
+                location.DeathStartTick, location.DeathEndTick, location.FrozenMoveTicks, location.AdmittedTick, location.FrozenTick, location.FrozenAim, 1),
             Decision = unit.Decision with { Route = unit.Decision.Route.ToArray(), Visited = unit.Decision.Visited.ToArray() },
             Type = unit.Type,
             SquadId = unit.SquadId,
@@ -92,8 +92,8 @@ internal static class CombatProjection
     public static CombatUnit Restore(UnitState state, WeaponProfile profile, CombatDecisionState decision, long tick)
     {
         HexUnitState hex = state.Hex ?? (state.Deployed ? throw new ArgumentException("Deployed fixtures require explicit hex state.", nameof(state))
-            : new(state.Id, state.Destination, state.Faction, UnitLifecycle.Queued, default, Size: profile.Size));
-        if (hex.Id != state.Id || hex.City != state.Destination || hex.Faction != state.Faction || hex.Size != profile.Size || !Enum.IsDefined(hex.Action))
+            : new(state.Id, state.Destination, state.Faction, UnitLifecycle.Queued, default, Size: 1));
+        if (hex.Id != state.Id || hex.City != state.Destination || hex.Faction != state.Faction || hex.Size != 1 || !Enum.IsDefined(hex.Action))
             throw new ArgumentException("Fixture identity/action mismatch.", nameof(state));
         long ready = Math.Max(state.ReadyTick, checked(tick + state.Cooldown));
         AttackRecord? attack = null;

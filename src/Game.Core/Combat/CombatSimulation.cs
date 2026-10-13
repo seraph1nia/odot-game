@@ -41,7 +41,6 @@ internal sealed partial class CombatSimulation : IDisposable
     internal bool RegistryReleased => !ReferenceEquals(EcsWorld.Worlds[_world.Id], _world);
     internal HexBoard Board => _arena.Board;
     internal ArenaState Arena => _arena.Snapshot();
-    internal AdmissionBound[] Admissions { get; } = [];
     internal int[] HealthProgressCities => _healthProgress.ToArray();
     internal int RouteSearches => _routeSearches;
     internal CombatReservations Reservations => new(_squads.Values.Where(s => s.Alive)
@@ -127,7 +126,7 @@ internal sealed partial class CombatSimulation : IDisposable
     private UnitState Project(CombatUnit member)
     {
         CombatUnit projection = ProjectMember(member);
-        UnitState state = CombatProjection.Snapshot(projection with { Profile = member.Profile with { Size = 1 } }, _tick, _work);
+        UnitState state = CombatProjection.Snapshot(projection, _tick, _work);
         if (projection.Action.Attack?.Target is not { } target) return state;
         return state with
         {
@@ -141,16 +140,17 @@ internal sealed partial class CombatSimulation : IDisposable
     public UnitState[] Dying() => All().Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(Project).ToArray();
     public UnitState[] Soldiers(int city) => SoldierMembership(city).Select(Project).ToArray();
     public UnitState[] Enemies() => EnemyMembership().Select(Project).ToArray();
-    internal (UnitState[] Living, UnitState[] Dying) ProjectAll()
+    internal (UnitState[] Living, UnitState[] Dying, SquadState[] Squads) ProjectAll()
     {
         CombatUnit[] all = All();
-        return (all.Where(u => u.Health > 0).Select(Project).ToArray(), all.Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(Project).ToArray());
+        return (all.Where(u => u.Health > 0).Select(Project).ToArray(), all.Where(u => u.Location.Lifecycle == UnitLifecycle.Dying).Select(Project).ToArray(), SquadSnapshots(all));
     }
-    internal SquadState[] SquadSnapshots() => _squads.Values.Select(s =>
+    internal SquadState[] SquadSnapshots() => SquadSnapshots(All());
+    private SquadState[] SquadSnapshots(CombatUnit[] all) => _squads.Values.Select(s =>
     {
-        CombatUnit[] members = Living().Where(u => u.SquadId == s.Id).ToArray();
-        CombatUnit projection = members.FirstOrDefault() ?? All().First(u => u.SquadId == s.Id);
-        UnitState pose = CombatProjection.Snapshot(projection with { Location = s.Location, Action = s.Action, Decision = s.Decision, Profile = projection.Profile with { Size = 1 } }, _tick);
+        CombatUnit[] members = all.Where(u => u.Health > 0 && u.Location.Lifecycle != UnitLifecycle.Dying && u.SquadId == s.Id).ToArray();
+        CombatUnit projection = members.FirstOrDefault() ?? all.First(u => u.SquadId == s.Id);
+        UnitState pose = CombatProjection.Snapshot(projection with { Location = s.Location, Action = s.Action, Decision = s.Decision }, _tick);
         CombatTarget? target = s.Action.Attack?.Target;
         return new SquadState(s.Id, s.Owner, s.Destination, s.Faction, s.Type, s.IsBoss, members.Select(u => u.Id).ToArray(),
             members.Where(u => u.Location.Lifecycle == UnitLifecycle.Alive).Select(u => u.Id).ToArray(), pose.Hex! with { Id = s.Id, City = 1 }, s.Decision with { Route = s.Decision.Route.ToArray(), Visited = s.Decision.Visited.ToArray() })
@@ -318,7 +318,6 @@ internal sealed partial class CombatSimulation : IDisposable
             foreach (CombatUnit member in Living().Where(u => u.SquadId == squad.Id)) Unit(member.Id) = member with { Location = new(UnitLifecycle.Alive, default) };
         }
     }
-    internal void TrackClearedAdmission(int city) { _ = _arena.Keep(city); }
     public void Cleanup(long tick)
     {
         _tick = tick; _events.RemoveAll(e => e.Tick < tick - HistoryTicks);

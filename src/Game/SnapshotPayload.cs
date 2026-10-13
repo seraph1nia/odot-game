@@ -20,6 +20,21 @@ public static class SnapshotPayload
         work?.Add(WorkMetric.JsonBytes, json.Length); work?.Add(WorkMetric.CompressedBytes, output.Length);
         return Convert.ToBase64String(output.ToArray());
     }
+    // Receiving refuses incompatible shapes before credentials or live state can
+    // be updated. Ordinary Decode remains available for isolated codec diagnostics.
+    public static MatchSnapshot DecodeForReceiving(string payload)
+    {
+        try
+        {
+            MatchSnapshot state = Decode(payload) ?? throw new ArgumentException("Missing snapshot.");
+            SnapshotCompatibility.RequireSharedArena(state);
+            return state;
+        }
+        catch (Exception error) when (error is JsonException or ArgumentException or InvalidDataException or FormatException)
+        {
+            throw new InvalidDataException("Combat snapshot refused: incompatible or malformed squad rules. Rejoin a compatible authority or start a fresh match.", error);
+        }
+    }
     public static MatchSnapshot? Decode(string payload, WorkCounters? work = null)
     {
         work?.Support(WorkMetric.CodecEncodes, WorkMetric.CodecDecodes, WorkMetric.JsonBytes, WorkMetric.CompressedBytes);

@@ -35,12 +35,11 @@ public sealed class ArmyProgressionTests
         {
             HexCombatProfile ordinary = configuration.Unit(UnitType.Swordsman, level: level);
             Assert.Equal(health[level - 1] * 100, ordinary.Health); Assert.Equal(damage[level - 1] * 100, ordinary.Damage);
-            Assert.Equal(2, ordinary.Size);
             Assert.Equal(configuration.Unit(UnitType.Swordsman).MoveTicks, ordinary.MoveTicks);
             Assert.Equal(configuration.Unit(UnitType.Swordsman).CadenceTicks, ordinary.CadenceTicks);
         }
         HexCombatProfile boss = configuration.Unit(UnitType.Swordsman, isBoss: true, level: 3);
-        Assert.Equal(58400, boss.Health); Assert.Equal(3600, boss.Damage); Assert.Equal(6, boss.Size);
+        Assert.Equal(58400, boss.Health); Assert.Equal(3600, boss.Damage);
         Assert.Equal(106400, configuration.Unit(UnitType.Swordsman, isBoss: true, level: 5).Health);
         HexCombatProfile researched = configuration.Unit(UnitType.Swordsman, rank: 1, isBoss: true, level: 3);
         Assert.Equal(61320, researched.Health); Assert.Equal(3780, researched.Damage);
@@ -63,7 +62,7 @@ public sealed class ArmyProgressionTests
                 int ally = combat.Create(type, 1, 1, 1, rank: 2, level: level);
                 int enemy = combat.Create(type, 0, 1, 1, Faction.Skeletons, rank: 2, level: level);
                 Assert.Equal(combat.Read(ally).Profile, combat.Read(enemy).Profile);
-                Assert.Equal(1, combat.Read(ally).Size); Assert.Equal(level, combat.Read(enemy).Level);
+                Assert.Equal(1, combat.Read(ally).Hex!.Size); Assert.Equal(level, combat.Read(enemy).Level);
             }
     }
 
@@ -120,7 +119,7 @@ public sealed class ArmyProgressionTests
         int ally = combat.Create(UnitType.Swordsman, 1, 1, 1, rank: 0, isBoss: true, level: 5);
         UnitState initial = combat.Read(ally); combat.Seed(initial with { Health = initial.Health - 100 });
         combat.Research(1, new(Owned: 1UL << (int)TechnologyId.MeleeFoundation), new()); combat.Transfer(ally, 2);
-        UnitState transferred = combat.Read(ally); Assert.Equal(5, transferred.Level); Assert.True(transferred.IsBoss); Assert.Equal(1, transferred.Size);
+        UnitState transferred = combat.Read(ally); Assert.Equal(5, transferred.Level); Assert.True(transferred.IsBoss); Assert.Equal(1, transferred.Hex!.Size);
         Assert.Equal(initial.Health - 100, transferred.Health); Assert.Equal(111720, transferred.Profile.Health); Assert.Equal(6930, transferred.Profile.Damage);
         string json = JsonSerializer.Serialize(transferred, WireJson.Options);
         Assert.Equal(json, JsonSerializer.Serialize(JsonSerializer.Deserialize<UnitState>(json, WireJson.Options), WireJson.Options));
@@ -273,7 +272,7 @@ public sealed class ArmyProgressionTests
         UnitState enemy = combat.Read(opponent); combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 11, 1) });
         for (int tick = 1; tick <= 300 && combat.Dying().Length == 0; tick++) combat.Step(tick, []);
         UnitState dying = Assert.Single(combat.Dying()); Assert.Equal(boss, dying.Id); Assert.Equal(3, dying.Level);
-        Assert.True(dying.IsBoss); Assert.Equal(1, dying.Size); Assert.Equal(initial.Profile, dying.Profile);
+        Assert.True(dying.IsBoss); Assert.Equal(1, dying.Hex!.Size); Assert.Equal(initial.Profile, dying.Profile);
         Assert.Equal(0, dying.Health); Assert.Equal(UnitLifecycle.Dying, dying.Hex!.Lifecycle);
         Assert.Equal(dying.Id, Assert.Single(combat.Events(), e => e.Type == CombatEventType.Death).Unit!.Id);
     }

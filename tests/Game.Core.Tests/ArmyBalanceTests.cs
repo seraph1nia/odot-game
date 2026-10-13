@@ -88,7 +88,7 @@ public sealed class ArmyBalanceTests(ITestOutputHelper output)
             }
             Assert.InRange(city.PurchasedHomes, 2, maximumHomes);
             Assert.All(next.Army!.Homes, h => Assert.InRange(h.Used, 0, h.Purchased ? 6 : 0));
-            Assert.All(next.Army.Halls, hall => Assert.InRange(next.Soldiers.Where(u => u.Assignment!.HallSlot == hall.Slot).Sum(u => u.Size), 0, hall.Capacity));
+            Assert.All(next.Army.Halls, hall => Assert.InRange(next.Soldiers.Count(u => u.Assignment!.HallSlot == hall.Slot), 0, hall.Capacity));
         }
         Apply(new("start"));
         while (match.Phase is not (Phase.Victory or Phase.Defeat))

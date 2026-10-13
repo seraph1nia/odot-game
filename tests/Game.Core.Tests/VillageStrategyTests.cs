@@ -8,64 +8,9 @@ namespace Game.Core.Tests;
 
 public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
-    [Theory]
-    [InlineData(109UL)]
-    // A reproducible frontage witness, not a balance sample. First-fit paid homes
-    // use a Stonecutter-backed L3 receiving opening; seed 109 retains every
-    // cleared-frontage, bounded admission, retained identity and survival assertion.
-    public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
-    {
-        using Match match = Start(3, seed);
-        foreach (int id in new[] { 1, 2 })
-        {
-            Assert.True(Act(match, id, "build", 0, Building.Farm).Accepted);
-            Assert.True(Act(match, id, "build", 1, Building.Barracks).Accepted);
-            Assert.True(Act(match, id, "build", 2, Building.MetalMine).Accepted);
-        }
-        void Invest(int id)
-        {
-            City city = match.Players[id];
-            while (CampaignStrategy.ReinforcementInvestment(match.Snapshot(), id, id == 1) is EconomyAction decision)
-                Assert.True(match.Apply(id, decision.Command(match.Snapshot(), id)).Accepted);
-            output.WriteLine($"P{id} W{match.Wave} T{match.Turn} army={city.Soldiers.Count} gold={city.Gold} wood={city.Wood}");
-        }
-        void Prepare(bool firstWave)
-        {
-            while (match.Phase is Phase.Building or Phase.Preparation)
-            {
-                foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
-                {
-                    if (city.Id == 1 || firstWave && city.Id == 2) Invest(city.Id);
-                    else if (city.Id == 2 && match.Phase == Phase.Preparation) Assert.True(Act(match, 2, "recruit", 1).Accepted);
-
-                    Assert.True(Act(match, city.Id, "ready").Accepted);
-                }
-                if (match.Players.Values.Where(c => !c.Eliminated).All(c => c.Ready)) match.Step();
-            }
-        }
-        Prepare(true);
-        while (match.Phase == Phase.Combat) match.Step();
-        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave); Assert.True(match.Players[3].Eliminated);
-        Prepare(false); Assert.Equal(12, match.Enemies.Count);
-        MatchSnapshot? before = null, transfer = null;
-        for (int step = 0; step < 3000 && match.Phase == Phase.Combat && !match.Players[2].Eliminated; step++)
-        {
-            before = match.Snapshot(); match.Step();
-            if (match.Players[2].Eliminated) transfer = match.Snapshot();
-        }
-        Assert.NotNull(before); Assert.NotNull(transfer);
-        output.WriteLine($"transfer {before.Tick}: A soldiers={before.Players[0].Soldiers.Length}, enemies={before.Enemies.Count(u => u.Destination == 1)}");
-        Assert.DoesNotContain(before.Enemies, u => u.Destination == 1);
-        int[] forward = match.Configuration.Board.Front(Faction.Skeletons).ToArray();
-        int[] held = before.Players[0].Soldiers.Where(u => u.Deployed && forward.Contains(u.Hex!.Position.Cell)).Select(u => u.Hex!.Position.Cell).Distinct().Order().ToArray();
-        output.WriteLine($"cleared-forward transfer seed={seed} tick={transfer.Tick}; held={string.Join(',', held)}; required={string.Join(',', forward)}");
-        Assert.NotEmpty(held);
-        AdmissionBound bound = Assert.Single(transfer.Admissions, a => a.City == 1);
-        Assert.NotNull(bound.AdmissionTick); Assert.True(bound.AdmissionTick <= bound.FirstAdmissionBound);
-        Assert.Contains(transfer.Enemies, u => u.Id == bound.FirstUnitId && u.Deployed && u.Origin != 1);
-        while (match.Phase == Phase.Combat) match.Step();
-        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(3, match.Wave); Assert.Equal(DefeatReason.None, match.DefeatReason);
-    }
+    // The old city-teleport/admission journey is consolidated into SessionFlowTests:
+    // paid three-city rescue, serialized veteran continuity and future allocation.
+    // SharedCombatTests owns deterministic cross-sector rescue and source continuity.
 
     internal static CommandResult Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, UnitType unit = UnitType.Swordsman, UnitClass @class = UnitClass.Melee)
         => match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, unit, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[city].Slots[slot].Generation : 0));

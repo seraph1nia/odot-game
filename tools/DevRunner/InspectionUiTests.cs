@@ -1,6 +1,6 @@
 namespace DevRunner;
 
-internal sealed record InspectorObservation(int Id, string Name, string Description, int Level, int Health, int MaximumHealth, int Damage, int Size, bool IsBoss, string Preview)
+internal sealed record InspectorObservation(int Id, string Name, string Description, int Level, int Health, int MaximumHealth, int Damage, int SquadId, bool IsBoss, string Preview)
 {
     public string StatsText { get; init; } = "";
     public double Fraction { get; init; }
@@ -35,7 +35,7 @@ internal sealed partial class Runner
         InspectorObservation inspected = opened.InspectedUnit!;
         Game.Core.MatchSnapshot snapshot = Latest(client);
         Game.Core.UnitState unit = snapshot.Players.SelectMany(city => city.Soldiers).Concat(snapshot.Enemies).Single(unit => unit.Id == inspected.Id);
-        Require(inspected.Health == unit.Health && inspected.MaximumHealth == unit.Profile.Health && inspected.Damage == unit.Profile.Damage && inspected.Level == unit.Level && inspected.Size == unit.Size && inspected.IsBoss == unit.IsBoss && inspected.Description.Length > 0 && inspected.Preview.Length > 0, "inspector uses selected unit's authoritative profile and bundled preview");
+        Require(inspected.Health == unit.Health && inspected.MaximumHealth == unit.Profile.Health && inspected.Damage == unit.Profile.Damage && inspected.Level == unit.Level && inspected.SquadId == unit.SquadId && inspected.IsBoss == unit.IsBoss && inspected.Description.Length > 0 && inspected.Preview.Length > 0, "inspector uses selected unit's authoritative profile and bundled preview");
         Require(inspected.StatsText.Contains(Game.Core.HealthPoints.Format(unit.Health) + "/" + Game.Core.HealthPoints.Format(unit.Profile.Health), StringComparison.Ordinal) && Math.Abs(inspected.Fraction - Game.Core.PresentationLimits.HealthFraction(unit.Health, unit.Profile.Health)) < .00001, "actual inspection label and health fill match authoritative values");
         Require(opened.SelectedSlot == before.SelectedSlot && AckSequence(client) == acknowledgements, "unit selection retains plot and submits no command");
         await Click(client, "UnitInspector", token);

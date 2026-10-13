@@ -29,7 +29,7 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
         {
             UnitState? member = city.Soldiers.FirstOrDefault(u => u.Id == command.UnitId);
             if (member?.Assignment is not { Stored: false }) return Reject("Choose a deployed owned member.");
-            ArmyAssignment? destination = army.Find(city.Soldiers.Where(u => u.Id != member.Id), city.PurchasedHomes, 1, plots: city.ArmyPlots, type: member.Type, squadId: command.SquadId);
+            ArmyAssignment? destination = army.Find(city.Soldiers.Where(u => u.Id != member.Id), city.PurchasedHomes, plots: city.ArmyPlots, type: member.Type, squadId: command.SquadId);
             if (destination is null) return Reject("No compatible squad or free home.");
             combat.Assign(member.Id, destination); combat.RestoreHomes();
             return Accept();
@@ -62,10 +62,10 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             if (hall.Type != Building.TownHall || command.ExpectedGeneration != hall.Generation) return Reject("Stale or missing Town hall.");
             if (command.Action == "send" && (!current.Stored || current.HallSlot != command.Slot || current.HallGeneration != hall.Generation)
                 || command.Action == "store" && current.Stored) return Reject("Unit is not in the requested source roster.");
-            ArmyAssignment? next = army.Find(city.Soldiers, city.PurchasedHomes, unit.Size,
+            ArmyAssignment? next = army.Find(city.Soldiers, city.PurchasedHomes,
                 command.Action == "store" ? command.Slot : -1, command.Action == "store" ? hall.Generation : 0,
                 command.Action == "store" ? ArmyConfiguration.Capacity(hall.CapacityLevel) : 0, plots: city.ArmyPlots, type: unit.Type, squadId: command.SquadId);
-            if (next is null) return Reject("Destination has no fitting size capacity.");
+            if (next is null) return Reject("Destination has no available individual slot or compatible squad.");
             combat.Assign(unit.Id, next); combat.RestoreHomes();
             return Accept();
         }
@@ -163,7 +163,7 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
                 if (definition?.Recruits?.Contains(command.SoldierType) != true) return Reject("This building cannot recruit that role.");
                 ResourceCost cost = economy.Recruitment(command.SoldierType, slot.Level);
                 if (!CanPay(cost)) return Reject("Not enough resources.");
-                ArmyAssignment? home = army.Find(city.Soldiers, city.PurchasedHomes, 1, plots: city.ArmyPlots, type: command.SoldierType, squadId: command.SquadId);
+                ArmyAssignment? home = army.Find(city.Soldiers, city.PurchasedHomes, plots: city.ArmyPlots, type: command.SoldierType, squadId: command.SquadId);
                 if (home is null) return Reject("No compatible squad space. Reinforce a matching squad, buy a plot, store or retire a member.");
                 Pay(cost); combat.Create(command.SoldierType, city.Id, city.Id, city.Id, level: slot.Level, capabilities: economy.Research.Capabilities(city.Research, command.SoldierType), assignment: home); combat.RestoreHomes();
                 break;

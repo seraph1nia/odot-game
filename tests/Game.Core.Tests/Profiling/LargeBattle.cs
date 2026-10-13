@@ -4,38 +4,37 @@ using Xunit;
 
 namespace Game.Core.Tests.Profiling;
 
-// Synthetic capacity/stress workload. Economy funding and armies are test-owned;
-// combat uses ordinary profiles, size, decisions, admission and fixed ticks.
+// Synthetic shared-arena stress input, not earned balance. Four owners field
+// at most six homogeneous squads each; the remaining requested individuals are
+// real queued enemy groups. Topology, occupancy, profiles and steps are production.
 internal static class LargeBattle
 {
     public const int Horizon = 600;
-    public static HexBoardDefinition Board()
-    {
-        HexBoardDefinition ordinary = HexBoardDefinition.Default();
-        var cells = new List<HexCellDefinition>(256);
-        for (int row = 0; row < 8; row++)
-            for (int column = 0; column < 32; column++)
-                cells.Add(new(cells.Count + 1, HexCoordinate.FromOffset(column, row),
-                    row == 0 ? DeploymentAffinity.Skeletons : row == 7 ? DeploymentAffinity.Adventurers : DeploymentAffinity.Neutral, []));
-        HexCellDefinition[] graph = cells.Select(c => c with { Neighbors = cells.Where(n => n.Id != c.Id && n.Coordinate.Distance(c.Coordinate) == 1).Select(n => n.Id).ToArray() }).ToArray();
-        int[] Row(int row) => graph.Where(c => c.Coordinate.R == row).Select(c => c.Id).ToArray();
-        return new("synthetic-large-battle-32x8", 1, 6, graph, ordinary.Anchors,
-            [new(Faction.Skeletons, Row(0), Row(1)), new(Faction.Adventurers, Row(7), Row(6))], Row(6));
-    }
     public static Match Create(int size, ulong seed, WorkCounters? work = null)
     {
         if (size is not (128 or 512 or 2048)) throw new ArgumentOutOfRangeException(nameof(size));
         UnitType[] roles = Enum.GetValues<UnitType>();
-        var rules = new Rules { Combat = new() { Board = Board() }, Campaign = new([new(1, false, roles.Select(t => new SpawnEntry(t, 1, size / 8)).ToArray(), default)]) };
+        int friendsPerOwner = Math.Min(size / 8, 18);
+        int enemiesPerOwner = size / 4 - friendsPerOwner;
+        var entries = roles.Select((type, index) => new SpawnEntry(type, 1, enemiesPerOwner / roles.Length + (index < enemiesPerOwner % roles.Length ? 1 : 0))).ToArray();
+        var rules = new Rules { Campaign = new([new(1, false, entries, default)]) };
         var match = new Match(rules, combatSeed: seed);
         try
         {
             match.SetWorkCounters(work);
-            City city = match.Join()!; city.Food = size * 10;
-            Assert.True(VillageStrategyTests.Act(match, city.Id, "start").Accepted);
-            foreach (UnitType type in roles)
-                for (int i = 0; i < size / 8; i++) match.Combat.Create(type, city.Id, city.Id, city.Id);
-            for (int turn = 0; turn < 4; turn++) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
+            for (int owner = 0; owner < 4; owner++) match.Join();
+            Assert.True(VillageStrategyTests.Act(match, 1, "start").Accepted);
+            foreach (City city in match.Players.Values)
+            {
+                city.Food = size * 10; city.Gold = 1000; // Declared synthetic stocks, not earned economy.
+                for (int purchase = 0; purchase < 4; purchase++)
+                    Assert.True(match.Apply(city.Id, Command.FromSnapshot(match.Snapshot(), 1, "buy-home", city.Id)).Accepted);
+                for (int home = 0, remaining = friendsPerOwner; remaining > 0; home++)
+                    for (int member = 0, count = Math.Min(3, remaining); member < count; member++, remaining--)
+                        match.Combat.Create(roles[home % roles.Length], city.Id, city.Id, city.Id, assignment: new(-1, 0, home, 1));
+            }
+            for (int turn = 0; turn < 4; turn++)
+                foreach (City city in match.Players.Values) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
             Assert.Equal(Phase.Combat, match.Phase);
             return match;
         }
@@ -72,12 +71,12 @@ internal static class LargeBattle
             Assert.Equal(units.Length, units.Select(u => u.Id).Distinct().Count());
             Assert.All(units, u => Assert.Contains(u.Id, identities));
             Assert.All(identities.Except(units.Select(u => u.Id)), id => Assert.Contains(id, deaths));
-            Assert.All(units.Where(u => u.Deployed), u => Assert.True(match.Configuration.Board.Allows(u.Faction, u.Location.Position.Cell)));
-            foreach (var cell in state.Reservations.Positions.GroupBy(p => (p.City, p.Cell)))
+            Assert.All(units.Where(u => u.Deployed), u => Assert.True(match.Combat.Board.Allows(u.Faction, u.Location.Position.Cell)));
+            foreach (var cell in state.Reservations.Positions.GroupBy(p => p.Cell))
             {
-                Assert.InRange(cell.Sum(p => p.Size), 1, 6);
-                Assert.Single(cell.Select(p => p.Faction).Distinct());
-                Assert.Equal(cell.Count(), cell.Select(p => p.Anchor).Distinct().Count());
+                PositionReservation claim = Assert.Single(cell);
+                Assert.Equal(1, claim.Size); Assert.Equal(1, claim.Anchor); Assert.Equal(1, claim.City);
+                Assert.Contains(state.Squads, s => s.Id == claim.UnitId);
             }
             CombatReservations rebuilt = CombatReservations.Reconstruct(state.Arena!, state.Squads);
             Assert.Equal(JsonSerializer.Serialize(state.Reservations, WireJson.Options), JsonSerializer.Serialize(rebuilt, WireJson.Options));
@@ -105,8 +104,8 @@ internal static class LargeBattle
         }
         if (size == 2048)
         {
-            Assert.Equal(Horizon, match.Tick);
-            Assert.Contains(checkpoints, p => p.Deployed >= 256 && p.Adventurers >= 128 && p.Skeletons >= 128 && p.Queued > 0);
+            Assert.InRange(match.Tick, 1, Horizon);
+            Assert.Contains(checkpoints, p => p.Adventurers > 0 && p.Skeletons > 0 && p.Queued > 0);
             Assert.True(attacks > 0); Assert.NotEmpty(deaths); Assert.NotEmpty(admitted);
         }
         return new(size, seed, match.Tick, match.Phase.ToString(), input, Convert.ToHexString(stateHash.GetHashAndReset()), Convert.ToHexString(eventHash.GetHashAndReset()),

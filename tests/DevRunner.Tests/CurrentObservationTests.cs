@@ -26,7 +26,7 @@ public sealed class CurrentObservationTests
         switch (cause)
         {
             case "melee": city = city with { Soldiers = [sword] }; break;
-            case "splash": city = city with { Soldiers = [sword with { TargetId = 999, Profile = sword.Profile with { SplashHexRadius = 1 } }] }; break;
+            case "splash": city = city with { Soldiers = [sword with { TargetId = 999, Profile = sword.Profile with { SecondaryDamage = 400 } }] }; break;
             case "defender": city = city with { Defender = new(1, -1, Building.Empty, 1, TargetId: 999, PendingImpact: true) }; break;
             case "tower": city = city with { Towers = [new(1, 2, Building.ArrowTower, 1, TargetId: 139, PendingImpact: true)] }; break;
             case "catapult-splash": city = city with { Towers = [new(1, 2, Building.CatapultTower, 1, TargetId: 999, PendingImpact: true)] }; break;

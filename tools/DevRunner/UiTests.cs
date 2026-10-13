@@ -22,7 +22,8 @@ internal sealed record UnitObservation
     public int Rank { get; init; }
     public int Level { get; init; }
     public bool IsBoss { get; init; }
-    public int Size { get; init; }
+    public int SquadId { get; init; }
+    public int FormationSlot { get; init; }
     public bool Participating { get; init; }
     public int Destination { get; init; }
     public int Health { get; init; }

@@ -302,7 +302,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         // trims them without creating thousands of illegal occupied actors.
         for (int id = 1; id <= 4097; id++)
             combat.Seed(new UnitState(id, 0, 0, 1, 1)
-            { Owner = 1, SquadId = id, Profile = combat.Profile(UnitType.Swordsman) with { Size = 1 }, Hex = new(id, 1, Faction.Adventurers, UnitLifecycle.Reserve, default) });
+            { Owner = 1, SquadId = id, Profile = combat.Profile(UnitType.Swordsman), Hex = new(id, 1, Faction.Adventurers, UnitLifecycle.Reserve, default) });
         combat.Advance(0, []);
         Assert.Equal(4096, combat.Events().Length); Assert.Equal(2, combat.OldestEventSequence); Assert.Equal(4097, combat.EventSequence);
         Assert.Empty(combat.Snapshot()); combat.Step(121, []);

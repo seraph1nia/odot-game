@@ -61,8 +61,8 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
         Assert.Equal(ArmyPlotStatus.TowerOccupied, army.Homes[1].State); Assert.Equal(0, army.Homes[1].Used); // no fictitious squad members
         Assert.Equal(ArmyPlotStatus.UnitOccupied, army.Homes[2].State); Assert.Equal(ArmyPlotStatus.Locked, army.Homes[3].State);
         Assert.Equal(city.Soldiers.Select(u => u.Assignment), received.Soldiers.Select(u => u.Assignment));
-        Assert.Equal(match.Army.Find(city.Soldiers, city.PurchasedHomes, 2, plots: city.ArmyPlots),
-            match.Army.Find(received.Soldiers, army.PurchasedHomes, 2, plots: army.Homes.Select(h => h.Plot).ToArray()));
+        Assert.Equal(match.Army.Find(city.Soldiers, city.PurchasedHomes, plots: city.ArmyPlots),
+            match.Army.Find(received.Soldiers, army.PurchasedHomes, plots: army.Homes.Select(h => h.Plot).ToArray()));
         Assert.DoesNotContain(city.Soldiers, u => u.Assignment!.Tile == match.Army.HomeCells[1]);
     }
     [Theory]
@@ -174,7 +174,7 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
     [Fact]
     public void TowerOnlyAuthoringPublishesDistinctRulesWithoutRerollingUnchangedUnitAndDefenderDecisions()
     {
-        Rules rules = new(); Rules changed = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80, 4, 2) } };
+        Rules rules = new(); Rules changed = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80) } };
         using var baseline = new Match(rules, combatSeed: 1); using var variant = new Match(changed, combatSeed: 1);
         Assert.NotEqual(baseline.Configuration.Fingerprint, variant.Configuration.Fingerprint);
         Assert.Equal(baseline.Configuration.ActorDecisionFingerprint, variant.Configuration.ActorDecisionFingerprint);
@@ -198,9 +198,9 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
     [InlineData(1UL)]
     [InlineData(123UL)]
     [InlineData(14056307608042553509UL)]
-    public void LegacyBaseTowerSelectionIgnoresNewVariantMetadataWithOneSaltCounterfactual(ulong seed)
+    public void BaseTowerSelectionIgnoresOptionalUpgradeTimingWithOneSaltCounterfactual(ulong seed)
     {
-        Rules rules = new(); Rules newFields = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80, 4, 2) } };
+        Rules rules = new(); Rules newFields = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80) } };
         using var baseline = new Match(rules, combatSeed: seed); using var candidate = new Match(newFields, combatSeed: seed);
         int Target(Match match)
         {
@@ -226,7 +226,7 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
         var topology = new SharedArena([1]);
         int fullIdentityTarget = enemies.OrderBy(s => topology.Board.Distance(topology.Tower(1, 0), s.Hex.Position.Cell))
             .ThenBy(s => SeededDecision.Mix(SeededDecision.State(counterfactual) ^ (ulong)s.Id)).First().Id;
-        Assert.Equal(new DefenseProfile(500, 12, 48, 1, 0), candidate.Configuration.Tower(Building.ArrowTower, 1));
+        Assert.Equal(new DefenseProfile(500, 12, 48), candidate.Configuration.Tower(Building.ArrowTower, 1));
         output.WriteLine(JsonSerializer.Serialize(new
         {
             seed,
@@ -235,7 +235,7 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
             OldNamespaceTarget = oldTarget,
             ActualTarget = actual,
             FullIdentityCounterfactualTarget = fullIdentityTarget,
-            LegacySalt = candidate.Configuration.ActorDecisionFingerprint.ToString(),
+            BaseActorSalt = candidate.Configuration.ActorDecisionFingerprint.ToString(),
             FullIdentity = candidate.Configuration.Fingerprint.ToString(),
             Stock = candidate.Players[1].Resources,
             Profiles = candidate.Configuration.Towers

@@ -467,7 +467,7 @@ public partial class Main : Node, IGameSession
     private void Welcome(int player, string token, string json, bool mayStart, int hostPlayerId, string attempt)
     {
         if (_role != SessionRole.Guest || _finished || attempt != _attempt || !FromAuthority()) return;
-        MatchSnapshot state = SnapshotPayload.Decode(json)!;
+        if (!TryReceiveState(json, out MatchSnapshot? state)) return;
         if (_expectedNativeMatch is not null && state.MatchId != _expectedNativeMatch)
         { FailConnection("connection-failed", "The invited match has ended or changed. Request a new invitation."); return; }
         if (_session?.Value is { } previous && previous.MatchId != state.MatchId)
@@ -492,7 +492,7 @@ public partial class Main : Node, IGameSession
     {
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
         Timing?.Record("ack-rpc-receive", State, OwnedTimingTrace.Digest(state));
-        MatchSnapshot? received = SnapshotPayload.Decode(state);
+        if (!TryReceiveState(state, out MatchSnapshot? received)) return;
         Timing?.Record("ack-decode-complete", received, OwnedTimingTrace.Digest(state));
         if (received is null || State is null || received.MatchId != State.MatchId) return;
         // Snapshots on channel 1 may overtake a channel 0 acknowledgment. Keep the
@@ -517,9 +517,19 @@ public partial class Main : Node, IGameSession
         FailConnection("session-ended", message);
         if (Application is not null) ReturnToMenu(message);
     }
+    private bool TryReceiveState(string payload, out MatchSnapshot state)
+    {
+        try { state = SnapshotPayload.DecodeForReceiving(payload); return true; }
+        catch (System.IO.InvalidDataException error)
+        {
+            state = null!;
+            FailConnection("connection-failed", error.Message);
+            return false;
+        }
+    }
     private bool AcceptState(string json)
     {
-        MatchSnapshot? state = SnapshotPayload.Decode(json);
+        if (!TryReceiveState(json, out MatchSnapshot? state)) return false;
         Timing?.Record("snapshot-decode-complete", state, OwnedTimingTrace.Digest(json));
         if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
         try { SetState(state); return true; }

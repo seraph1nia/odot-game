@@ -666,6 +666,88 @@ engine process, real transport/package, paid deep campaign, graphical acceptance
 pipeline or publication was performed. The unlanded three-preparation work was
 not imported, implemented or inferred from these current-phase fixtures.
 
+## Coherent admission, profile and compatibility replacement (2026-10-13)
+
+This is the bounded instruction-009 batch, not delivery qualification. The full
+242-line initial reference inventory was reviewed and separated from unrelated
+native UI/camera sizing, peer authentication and caller-side burn/casualty capture
+admission. The final exact combat-contract inventory has only five references:
+retired cap/radius names deliberately injected by codec refusal tests. No production
+`AdmissionBound`, `TrackClearedAdmission`, `Admissions`, `UnitSpace`, profile/member
+size, victim-cap or cross-hex-radius authoring remains. Typed `HexUnitState` and
+`PositionReservation.Size` deliberately remain **one**, with malformed zero,
+negative, stacked and overflow claims refused by `SquadReservationTests`.
+
+| Retired contract / consumer | Current replacement and retained negative control |
+| --- | --- |
+| No-op cleared-city admission tracking/DTO and corpse-duration protected entry | Removed through CombatSimulation/Match snapshots/World. Real queued groups enter only free physical entry cells. `SnapshotEfficiencyTests.QueuedGroupsEnterOnlyAfterARealExclusiveSourceBecomesFree` uses eight real groups competing for seven entries: partial member removal cannot release a living source; final removal permits exactly one queued group. Existing HexBattle/SquadReservation tests own corpse release, immutable death pose, exact arrival, static-cell conflicts and malformed transit. |
+| UnitSpace/Profile.Size, boss size six, capped/radius tower/Mage metadata, normalized but unused fingerprint inputs | `UnitTiming`, numerical X/Y/structure/range/cycle profiles and all six actual tower definitions. Current rules **7 / protocol 14**; full identity covers actual profiles. The landed independent base-actor salt still isolates optional Rapid/Bombard timing edits from unchanged squads/base weapons. Config overflow/rank/version/range/timing/capacity negatives, reconstruction and complete event/state observation-invariance remain. No historical digest was refreshed. |
+| Legacy member-size recruitment, hall rotation and native inspector/rig observation | CampaignStrategy chooses empty or compatible homogeneous purchased non-tower homes using projected squad capacity; hall rotation counts individuals. ArmyConfiguration no longer takes an unused size argument. Settlement/roster/hall-generation/payment/retry/recovery guards remain. Inspector/hall labels and real rig observations carry squad/formation identity, not fictional member size. Existing Harness round-trip and minimal native arena witness verify the new observation binding. |
+| Isolated third-city death/teleport, cleared occupied forward band and admission-bound journeys | Consolidated duplicated VillageStrategy journey into the paid SessionFlow three-city rescue/codec/veteran/upkeep/next-allocation test. The same old opening now physically rescues the uninvested city; no seed or balance rule was manipulated to force its old death. Existing SharedCombat cross-sector rescue/source continuity, Campaign fallen allocation, and AuthoritySession paused/eliminated credential/ledger tests retain deterministic negatives. The actual `redistribution` selector now owns three-peer agreement, paid rescue, ordinary pause/resume, credential restart and accepted-Ready 4/4/4 next allocation. It does **not** claim actual eliminated-spectator transport qualification. |
+| Random-seed doomed-city runner fixture and home-index-as-hex comparisons | NetworkOpening is replaced as one policy subsystem: earned exact plot/trainer payment, physical owner/home mapping after cosmetic cleanup with persistent member/formation/XP continuity, and explicit fallen-owner policy plus authority refusal with an unchanged snapshot. Keep loss in that last cheap negative is test-owned; it is not an earned losing-strategy journey. |
+| Capacity-six synthetic stress board, stacked unassigned terminal actors and old low-level trace goldens | LargeBattle now uses four-owner production geometry, explicitly stocked paid homes, legal homogeneous field groups and real queued enemy groups. Current 128-member counter-invariance input passes; 512/2048 stress/timings remain unqualified. ReferenceTraces uses real groups, legal two-owner sector redirection preserving pose/health/profile/cycle, exclusive reconstruction and homogeneous terminal groups. Historical exact digests are replaced by an observation-invariant repeat of the current profile inputs, not new goldens. Existing bounded replay test verifies paid homes, actual squad transit, member deaths, codec-compatible states/reconstructed claims, pause/resume and cosmetic expiry. |
+| Silent unknown-field/default deserialization of old combat settings | Version is required in serialized CombatSettings; retired authoring/DTO fields are rejected by their existing typed owners. SnapshotPayload.DecodeForReceiving validates before Main's Welcome/ack/snapshot can change live state or credentials. Recoverable refusal directs the player to a compatible authority or fresh match. Codec tests inject old/missing/future versions, admission/size/cap/radius fields, duplicate member/group IDs, overlapping formation, missing squad identity, null populations and null arena geometry. Full valid codec round-trip, compression bounds and malformed Base64 guards remain. No save/economy migration framework was added. |
+
+The snapshot projection owner also reuses the same immutable Arch view for squad
+membership and individual projection, retaining the meaningful complete-snapshot
+one-view/one-member-projection work guard. Retired individual sort/range counters
+are unavailable (`null`), never fabricated zero. BFS edge accounting is checked
+against the actual two-cell graph, not the old board's edge count.
+
+Retained causal evidence:
+- `admission-profile-build.txt`: CA1822 on a constant instance member-size property;
+  obsolete DTO size and all consumers were removed, not suppressed. Build-02 retains
+  seven genuine remaining compile consumers/old constructor errors; complete solution
+  build-03 and later owned source preparation passed without warnings.
+- `admission-profile-focused.txt` / adjacent TRX: **113 passed / 5 failed / 118**.
+  Failures distinguished the paid third-city rescue, actual snapshot query work,
+  obsolete contact fixture and retired counter/board assumptions. Focused corrected
+  consumer selection passed **13/13, 5s**; coherent core selection passed
+  **307 / 0 failed / 0 skipped, 49s**. It includes independent payment, authority,
+  research, member persistence/recovery, simultaneous damage, compatibility and
+  codec negatives, but excludes unrelated fast classes and full deep campaigns.
+- `admission-profile-runner.txt`: **118 passed / 2 failed / 120**, old doomed-city
+  and home-index-as-hex assertions. Coherent runner replacement passed
+  **120 / 0 failed / 0 skipped, 6s** in `admission-profile-runner-02.txt`.
+- Exactly two changed C# profile/replay input checks (Tier=Deep selectors only)
+  passed **2/2, 11s**, `admission-profile-inputs.txt`. This is partial profile-input
+  qualification, not a full deep campaign/stress pass.
+- `admission-profile-engine.txt`, `logs/20261013-070525-40a83d9f`: minimal native
+  arena/receiving/rig component passed **2.96s / 14.18s including preparation**.
+  It exercises genuine imported rigs and observation IDs, not rendered pixels,
+  complete application choreography, physical pointer input or GPU performance.
+- `admission-profile-network.txt`, `logs/20261013-065404-21561616`: real three-peer
+  rescue/agreement/resume passed before a late snapshot's allocation assertion
+  failed (**17.93s / 23.02s**). Retained final Ready ack at tick1214 contained12
+  members; the later host ring began at tick1366 with9 after legitimate casualties.
+  The driver now binds initial allocation to that accepted Ready receipt. History
+  remains bounded; no sleep, retry policy, speed or deadline was increased. The
+  concrete correction passed **15.52s / 20.62s**, `admission-profile-network-02.txt`,
+  `logs/20261013-070604-924b12fa`. Every owned child was awaited before cleanup.
+- Final DTO review found that removed `UnitState.Size` still needed its existing
+  owner to reject unknown member fields. Added strict member decoding plus three
+  codec rows for member size and null cells/footprints (which must not escape as
+  null-reference errors). Final locked solution build passed with **0 warnings /
+  0 errors**; affected configuration/codec/SessionFlow selection passed **54 / 0
+  failed / 0 skipped, 9s**, `admission-profile-review.txt` and adjacent TRX.
+  Earlier narrowly affected final metadata parser selection passed **1/1, 71ms**
+  in `admission-profile-final-metadata.txt`. These overlapping selections are not
+  added to the coherent core/runner counts or called a full-fast rerun.
+
+`ArmyBalanceTests` only received the necessary individual Hall-count consumer
+migration in this batch. Its remaining old home-capacity/home-pose and paid
+campaign outcome assumptions need coherent balance-fixture redesign and earned
+qualification, not assertion-by-assertion repair. No complete deep campaign or
+512/2048 stress qualification was executed.
+
+Exact diff and reference inventory are retained under `logs/shared-arena-task/`.
+Formatting and whitespace checks cover changed C#. No tool/dependency/asset lock,
+developer preferences, model/session configuration, graphical process, full
+pipeline, push or publication was changed. The three-preparation prerequisite is
+still unlanded and was neither imported nor duplicated. Full-fast green, earned
+repeated-seed twenty-wave balance, actual eliminated-spectator transport, packages,
+full native acceptance and final delivery remain separate unfinished work.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints

@@ -198,12 +198,13 @@ public sealed class HarnessTests
     public void RiggedObservationPreservesStringEnumsAndActualPoseFields()
     {
         const string json = """
-            {"Units":[{"Id":7,"Type":"Crossbowman","Clip":"2H_Ranged_Shoot","PoseSeconds":0.43,"BoneRotation":"(0, 1, 0, 0)","WeaponAttached":true,"Dead":false,"ShotVisible":true}],"EventCursor":12,"CombatTick":44,"PlaybackGeneration":2}
+            {"Units":[{"Id":7,"SquadId":3,"FormationSlot":2,"Type":"Crossbowman","Clip":"2H_Ranged_Shoot","PoseSeconds":0.43,"BoneRotation":"(0, 1, 0, 0)","WeaponAttached":true,"Dead":false,"ShotVisible":true}],"EventCursor":12,"CombatTick":44,"PlaybackGeneration":2}
             """;
         UiObservation observation = JsonSerializer.Deserialize<UiObservation>(json, WireJson.Options)!;
         UnitObservation unit = Assert.Single(observation.Units);
         Assert.Equal(UnitType.Crossbowman, unit.Type); Assert.True(unit.WeaponAttached); Assert.True(unit.ShotVisible);
         Assert.Equal(0.43, unit.PoseSeconds); Assert.Equal(12, observation.EventCursor); Assert.Equal(2, observation.PlaybackGeneration);
+        Assert.Equal(3, unit.SquadId); Assert.Equal(2, unit.FormationSlot);
     }
     [Fact]
     public void DevelopmentCapacityIncludesThePlayingHost()

@@ -6,7 +6,7 @@ internal static class CombatFixture
 {
     public static void Soldier(Match match, int id, int city, int health, UnitType type = UnitType.Swordsman)
     {
-        ArmyAssignment assignment = match.Army.Find(match.Players[city].Soldiers, match.Players[city].PurchasedHomes, 1,
+        ArmyAssignment assignment = match.Army.Find(match.Players[city].Soldiers, match.Players[city].PurchasedHomes,
             plots: match.Players[city].ArmyPlots, type: type) ?? throw new InvalidOperationException("Fixture requires an available owned squad home.");
         int cell = new SharedArena(match.Players.Keys).Deployment(city, assignment.Tile);
         match.Combat.Seed(new CombatUnit(new(id, type, city, city, city, Faction.Adventurers, 0), health, match.Combat.Profile(type),
@@ -30,7 +30,7 @@ internal static class CombatFixture
         return members;
     }
     public static HexUnitState At(UnitState unit, int cell, int anchor) => new(unit.Id, unit.Destination, unit.Faction, UnitLifecycle.Alive,
-        new(cell, anchor), ActionSequence: unit.Hex?.ActionSequence ?? 0, Size: unit.Profile.Size);
+        new(cell, anchor), ActionSequence: unit.Hex?.ActionSequence ?? 0, Size: 1);
     public static void Change(Match match, int id, Func<UnitState, UnitState> update) => match.Combat.Seed(update(match.Combat.Read(id)));
     public static void ClearEnemies(Match match)
     {

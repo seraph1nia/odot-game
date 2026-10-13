@@ -88,7 +88,7 @@ public sealed class CampaignTests
         foreach (City city in match.Players.Values)
         {
             UnitState[] allocation = match.Enemies.Where(e => e.Origin == city.Id).ToArray();
-            Assert.Equal(4, allocation.Length); Assert.All(allocation, e => { Assert.Equal(UnitType.Swordsman, e.Type); Assert.Equal(1, e.Level); Assert.Equal(1, e.Size); Assert.False(e.IsBoss); Assert.Equal(city.Id, e.Destination); });
+            Assert.Equal(4, allocation.Length); Assert.All(allocation, e => { Assert.Equal(UnitType.Swordsman, e.Type); Assert.Equal(1, e.Level); Assert.Equal(1, e.Hex!.Size); Assert.False(e.IsBoss); Assert.Equal(city.Id, e.Destination); });
         }
         Clear(match); Begin(match);
         foreach (City city in match.Players.Values)
@@ -104,7 +104,7 @@ public sealed class CampaignTests
         for (int wave = 1; wave < 10; wave++) { Begin(match); Clear(match); }
         match.Players[3].Health = 0; match.SetConnected(2, false); Begin(match);
         Assert.Equal(3, match.Enemies.Count); Assert.Equal(2, match.Enemies.Count(e => e.Destination == 1));
-        Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(1, e.Size); Assert.Equal(58400, e.Profile.Health); });
+        Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(1, e.Hex!.Size); Assert.Equal(58400, e.Profile.Health); });
         UnitState inherited = Assert.Single(match.Enemies, e => e.Origin == 3); Assert.Equal(1, inherited.Destination);
         match.Combat.Seed(inherited with { Health = inherited.Health - 1000 }); inherited = match.Combat.Read(inherited.Id);
         string foodBefore = JsonSerializer.Serialize(match.Players[2].LastUpkeep); int food = match.Players[2].Food;

@@ -4,15 +4,20 @@ namespace Game.Core;
 // fields. Reconnect credentials are separate; this validates combat projections.
 public static class SnapshotCompatibility
 {
-    public const int MinimumSquadRulesVersion = 6;
+    public const int CurrentSquadRulesVersion = 7;
     public static void RequireSharedArena(MatchSnapshot state)
     {
         ArgumentNullException.ThrowIfNull(state);
-        if (state.CombatRulesVersion < MinimumSquadRulesVersion || state.Rules?.Combat is null || state.Rules.Arena is null
+        if (state.CombatRulesVersion != CurrentSquadRulesVersion || state.Rules?.Combat is null || state.Rules.Arena is null
             || state.Rules.Combat.RulesVersion != state.CombatRulesVersion || state.Rules.Combat.Board is not { Capacity: 1, Id: "shared-watch-arena" }
             || state.Arena is null || state.Arena.Board is not { Capacity: 1 } || state.Squads is null || state.Structures is null)
             throw new ArgumentException("Legacy combat snapshot refused: this client requires shared arena squad rules. Rejoin a compatible authority or start a fresh match.", nameof(state));
         if (state.Players is null || state.Enemies is null || state.DyingBodies is null || state.Players.Length > 4
+            || state.Players.Any(p => p is null || p.Soldiers is null) || state.Enemies.Any(m => m is null)
+            || state.Players.SelectMany(p => p.Soldiers).Any(m => m is null)
+            || state.Squads.Any(s => s is null || s.Hex is null || s.Members is null || s.ParticipatingMembers is null)
+            || state.Arena.Board.Cells is null || state.Arena.Footprints is null
+            || state.Arena.Board.Cells.Any(c => c is null) || state.Arena.Footprints.Any(f => f is null)
             || state.Players.Length == 0 && state.Phase != Phase.Lobby || state.Rules.Arena.SquadCapacity is < 1 or > 12)
             throw new ArgumentException("Malformed shared arena roster.", nameof(state));
         UnitState[] members = state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).ToArray();

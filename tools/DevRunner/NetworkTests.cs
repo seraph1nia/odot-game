@@ -31,8 +31,8 @@ internal sealed partial class Runner
             (command, cancellation) => Action(child, command, cancellation), token);
     private async Task RecruitAll(Child child, CancellationToken token)
     {
-        // A clear enters Building before the last bodies release their reservations.
-        // Let ordinary cleanup restore homes before exact economic retry measurements.
+        // Cosmetic bodies can outlive the clear, but hold no reservations.
+        // Let ordinary cleanup restore persistent homes before exact retry measurements.
         MatchSnapshot entry = Latest(child);
         await Observe(child, s => s.MatchId == entry.MatchId && s.Revision >= entry.Revision && s.DyingBodies.Length == 0,
             "post-clear home restoration before investment", token);
@@ -235,14 +235,17 @@ internal sealed partial class Runner
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "109");
+        // Paid shared-arena rescue + exact wire agreement/resume. Old teleport
+        // admission and duplicated second-fall choreography are consolidated in
+        // deterministic core redirection/spectator tests, not predicted here.
+        await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "8");
         await a.WaitFor(e => e.Type == "ready", "playing host transfer readiness", options.StartupTimeout, token);
         await using var b = StartGame("transfer-b", false, true, port, null, "--automated");
         await b.WaitFor(e => e.Type == "connected", "ordered second city admission", options.StartupTimeout, token);
         string cPath = Path.Combine(_scope!.Directory, "observer.json");
         await using var c = StartGame("transfer-c", false, true, port, null, "--automated", "--session-file", cPath);
         foreach (Child p in new[] { a, b, c }) await p.WaitFor(e => e.Type == "connected", "three-player lobby", options.StartupTimeout, token);
-        int deadId = c.PlayerId;
+        int thirdId = c.PlayerId;
         await Action(a, "start", token); foreach (Child p in new[] { b, c }) await Observe(p, s => s.Phase == Phase.Building, "transfer start", token);
         await Economy(a, token); await Economy(b, token);
         for (int preparation = 0; preparation < 4; preparation++)
@@ -252,55 +255,44 @@ internal sealed partial class Runner
             MatchSnapshot advanced = Latest(c);
             foreach (Child child in new[] { a, b }) await Observe(child, state => state.Revision >= advanced.Revision && state.Phase == advanced.Phase, "reinforcement opening synchronized", token);
         }
-        MatchSnapshot initial = Latest(a);
-        await SimulationSpeed(a, 1, token); // Transfer/admission transients are ordinary-speed transport witnesses.
-        UnitState[] attackers = initial.Enemies.Where(e => e.Origin == deadId).ToArray();
-        MatchSnapshot fallen = await Observe(a, s => s.Phase == Phase.Combat && s.Players.Single(p => p.Id == deadId).Eliminated, "ordinary under-defended city falls", token);
-        UnitState[] transferred = fallen.Enemies.Where(e => e.Origin == deadId).ToArray();
-        Require(transferred.Length > 0 && transferred.All(e => e.Destination != deadId) && transferred.Select(e => e.Id).Distinct().Count() == transferred.Length, "live enemies transferred immediately without duplication");
-        Require(transferred.All(e => attackers.Any(old => old.Id == e.Id && old.Health >= e.Health)), "transfers preserve identity and damage");
-        Require(transferred.All(e => e.Faction == Faction.Skeletons && attackers.Any(old => old.Id == e.Id && old.Type == e.Type && old.Profile == e.Profile && old.Rank == e.Rank && old.Level == e.Level && old.Size == e.Size && old.IsBoss == e.IsBoss) && !e.PendingImpact && e.Cooldown == Math.Max(0, e.ReadyTick - fallen.Tick))
-            && transferred.Any(e => e.Cooldown > 0), "transfers retain profiles/recovery and cancel former windups");
-        Require(fallen.Players.All(city => city.Food == initial.Players.Single(old => old.Id == city.Id).Food
-            && JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options) == JsonSerializer.Serialize(initial.Players.Single(old => old.Id == city.Id).LastUpkeep, WireJson.Options)), "transfers retain already-resolved food balances and battle receipts");
-        CombatContact(fallen);
-        // Combat publication can skip a transient revision on a slower peer.
-        // Freeze through the ordinary protocol before requiring exact agreement.
+        MatchSnapshot initial = Latest(a); CombatContact(initial);
+        Require(initial.Players.Single(p => p.Id == thirdId).Soldiers.Length == 0, "third sector has no privately seeded army");
+        // Combat publication can skip transient revisions. An ordinary accepted
+        // pause gives every peer the same stable receipt before exact comparison.
         MatchSnapshot paused = State(await Action(a, "pause", token));
-        MatchSnapshot seen = await Observe(b, s => s.Revision == paused.Revision, "matching paused transfer revision", token);
-        Require(JsonSerializer.Serialize(paused, WireJson.Options) == JsonSerializer.Serialize(seen, WireJson.Options), "surviving clients agree on transfers");
+        foreach (Child child in new[] { b, c })
+        {
+            MatchSnapshot seen = await Observe(child, s => s.Revision == paused.Revision, "matching paused shared arena", token);
+            Require(JsonSerializer.Serialize(paused, WireJson.Options) == JsonSerializer.Serialize(seen, WireJson.Options), "all three peers agree on squads, members and claims");
+            CombatContact(seen);
+        }
         await Action(a, "resume", token);
-        await Observe(a, s => s.Wave == 2 && s.Phase == Phase.Building, "redistributed wave clear", token); await Observe(b, s => s.Wave == 2 && s.Phase == Phase.Building, "B next wave", token);
+        MatchSnapshot clear = await Observe(a, s => s.Wave == 2 && s.Phase == Phase.Building, "paid cooperative rescue clear", token);
+        Require(clear.Players.All(p => !p.Eliminated), "paid team protects all three Keeps including uninvested sector");
+        Require(clear.Players.All(city => JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options)
+            == JsonSerializer.Serialize(initial.Players.Single(old => old.Id == city.Id).LastUpkeep, WireJson.Options)), "clear retains actual paid battle receipts");
+        foreach (Child child in new[] { b, c }) await Observe(child, s => s.Wave == 2 && s.Phase == Phase.Building, "all peers observe rescue clear", token);
         await c.Send("quit"); await c.WaitExit(token);
         await using var observer = StartGame("observer-resumed", false, true, port, null, "--automated", "--session-file", cPath);
-        GameEvent restored = await observer.WaitFor(e => e.Type == "connected", "eliminated observer resume", options.StartupTimeout, token);
-        Require(restored.PlayerId == deadId && State(restored).Players.Single(p => p.Id == deadId).Eliminated, "resume cannot revive eliminated city");
-        await Action(observer, "build 0 mine", token, false); await Action(observer, "pause", token); await Action(observer, "resume", token);
+        GameEvent restored = await observer.WaitFor(e => e.Type == "connected", "third player resume", options.StartupTimeout, token);
+        Require(restored.PlayerId == thirdId && !State(restored).Players.Single(p => p.Id == thirdId).Eliminated, "resume retains rescued owner identity");
+        CombatContact(State(restored));
+        await Observe(a, s => s.DyingBodies.Length == 0, "cosmetic cleanup before investment", token);
+        MatchSnapshot? next = null;
         for (int preparation = 0; preparation < 4; preparation++)
         {
-            await ReinforcementInvestment(a, true, token);
-            if (preparation == 3) await Action(b, "recruit 1", token);
-            await Action(a, "ready", token);
-            MatchSnapshot advanced = State(await Action(b, "ready", token));
-            await Observe(a, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase, "transfer preparation synchronized", token);
+            await ReinforcementInvestment(a, true, token); await ReinforcementInvestment(b, false, token);
+            GameEvent? ready = null;
+            foreach (Child child in new[] { a, b, observer }) ready = await Action(child, "ready", token);
+            MatchSnapshot advanced = State(ready!);
+            if (preparation == 3) next = advanced;
+            await Observe(a, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase, "shared preparation synchronized", token);
         }
-        MatchSnapshot next = await Observe(a, s => s.Phase == Phase.Combat && s.Wave == 2, "future original roster allocation", token);
-        Require(next.Enemies.Length == 12 && next.Players.Where(p => !p.Eliminated).All(p => next.Enemies.Count(e => e.Destination == p.Id) == 6), "fallen future allocation counted once and divided 6/6");
-        var board = new HexBoard(next.Rules.Combat.Board);
-        int[] forward = board.Front(Faction.Skeletons).ToArray();
-        MatchSnapshot cleared = await Observe(a, s => s.Phase is Phase.Defeat or Phase.Victory || s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == b.PlayerId).Eliminated
-            && !s.Enemies.Any(u => u.Destination == a.PlayerId)
-            && s.Players.Single(p => p.Id == a.PlayerId).Soldiers.Any(u => u.Deployed && forward.Contains(u.Hex!.Position.Cell)), "receiving city cleared with surviving forward defenders", token);
-        Require(cleared.Phase == Phase.Combat, "cleared-frontage witness remains a live battle");
-        CombatContact(cleared);
-        MatchSnapshot reinforced = await Observe(a, s => s.Phase == Phase.Combat && s.Wave == 2 && s.Players.Any(p => p.Id == b.PlayerId && p.Eliminated) && s.Admissions.Any(d => d.City == a.PlayerId), "reinforcement into cleared forward band", token);
-        AdmissionBound admission = reinforced.Admissions.Single(d => d.City == a.PlayerId);
-        Require(admission.AdmissionTick is not null && admission.AdmissionTick <= admission.FirstAdmissionBound, "reinforcement meets original protected-entry admission bound");
-        CombatContact(reinforced);
-        MatchSnapshot engaged = await Observe(a, s => s.Tick > reinforced.Tick && s.CombatEvents.Any(e => e.Tick >= admission.TransferTick && e.Type == CombatEventType.Hit), "transferred army engages after admission", token);
-        CombatContact(engaged);
-        MatchSnapshot completed = await Observe(a, s => s.Tick >= reinforced.Tick && (s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 3), "reinforced battlefield completes", token);
-        Require(completed.Phase == Phase.Building && completed.Wave == 3 && completed.DefeatReason == DefeatReason.None, "reinforced battlefield completes ordinarily without stall fallback");
+        // Initial allocation belongs to the accepted final Ready receipt. A
+        // later bounded-ring snapshot can legitimately contain fewer members.
+        Require(next is { Phase: Phase.Combat, Wave: 2 } && next.Enemies.Length == 12
+            && next.Players.All(p => next.Enemies.Count(e => e.Destination == p.Id) == 4), "next roster counted once and divided 4/4/4");
+        CombatContact(next!);
     }
     private static void CombatContact(MatchSnapshot state)
     {

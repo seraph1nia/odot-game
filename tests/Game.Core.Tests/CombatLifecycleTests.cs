@@ -67,7 +67,7 @@ public sealed class CombatLifecycleTests
         Assert.NotEmpty(combat.Reservations.Positions); Assert.NotEmpty(combat.Events());
         combat.Dispose(); combat.Dispose();
         Assert.True(combat.RegistryReleased); Assert.Empty(combat.Reservations.Positions); Assert.Empty(combat.Reservations.Transit);
-        Assert.Empty(combat.Events()); Assert.Empty(combat.Admissions); Assert.Empty(combat.HealthProgressCities);
+        Assert.Empty(combat.Events()); Assert.Empty(combat.HealthProgressCities);
         Assert.Throws<ObjectDisposedException>(() => combat.Dying());
         using var fresh = new CombatSimulation(new(), seed: 123);
         Assert.Empty(fresh.Snapshot()); Assert.Empty(fresh.Dying()); Assert.Empty(fresh.Reservations.Positions); Assert.Empty(fresh.Reservations.Transit);

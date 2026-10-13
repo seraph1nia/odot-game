@@ -34,11 +34,18 @@ internal static class CampaignStrategy
             return new("build", slot, type, Payment: ConstructionPayment.GoldRecovery);
         return null;
     }
+    private static bool CanField(CityState city, UnitType type)
+    {
+        ArmyState army = city.Army ?? throw new InvalidOperationException("Authority must project army homes.");
+        return army.Homes.Any(h => h.Purchased && h.Plot.Type == Building.Empty && (h.Used == 0
+            || h.Used < army.SquadCapacity && city.Soldiers.Where(u => u.Health > 0 && u.Assignment is { Stored: false } a && a.Tile == h.Cell)
+                .All(u => u.Type == type && !u.IsBoss)));
+    }
     private static EconomyAction? Recruit(CityState city, int slot, RecruitmentQuote quote, int maximumHomes = 6)
     {
         if (!city.Resources.TryPay(quote.Cost, out _) || city.Food < (city.FoodForecast?.Demand ?? 0) + quote.Upkeep) return null;
         ArmyState army = city.Army ?? throw new InvalidOperationException("Authority must project army homes.");
-        if (army.Homes.Any(h => h.Purchased && h.Used + quote.Profile.Size <= 6)) return new("recruit", slot, Unit: quote.Type);
+        if (CanField(city, quote.Type)) return new("recruit", slot, Unit: quote.Type);
         int expansion = army.PurchasedHomes - 2;
         if (army.PurchasedHomes < maximumHomes && expansion < army.HomePrices.Length)
             return city.Gold >= army.HomePrices[expansion] ? new("buy-home") : null;
@@ -47,8 +54,8 @@ internal static class CampaignStrategy
             .OrderBy(u => u.Level).ThenBy(u => u.Health).ThenBy(u => u.Id).FirstOrDefault();
         return veteran is null ? null : new("retire", UnitId: veteran.Id);
     }
-    // The economy UI keeps its structural Catapult on plot 2. Its obsolete
-    // wounded opening needs a paid trainer and third home before wave three.
+    // The economy witness keeps its Catapult on plot 2 and funds a trainer
+    // through ordinary stocks. Homogeneous squads require actual empty homes.
     internal static EconomyAction? EconomyDefense(MatchSnapshot state, int player)
     {
         CityState city = state.Players.Single(p => p.Id == player);
@@ -69,14 +76,14 @@ internal static class CampaignStrategy
         {
             UnitState[] stored = city.Soldiers.Where(u => u.Assignment is { Stored: true } a && a.HallSlot == hall.Slot).ToArray();
             UnitState? recovered = stored.Where(u => (long)u.Health * 100 >= (long)u.Profile.Health * 90).OrderByDescending(u => u.Level).ThenBy(u => u.Id).FirstOrDefault();
-            if (recovered is not null && army.Homes.Any(h => h.Purchased && h.Used + recovered.Size <= 6)) return new("send", hall.Slot, UnitId: recovered.Id);
+            if (recovered is not null && CanField(city, recovered.Type)) return new("send", hall.Slot, UnitId: recovered.Id);
             if (upgrades && stored.Any(u => u.RecoveryEligible && u.Health < u.Profile.Health) && hall.HealingQuote is { } healing && city.Resources.TryPay(healing, out _))
                 return new("upgrade-healing", hall.Slot);
             UnitState? wounded = city.Soldiers.Where(u => u.Assignment is { Stored: false } && u.RecoveryEligible
                 && u.Level >= city.Slots[2].Level - 1 && (long)u.Health * 100 < (long)u.Profile.Health * 65)
                 .OrderBy(u => u.Health / (decimal)u.Profile.Health).ThenBy(u => u.Id).FirstOrDefault();
             if (wounded is null) continue;
-            if (stored.Sum(u => u.Size) + wounded.Size <= hall.Capacity) return new("store", hall.Slot, UnitId: wounded.Id);
+            if (stored.Length < hall.Capacity) return new("store", hall.Slot, UnitId: wounded.Id);
             if (upgrades && hall.CapacityQuote is { } capacity && city.Resources.TryPay(capacity, out _)) return new("upgrade-capacity", hall.Slot);
             UnitState? obsolete = stored.Where(u => u.Level < wounded.Level).OrderBy(u => u.Level).ThenBy(u => u.Id).FirstOrDefault();
             if (obsolete is not null) return new("retire", UnitId: obsolete.Id);
@@ -198,8 +205,8 @@ internal static class CampaignStrategy
         if (receivingCity)
         {
             if (city.Slots[3].Type == Building.Empty && Build(city, state, 3, Building.Lumbermill) is EconomyAction lumbermill) return lumbermill;
-            // First-fit homes change contact timing. A paid Stonecutter supplies the
-            // receiving city's L3 equipment instead of a redundant second Farm.
+            // A paid Stonecutter supplies the receiving city's L3 equipment.
+            // Sector preference changes never teleport members or restart cycles.
             if (city.Slots[4].Type == Building.Empty && Build(city, state, 4, Building.Stonecutter) is EconomyAction stonecutter) return stonecutter;
             if (state.Wave > 1 && city.Slots[1].Level < 3 && city.Slots[1].UpgradeQuote is ResourceCost barracks && Affordable(barracks)) return new("upgrade", 1);
             if (city.Slots[0].Level == 1 && city.Slots[0].UpgradeQuote is ResourceCost farm && Affordable(farm)) return new("upgrade", 0);

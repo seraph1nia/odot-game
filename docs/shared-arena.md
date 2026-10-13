@@ -72,12 +72,21 @@ Town Hall capacity and healing remain individual-soldier rules, independent of
 squad population. Food funds members in the existing field-first, veteran-first,
 stable-ID order; an empty-funded squad creates no combat occupancy.
 
-Wire protocol 13 refuses older peers with the existing protocol-mismatch response.
-Snapshots carry the connected arena, squads, individual members, authoritative
-cosmetic formation slots, physical structures and events. New clients explicitly
-refuse pre-squad rules, legacy size-budget board descriptions, missing arena data
-or inconsistent member/actor projections instead of inferring new squads. Session files are credentials for reconnecting to the same
-running authority, not saved matches; no legacy combat save is silently upgraded.
+Wire protocol **14 / combat rules 7** refuses older peers with the existing
+protocol-mismatch response. Snapshots carry the connected arena, squads, individual
+members, authoritative formation slots, physical structures and events. Combat
+profiles author X/Y, structural damage, range and timing—not member size, victim
+caps or cross-hex radius. One squad claims one cell, including a one-member boss.
+The old city-transfer admission DTO and cosmetic-death admission bound are removed.
+
+Receiving explicitly refuses old/unversioned combat settings, retired authoring
+fields, legacy size-budget boards, missing arena data and inconsistent member/actor
+projections. Welcome, acknowledgment and snapshot delivery use the same codec plus
+compatibility boundary before live state or reconnect credentials change. Failure
+explains how to rejoin a compatible authority or start a fresh match; it does not
+invent squads or silently reinterpret old fields. Session files are credentials
+for reconnecting to the same running authority, not saved matches. Old combat
+snapshot/replay inputs are refused rather than migrated.
 
 ## Verification scope
 
