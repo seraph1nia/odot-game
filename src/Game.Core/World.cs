@@ -462,7 +462,14 @@ public sealed class Match : IDisposable
     {
         if (Paused || Phase != Phase.Combat && !_combat.HasDeaths) return;
         Tick = checked(Tick + 1); Revision++;
-        if (Phase != Phase.Combat) { _combat.Cleanup(Tick); if (!_combat.HasDeaths) RestoreHomes(); ResolveReady(); return; }
+        if (Phase != Phase.Combat)
+        {
+            _combat.Cleanup(Tick);
+            // Defeated actors keep their frozen battlefield pose after the last
+            // cosmetic body expires. Preparation and victory retain roster restoration.
+            if (!_combat.HasDeaths && Phase is Phase.Building or Phase.Preparation or Phase.Victory) RestoreHomes();
+            ResolveReady(); return;
+        }
         _combat.Advance(Tick, Players.Values);
         foreach (City city in Players.Values.Where(c => c.Eliminated))
         {

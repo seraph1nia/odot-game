@@ -13,12 +13,27 @@ public sealed class CombatLimitTests
             DefenderDamage = 0,
             SoldierHealth = 100,
             SoldierDamage = progress ? 1 : 0,
-            Combat = new() { NoHealthProgressTicks = 500, MaximumWaveTicks = waveLimit }
+            Arena = new() { SwordsmanStructureDamage = 0 },
+            // Fast numerical limit fixture, not relaxed production validation:
+            // configured approach/action/cleanup is genuinely below 500 ticks.
+            Combat = new()
+            {
+                NoHealthProgressTicks = 500,
+                MaximumWaveTicks = waveLimit,
+                Swordsman = new(2, 10, 1, 48),
+                Berserker = new(2, 20, 1, 48),
+                Crossbowman = new(2, 30, 1, 48),
+                Mage = new(2, 40, 1, 48)
+            }
         };
         var match = new Match(rules, combatSeed: 123);
         for (int n = 0; n < players; n++) match.Join();
         VillageStrategyTests.Act(match, 1, "start");
-        if (progress) match.Combat.Create(UnitType.Swordsman, players, players, players);
+        if (progress)
+        {
+            match.Combat.Create(UnitType.Swordsman, players, players, players, assignment: new(-1, 0, 0, 1));
+            match.Players[players].Food = 1;
+        }
         for (int n = 0; n < 4; n++)
             foreach (City city in match.Players.Values) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
         if (progress)
@@ -42,14 +57,15 @@ public sealed class CombatLimitTests
         Assert.False(match.Players[1].Eliminated); Assert.All(match.Enemies, u => Assert.False(u.PendingImpact));
     }
     [Fact]
-    public void HealthProgressInAnotherCityDoesNotExtendTheStuckCityDeadline()
+    public void SharedHealthProgressExtendsAllCurrentSectorPressureDeadlines()
     {
         using Match match = Start(2, progress: true);
         CombatFixture.Steps(match, 499);
         Assert.Equal(Phase.Combat, match.Phase);
         EngagementProgress other = match.Snapshot().Engagements.Single(e => e.City == 2);
         Assert.True(other.LastHealthProgressTick > 0); Assert.True(other.Deadline > 500);
-        match.Step(); Assert.Equal(DefeatReason.BattleStalled, match.DefeatReason); Assert.Equal(1, match.Stall!.City); Assert.Equal(500, match.Tick);
+        match.Step(); Assert.Equal(Phase.Combat, match.Phase); Assert.Null(match.Stall); Assert.Equal(500, match.Tick);
+        Assert.All(match.Snapshot().Engagements, e => Assert.True(e.Deadline > 500));
     }
     [Fact]
     public void PauseFreezesTheDeadlineWithoutCatchup()
@@ -74,6 +90,11 @@ public sealed class CombatLimitTests
     public void TerminalMovePoseRemainsFrozenWhileRetainedDeathsCleanUp()
     {
         using Match match = Start(waveLimit: 10);
+        CombatUnit moving = match.Combat.Inspect(match.Enemies.Single().Id);
+        match.Combat.Seed(moving with
+        {
+            Action = CombatActions.Move(moving.Action, match.Combat.Board.Transition(moving.Location.Position, new(2, 1)), 0, 30)
+        });
         int body = match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
         UnitState corpse = match.Combat.Read(body);
         match.Combat.Seed(corpse with

@@ -88,7 +88,7 @@ public sealed class CampaignTests
         foreach (City city in match.Players.Values)
         {
             UnitState[] allocation = match.Enemies.Where(e => e.Origin == city.Id).ToArray();
-            Assert.Equal(4, allocation.Length); Assert.All(allocation, e => { Assert.Equal(UnitType.Swordsman, e.Type); Assert.Equal(1, e.Level); Assert.Equal(2, e.Size); Assert.False(e.IsBoss); Assert.Equal(city.Id, e.Destination); });
+            Assert.Equal(4, allocation.Length); Assert.All(allocation, e => { Assert.Equal(UnitType.Swordsman, e.Type); Assert.Equal(1, e.Level); Assert.Equal(1, e.Size); Assert.False(e.IsBoss); Assert.Equal(city.Id, e.Destination); });
         }
         Clear(match); Begin(match);
         foreach (City city in match.Players.Values)
@@ -104,7 +104,7 @@ public sealed class CampaignTests
         for (int wave = 1; wave < 10; wave++) { Begin(match); Clear(match); }
         match.Players[3].Health = 0; match.SetConnected(2, false); Begin(match);
         Assert.Equal(3, match.Enemies.Count); Assert.Equal(2, match.Enemies.Count(e => e.Destination == 1));
-        Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(6, e.Size); Assert.Equal(58400, e.Profile.Health); });
+        Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(1, e.Size); Assert.Equal(58400, e.Profile.Health); });
         UnitState inherited = Assert.Single(match.Enemies, e => e.Origin == 3); Assert.Equal(1, inherited.Destination);
         match.Combat.Seed(inherited with { Health = inherited.Health - 1000 }); inherited = match.Combat.Read(inherited.Id);
         string foodBefore = JsonSerializer.Serialize(match.Players[2].LastUpkeep); int food = match.Players[2].Food;
@@ -112,9 +112,9 @@ public sealed class CampaignTests
         UnitState transferred = Assert.Single(match.Enemies, e => e.Id == inherited.Id);
         Assert.Equal(2, transferred.Destination); Assert.Equal(inherited.Health, transferred.Health); Assert.Equal(inherited.Profile, transferred.Profile);
         Assert.Equal(inherited.Level, transferred.Level); Assert.Equal(inherited.IsBoss, transferred.IsBoss); Assert.True(transferred.Deployed);
-        PositionReservation[] claims = match.Snapshot().Reservations.Positions.Where(p => p.UnitId == transferred.Id).ToArray();
-        Assert.Equal(transferred.Hex!.HoldsTransit ? 2 : 1, claims.Length);
-        Assert.All(claims, p => { Assert.Equal(6, p.Size); Assert.Equal(2, p.City); });
+        PositionReservation claim = Assert.Single(match.Snapshot().Reservations.Positions, p => p.UnitId == transferred.SquadId);
+        Assert.Equal(1, claim.Size); Assert.Equal(1, claim.City); Assert.Equal(transferred.Hex!.Position.Cell, claim.Cell);
+        Assert.Single(match.Snapshot().Squads.Single(s => s.Id == transferred.SquadId).Members); // boss uses the ordinary actor architecture
         Assert.Equal(food, match.Players[2].Food); Assert.Equal(foodBefore, JsonSerializer.Serialize(match.Players[2].LastUpkeep));
         Clear(match); Assert.Equal(11, match.Wave); Assert.Equal(10, match.LastRewardedWave);
         Assert.Equal(10, match.Players[2].LastReward!.Wave); Assert.Equal(1, match.Players[2].LastReward!.Research); Assert.Equal(10, match.Players[2].Research.Points); Assert.Equal(new ResourceCost(4, 2, 10), match.Players[2].LastReward!.Amount);
@@ -163,7 +163,7 @@ public sealed class CampaignTests
         using Match fallen = Start(); Begin(fallen); fallen.Players[1].Health = 0; Clear(fallen);
         Assert.Equal(Phase.Defeat, fallen.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, fallen.DefeatReason);
         Assert.Equal(0, fallen.LastRewardedWave); Assert.Null(fallen.Players[1].LastReward);
-        using Match stalled = Start(rules: new Rules { SoldierDamage = 0, DefenderDamage = 0, Combat = new() { NoHealthProgressTicks = 600, MaximumWaveTicks = 700 } });
+        using Match stalled = Start(rules: new Rules { SoldierDamage = 0, DefenderDamage = 0, Combat = new() { NoHealthProgressTicks = 3600, MaximumWaveTicks = 10 } });
         Begin(stalled); ResourceCost before = stalled.Players[1].Resources;
         while (stalled.Phase == Phase.Combat) stalled.Step();
         Assert.Equal(DefeatReason.BattleStalled, stalled.DefeatReason); Assert.Equal(before, stalled.Players[1].Resources);

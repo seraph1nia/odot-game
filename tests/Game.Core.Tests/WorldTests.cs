@@ -102,7 +102,11 @@ public sealed class WorldTests
         for (int i = 0; i < 600; i++)
         {
             a.Step(); b.Step(); Assert.Equal(JsonSerializer.Serialize(a.Snapshot().Enemies), JsonSerializer.Serialize(b.Snapshot().Enemies));
-            Assert.All(a.Enemies.Where(e => e.Deployed), e => Assert.InRange(e.Hex!.Position.Cell, 1, 21));
+            Assert.All(a.Enemies.Where(e => e.Deployed), e =>
+            {
+                Assert.Contains(a.Combat.Board.Cells, c => c.Id == e.Hex!.Position.Cell);
+                Assert.DoesNotContain(a.Combat.Arena.Footprints, f => f.Cell == e.Hex!.Position.Cell);
+            });
         }
         Assert.True(a.Enemies.Sum(e => e.Health) < health);
         long shots = (a.Tick - 1 - a.Configuration.Defender.WindupTicks) / a.Configuration.Defender.CadenceTicks + 1;
@@ -113,9 +117,13 @@ public sealed class WorldTests
     {
         using Match m = Started(2, new Rules { DefenderDamage = 0, SoldierHealth = 10, SoldierDamage = 10, MeleeWindupTicks = 1 }); Battle(m);
         CombatFixture.Soldier(m, 1000, 1, 2);
-        CombatFixture.Change(m, m.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 1) });
+        int home = m.Players[1].Soldiers.Single().Hex!.Position.Cell;
+        int adjacent = m.Combat.Board.Cell(home).Neighbors.First(c => !m.Combat.Arena.Footprints.Any(f => f.Cell == c));
+        CombatFixture.Change(m, m.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, adjacent, 1) });
+        int before = m.Enemies.Count;
         CombatFixture.Steps(m, 2);
-        Assert.Empty(m.Players[1].Soldiers); Assert.DoesNotContain(m.Enemies, e => e.Id == 1); Assert.False(m.Players[1].Eliminated);
+        Assert.Empty(m.Players[1].Soldiers); Assert.Equal(before - 1, m.Enemies.Count); Assert.False(m.Players[1].Eliminated);
+        Assert.Contains(m.Combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == 1000 && e.Landed && e.Tick == 2);
     }
     [Fact]
     public void EliminatingOneCityCancelsItsLockedTowerWhileOtherCitiesKeepFighting()
@@ -131,20 +139,22 @@ public sealed class WorldTests
         Assert.DoesNotContain(match.Combat.Events(), e => e.Type == CombatEventType.Impact && e.Tower?.City == 1);
     }
     [Fact]
-    public void NewlyDeployedDefenderMakesACommittedCityAttackMissWithoutRetargeting()
+    public void NewlyDeployedDefenderDoesNotMagicallyShieldACommittedPhysicalKeepAttack()
     {
         var rules = new Rules { DefenderDamage = 0 };
         using var combat = new CombatSimulation(rules); var city = new City(1, rules, combat, new(rules), new(rules));
         int attacker = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
         UnitState enemy = combat.Read(attacker);
-        combat.Seed(enemy with { Hex = CombatFixture.At(enemy, 17, 1) });
-        combat.Step(1, [city]); Assert.True(combat.Read(attacker).TargetCity);
+        var arena = new SharedArena([1]);
+        int approach = arena.Board.Cell(arena.Keep(1)).Neighbors.First(arena.CanOccupy);
+        combat.Seed(enemy with { Hex = CombatFixture.At(enemy, approach, 1) });
+        combat.Step(1, [city]); Assert.Equal(SquadTargetKind.Keep, combat.Read(attacker).TargetKind);
         int defender = combat.Create(UnitType.Crossbowman, 1, 1, 1);
         UnitState ally = combat.Read(defender);
-        combat.Seed(ally with { Hex = CombatFixture.At(ally, 20, 1) });
+        combat.Seed(ally with { Hex = CombatFixture.At(ally, arena.Deployment(1, 0), 1) });
         combat.Advance(13, [city]);
         CombatEvent impact = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == attacker);
-        Assert.True(impact.TargetCity); Assert.False(impact.Landed); Assert.Equal(10000, city.Health);
+        Assert.True(impact.TargetCity); Assert.True(impact.Landed); Assert.Equal(9500, city.Health);
         Assert.Equal(UnitActionKind.Recovery, combat.Read(attacker).Hex!.Action); Assert.Equal(61, combat.Read(attacker).ReadyTick);
         Assert.Equal(ally.Health, combat.Read(defender).Health);
     }
@@ -153,8 +163,10 @@ public sealed class WorldTests
     {
         using Match match = Started(rules: new Rules { Campaign = CampaignFixture.Three(first: 1) }); Battle(match);
         UnitState enemy = Assert.Single(match.Enemies);
+        int post = match.Combat.Arena.Footprints.Single(f => f.Kind == ArenaStructureKind.Watchpost).Cell;
+        int inRange = match.Combat.Board.Cell(post).Neighbors.First(c => !match.Combat.Arena.Footprints.Any(f => f.Cell == c));
         match.Combat.Seed(enemy with
-        { Health = 100, ReadyTick = 500, Hex = enemy.Hex! with { Action = UnitActionKind.Recovery, EndTick = 500 } });
+        { Health = 100, ReadyTick = 500, Hex = enemy.Hex! with { Position = new(inRange, 1), Action = UnitActionKind.Recovery, EndTick = 500 } });
         CombatFixture.Steps(match, 13);
         Assert.Equal(Phase.Building, match.Phase); Assert.Empty(match.Enemies);
         UnitState corpse = Assert.Single(match.Snapshot().DyingBodies); Assert.Equal(61, corpse.Hex!.DeathEndTick);
@@ -176,11 +188,13 @@ public sealed class WorldTests
         using Match m = Started(3, new Rules { DefenderDamage = 0, Campaign = CampaignFixture.Three(first: 5), MeleeWindupTicks = 1 }); Battle(m);
         foreach (UnitState enemy in m.Enemies.Where(e => e.Destination != 1)) m.Combat.Remove(enemy.Id); m.Players[1].Health = 2; m.SetConnected(3, false);
         int[] ids = m.Enemies.Select(e => e.Id).ToArray(); foreach (UnitState e in m.Enemies) CombatFixture.Change(m, e.Id, u => u with { Health = 7 }); CombatFixture.AtCityEdge(m);
+        var sources = m.Enemies.ToDictionary(e => e.Id, e => e.Hex!.Position);
         CombatFixture.Steps(m, 2); Assert.True(m.Players[1].Eliminated); Assert.Equal(3, m.Enemies.Count(e => e.Destination == 2)); Assert.Equal(2, m.Enemies.Count(e => e.Destination == 3));
         Assert.Equal(ids, m.Enemies.Select(e => e.Id)); Assert.All(m.Enemies, e =>
         {
-            Assert.Equal(7, e.Health); Assert.Equal(e.Profile.CadenceTicks - 1, e.Cooldown); Assert.True(e.Deployed); Assert.False(e.PendingImpact);
-            Assert.Contains(e.Hex!.Position.Cell, m.Combat.Board.Front(Faction.Skeletons).Concat(m.Combat.Board.Rear(Faction.Skeletons)));
+            Assert.Equal(7, e.Health); Assert.Equal(e.Profile.CadenceTicks - 1, e.Cooldown); Assert.True(e.Deployed);
+            Assert.Equal(m.Tick < e.ImpactTick, e.PendingImpact); // each archetype keeps its own committed windup
+            Assert.Equal(sources[e.Id], e.Hex!.Position); // preference redirect, never lane teleport
         });
         m.Players[2].Health = 2; CombatFixture.AtCityEdge(m, resetRecovery: true);
         CombatFixture.Steps(m, 2); Assert.All(m.Enemies, e => Assert.Equal(3, e.Destination)); Assert.Equal(5, m.Enemies.Count);
@@ -253,6 +267,7 @@ public sealed class WorldTests
         Ready(m); Assert.Equal(9, m.Players[1].Food); Assert.All(m.Players[1].Soldiers, u => Assert.True(u.Participating));
         int steps = 0; while (m.Phase == Phase.Combat && steps++ < 6000) m.Step();
         Assert.Equal(Phase.Building, m.Phase); Assert.Equal(2, m.Wave); Assert.False(m.Players[1].Eliminated);
-        // The four strategy families separately exercise the complete twenty-wave catalog.
+        // First-wave paid evidence only; shared-squad twenty-wave strategy
+        // qualification is separate and must not be inferred from this opening.
     }
 }

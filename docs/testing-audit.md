@@ -560,6 +560,58 @@ Remaining broader fixtures, paid twenty-wave balance, real transport/package,
 three-phase integration and native aiming/choreography are not qualified by this
 selection. Earlier broad failures are retained, not relabeled green.
 
+## Physical world, campaign and limit fixture migration (2026-10-13)
+
+`CombatFixture.AtCityEdge` now places complete enemy groups at distinct actual
+Keep approaches across the current connected arena. It neither splits members
+between anchors nor stacks independent groups, and retains each actor's recovery
+unless a test explicitly resets it. The soldier fixture uses a real owned
+homogeneous home assignment. These are deliberate numerical fixtures, not paid
+campaign or rendered-formation evidence.
+
+`WorldTests` retains command ownership/payment/retry, production/readiness/pause,
+member conservation, simultaneous army casualties without city elimination,
+locked-tower cancellation, disconnected surviving players, future original-roster
+allocation, death cleanup and gross campaign transitions. Physical routing
+replaces old 21-cell positions. A newly present defender cannot magically shield
+a committed in-range Keep strike. Redirected enemy squads keep source cells,
+health and archetype-specific windup/recovery instead of teleporting to another
+city entry. The built-in defender requires a real in-range group; the rapid-next-
+wave casualty fixture now supplies that geometry rather than relying on a
+city-wide shot. Same-tick last-enemy/last-Keep defeat remains independently covered.
+
+`CampaignTests` preserves authored composition/order, original-roster quantities,
+levels/boss progression, gross reward bounds/overflow/research, no duplicate or
+local-clear reward and terminal nonmutation. A boss has one member and one source
+claim of size one in shared namespace one. `HexBoardTests` migrates only obsolete
+21-cell/six-anchor/hostile rear exclusion expectations; reciprocal adjacency,
+all-pairs axial distance, deterministic edge IDs, detached authoring arrays and
+all eight malformed-topology cases remain.
+
+`CombatLimitTests` uses explicit fast movement and zero structural damage so its
+500-tick no-health fixture is legally configured and physically incapable of
+incidental health progress. Production allowance validation is not relaxed.
+Shared health progress extends all current pressure deadlines, rather than
+asserting an isolated city lane. Pause, exact duration/no-health deadline,
+normal-result precedence and frozen terminal movement remain covered.
+
+That frozen-movement witness caught a production defect: last-corpse cleanup
+restored homes even after defeat, erasing the terminal pose. Cleanup now preserves
+defeated actors' frozen position/action while retaining existing preparation and
+victory roster restoration. The first fixture selection passed 37/39; the two
+failures distinguished this real defect from a mixed-archetype fixture wrongly
+assuming every strike had already landed. Initial coherent recheck passed 92/93
+and caught accidental loss of victory restoration; corrected the phase scope,
+not the existing paid recovery assertion. Final affected selection:
+**93 passed / 0 failed / 0 skipped, 20s**, including shared state, authority,
+roster/recovery/progression and lifecycle. Receipts:
+`logs/shared-arena-task/physical-world-coherent-02.txt` and
+`physical-world-coherent-02-results/physical.trx`. Formatting passed. These tests
+exercise the currently landed phase flow; qualification of the approved new
+three-preparation timing still awaits actual prerequisite integration. Remaining
+broad failures and twenty-wave paid strategy/balance/transport/native/package
+checks remain unexecuted since this seam.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints
