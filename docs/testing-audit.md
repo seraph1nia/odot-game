@@ -499,6 +499,67 @@ requires one PR reviewer. Existing `source`, `linux-package`, `windows-package`
 contexts are preserved. Forge PR/head/check results belong to delivery, not these
 local timing receipts.
 
+## Shared squad action, routing and status migration (2026-10-13)
+
+A fresh Tier A diagnostic on the integrated landed-tower/squad head executed
+**408 passed / 109 failed / 517 total**; runner tests were not selected. The
+retained TRX is `logs/20261013-002324-d9cf5e7b/core-results/tests.trx`.
+This is a migration diagnostic, not a green acceptance receipt.
+
+`CombatTests` now uses six distinct physical homes with eighteen persistent
+members in homogeneous groups, rather than dozens of independent soldiers
+stacked at one fallback home. It retains full ordered state/event comparison
+under reversed insertion and extra observation, identity conservation through
+casualty cleanup, queued enemy conservation/admission, real typed reservation
+reconstruction, mutual impact timing, cadence/recovery, paid transaction and
+ownership negatives, pause/resynchronization, and bounded event-history/codec
+checks. The crowded fixture is explicit numerical setup, not paid campaign
+balance evidence. Elimination no longer generates deaths; the record-cap witness
+instead exercises an actual burst of nonparticipating casualties and expiry.
+Static terrain exclusion and exclusive squad claims replace size-budget anchors.
+
+A genuine defect exposed by the lost-target witness was fixed: each contributing
+member publishes a miss at its committed impact tick if the entire target group
+is lost. Changing sector preference does not teleport the target or cancel the
+cycle. Squad decision projections now expose the current in-range objective and
+clear obsolete member-visited hints. `SharedArena.Routes` expands the current
+physical graph once per deciding squad and scores all reachable objectives from
+that immutable search. `CombatPolicyTests` checks the genuine BFS counter site,
+committed-move stability, blocked target release, shared foreign-sector
+engagement and immutable shortest-predecessor evidence. This fixes the earlier
+per-opponent expansion cost without inventing old counters.
+
+Unused `CombatDecisions`/`CombatRanking`/`BattlefieldObservation` and their
+member/capped-victim/city-local policies are retired. Their test-only policy
+comparisons do not protect an active simulator. Independent seeded decision
+vectors, actual insertion/observation-invariant combat, graph malformed-input
+coverage and the immutable BFS oracle remain. `DecisionEfficiencyTests` retains
+the graph ownership/shortest-predecessor negative cases; it no longer claims
+per-city observation caching or a victim-cap fast path.
+
+`StatusEffectTests` retains burn/poison refresh, expiry/terminal periods, malformed
+status rules, per-contribution Guardian rounding, lethal periodic simultaneous
+strikes and wire detachment. It now attributes statuses to actual nonzero X/Y
+member contributions, including independent zero channels, all damaged group
+members and no status on undamaged members or lost groups. Sector redirection
+retains member status/health and the current physical squad claim. Death clears
+active scheduling while event `Periodic` retains causal attribution.
+`ResearchLifecycleTests` checks mean chill across a three-member actor (one
+40%-chilled member commits a 14% group slow) and unchanged committed timing after
+refresh. Watchpost direct damage does not inherit Mage Y or harm another group.
+
+Focused combat migration first passed 15/17; two fixture-only errors (an explicitly
+reserved tower-cell origin and an inconsistent legacy profile-size DTO) were
+corrected and their recheck passed 2/2. Status/research and shared-policy selections
+passed. Final coherent targeted selection across changed actions, statuses,
+routing, roster/recovery/progression, towers, authority, reservations and shared
+state: **168 passed / 0 failed / 0 skipped, 31s**. Exact command/TRX:
+`logs/shared-arena-task/shared-action-coherent.txt` and
+`shared-action-coherent-results/coherent.trx`; targeted formatting passed.
+Remaining broader fixtures, paid twenty-wave balance, real transport/package,
+three-phase integration and native aiming/choreography are not qualified by this
+selection. Earlier broad failures are retained, not relabeled green.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints

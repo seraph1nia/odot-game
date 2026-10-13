@@ -31,7 +31,8 @@ internal sealed partial class CombatSimulation : IDisposable
         set
         {
             _work = value; _configuration.Work = value;
-            value?.Support(WorkMetric.WorldViews, WorkMetric.UnitVisits, WorkMetric.UnitProjections, WorkMetric.RouteElementsCopied, WorkMetric.VisitedElementsCopied);
+            value?.Support(WorkMetric.WorldViews, WorkMetric.UnitVisits, WorkMetric.UnitProjections, WorkMetric.RouteElementsCopied, WorkMetric.VisitedElementsCopied,
+                WorkMetric.BfsSearches, WorkMetric.BfsDequeues, WorkMetric.BfsEdges);
         }
     }
     public long EventSequence { get; private set; }
@@ -358,6 +359,11 @@ internal sealed partial class CombatSimulation : IDisposable
                     return new MemberStrike(m.Id, p);
                 }).ToArray();
                 StrikeContribution[] contributions = SquadDamage.Contributions(profiles, defenders.Select(m => m.Id), Key(squad.Id, squad.Destination, action.AttackSequence, 0, CombatPurpose.Splash));
+                // A lost group still resolves the committed cycle. Publish its miss
+                // so receiving playback can finish each member's strike explicitly.
+                if (!valid)
+                    foreach (CombatUnit attacker in attackers)
+                        Emit(CombatEventType.Impact, ProjectMember(attacker), target.Id, landed: false);
                 foreach (StrikeContribution contribution in contributions)
                 {
                     CombatUnit attacker = attackers.Single(m => m.Id == contribution.AttackerMemberId);
@@ -461,12 +467,10 @@ internal sealed partial class CombatSimulation : IDisposable
             if (targets.Count == 0) continue;
             int range = Members(squad).Min(m => m.Profile.HexRange);
             bool Passable(int cell) => !pending.Contains(cell) && (!occupied.TryGetValue(cell, out CombatSquad? other) || other.Faction == squad.Faction && other.Action is CombatAction.Waiting);
-            var approaches = targets.Select(t =>
-            {
-                _routeSearches++;
-                int[] route = _arena.Route(squad.Location.Position.Cell, t.Cell, range, Passable);
-                return (t.Target, t.Cell, t.Priority, Route: route);
-            }).Where(t => t.Route.Length > 0).OrderBy(t => t.Route.Length).ThenBy(t => t.Priority)
+            _routeSearches++;
+            IReadOnlyDictionary<int, int[]> routes = _arena.Routes(squad.Location.Position.Cell, targets.Select(t => t.Cell), range, Passable, _work);
+            var approaches = targets.Select(t => (t.Target, t.Cell, t.Priority, Route: routes[t.Cell]))
+                .Where(t => t.Route.Length > 0).OrderBy(t => t.Route.Length).ThenBy(t => t.Priority)
                 .ThenBy(t => squad.Decision.ObjectiveId == t.Target.Id && squad.Decision.ObjectiveCity == (t.Target.Kind != CombatTargetKind.Unit) ? 0 : 1)
                 .ThenBy(t => SeededDecision.Mix(SeededDecision.State(Key(squad.Id, squad.Destination, squad.Decision.Sequence, 0, CombatPurpose.Target)) ^ (ulong)t.Target.Id)).ToArray();
             if (approaches.Length == 0) continue;
@@ -478,6 +482,7 @@ internal sealed partial class CombatSimulation : IDisposable
                     ObjectiveId = chosen.Target.Id,
                     ObjectiveCity = chosen.Target.Kind != CombatTargetKind.Unit,
                     ObjectiveCell = chosen.Cell,
+                    Visited = [],
                     Route = chosen.Route.Select(c => new HexPosition(c, 1)).ToArray()
                 }
             };
@@ -499,7 +504,14 @@ internal sealed partial class CombatSimulation : IDisposable
         CombatUnit[] members = Members(squad);
         int windup = StatusPolicy.Duration(members.Max(m => m.Profile.WindupTicks), Chill(squad));
         int recovery = StatusPolicy.Duration(members.Max(m => m.Profile.CadenceTicks - m.Profile.WindupTicks), Chill(squad));
-        _squads[squad.Id] = squad with { Action = CombatActions.Attack(squad.Action, target, _tick, windup, recovery) };
+        int cell = target.Kind == CombatTargetKind.Unit ? _squads[target.Id].Location.Position.Cell
+            : target.Kind == CombatTargetKind.City ? _arena.Keep(target.Id) : _arena.Watchpost(target.Id);
+        _squads[squad.Id] = squad with
+        {
+            Action = CombatActions.Attack(squad.Action, target, _tick, windup, recovery),
+            Decision = squad.Decision with
+            { ObjectiveId = target.Id, ObjectiveCity = target.Kind != CombatTargetKind.Unit, ObjectiveCell = cell, Route = [], Visited = [] }
+        };
         CombatUnit? primary = target.Kind == CombatTargetKind.Unit && _squads.TryGetValue(target.Id, out CombatSquad? defender) ? Members(defender).FirstOrDefault() : null;
         foreach (CombatUnit member in members) Emit(CombatEventType.AttackStarted, ProjectMember(member), primary?.Id ?? target.Id, target.Kind != CombatTargetKind.Unit, primary: primary);
     }

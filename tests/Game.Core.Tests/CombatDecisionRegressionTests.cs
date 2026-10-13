@@ -18,7 +18,7 @@ public sealed class CombatDecisionRegressionTests
         using var combat = new CombatSimulation(new(), seed: 123);
         int actor = At(combat, Faction.Adventurers, 17);
         int far = At(combat, Faction.Skeletons, 2);
-        int near = At(combat, Faction.Skeletons, 8);
+        int near = At(combat, Faction.Skeletons, 18);
         UnitState unit = combat.Read(actor);
         combat.Seed(unit with { Decision = unit.Decision! with { ObjectiveId = far, ObjectiveCell = 2 } });
         combat.StartActions([]);
@@ -26,17 +26,18 @@ public sealed class CombatDecisionRegressionTests
     }
 
     [Fact]
-    public void ConfiguredDefenderSplashIsApplied()
+    public void WatchpostUsesItsSingleStrikeProfileWithoutCrossGroupDamage()
     {
-        Rules rules = new() { Combat = new() { Defender = new(1, 1, VictimCap: 2, SplashHexRadius: 1) } };
+        Rules rules = new() { Arena = new() { MageSecondaryDamage = 100 } };
         using var match = new Match(rules, combatSeed: 123);
         City city = match.Join()!;
-        int first = At(match.Combat, Faction.Skeletons, 8);
-        int second = At(match.Combat, Faction.Skeletons, 9);
-        city.Defender = city.Defender with { TargetId = first, PendingImpact = true, ImpactTick = 1 };
+        int first = At(match.Combat, Faction.Skeletons, 10);
+        int second = At(match.Combat, Faction.Skeletons, 11);
+        city.Defender = city.Defender with { TargetId = match.Combat.Read(first).SquadId, PendingImpact = true, ImpactTick = 1 };
         int health = match.Combat.Read(second).Health;
         match.Combat.Advance(1, [city]);
-        Assert.Equal(health - HealthPoints.FromWhole(rules.DefenderDamage), match.Combat.Read(second).Health);
-        Assert.Equal(new[] { first, second }, Assert.Single(match.Combat.Events(), e => e.Type == CombatEventType.Impact).Victims);
+        Assert.Equal(health - HealthPoints.FromWhole(rules.DefenderDamage), match.Combat.Read(first).Health);
+        Assert.Equal(health, match.Combat.Read(second).Health);
+        Assert.Equal(new[] { first }, Assert.Single(match.Combat.Events(), e => e.Type == CombatEventType.Impact).Victims);
     }
 }

@@ -93,6 +93,26 @@ public sealed class SharedArena
     public ArenaState Snapshot() => new(Board.Definition(), _sectors.Select(s => s with
     { DeploymentCells = s.DeploymentCells.ToArray(), EnemyCells = s.EnemyCells.ToArray() }).ToArray(), _footprints.ToArray());
 
+    // One immutable expansion serves every candidate group/objective in a
+    // squad decision. Rebuilding one BFS per opponent makes congestion scale
+    // with pairs of actors rather than the connected arena's geometry.
+    internal IReadOnlyDictionary<int, int[]> Routes(int source, IEnumerable<int> targets, int range, Func<int, bool> passable, WorkCounters? work = null)
+    {
+        if (!CanOccupy(source) || range < 1) throw new ArgumentException("Invalid arena route origin/range.");
+        var search = new HexReachability(Board, source, cell => CanOccupy(cell) && passable(cell), work);
+        var routes = new Dictionary<int, int[]>();
+        foreach (int target in targets.Distinct())
+        {
+            int endpoint = search.Distances.Where(p => Board.Distance(p.Key, target) <= range)
+                .OrderBy(p => p.Value).ThenBy(p => p.Key).Select(p => p.Key).FirstOrDefault();
+            var path = new List<int>();
+            if (endpoint > 0)
+                for (int cell = endpoint; cell != source; cell = search.Parents[cell][0]) path.Add(cell);
+            path.Reverse(); routes.Add(target, path.ToArray());
+        }
+        return routes;
+    }
+
     // Deterministic breadth-first path to any attack cell. Occupied endpoints
     // are excluded by the caller; structure cells are always impassable.
     internal int[] Route(int source, int target, int range, Func<int, bool> passable)

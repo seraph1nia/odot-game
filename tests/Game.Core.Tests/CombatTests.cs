@@ -8,12 +8,17 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     private static Match Battle(Rules? rules = null, int soldiers = 0, bool mixed = false, bool reverse = false)
     {
         var match = new Match(rules, combatSeed: 123); match.Join();
+        // Deliberate domain fixture, not paid campaign evidence. Six physical
+        // homes host up to eighteen members; reversed insertion retains actor IDs.
+        Assert.InRange(soldiers, 0, 18);
+        for (int home = 0; home < 6; home++) match.Players[1].ArmyPlots[home] = new(Building.Empty, 0);
         int[] ids = Enumerable.Range(1, soldiers).ToArray();
         foreach (int id in reverse ? ids.Reverse() : ids)
         {
-            UnitType type = mixed ? (UnitType)((id - 1) % 4) : UnitType.Swordsman;
+            int home = (id - 1) / 3;
+            UnitType type = mixed ? (UnitType)(home % 4) : UnitType.Swordsman;
             match.Combat.Seed(new UnitState(id, match.Combat.Profile(type).Health, 0, 1, 1)
-            { Owner = 1, Type = type, Deployed = false });
+            { Owner = 1, Type = type, Deployed = false, SquadId = 100 + home, FormationSlot = (id - 1) % 3, Assignment = new(-1, 0, home, 1) });
         }
         match.Players[1].Food = match.Players[1].Soldiers.Sum(u => match.Economy.Upkeep(u.Type)); // Normally fed, deliberate seeded combat fixture.
         Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
@@ -25,22 +30,24 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         var combat = new CombatSimulation(rules ?? new Rules { SoldierHealth = 10, SoldierDamage = 4, RangedHealth = 8, RangedDamage = 3, DefenderDamage = 0 });
         int soldier = combat.Create(type, 1, 1, 1), enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        combat.Seed(combat.Read(soldier) with { Hex = CombatFixture.At(combat.Read(soldier), 11, 1), Deployed = true });
-        combat.Seed(combat.Read(enemy) with { Hex = CombatFixture.At(combat.Read(enemy), type == UnitType.Crossbowman ? 2 : 8, 1), Deployed = true });
+        combat.Seed(combat.Read(soldier) with { Hex = CombatFixture.At(combat.Read(soldier), 17, 1), Deployed = true });
+        combat.Seed(combat.Read(enemy) with { Hex = CombatFixture.At(combat.Read(enemy), type == UnitType.Crossbowman ? 3 : 18, 1), Deployed = true });
         return combat;
     }
-    private static void Separated(UnitState[] units)
+    private static void Separated(CombatSimulation combat)
     {
-        foreach (UnitState unit in units.Where(u => u.Deployed))
+        // Tier A exclusive actors, not member-size packing. Members in a group
+        // share its pose but retain distinct formation slots and health identities.
+        SquadState[] actors = combat.SquadSnapshots().Where(s => s.Hex.Lifecycle == UnitLifecycle.Alive).ToArray();
+        Assert.Equal(actors.Length, actors.Select(s => s.Hex.Position.Cell).Distinct().Count());
+        foreach (SquadState actor in actors)
         {
-            Assert.NotNull(unit.Hex); Assert.InRange(unit.Hex.Position.Cell, 1, 21);
-            foreach (UnitState other in units.Where(u => u.Deployed && u.Destination == unit.Destination && u.Id > unit.Id))
-            {
-                if (unit.Hex.Position.Cell != other.Hex!.Position.Cell) continue;
-                Assert.Equal(unit.Faction, other.Faction);
-                Assert.NotEqual(unit.Hex.Position.Anchor, other.Hex.Position.Anchor);
-                Assert.True(units.Where(u => u.Deployed && u.Destination == unit.Destination && u.Hex!.Position.Cell == unit.Hex.Position.Cell).Sum(u => u.Size) <= 6);
-            }
+            Assert.Contains(combat.Board.Cells, c => c.Id == actor.Hex.Position.Cell);
+            Assert.DoesNotContain(combat.Arena.Footprints, f => f.Cell == actor.Hex.Position.Cell);
+            UnitState[] members = combat.Snapshot().Where(u => actor.ParticipatingMembers.Contains(u.Id)).ToArray();
+            Assert.Equal(actor.ParticipatingMembers.Length, members.Length);
+            Assert.Equal(members.Length, members.Select(u => u.FormationSlot).Distinct().Count());
+            Assert.All(members, u => Assert.Equal(actor.Hex.Position, u.Hex!.Position));
         }
     }
     [Theory]
@@ -49,7 +56,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void CrowdedBattleIsSeparatedDeterministicAndMakesProgress(bool mixed)
     {
         var rules = new Rules { Campaign = CampaignFixture.Three(first: 32), DefenderDamage = 0 };
-        using Match a = Battle(rules, 32, mixed); using Match b = Battle(rules, 32, mixed, reverse: true);
+        using Match a = Battle(rules, 18, mixed); using Match b = Battle(rules, 18, mixed, reverse: true);
+        var arena = new SharedArena([1]);
         Assert.NotEqual(a.Id, b.Id);
         bool hadDeaths = false, hadMageSecondary = false; var deaths = new HashSet<int>();
         long outcomeTick = 0;
@@ -65,21 +73,20 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             }
             a.Step(); b.Step();
             if (outcomeTick == 0 && a.Phase != Phase.Combat) outcomeTick = a.Tick;
-            UnitState[] units = a.Combat.Snapshot(); Separated(units);
+            UnitState[] units = a.Combat.Snapshot(); Separated(a.Combat);
             foreach (CombatEvent death in a.Combat.Events().Where(e => e.Tick == a.Tick && e.Type == CombatEventType.Death)) deaths.Add(death.Unit!.Id);
             hadMageSecondary |= a.Combat.Events().Any(e => e.Tick == a.Tick && e.Type == CombatEventType.Impact && e.Unit?.Type == UnitType.Mage && e.Landed && e.Victims.Length > 1);
             UnitState[] current = units.Concat(a.Combat.Dying()).ToArray();
             var currentIds = current.Select(u => u.Id).ToHashSet();
-            Assert.Equal(64, current.Length + deaths.Count(id => !currentIds.Contains(id)));
-            CombatReservations rebuilt = CombatReservations.Reconstruct(a.Combat.Arena, a.Combat.SquadSnapshots());
+            Assert.Equal(50, current.Length + deaths.Count(id => !currentIds.Contains(id)));
+            CombatReservations rebuilt = CombatReservations.Reconstruct(arena, a.Combat.SquadSnapshots());
             Assert.Equal(JsonSerializer.Serialize(rebuilt), JsonSerializer.Serialize(a.Combat.Reservations));
-            Assert.All(current.Where(u => u.Deployed), u => Assert.InRange(u.Hex!.Position.Cell, 1, 21));
-            Assert.All(current.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
+            Assert.All(units.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
             MatchSnapshot first = a.Snapshot() with { MatchId = "normalized-session", Revision = 0 };
             MatchSnapshot second = b.Snapshot() with { MatchId = "normalized-session", Revision = 0 };
             Assert.True(JsonSerializer.Serialize(first, WireJson.Options) == JsonSerializer.Serialize(second, WireJson.Options),
                 $"First divergent complete combat state: tick={a.Tick}, seed={a.CombatSeed}, config={a.Configuration.Fingerprint}, mixed={mixed}.");
-            hadDeaths |= a.Enemies.Count < 32 || a.Players[1].Soldiers.Count < 32;
+            hadDeaths |= a.Enemies.Count < 32 || a.Players[1].Soldiers.Count < 18;
         }
         output.WriteLine($"Crowded mixed={mixed}, seed={a.CombatSeed}, config={a.Configuration.Fingerprint}: outcome={outcomeTick}, cleanup={a.Tick}, {a.Phase}, survivors={a.Combat.Snapshot().Length}, Mage secondary={hadMageSecondary}");
         Assert.True(hadDeaths); Assert.NotEqual(Phase.Combat, a.Phase); Assert.Equal(a.Phase, b.Phase);
@@ -90,10 +97,11 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Fact]
     public void LargeEntryQueuesConserveUnitsAndNeverOverlap()
     {
-        using Match match = Battle(new Rules { Campaign = CampaignFixture.Three(first: 80) }, 80);
+        using Match match = Battle(new Rules { Campaign = CampaignFixture.Three(first: 80) }, 18);
+        var arena = new SharedArena([1]);
         UnitState[] units = match.Combat.Snapshot();
-        Assert.Equal(160, units.Length); Assert.Contains(units, u => !u.Deployed); Separated(units);
-        match.Step(); Assert.Equal(160, match.Combat.Snapshot().Length); Separated(match.Combat.Snapshot());
+        Assert.Equal(98, units.Length); Assert.Contains(units, u => !u.Deployed); Separated(match.Combat);
+        match.Step(); Assert.Equal(98, match.Combat.Snapshot().Length); Separated(match.Combat);
         Assert.All(match.Combat.Snapshot().Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
         var deaths = new HashSet<int>(); int steps = 1;
         while (match.Phase == Phase.Combat && steps++ < 18000)
@@ -102,11 +110,11 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             foreach (CombatEvent death in match.Combat.Events().Where(e => e.Tick == match.Tick && e.Type == CombatEventType.Death)) deaths.Add(death.Unit!.Id);
             UnitState[] current = match.Combat.Snapshot().Concat(match.Combat.Dying()).ToArray();
             var currentIds = current.Select(u => u.Id).ToHashSet();
-            Assert.Equal(160, current.Length + deaths.Count(id => !currentIds.Contains(id)));
-            CombatReservations rebuilt = CombatReservations.Reconstruct(match.Combat.Arena, match.Combat.SquadSnapshots());
+            Assert.Equal(98, current.Length + deaths.Count(id => !currentIds.Contains(id)));
+            Separated(match.Combat);
+            CombatReservations rebuilt = CombatReservations.Reconstruct(arena, match.Combat.SquadSnapshots());
             Assert.Equal(JsonSerializer.Serialize(rebuilt), JsonSerializer.Serialize(match.Combat.Reservations));
-            Assert.All(current.Where(u => u.Deployed), u => Assert.InRange(u.Hex!.Position.Cell, 1, 21));
-            Assert.All(current.Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
+            Assert.All(match.Combat.Snapshot().Where(u => !u.Deployed), u => Assert.False(u.PendingImpact));
         }
         output.WriteLine($"80-per-side queue: {steps} ticks, {match.Phase}, reason={match.DefeatReason}, deaths={deaths.Count}.");
         Assert.NotEqual(Phase.Combat, match.Phase); Assert.NotEqual(DefeatReason.BattleStalled, match.DefeatReason);
@@ -118,7 +126,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         for (int tick = 1; tick <= 12; tick++)
         {
             combat.Step(tick, []); UnitState[] units = combat.Snapshot();
-            Assert.Equal(2, units.Length); Assert.All(units, u => Assert.Equal(1000, u.Health)); Separated(units);
+            Assert.Equal(2, units.Length); Assert.All(units, u => Assert.Equal(1000, u.Health)); Separated(combat);
             Assert.All(units, u => { Assert.False(u.Hex!.HoldsTransit); Assert.Equal(1, u.AttackSequence); Assert.Equal(13, u.ImpactTick); });
         }
         combat.Step(13, []); Assert.Empty(combat.Snapshot());
@@ -136,15 +144,15 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void DeadOrTransferredWindupTargetDoesNotReceiveAnOrphanHit(bool transfer)
+    public void FinalTargetLossMissesWhileSectorRedirectionRetainsCommittedGroup(bool transfer)
     {
         using var combat = Duel(type: UnitType.Crossbowman);
         combat.Step(1, []);
         if (transfer) combat.Transfer(2, 2); else combat.Remove(2);
         for (int tick = 2; tick <= 19; tick++) combat.Step(tick, []);
         CombatEvent result = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == 1);
-        Assert.False(result.Landed); Assert.Equal(2, result.TargetId);
-        if (transfer) Assert.Equal(1000, combat.Read(2).Health);
+        Assert.Equal(transfer, result.Landed); Assert.Equal(2, result.TargetId);
+        if (transfer) Assert.Equal(700, combat.Read(2).Health);
     }
     [Fact]
     public void CrossbowmanHoldsShootingRangeAndShootsAtItsImpactTick()
@@ -160,11 +168,12 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void RangedUnitApproachesBeyondRangeAndStillShootsWhenReachedInMelee()
     {
         using var combat = Duel(type: UnitType.Crossbowman);
-        combat.Seed(combat.Read(1) with { Hex = CombatFixture.At(combat.Read(1), 17, 1) }); combat.Step(1, []);
+        int rear = new SharedArena([1]).Deployment(1, 3);
+        combat.Seed(combat.Read(1) with { Hex = CombatFixture.At(combat.Read(1), rear, 1) }); combat.Step(1, []);
         Assert.False(combat.Read(1).PendingImpact); Assert.Equal(UnitActionKind.Moving, combat.Read(1).Hex!.Action); Assert.Empty(combat.Events());
         using var close = Duel(type: UnitType.Crossbowman);
-        close.Seed(close.Read(2) with { Hex = CombatFixture.At(close.Read(2), 8, 1) });
-        for (int tick = 1; tick <= 19; tick++) { close.Step(tick, []); Separated(close.Snapshot()); }
+        close.Seed(close.Read(2) with { Hex = CombatFixture.At(close.Read(2), 18, 1) });
+        for (int tick = 1; tick <= 19; tick++) { close.Step(tick, []); Separated(close); }
         Assert.Equal(400, close.Read(1).Health); Assert.Equal(700, close.Read(2).Health);
         Assert.Equal(3, close.Read(1).Profile.HexRange);
     }
@@ -172,7 +181,9 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void PauseFreezesPendingImpactAndEventIdentityAcrossResynchronization()
     {
         using Match match = Battle(new Rules { DefenderDamage = 0 }, 1);
-        CombatFixture.Change(match, match.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, 14, 1) });
+        int home = match.Players[1].Soldiers[0].Hex!.Position.Cell;
+        int approach = match.Combat.Board.Cell(home).Neighbors.First(c => !match.Combat.Arena.Footprints.Any(f => f.Cell == c));
+        CombatFixture.Change(match, match.Enemies[0].Id, e => e with { Hex = CombatFixture.At(e, approach, 1) });
         match.Step(); Assert.True(match.Players[1].Soldiers[0].PendingImpact); Apply(match, "pause");
         string frozen = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
         CombatFixture.Steps(match, 1000); Assert.Equal(frozen, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
@@ -233,14 +244,25 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     [Fact]
     public void OccupiedTransferApproachConservesBodiesAndRecovery()
     {
-        using Match match = Battle(new Rules { Campaign = CampaignFixture.Three(first: 32), DefenderDamage = 0, SoldierDamage = 0, RangedDamage = 0, BerserkerDamage = 0, MageDamage = 0 }, 32, mixed: true);
+        using Match match = Battle(new Rules
+        {
+            Campaign = CampaignFixture.Three(first: 32),
+            CityHealth = 100000,
+            DefenderDamage = 0,
+            SoldierDamage = 0,
+            RangedDamage = 0,
+            BerserkerDamage = 0,
+            MageDamage = 0,
+            Arena = new() { MageSecondaryDamage = 0, BerserkerSecondaryDamage = 0 }
+        }, 18, mixed: true);
         CombatFixture.Steps(match, 480);
         UnitState before = match.Enemies.OrderByDescending(e => e.Cooldown).First();
         Assert.True(before.Cooldown > 0); match.Combat.Transfer(before.Id, 2); match.Combat.Transfer(before.Id, 1);
-        UnitState queued = match.Combat.Read(before.Id);
-        Assert.Equal(before.Health, queued.Health); Assert.Equal(before.ReadyTick, queued.ReadyTick); Assert.False(queued.PendingImpact);
+        UnitState redirected = match.Combat.Read(before.Id);
+        Assert.Equal(before.Health, redirected.Health); Assert.Equal(before.ReadyTick, redirected.ReadyTick);
+        Assert.Equal(before.PendingImpact, redirected.PendingImpact); Assert.Equal(before.Hex, redirected.Hex);
         int count = match.Combat.Snapshot().Length;
-        for (int step = 0; step < 60; step++) { match.Step(); Separated(match.Combat.Snapshot()); }
+        for (int step = 0; step < 60; step++) { match.Step(); Separated(match.Combat); }
         Assert.Equal(count, match.Combat.Snapshot().Length);
     }
     [Fact]
@@ -249,6 +271,8 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         using Match match = Battle(new Rules
         {
             Campaign = CampaignFixture.Three(first: 64),
+            CityHealth = 100000,
+            Arena = new() { MageSecondaryDamage = 0, BerserkerSecondaryDamage = 0 },
             SoldierDamage = 0,
             RangedDamage = 0,
             BerserkerDamage = 0,
@@ -258,7 +282,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             MeleeWindupTicks = 1,
             RangedWindupTicks = 1,
             AttackTicks = 3
-        }, 64, mixed: true);
+        }, 18, mixed: true);
         for (int tick = 0; tick < 360; tick++) match.Step();
         MatchSnapshot state = match.Snapshot();
         Assert.InRange(state.CombatEvents.Length, 1, CombatSimulation.HistoryLimit);
@@ -273,8 +297,13 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
     public void BurstHistoryEvictsAtRecordCapAndExpiredHistoryExposesHighWaterGap()
     {
         using var combat = new CombatSimulation(new Rules());
-        for (int count = 0; count < 4097; count++) combat.Create(UnitType.Swordsman, 1, 1, 1);
-        combat.EliminateArmy(1);
+        // Elimination no longer kills survivors. Generate a genuine burst of
+        // individual casualties outside deployment; numerical cleanup emits and
+        // trims them without creating thousands of illegal occupied actors.
+        for (int id = 1; id <= 4097; id++)
+            combat.Seed(new UnitState(id, 0, 0, 1, 1)
+            { Owner = 1, SquadId = id, Profile = combat.Profile(UnitType.Swordsman) with { Size = 1 }, Hex = new(id, 1, Faction.Adventurers, UnitLifecycle.Reserve, default) });
+        combat.Advance(0, []);
         Assert.Equal(4096, combat.Events().Length); Assert.Equal(2, combat.OldestEventSequence); Assert.Equal(4097, combat.EventSequence);
         Assert.Empty(combat.Snapshot()); combat.Step(121, []);
         Assert.Empty(combat.Events()); Assert.Equal(4098, combat.OldestEventSequence);
