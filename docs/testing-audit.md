@@ -199,6 +199,34 @@ The original package exclusion of EngineTests predates the landed opt-in Worldtr
 package probe. The combined client intentionally retains that minimal scene for
 its guarded headless dispatch; the retired ui-resources launcher remains excluded.
 
+## Battle-flow authority and component coverage (2026-10-12)
+
+`BattleFlowTests` is Tier A: seeded same-combat comparisons at 0.5/0.75/1.0
+wall rates, fixed equivalent simulated time, bounded catch-up, paused debt,
+host/dedicated authority, retry/disconnect/resume, three-stage/three-production
+settlement and atomic two-event overflow, stable forecast-to-spawn allocation/profile,
+codec round trip and explicit historical fourth-phase refusal. Inputs are
+numerical authorities, explicit wall slices and no children. Existing cheaper
+arithmetic tests miss the authoritative admission/manifest boundary; expected
+incremental cost is under a second per case (actual aggregate receipt is linked
+below). Existing phase helpers now use three readiness checks rather than four;
+playback fixtures explicitly select the former pace when testing tick boundaries.
+No gameplay balance constants are altered to make a fixture pass.
+
+The existing `receiving` Tier B selection additionally runs `EngineBattleFlow`:
+real top native speed buttons, pointer and keyboard activation, delayed accepted
+selection/disconnected denial, imported ordinary enemy rigs in the authoritative
+forecast formation, the same production unit-bounds ray picker, ordinary unit
+inspection with no army actions, live-membership exclusion and owned forecast
+removal. This minimal Controls/rig component creates no Main, application,
+Tabletop world, multiplayer peer or alternate assets. Pure A cannot prove native
+input/resource/picking behavior. It reuses the existing owner/frame helpers and
+60s bound, rather than adding another journey. Headless cannot certify cool
+rendered presentation, GPU pixels, desktop focus or a complete UI-session
+transition. [Reconstruction coverage](battle-flow-reconstruction-coverage.md)
+owns reconciliation of the historical four-phase economy transcripts and exact
+failed/passed receipts; an intermediate broad failure is not green coverage.
+
 ## Combined Tabletop receiving coverage (2026-10-12)
 
 `test-engine --scenario receiving` is the fifth source Tier B selection, owned by
@@ -399,6 +427,29 @@ main protection still has no required status-context list and no rulesets;
 requires one PR reviewer. Existing `source`, `linux-package`, `windows-package`
 contexts are preserved. Forge PR/head/check results belong to delivery, not these
 local timing receipts.
+
+## Preservation-first battle-flow reconstruction coverage (2026-10-13)
+
+The obsolete six independent phase/tick/ID goldens in the paid growth transcript
+are replaced by one six-mode same-seed Tier A comparison. It asserts actual
+quote/payment/production receipts, empty-capacity non-equipment, early versus
+late investment, identical player-1 pre-intervention controls, both-city paid
+expansion, equipped strength, damage and survivors. It preserves the single-mine,
+four-paid-unit opening; no product balances or enemy IDs are substituted. The
+removed experimental Research Tower/Market chain maps to named independent
+research/trade/payment/capacity/recovery/production/atomic tests and a new default-
+rule paid joint schedule in the [coverage checkpoint](battle-flow-reconstruction-coverage.md).
+Three new paid schedule cases and four complete-sale boundary cases use direct
+C# rules/commands, not another application journey. The ordinary army opening
+now proves four paid recruits with actual unused physical capacity; separate
+paid six-unit/capacity and three-city transfer guards remain.
+
+The [reconstruction coverage checkpoint](battle-flow-reconstruction-coverage.md)
+owns the paid/occupied witness split, negative-coverage inventory and opt-in
+redistribution consumer migration, including their exact failed/passed receipts
+and unexecuted native qualification. Those historical receipts are not current
+pipeline-head proof. Immutable MAIN resource-ledger bytes/provenance are retained;
+the native C# receiving caller supplies its supported heading field.
 
 ## Remaining risks / deliberately unclaimed guarantees
 

@@ -15,8 +15,10 @@ it reads snapshots/status and submits ordinary actions.
 The engine-independent `AuthoritySession` owns `Match`, authenticated bindings,
 private resume credentials, per-player request ledgers and remote rate limits.
 Local actions use the same ownership, costs, phase/turn and retry validation as
-remote actions. Hosted start belongs to the original bound host; dedicated
-start remains available to connected members. Roster capacity is four; city and
+remote actions. Hosted start and combat-speed selection belong to the original bound host;
+dedicated start and speed selection remain available to authenticated connected
+members. Solo uses its bound owner. [Gameplay controls](gameplay.md#preparation-and-battle-controls)
+own the available rates and editing/settlement behavior. Roster capacity is four; city and
 army land follow the [gameplay plot contract](gameplay.md#purchased-army-homes-and-town-hall-rotation).
 No gameplay or balance rules are duplicated in presentation.
 
@@ -39,8 +41,11 @@ arbitrary purchases retain fixed first-fit order and tower plots are excluded.
 Combat remains the only unit health/identity store, with unchanged restoration
 and death-cleanup barriers.
 
-Only authority calls `Step()` on the fixed physics tick. Local rendering and
-remote reliable channel-1 broadcasts consume complete authoritative snapshots.
+Only authority admits physics delta through `AuthoritySession.Advance`; its
+bounded wall-time driver owns deterministic steps, as described in
+[battle-flow integration](battle-flow.md#behavior-and-integration-boundaries).
+Local rendering and remote reliable channel-1 broadcasts consume complete
+authoritative snapshots.
 Reliable channel 0 carries admission, requests, acknowledgments and session end.
 An acknowledgment is still delivered if a newer channel-1 snapshot has already
 arrived; presentation retains the newer state. Admission retains handshake attempt
@@ -98,8 +103,17 @@ field/Town hall assignments, independent hall levels/quotes and completed-paid
 recovery eligibility. City command IDs remain 0–8; army IDs are 9–14, displayed
 as Army 1–6. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
 and their optional catalog benefits, and the distinct rapid-arrow/bombard tower
-profiles. Authority admission rejects older peers before sending a snapshot,
-and Steam lobby matching uses the same version boundary.
+profiles, synchronized combat speed and the authoritative next-wave manifest.
+Authority admission rejects older peers before sending a snapshot, including
+the preceding protocol 13; Steam lobby matching uses the same version boundary.
+
+`MatchSnapshot.CurrentBattleFlowVersion` in [the snapshot schema](../src/Game.Core/World.cs)
+distinguishes numbered preparation semantics from legacy four-check snapshots.
+[The payload codec](../src/Game/SnapshotPayload.cs) rejects a missing or mismatched
+version, Building turns other than 1/2, Preparation turns other than 3, and invalid
+combat-speed values. Historical snapshots are not silently migrated or treated
+as game saves. `SessionFile`'s credential/sequence schema is unchanged; reconnect
+to the same matching running authority retains the selected pace and forecast.
 `Command.UnitId` targets retire/store/send; `ExpectedHomeCount` binds the army
 purchase-count quote, `ExpectedTrackLevel` binds the selected hall track or base
 tower level, and `ExpectedGeneration` binds the building instance.

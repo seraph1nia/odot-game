@@ -35,7 +35,7 @@ internal static class LargeBattle
             Assert.True(VillageStrategyTests.Act(match, city.Id, "start").Accepted);
             foreach (UnitType type in roles)
                 for (int i = 0; i < size / 8; i++) match.Combat.Create(type, city.Id, city.Id, city.Id);
-            for (int turn = 0; turn < 4; turn++) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
+            for (int turn = 0; turn < 3; turn++) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
             Assert.Equal(Phase.Combat, match.Phase);
             return match;
         }

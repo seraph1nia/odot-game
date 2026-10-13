@@ -9,18 +9,18 @@ internal sealed partial class Runner
     {
         await Pick(client, 0, token); await ClickAck(client, "Farm", token);
         await Pick(client, 2, token); await ClickAck(client, "MetalMine", token);
-        await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
-        for (int production = 1; production <= 3; production++)
+        await Action(client, "build 3 metalmine", token);
+        await Action(client, "build-recovery 4 lumbermill", token);
+        for (int production = 1; production <= 2; production++)
         {
             await Action(client, "ready", token); MatchSnapshot resolved = State(await Action(observer, "ready", token));
             await Observe(client, s => s.Revision >= resolved.Revision && s.ProductionCount == production, "melee production synchronization", token);
-            await Pick(client, 1, token);
-            ResourceCost cost = resolved.Players.Single(c => c.Id == client.PlayerId).RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Cost;
-            while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Soldiers.Length < 6 && Latest(client).Players.Single(c => c.Id == client.PlayerId).Resources.TryPay(cost, out _)) await ClickAck(client, "Recruit", token);
         }
+        await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
+        for (int recruit = 0; recruit < 6; recruit++) await ClickAck(client, "Recruit", token);
         CityState army = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(army.Soldiers.Length == 6 && army.Soldiers.All(u => u.Type == UnitType.Swordsman)
-            && army.Food == 15 && army.Wood == 0, "ordinary Farm/Metal Mine recruitment equips six frontline units without food spending or grants");
+            && army.Food == 10 && army.Wood == 0 && army.Metal == 4, "two paid Metal Mines supply sixteen metal before final readiness; six frontline units spend twelve without food spending or grants");
         // Admit speed 1 BEFORE Ready can start combat. Detailed authored
         // scenes made the former post-entry barrier acknowledge at tick 404,
         // after the seed-1 shared windup at 301 had already passed.

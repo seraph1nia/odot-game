@@ -138,7 +138,7 @@ public partial class Tabletop : Node3D
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
     internal void AppendUiObservation(Dictionary<string, object?> fields, Dictionary<string, object> targets)
     {
-        foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _previousCity, _nextCity, _detailsButton }.Concat(_construction.Values).Concat(_recruitment.Values).Concat(_trades.Values).Concat(_groupButtons).Concat(new[] { _buyPlot, _sell, _recovery, _rapidTower, _bombardTower }))
+        foreach (Button button in new[] { _start, _upgrade, _ready, _pause, _reconnect, _fresh, _invite, _previousCity, _nextCity, _detailsButton }.Concat(_speeds.Values).Concat(_construction.Values).Concat(_recruitment.Values).Concat(_trades.Values).Concat(_groupButtons).Concat(new[] { _buyPlot, _sell, _recovery, _rapidTower, _bombardTower }))
             Application.ObserveControl(targets, button.Name, button);
         Application.ObserveControl(targets, "ResourceTable", _resources);
         Application.ObserveControl(targets, "UpkeepTable", _compactUpkeep);
@@ -313,6 +313,7 @@ public partial class Tabletop : Node3D
         var inputs = HudInvalidation.Capture(s, _focus, _slot, _constructionGroup, game.Connected, game.Status, game.Feedback, game.PlayerId, game.HostPlayerId, game.CanStart, game.CanInvite);
         RefreshResearch();
         RefreshArmy();
+        RefreshCombatSpeed();
         bool statusChanged = _hud.Refresh(HudSection.Status, inputs[HudSection.Status]);
         bool economyChanged = _hud.Refresh(HudSection.Economy, inputs[HudSection.Economy]);
         ProgressionView? progression = statusChanged || economyChanged ? ProgressionPresentation.Describe(s, focus) : null;
@@ -350,7 +351,7 @@ public partial class Tabletop : Node3D
             _upkeep.Text = progression!.Food; _reward.Text = progression.Reward;
             _armyDetails.Text = progression.Army + "\nEnemy allocation:\n" + string.Join("\n", s?.Enemies.Where(u => u.Destination == _focus).Select(u => $"#{u.Id} {AssetCatalog.UnitName(u.Type, u.Faction)} · {(u.Deployed ? "deployed" : "queued")} · {ProgressionPresentation.StatusText(u.Statuses, s.Tick)}") ?? []);
             _detailsDialog.DialogText = "";
-            _counters.Text = s is null ? "" : $"Wave {s.Wave}/{s.TotalWaves} · Turn {s.Turn}/3{(s.WaveCatalog.FirstOrDefault(w => w.Number == s.Wave)?.IsBoss == true ? " · BOSS" : "")}";
+            _counters.Text = s is null ? "" : $"Wave {s.Wave}/{s.TotalWaves} · {(s.Phase == Phase.Combat ? "Combat" : "Preparation " + s.Turn)}{(s.WaveCatalog.FirstOrDefault(w => w.Number == s.Wave)?.IsBoss == true ? " · BOSS" : "")}";
             string[] phases = ProgressionPresentation.PhaseRows(s);
             for (int i = 0; i < _phaseRows.Count; i++) _phaseRows[i].Text = phases[i];
             foreach (Label row in _phaseRows) row.Visible = s?.Phase is Phase.Building or Phase.Preparation or Phase.Combat;
@@ -423,7 +424,7 @@ public partial class Tabletop : Node3D
                 button.Text = rate is null ? resource.ToString() : $"{rate.Units} {resource}\n+{rate.Gold} gold";
                 button.Disabled = !edit || slot.Type != Building.Market || rate is null || me!.Resources.Amount(resource) < rate.Units;
                 button.TooltipText = $"Stock: {focus?.Resources.Amount(resource) ?? 0} {resource}. Sell whole bundles for gold. Food sales change the next battle forecast.";
-                if (resource == Game.Core.Resource.Food && focus is not null && rate is not null) button.TooltipText = ProgressionPresentation.FoodSalePreview(focus, rate);
+                if (resource == Game.Core.Resource.Food && focus is not null && rate is not null) button.TooltipText = ProgressionPresentation.FoodSalePreview(focus, rate, s?.Phase ?? Phase.Lobby);
             }
             foreach ((UnitType type, Button button) in _recruitment)
             {
@@ -444,7 +445,9 @@ public partial class Tabletop : Node3D
             _playback.Work?.Add(WorkMetric.HudSectionRefreshes);
             bool live = game.Connected && s is not null;
             _ready.Text = me?.Ready == true ? "Unready" : s?.Phase == Phase.Preparation ? "Ready for battle" : "Ready";
-            _ready.TooltipText = s?.Phase == Phase.Preparation ? "Enter battle and pay food upkeep; no production income." : "Advance one building turn and collect production.";
+            _ready.TooltipText = me?.Ready == true ? "Withdraw readiness and resume preparation edits."
+                : s?.Phase == Phase.Preparation ? "Settle one production using current buildings, research and stored recovery, then pay food upkeep and enter battle."
+                : "Settle one production using current buildings, research and stored recovery, then advance preparation.";
             _ready.Disabled = !live || s!.Phase is not (Phase.Building or Phase.Preparation) || s.Paused || me is null || me.Eliminated;
             _ready.Visible = s?.Phase != Phase.Lobby && game.Connected;
             _pause.Visible = game.Connected && s?.Phase != Phase.Lobby;
@@ -501,6 +504,10 @@ public partial class Tabletop : Node3D
                 _buildingBounds[city.Id] = new Aabb?[ArmyConfiguration.TotalPlots];
 
             }
+            Label3D? previewLabel = board.GetNodeOrNull<Label3D>("NextWaveLabel");
+            if (previewLabel is null) { previewLabel = Label(board, new(0, .5f, -14), "", 28); previewLabel.Name = "NextWaveLabel"; }
+            previewLabel.Visible = state.Phase is Phase.Building or Phase.Preparation;
+            previewLabel.Text = $"NEXT WAVE {state.Wave} • {state.NextWave.Count(u => u.Destination == city.Id)} ENEMIES";
             UpdateStockpiles(board, city);
             UpdateArmyMarkers(board, city, state);
             _landscapes[city.Id].SetPlots(city.Slots);
@@ -583,6 +590,9 @@ public partial class Tabletop : Node3D
         _effects.Sample(_playback.VisualSeconds, audible);
         var current = _playback.Units().ToDictionary(u => u.Id);
         if (_combatLayout is null) return;
+        UnitState[] preview = game.State?.NextWave ?? [];
+        _combatLayout.SetPreview(preview);
+        foreach (UnitState unit in preview) current.Add(unit.Id, unit);
         foreach (UnitState unit in current.Values.Where(u => u.Deployed)) View(unit).Synchronize(unit);
         foreach (CombatEvent entry in _playback.Drain())
         {
@@ -611,7 +621,7 @@ public partial class Tabletop : Node3D
             view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);
         }
         foreach (int id in _strikes.Keys.Where(id => !_units.ContainsKey(id)).ToArray()) { _strikes[id].QueueFree(); _strikes.Remove(id); }
-        foreach ((int id, UnitView view) in _units.Where(p => p.Value.State.Class == UnitClass.Melee))
+        foreach ((int id, UnitView view) in _units.Where(p => p.Key > 0 && p.Value.State.Class == UnitClass.Melee))
         {
             if (!_strikes.TryGetValue(id, out MeleeStrike? strike)) { strike = new(); AddChild(strike); _strikes.Add(id, strike); }
             strike.Sample(view, _units.GetValueOrDefault(view.State.TargetId), _playback.Tick, _focus, _combatLayout);

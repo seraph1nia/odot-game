@@ -55,8 +55,7 @@ public sealed class WorldtreeResearchTests
         int player = admission?.PlayerId ?? session.LocalPlayerId; int peer = 2; long sequence = 0;
         Command RequestFor(string action, int slot = -1, Building building = Building.Empty, TechnologyId technology = TechnologyId.None)
         {
-            var state = session.Snapshot(); return new(++sequence, state.MatchId, state.Phase, state.TurnSerial, action, player, slot, building, Technology: technology,
-                ExpectedGeneration: slot < 0 ? 0 : state.Players[0].Slots[slot].Generation);
+            var state = session.Snapshot(); return Command.FromSnapshot(state, ++sequence, action, player, slot, building, technology: technology);
         }
         CommandResult Send(Command command) => policy == AuthorityPolicy.Dedicated ? session.Request(peer, JsonSerializer.Serialize(command, WireJson.Options), (ulong)sequence * 1000)! : session.ExecuteLocal(command);
         void Act(string action, int slot = -1, Building building = Building.Empty, TechnologyId technology = TechnologyId.None) => Assert.True(Send(RequestFor(action, slot, building, technology)).Accepted);
@@ -65,7 +64,11 @@ public sealed class WorldtreeResearchTests
         Act("build", 0, Building.Stonecutter);
         Command stale = RequestFor("research-tech", technology: TechnologyId.MeleeFoundation); Act("ready"); Assert.Contains("Stale match, phase or turn", Send(stale with { Sequence = ++sequence }).Message);
         for (int slot = 1; slot <= 4; slot++) Act("build", slot, Building.ResearchTower);
-        Act("upgrade", 1); Act("ready"); Act("ready");
+        // Three paid points must exist before final editing, not from the last
+        // settlement after editing closes. Frozen authoring already supplies
+        // ample wood/stone; build nine progress of actual research capacity.
+        for (int slot = 1; slot <= 4; slot++) Act("upgrade", slot);
+        Act("buy-plot", 5); Act("build", 5, Building.ResearchTower); Act("ready");
         Act("research-tech", technology: TechnologyId.MeleeFoundation); Act("research-tech", technology: TechnologyId.Guardian);
         Command purchase = RequestFor("research-tech", technology: TechnologyId.Stonecraft);
         Assert.True(Send(purchase).Accepted); Assert.Equal(Send(purchase), Send(purchase));

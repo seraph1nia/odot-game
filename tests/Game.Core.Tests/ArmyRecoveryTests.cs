@@ -49,7 +49,7 @@ public sealed class ArmyRecoveryTests
         for (int i = 0; i < 6; i++) Act(match, "recruit", 0);
         int reserve = match.Players[1].Soldiers[0].Id;
         match.Combat.Seed(Read(match, reserve) with { Health = 2901 }); Act(match, "store", 1, reserve);
-        for (int i = 0; i < 3; i++) { Act(match, "ready"); Assert.Equal(2901, Read(match, reserve).Health); }
+        for (int i = 0; i < 2; i++) { Act(match, "ready"); Assert.Equal(2901, Read(match, reserve).Health); }
         Assert.False(Read(match, reserve).RecoveryEligible); Assert.Equal(Phase.Preparation, match.Phase);
         Complete(match);
         Assert.True(Read(match, reserve).RecoveryEligible); Assert.Equal(2901, Read(match, reserve).Health);
@@ -64,13 +64,17 @@ public sealed class ArmyRecoveryTests
         Assert.True(Read(match, survivor).RecoveryEligible); Assert.Equal(3101, Read(match, survivor).Health);
         Act(match, "upgrade-healing", 1); Assert.Equal(2901, Read(match, reserve).Health);
         Act(match, "pause"); for (int i = 0; i < 5; i++) match.Step(); Assert.Equal(2901, Read(match, reserve).Health); Act(match, "resume");
-        for (int i = 1; i <= 3; i++)
+        for (int production = 1; production <= 2; production++)
         {
-            Act(match, "ready"); Assert.Equal(Math.Min(4000, 2901 + 400 * i), Read(match, reserve).Health);
-            Assert.Equal(Math.Min(4000, 3101 + 400 * i), Read(match, survivor).Health);
+            Act(match, "ready"); Assert.Equal(2901 + 400 * production, Read(match, reserve).Health);
+            Assert.Equal(3101 + 400 * production, Read(match, survivor).Health);
             Assert.Equal(2901, Read(match, fresh).Health);
         }
         string preparation = State(match); match.Step(); Assert.Equal(preparation, State(match));
+        Act(match, "upgrade-healing", 1);
+        Act(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
+        Assert.Equal(4000, Read(match, reserve).Health); Assert.Equal(4000, Read(match, survivor).Health);
+        Assert.Equal(2901, Read(match, fresh).Health);
         Assert.Equal(101, ArmyConfiguration.HealedHealth(100, 101, 5));
         Assert.Equal(111, ArmyConfiguration.HealedHealth(100, 1010, 1)); // ceiling(10.1) is 11.
     }
@@ -81,7 +85,7 @@ public sealed class ArmyRecoveryTests
         using Match match = Start(food: 2);
         for (int i = 0; i < 3; i++) Act(match, "recruit", 0);
         int reserve = match.Players[1].Soldiers[0].Id; match.Combat.Seed(Read(match, reserve) with { Health = 3000 }); Act(match, "store", 1, reserve);
-        for (int i = 0; i < 3; i++) Act(match, "ready");
+        for (int i = 0; i < 2; i++) Act(match, "ready");
         Complete(match); Assert.False(Read(match, reserve).RecoveryEligible);
         Assert.Contains(reserve, match.Players[1].LastUpkeep!.Unfed);
         int survivor = match.Players[1].Soldiers.First(u => !u.Assignment!.Stored).Id;
@@ -101,7 +105,7 @@ public sealed class ArmyRecoveryTests
             for (int i = 0; i < 6; i++) Act(match, "recruit", 0);
             for (int wave = 1; wave <= 3; wave++)
             {
-                for (int i = 0; i < 4; i++) Act(match, "ready");
+                for (int i = 0; i < 3; i++) Act(match, "ready");
                 for (int ticks = 0; ticks < 2000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); ticks++) match.Step();
                 Assert.False(match.Combat.HasDeaths);
                 Assert.All(match.Players[1].Soldiers, u => Assert.Equal(u.Assignment!.Position, u.Hex!.Position));
@@ -112,7 +116,7 @@ public sealed class ArmyRecoveryTests
         {
             Act(match, "recruit", 0); int id = match.Players[1].Soldiers.Single().Id; Act(match, "store", 1, id);
             match.Players[1].Health = 1; // Isolated elimination boundary, not paid balance evidence.
-            for (int i = 0; i < 4; i++) Act(match, "ready");
+            for (int i = 0; i < 3; i++) Act(match, "ready");
             for (int ticks = 0; ticks < 2000 && match.Phase == Phase.Combat; ticks++) match.Step();
             Assert.Equal(Phase.Defeat, match.Phase); Assert.True(match.Players[1].Eliminated);
             Assert.Empty(match.Players[1].Soldiers); Assert.DoesNotContain(match.Snapshot().DyingBodies, u => u.Id == id);
@@ -127,7 +131,7 @@ public sealed class ArmyRecoveryTests
         using Match match = Start();
         for (int i = 0; i < 6; i++) Act(match, "recruit", 0);
         Dictionary<int, ArmyAssignment> homes = match.Players[1].Soldiers.ToDictionary(u => u.Id, u => u.Assignment!);
-        for (int i = 0; i < 4; i++) Act(match, "ready");
+        for (int i = 0; i < 3; i++) Act(match, "ready");
         bool cleanupObserved = false;
         for (int i = 0; i < 2000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); i++)
         {

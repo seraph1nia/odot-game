@@ -14,14 +14,17 @@ public static class ProgressionPresentation
         => income is ResourceCost value ? value.Amount(resource) > 0 ? $"+{value.Amount(resource)}" : "0" : "Unavailable";
     public static EconomyView Economy(MatchSnapshot? state, CityState? city, bool connected)
     {
-        string label = state?.Phase == Phase.Building ? "Income/turn" : "Next building turn";
+        string label = state?.Phase is Phase.Building or Phase.Preparation ? "Income/production" : "Next production";
         bool inactive = city?.Eliminated == true || state?.Phase is Phase.Victory or Phase.Defeat;
         string context = !connected ? "Stale · waiting for connection" : state?.Paused == true ? "Paused · synchronized values" : inactive ? "Inactive · no future income"
-            : state?.Phase is Phase.Preparation or Phase.Combat ? "Ready for battle grants no income" : "";
+            : state?.Phase is Phase.Building or Phase.Preparation ? "Ready settles one production"
+            : state?.Phase == Phase.Combat ? "Production settled before battle payment" : "";
         if (state?.Phase is Phase.Building or Phase.Preparation && city?.FoodForecast is { } forecast)
             return new(label, context, "Next battle", $"{forecast.Demand} food",
                 forecast.Unfed.Length > 0 ? city.Soldiers.Any(u => u.Assignment is { Stored: true }) ? "Unfunded soldiers" : $"{forecast.Unfed.Length} soldiers will sit out" : "Food after payment",
                 forecast.Unfed.Length > 0 ? city.Soldiers.Any(u => u.Assignment is { Stored: true }) ? forecast.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) : "" : (forecast.Available - forecast.Paid).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (state?.Phase is Phase.Building or Phase.Preparation && city is not null)
+            return new(label, context, "Next battle", "Unavailable", "Food after payment", "Unavailable");
         if (city?.LastUpkeep is { } receipt)
             return new(label, context, state?.Phase == Phase.Combat ? $"Paid this battle · W{receipt.Wave}" : $"Last battle · W{receipt.Wave}",
                 $"{receipt.Paid} food", "Sat out", receipt.Unfed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -44,10 +47,11 @@ public static class ProgressionPresentation
         }
         catch (OverflowException) { return "Unavailable"; }
     }
-    public static string FoodSalePreview(CityState city, MarketRate rate)
+    public static string FoodSalePreview(CityState city, MarketRate rate, Phase phase)
     {
         if (city.Food < rate.Units) return $"Need {rate.Units - city.Food} more food · {AssetCatalog.BuildingName(Building.Farm)}";
-        BattleFoodForecast forecast = BattleFood.Forecast(city.Soldiers, city.Food - rate.Units, city.RecruitmentQuotes);
+        BattleFoodForecast? forecast = BattleFood.Project(city, phase == Phase.Preparation, rate);
+        if (forecast is null) return "After sale: next battle forecast unavailable";
         return $"After sale: pay {forecast.Paid} food · {forecast.Unfed.Length} soldiers will sit out · food after payment {forecast.Available - forecast.Paid}";
     }
     public static TechnologyEligibility ResearchAccess(MatchSnapshot? state, CityState? city, int player, bool connected, TechnologyId technology)
@@ -63,13 +67,14 @@ public static class ProgressionPresentation
         {
             Phase.Victory => $"VICTORY • {state.TotalWaves} waves held",
             Phase.Defeat => PresentationLimits.DefeatText(state.DefeatReason),
-            _ => $"{(state.Paused ? "PAUSED • " : "")}{state.Phase}\nWave {state.Wave}/{state.TotalWaves}{(state.WaveCatalog.FirstOrDefault(w => w.Number == state.Wave)?.IsBoss == true ? " · BOSS" : "")} • Turn {state.Turn}/3"
+            _ => $"{(state.Paused ? "PAUSED • " : "")}{(state.Phase is Phase.Building or Phase.Preparation ? "Preparation " + state.Turn : state.Phase.ToString())}\nWave {state.Wave}/{state.TotalWaves}{(state.WaveCatalog.FirstOrDefault(w => w.Number == state.Wave)?.IsBoss == true ? " · BOSS" : "")}"
         };
         if (city is null || state is null) return new(phase, "", "No battle upkeep yet", "No clear reward yet", "");
         int plots = city.Slots.Count(p => p.Purchased), count = plots - 5;
         string land = $"Land {plots}/9" + (count >= 0 && count < state.PlotPrices.Length ? $" · next {state.PlotPrices[count]} gold" : " · fully expanded");
         bool preview = state.Phase is Phase.Building or Phase.Preparation;
         string food = preview && city.FoodForecast is BattleFoodForecast forecast ? $"Next: {forecast.Demand} food · pay {forecast.Paid} · {forecast.Participating.Length} fed/{forecast.Unfed.Length} reserve"
+            : preview ? "Next battle forecast unavailable"
             : city.LastUpkeep is BattleUpkeepReceipt paid ? $"Wave {paid.Wave}: paid {paid.Paid} food · {paid.Participating.Length} participated" : "No battle upkeep yet";
         if (preview && city.FoodForecast is { } split)
             food += $"\nField demand {split.FieldDemand} · stored demand {split.StoredDemand}. Field first, then stored; level descending and ID ascending within each group.";
@@ -90,8 +95,8 @@ public static class ProgressionPresentation
     }
     public static string[] PhaseRows(MatchSnapshot? state)
     {
-        string[] labels = ["Building 1", "Building 2", "Building 3", "Preparation", "Combat"];
-        int active = state?.Phase switch { Phase.Building => state.Turn - 1, Phase.Preparation => 3, Phase.Combat => 4, _ => -1 };
+        string[] labels = ["Preparation 1", "Preparation 2", "Preparation 3", "Combat"];
+        int active = state?.Phase switch { Phase.Building when state.Turn is 1 or 2 => state.Turn - 1, Phase.Preparation => 2, Phase.Combat => 3, _ => -1 };
         return labels.Select((label, index) => (index == active ? "> " : "  ") + label).ToArray();
     }
     public static int HealthPercent(int current, int maximum) => (int)Math.Round(PresentationLimits.HealthFraction(current, maximum) * 100, MidpointRounding.AwayFromZero);
@@ -123,9 +128,9 @@ public static class ProgressionPresentation
     private static string ArmyDetail(UnitState unit, CityState city, bool preview, long tick)
     {
         string status = preview && city.FoodForecast is BattleFoodForecast forecast ? forecast.Participating.Contains(unit.Id) ? "next: fed" : "next: reserve"
-            : !unit.Participating ? "reserve" : unit.Deployed ? "participating" : "fed · capacity queue";
+            : preview ? "next: unavailable" : !unit.Participating ? "reserve" : unit.Deployed ? "participating" : "fed · capacity queue";
         if (unit.Assignment is { Stored: true } hall)
-            status = $"Town hall plot {hall.HallSlot + 1} · {(preview ? city.FoodForecast?.Funded.Contains(unit.Id) == true ? "next: funded" : "next: unfunded" : "noncombatant")} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no completed paid recovery")}";
+            status = $"Town hall plot {hall.HallSlot + 1} · {(preview ? city.FoodForecast is null ? "next: unavailable" : city.FoodForecast.Funded.Contains(unit.Id) ? "next: funded" : "next: unfunded" : "noncombatant")} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no completed paid recovery")}";
         else if (unit.Assignment is { } home) status += $" · home tile {home.Tile}, anchor {home.Anchor}";
         string committed = unit.Statuses.Chill is null ? "" : $" · committed impact {unit.ImpactTick}, ready {unit.ReadyTick}";
         return $"#{unit.Id} {AssetCatalog.UnitName(unit.Type, unit.Faction)}{(unit.IsBoss ? " BOSS" : "")} L{unit.Level} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · damage {HealthPoints.Format(unit.Profile.Damage)} · size {unit.Size} · {status} · {CapabilityText(unit.Capabilities)} · {StatusText(unit.Statuses, tick)}{committed}";

@@ -19,7 +19,7 @@ public sealed class CombatLimitTests
         for (int n = 0; n < players; n++) match.Join();
         VillageStrategyTests.Act(match, 1, "start");
         if (progress) match.Combat.Create(UnitType.Swordsman, players, players, players);
-        for (int n = 0; n < 4; n++)
+        for (int n = 0; n < 3; n++)
             foreach (City city in match.Players.Values) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
         if (progress)
         {

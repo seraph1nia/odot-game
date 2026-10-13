@@ -7,6 +7,8 @@ namespace Game;
 // adjacency, range, capacity, committed endpoints or transit reservations.
 internal sealed class CombatLayout(HexBoard board)
 {
+    private Dictionary<int, Vector3> _preview = [];
+    internal void SetPreview(UnitState[] manifest) => _preview = NextWaveFormation.Positions(manifest);
     public static Vector3 Center(int city) => new((city - 1) * 40, 0, 0);
     private static Vector3 Anchor(HexBoard board, HexPosition position)
     {
@@ -16,6 +18,7 @@ internal sealed class CombatLayout(HexBoard board)
     }
     public Vector3 Position(UnitState unit, double tick)
     {
+        if (unit.Id < 0 && _preview.TryGetValue(unit.Id, out Vector3 preview)) return preview;
         HexUnitState hex = unit.Hex ?? throw new ArgumentException("Combat models require hex state.", nameof(unit));
         return Position(unit.Destination, hex, tick);
     }

@@ -9,7 +9,7 @@ public sealed class CombatPlayback
         get => _work;
         set { _work = value; value?.Support(WorkMetric.PlaybackIndexBuilds, WorkMetric.PlaybackEventVisits, WorkMetric.Sorts, WorkMetric.SortElements); }
     }
-    private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, UnitState[] Units, Dictionary<int, UnitState> ById);
+    private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById);
     private AcceptedState? _previous, _current;
     private int[] _ids = [];
     private readonly Dictionary<int, int> _pendingDeaths = [];
@@ -50,8 +50,9 @@ public sealed class CombatPlayback
     public void Advance(double seconds, bool connected)
     {
         if (!connected || _current is null || _current.Paused) return;
-        VisualSeconds += Math.Clamp(seconds, 0, 0.1);
-        Tick = Math.Min(_current.Tick, Tick + Math.Clamp(seconds, 0, 0.1) * Match.StepsPerSecond);
+        double elapsed = Math.Clamp(seconds, 0, 0.1) * _current.Pace;
+        VisualSeconds += elapsed;
+        Tick = Math.Min(_current.Tick, Tick + elapsed * Match.StepsPerSecond);
     }
     public CombatEvent[] Drain()
     {
@@ -103,7 +104,8 @@ public sealed class CombatPlayback
         _work?.Add(WorkMetric.PlaybackIndexBuilds);
         UnitState[] ordered = WorkOrdering.Input(state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).Concat(state.DyingBodies), _work)
             .OrderBy(u => u.Id).Select(u => CombatProjection.Detach(u)).ToArray();
-        return new(state.MatchId, state.Revision, state.Tick, state.Paused, ordered, ordered.ToDictionary(u => u.Id));
+        return new(state.MatchId, state.Revision, state.Tick, state.Paused,
+            state.Phase == Phase.Combat ? CombatSpeedRates.Factor(state.CombatSpeed) : 1, ordered, ordered.ToDictionary(u => u.Id));
     }
     public bool AwaitingDeath(int id) => _pendingDeaths.ContainsKey(id);
     public static double DeathPose(UnitState unit, double tick, double clipLength)

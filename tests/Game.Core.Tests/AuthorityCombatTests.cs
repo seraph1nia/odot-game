@@ -10,7 +10,7 @@ public sealed class AuthorityCombatTests
     {
         act("start", -1, Building.Empty);
         act("build", 0, Building.Farm); act("build", 2, Building.MetalMine); act("build", 1, Building.Barracks);
-        for (int production = 1; production <= 3; production++)
+        for (int preparation = 1; preparation <= 2; preparation++)
         {
             act("ready", -1, Building.Empty);
             while (snapshot().Players.Single().Resources.TryPay(snapshot().Players.Single().RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Cost, out _)) act("recruit", 1, Building.Empty);

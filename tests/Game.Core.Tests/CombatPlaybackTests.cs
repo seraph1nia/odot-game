@@ -19,7 +19,7 @@ public sealed class CombatPlaybackTests
     }
     private static MatchSnapshot State(long revision, long tick, long sequence, CombatEvent[]? events = null, string match = "a", bool paused = false)
         => new(match, revision, tick, Phase.Combat, paused, 1, 3, 3, new Rules(), [], [])
-        { EventSequence = sequence, OldestEventSequence = events is { Length: > 0 } ? events[0].Sequence : sequence + 1, CombatEvents = events ?? [] };
+        { CombatSpeed = CombatSpeed.Two, EventSequence = sequence, OldestEventSequence = events is { Length: > 0 } ? events[0].Sequence : sequence + 1, CombatEvents = events ?? [] };
     private static CombatEvent Event(long seq, long tick, CombatEventType type = CombatEventType.Death)
         => new(seq, tick, type, new(1, 0, 0, 1, 1));
     [Fact]

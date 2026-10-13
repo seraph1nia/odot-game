@@ -10,43 +10,109 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
 {
     [Theory]
     [InlineData(109UL)]
-    // A reproducible frontage witness, not a balance sample. First-fit paid homes
-    // use a Stonecutter-backed L3 receiving opening; seed 109 retains every
-    // cleared-frontage, bounded admission, retained identity and survival assertion.
-    public void OrdinaryThreeCityProgressionReinforcesAClearedOccupiedForwardBand(ulong seed)
+    // Tier A earned progression, not incidental seeded spatial setup. Default
+    // rules and real paid commands own identity, resources and transfer. The
+    // genuine occupied-source invariant is independently established by
+    // HexBattleTests.RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes.
+    public void PaidThreeCityProgressionPreservesClearedTransferIdentityAndCompletes(ulong seed)
     {
         using Match match = Start(3, seed);
-        foreach (int id in new[] { 1, 2 })
+        var born = new Dictionary<int, (int Owner, UnitType Type, int Level)>();
+        var payments = new List<object>();
+        void Paid(int id, Command command)
         {
-            Assert.True(Act(match, id, "build", 0, Building.Farm).Accepted);
-            Assert.True(Act(match, id, "build", 1, Building.Barracks).Accepted);
-            Assert.True(Act(match, id, "build", 2, Building.MetalMine).Accepted);
+            MatchSnapshot state = match.Snapshot();
+            CityState before = state.Players.Single(p => p.Id == id);
+            ResourceCost? quoted = command.Action switch
+            {
+                "recruit" => before.RecruitmentQuotes.Single(q => q.Type == command.SoldierType && q.Level == before.Slots[command.Slot].Level).Cost,
+                "buy-home" => match.Army.HomeQuote(before.Army!.PurchasedHomes),
+                "build" => command.Payment == ConstructionPayment.GoldRecovery
+                    ? state.BuildingCatalog.Single(b => b.Type == command.Building).RecoveryConstruction
+                    : state.BuildingCatalog.Single(b => b.Type == command.Building).Construction,
+                "upgrade" => before.Slots[command.Slot].UpgradeQuote,
+                "sell" => null,
+                _ => throw new InvalidOperationException("Unexpected paid witness action: " + command.Action)
+            };
+            CommandResult result = match.Apply(id, command); Assert.True(result.Accepted, result.Message);
+            CityState after = match.Snapshot().Players.Single(p => p.Id == id);
+            if (quoted is ResourceCost quote)
+            {
+                Assert.True(before.Resources.TryPay(quote, out ResourceCost balance)); Assert.Equal(balance, after.Resources);
+            }
+            else
+            {
+                Assert.Equal("sell", command.Action);
+                Assert.True(before.Resources.TryAdd(before.Slots[command.Slot].Refund, out ResourceCost balance)); Assert.Equal(balance, after.Resources);
+            }
+            payments.Add(new { match.Wave, match.Turn, Owner = id, command.Action, command.Slot, command.Payment, Quote = quoted, Before = before.Resources, After = after.Resources });
+            foreach (UnitState unit in after.Soldiers.Where(u => !before.Soldiers.Any(old => old.Id == u.Id)))
+            { Assert.Equal(id, unit.Owner); born.Add(unit.Id, (unit.Owner, unit.Type, unit.Level)); }
         }
         void Invest(int id)
         {
             City city = match.Players[id];
             while (CampaignStrategy.ReinforcementInvestment(match.Snapshot(), id, id == 1) is EconomyAction decision)
-                Assert.True(match.Apply(id, decision.Command(match.Snapshot(), id)).Accepted);
+                Paid(id, decision.Command(match.Snapshot(), id));
             output.WriteLine($"P{id} W{match.Wave} T{match.Turn} army={city.Soldiers.Count} gold={city.Gold} wood={city.Wood}");
         }
         void Prepare(bool firstWave)
         {
             while (match.Phase is Phase.Building or Phase.Preparation)
             {
+                foreach ((int player, EconomyAction action) in CampaignStrategy.RedistributionPreparation(match.Snapshot(), 1, 2))
+                    Paid(player, action.Command(match.Snapshot(), player));
+                MatchSnapshot? settlement = null;
                 foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
                 {
-                    if (city.Id == 1 || firstWave && city.Id == 2) Invest(city.Id);
-                    else if (city.Id == 2 && match.Phase == Phase.Preparation) Assert.True(Act(match, 2, "recruit", 1).Accepted);
-
+                    if (!firstWave)
+                    {
+                        if (city.Id == 1) Invest(city.Id);
+                        else if (city.Id == 2 && match.Turn > 1) Paid(2, Command.FromSnapshot(match.Snapshot(), 1, "recruit", 2, 1));
+                    }
+                    if (city.Id == (firstWave ? 3 : 2)) settlement = match.Snapshot();
                     Assert.True(Act(match, city.Id, "ready").Accepted);
                 }
-                if (match.Players.Values.Where(c => !c.Eliminated).All(c => c.Ready)) match.Step();
+                Assert.NotNull(settlement);
+                for (int ticks = 0; match.ProductionCount == settlement.ProductionCount; ticks++)
+                {
+                    Assert.True(ticks < 120); match.Step();
+                }
+                Assert.Equal(settlement.ProductionCount + 1, match.ProductionCount);
+                foreach (CityState city in settlement.Players.Where(c => !c.Eliminated))
+                {
+                    Assert.True(city.Resources.TryAdd(city.ProductionIncome!.Value, out ResourceCost balance));
+                    if (match.Phase == Phase.Combat)
+                    {
+                        Assert.True(balance.TryPay(new(Food: match.Players[city.Id].LastUpkeep!.Paid), out ResourceCost funded));
+                        balance = funded;
+                    }
+                    Assert.Equal(balance, match.Players[city.Id].Resources);
+                }
+            }
+            if (firstWave)
+            {
+                Assert.Equal(3, match.ProductionCount);
+                Assert.All(match.Players.Values.Where(c => c.Id != 3), c =>
+                {
+                    Assert.Equal(6, c.Soldiers.Count); Assert.Equal(6, c.LastUpkeep!.Paid);
+                    Assert.Equal(c.Soldiers.Select(u => u.Id), c.LastUpkeep.Funded);
+                    Assert.Equal(12, c.Metal); Assert.Equal(9, c.Food);
+                });
             }
         }
         Prepare(true);
         while (match.Phase == Phase.Combat) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave); Assert.True(match.Players[3].Eliminated);
         Prepare(false); Assert.Equal(12, match.Enemies.Count);
+        Assert.Equal(6, match.ProductionCount);
+        MatchSnapshot entry = match.Snapshot();
+        Assert.All(entry.Players.Where(c => !c.Eliminated), c =>
+        {
+            Assert.Empty(c.LastUpkeep!.Unfed); Assert.Equal(c.Soldiers.Select(u => u.Id).Order(), c.LastUpkeep.Funded.Order());
+            Assert.Equal(6, entry.Enemies.Count(u => u.Destination == c.Id));
+        });
+        Assert.Equal(4, entry.Enemies.Count(u => u.Origin == 3));
         MatchSnapshot? before = null, transfer = null;
         for (int step = 0; step < 3000 && match.Phase == Phase.Combat && !match.Players[2].Eliminated; step++)
         {
@@ -58,13 +124,32 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.DoesNotContain(before.Enemies, u => u.Destination == 1);
         int[] forward = match.Configuration.Board.Front(Faction.Skeletons).ToArray();
         int[] held = before.Players[0].Soldiers.Where(u => u.Deployed && forward.Contains(u.Hex!.Position.Cell)).Select(u => u.Hex!.Position.Cell).Distinct().Order().ToArray();
-        output.WriteLine($"cleared-forward transfer seed={seed} tick={transfer.Tick}; held={string.Join(',', held)}; required={string.Join(',', forward)}");
-        Assert.NotEmpty(held);
+        output.WriteLine($"paid-transfer seed={seed} tick={transfer.Tick}; incidental held={string.Join(',', held)}; front={string.Join(',', forward)}");
+        output.WriteLine(JsonSerializer.Serialize(before.Players[0].Soldiers.Select(u => new { u.Id, u.Owner, Position = u.Hex!.Position, u.Hex.Action, u.ReadyTick }), WireJson.Options));
+        Assert.NotEmpty(before.Players[0].Soldiers);
+        foreach (UnitState incoming in transfer.Enemies.Where(u => u.Destination == 1))
+        {
+            UnitState source = before.Enemies.Single(u => u.Id == incoming.Id);
+            Assert.NotEqual(1, source.Destination); Assert.NotEqual(1, incoming.Origin);
+            Assert.Equal((source.Id, source.Origin, source.Level, source.Profile, source.Size, source.Owner, source.Faction),
+                (incoming.Id, incoming.Origin, incoming.Level, incoming.Profile, incoming.Size, incoming.Owner, incoming.Faction));
+            Assert.InRange(incoming.Health, 1, source.Health);
+        }
+        foreach (UnitState veteran in before.Players[0].Soldiers)
+        {
+            UnitState preserved = transfer.Players[0].Soldiers.Single(u => u.Id == veteran.Id);
+            Assert.Equal((veteran.Owner, veteran.Health, veteran.Level, veteran.Profile, veteran.Assignment),
+                (preserved.Owner, preserved.Health, preserved.Level, preserved.Profile, preserved.Assignment));
+        }
         AdmissionBound bound = Assert.Single(transfer.Admissions, a => a.City == 1);
         Assert.NotNull(bound.AdmissionTick); Assert.True(bound.AdmissionTick <= bound.FirstAdmissionBound);
         Assert.Contains(transfer.Enemies, u => u.Id == bound.FirstUnitId && u.Deployed && u.Origin != 1);
         while (match.Phase == Phase.Combat) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(3, match.Wave); Assert.Equal(DefeatReason.None, match.DefeatReason);
+        Assert.NotEmpty(match.Players[1].Soldiers);
+        Assert.All(match.Players[1].Soldiers, u => Assert.Equal(born[u.Id], (u.Owner, u.Type, u.Level)));
+        Assert.False(match.Players[1].Eliminated); Assert.True(match.Players[2].Eliminated); Assert.True(match.Players[3].Eliminated);
+        output.WriteLine(JsonSerializer.Serialize(new { Payments = payments, Born = born, SurvivorIds = match.Players[1].Soldiers.Select(u => u.Id) }, WireJson.Options));
     }
 
     internal static CommandResult Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, UnitType unit = UnitType.Swordsman, UnitClass @class = UnitClass.Melee)
@@ -96,18 +181,22 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.Equal(14, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
     }
     [Fact]
-    public void ThirdProductionCanBeSpentBeforeBattleAndPreparationHasNoIncome()
+    public void FinalPreparationSettlesProductionBeforeUpkeepWithoutAnotherEditingWindow()
     {
         using Match match = Start(); Assert.True(Act(match, 1, "build", 0, Building.Farm).Accepted);
         Assert.True(Act(match, 1, "build", 1, Building.Barracks).Accepted);
         Assert.True(Act(match, 1, "build", 2, Building.MetalMine).Accepted);
-        for (int n = 0; n < 3; n++) Assert.True(Act(match, 1, "ready").Accepted);
-        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(3, match.ProductionCount); Assert.Equal(3, match.Turn);
+        for (int n = 0; n < 2; n++) Assert.True(Act(match, 1, "ready").Accepted);
+        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(2, match.ProductionCount); Assert.Equal(3, match.Turn);
         Command stale = new(1, match.Id, Phase.Building, match.TurnSerial - 1, "ready", 1);
         Assert.False(match.Apply(1, stale).Accepted);
         Assert.True(Act(match, 1, "recruit", 1).Accepted); CityState before = match.Players[1].Snapshot();
         Assert.True(Act(match, 1, "ready").Accepted); Assert.Equal(Phase.Combat, match.Phase);
-        CityState after = match.Players[1].Snapshot(); Assert.Equal(before.Gold, after.Gold); Assert.Equal(before.Food - match.Economy.Upkeep(UnitType.Swordsman), after.Food); Assert.Equal(before.Wood, after.Wood);
+        CityState after = match.Players[1].Snapshot();
+        Assert.True(before.Resources.TryAdd(before.ProductionIncome!.Value, out ResourceCost produced));
+        Assert.True(produced.TryPay(new(Food: match.Economy.Upkeep(UnitType.Swordsman)), out ResourceCost paid));
+        Assert.Equal(paid, after.Resources); Assert.Equal(3, match.ProductionCount);
+        Assert.False(Act(match, 1, "recruit", 1).Accepted);
     }
     [Theory]
     [InlineData(UnitType.Swordsman, Building.Barracks)]

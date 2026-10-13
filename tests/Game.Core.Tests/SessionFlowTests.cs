@@ -14,7 +14,7 @@ public sealed class SessionFlowTests
         using var flow = new SessionFlow(policy);
         flow.Act(1, new("start"));
         Command? recruitment = null;
-        for (int turn = 0; turn < 3; turn++)
+        for (int turn = 0; turn < 2; turn++)
             foreach (int player in new[] { 1, 2 })
             {
                 Command? recruited = flow.Invest(player);
@@ -32,8 +32,10 @@ public sealed class SessionFlowTests
         flow.Act(1, new("ready"));
         Assert.Equal(Phase.Combat, flow.Session.Phase);
         CityState paid = flow.State.Players.Single(c => c.Id == 2);
-        Assert.True(paid.Food < before.Food);
         Assert.NotNull(paid.LastUpkeep);
+        Assert.Equal(before.Food + before.ProductionIncome!.Value.Food - paid.LastUpkeep.Paid, paid.Food);
+        Assert.Equal(before.FoodForecast!.Funded, paid.LastUpkeep.Funded);
+        Assert.Equal(before.FoodForecast.Paid, paid.LastUpkeep.Paid);
         Assert.Equal(before.Soldiers.Select(u => u.Id), paid.Soldiers.Select(u => u.Id));
         flow.Act(1, new("pause"));
         string frozen = SessionFlow.Gameplay(flow.State);
@@ -79,17 +81,32 @@ public sealed class SessionFlowTests
         foreach (int player in new[] { 1, 2 })
         {
             flow.Act(player, new("build", 0, Building.Farm));
-            flow.Act(player, new("build", 1, Building.Barracks));
             flow.Act(player, new("build", 2, Building.MetalMine));
+            flow.Act(player, new("build", 4, Building.MetalMine));
+            flow.Act(player, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery));
         }
-        for (int turn = 0; turn < 4; turn++)
+        // This isolated transfer/redistribution witness requires six paid units
+        // against three cities' pressure. It is not the ordinary opening or the
+        // single-mine economic control: all extra material and timber are paid.
+        for (int turn = 0; turn < 3; turn++)
         {
             foreach (int player in new[] { 1, 2 })
-                while (CampaignStrategy.ReinforcementInvestment(flow.State, player, player == 1) is EconomyAction decision)
-                    flow.Act(player, decision);
+            {
+                if (turn == 2)
+                {
+                    flow.Act(player, new("build", 1, Building.Barracks));
+                    for (int recruit = 0; recruit < 6; recruit++) flow.Act(player, new("recruit", 1));
+                }
+            }
             foreach (int player in new[] { 1, 2, 3 }) flow.Act(player, new("ready"));
         }
         MatchSnapshot initial = flow.State;
+        Assert.All(initial.Players.Where(p => p.Id != 3), p =>
+        {
+            Assert.Equal(6, p.Soldiers.Length); Assert.Equal(6, p.LastUpkeep!.Paid);
+            Assert.Equal(p.Soldiers.Select(u => u.Id), p.LastUpkeep.Funded);
+            Assert.Equal(12, p.Metal); Assert.Equal(9, p.Food);
+        });
         MatchSnapshot fallen = flow.StepUntil(s => s.Players.Single(c => c.Id == 3).Eliminated);
         UnitState[] transferred = fallen.Enemies.Where(u => u.Origin == 3).ToArray();
         Assert.NotEmpty(transferred);
@@ -105,10 +122,10 @@ public sealed class SessionFlowTests
         flow.Disconnect(3); flow.Rebind(3, 77);
         Assert.True(flow.State.Players[2].Eliminated);
         Assert.False(flow.Send(3, flow.Command(3, new("build", 0, Building.Farm))).Accepted);
-        for (int turn = 0; turn < 4; turn++)
+        for (int turn = 0; turn < 3; turn++)
         {
             while (CampaignStrategy.ReinforcementInvestment(flow.State, 1, true) is EconomyAction decision) flow.Act(1, decision);
-            if (turn == 3) flow.Act(2, new("recruit", 1));
+            if (turn == 2) flow.Act(2, new("recruit", 1));
             foreach (int player in new[] { 1, 2 }) flow.Act(player, new("ready"));
         }
         flow.StepUntil(s => s.Phase == Phase.Combat, 120);

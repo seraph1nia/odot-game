@@ -21,8 +21,8 @@ internal sealed partial class Runner
         Require(State(purchase).Players.Single().Slots[0].Type == Building.Farm, "packed ordinary purchase reaches local authority");
         await Action(client, "build 1 barracks", token);
         await Action(client, "build 2 metalmine", token);
-        for (int turn = 0; turn < 3; turn++) await Action(client, "ready", token);
-        for (int recruit = 0; recruit < 6; recruit++) await Action(client, "recruit 1", token);
+        for (int turn = 0; turn < 2; turn++) await Action(client, "ready", token);
+        for (int recruit = 0; recruit < 4; recruit++) await Action(client, "recruit 1", token);
         await SimulationSpeed(client, 1, token);
         await Action(client, "ready", token);
         UiObservation live = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk"), "packed live representative animation", token);

@@ -83,7 +83,8 @@ public sealed class ArmyBalanceTests(ITestOutputHelper output)
             {
                 attackers.Clear(); deployed.Clear(); waveAttacks = 0;
                 BattleUpkeepReceipt receipt = next.LastUpkeep!; upkeep += receipt.Paid; if (receipt.Unfed.Length > 0) shortageWaves++;
-                Assert.Equal(old.Food - receipt.Paid, next.Food); Assert.Equal(old.FoodForecast!.Funded, receipt.Funded);
+                Assert.Equal(old.Food + old.ProductionIncome!.Value.Food - receipt.Paid, next.Food);
+                Assert.Equal(BattleFood.Forecast(old.Soldiers, old.Food + old.ProductionIncome.Value.Food, old.RecruitmentQuotes).Funded, receipt.Funded);
                 Assert.All(next.Soldiers.Where(u => u.Assignment is { Stored: true }), u => { Assert.False(u.Deployed); Assert.False(u.Participating); Assert.DoesNotContain(u.Id, receipt.Participating); });
             }
             Assert.InRange(city.PurchasedHomes, 2, maximumHomes);

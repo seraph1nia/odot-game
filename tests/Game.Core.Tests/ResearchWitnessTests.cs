@@ -55,11 +55,16 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
                 for (int actions = 0; actions < 100; actions++)
                 {
                     MatchSnapshot state = match.Snapshot(); CityState quote = state.Players.Single(c => c.Id == city.Id);
-                    EconomyAction? action = CampaignStrategy.ResearchWitness(state, city.Id);
+                    // Keep the research priority witness independent of two
+                    // under-equipped research openings defeating together. The
+                    // ordinary paid frontline partner owns cooperative defense.
+                    EconomyAction? action = city.Id == 1 ? CampaignStrategy.ResearchWitness(state, city.Id) : CampaignStrategy.Next(state, city.Id);
                     if (action is null) break;
-                    RecruitmentQuote mage = quote.RecruitmentQuotes.Single(q => q.Type == UnitType.Mage && q.Level == 1);
-                    if (action.Action == "recruit" && quote.Soldiers.Count(u => u.Type == UnitType.Mage) < 2
-                        && quote.Slots.Any(s => s.Type == Building.Arcanum) && quote.Resources.TryPay(mage.Cost, out _)
+                    int mageLevel = quote.Slots.FirstOrDefault(s => s.Type == Building.Arcanum)?.Level ?? 1;
+                    RecruitmentQuote mage = quote.RecruitmentQuotes.Single(q => q.Type == UnitType.Mage && q.Level == mageLevel);
+                    RecruitmentQuote melee = quote.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == Math.Max(1, quote.Slots[2].Level));
+                    if (city.Id == 1 && action.Action == "recruit" && quote.Soldiers.Count(u => u.Type == UnitType.Mage) < 2
+                        && quote.Slots.Any(s => s.Type == Building.Arcanum) && quote.Resources.TryPay(mage.Cost, out _) && quote.Resources.TryPay(melee.Cost, out _)
                         && quote.Food >= (quote.FoodForecast?.Demand ?? 0) + mage.Upkeep)
                     {
                         competingRecruitments++;
@@ -71,7 +76,7 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
                     else Assert.True(match.Apply(city.Id, action.Command(state, city.Id)).Accepted);
                 }
                 foreach (TechnologyId id in new[] { TechnologyId.MagicFoundation, TechnologyId.Fire })
-                    if (match.Economy.Research.Eligibility(city.Research, id).Available && city.Soldiers.Any(u => u.Type == UnitType.Mage))
+                    if (city.Id == 1 && match.Economy.Research.Eligibility(city.Research, id).Available && city.Soldiers.Any(u => u.Type == UnitType.Mage))
                         Assert.True(match.Apply(city.Id, Command.FromSnapshot(match.Snapshot(), match.Revision + 1,
                             "research-tech", city.Id, technology: id)).Accepted);
                 Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);

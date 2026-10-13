@@ -16,7 +16,7 @@ public sealed class ArmyCommandTests
         {
             MatchSnapshot state = authority.Snapshot(); CityState city = state.Players.Single(p => p.Id == player);
             return new(++sequences[player], state.MatchId, state.Phase, state.TurnSerial, action, player, slot, building,
-                ExpectedGeneration: slot >= 0 ? city.Slots[slot].Generation : 0, UnitId: id);
+                ExpectedGeneration: slot >= 0 ? city.Slots[slot].Generation : 0, ExpectedExpansionCount: city.Slots.Count(s => s.Purchased) - 5, UnitId: id);
         }
         CommandResult Send(Command request) => request.City == 1 ? authority.RequestLocal(JsonSerializer.Serialize(request, WireJson.Options))
             : authority.Request(peer, JsonSerializer.Serialize(request, WireJson.Options), time += 1000)!;
@@ -28,8 +28,9 @@ public sealed class ArmyCommandTests
         {
             Act(player, "build", 0, Building.Barracks); Act(player, "build", 2, Building.MetalMine);
             Act(player, "build", 3, Building.Stonecutter); Act(player, "build", 4, Building.Farm);
+            Act(player, "buy-plot", 5); Act(player, "build", 5, Building.MetalMine);
         }
-        Ready(); Ready(); Act(2, "build", 1, Building.TownHall); Ready();
+        Ready(); Ready(); Act(2, "build", 1, Building.TownHall);
         foreach (int player in new[] { 1, 2 }) for (int i = 0; i < 6; i++) Act(player, "recruit", 0);
         Ready();
         for (int tick = 0; tick < 2000 && (authority.Phase == Phase.Combat || authority.Snapshot().DyingBodies.Length > 0); tick++) authority.Step();

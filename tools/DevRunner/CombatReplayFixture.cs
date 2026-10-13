@@ -74,7 +74,7 @@ internal static class CombatReplayFixture
                 if (!result.Accepted) throw new InvalidOperationException(result.Message);
             }
             Append("settlement-" + population, false);
-            for (int turn = 0; turn < 4; turn++) Apply(match, 1, "ready");
+            for (int turn = 0; turn < 3; turn++) Apply(match, 1, "ready");
             for (int tick = 0; tick < 300 && match.Phase == Phase.Combat; tick++) match.Step();
             Append("combat-" + population, true);
             void Append(string view, bool advancing)
