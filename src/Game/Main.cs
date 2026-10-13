@@ -56,6 +56,7 @@ public partial class Main : Node, IGameSession
     private string _host = "127.0.0.1";
     private string _bind = "127.0.0.1";
     private ulong? _combatSeed;
+    private string? _receivingEncounter;
     private long _localSequence = 1;
     private ulong _lastBroadcast;
     private VerificationPacing _pacing = new(null, null, null);
@@ -167,6 +168,7 @@ public partial class Main : Node, IGameSession
                 case "--protocol-version": _version = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--combat-seed": _combatSeed = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
+                case "--controlled-receiving-encounter": _receivingEncounter = Value(); break;
                 case "--automated": _automated = true; break;
                 case "--simulation-speed": simulationSpeed = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--supervised": _supervised = true; break;
@@ -181,6 +183,10 @@ public partial class Main : Node, IGameSession
                 default: throw new ArgumentException($"Unknown game argument: {args[i]}");
             }
         }
+        if (_receivingEncounter is not null && (!_supervised || !_pacing.Owned || DisplayServer.GetName() != "headless"
+            || role != SessionRole.PlayingHost || _bind != "127.0.0.1" || _combatSeed != 1
+            || _receivingEncounter is not ("fallen-field" or "protected-field")))
+            throw new ArgumentException("Controlled receiving encounter requires an owned supervised headless loopback playing host, seed 1 and a named fixed case.");
         if (simulationSpeed != 1 && !_pacing.Configure(simulationSpeed, role != SessionRole.Guest))
             throw new ArgumentException("Simulation pacing requires an owned verification authority.");
         if (_port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Invalid port or timeout.");
@@ -483,6 +489,7 @@ public partial class Main : Node, IGameSession
         int peer = Multiplayer.GetRemoteSenderId();
         CommandResult? result = _authority.Request(peer, json, Time.GetTicksMsec());
         if (result is null) return;
+        ConfigureReceivingEncounter();
         MatchSnapshot state = _authority.Snapshot(); SetState(state);
         RpcId(peer, MethodName.Acknowledged, JsonSerializer.Serialize(result, WireJson.Options), SnapshotPayload.Encode(state));
         PublishState(force: true);
@@ -561,6 +568,7 @@ public partial class Main : Node, IGameSession
     }
     private void AcknowledgeLocal(CommandResult result)
     {
+        ConfigureReceivingEncounter();
         Feedback = result.Message; SetState(_authority!.Snapshot()); QueueCue(result);
         Emit(new("ack", 1, State, result.Message, PlayerId, result));
         PublishState(force: true);
@@ -583,6 +591,7 @@ public partial class Main : Node, IGameSession
             _pacing.Run(() =>
             {
                 Phase before = _authority.Phase;
+                ConfigureReceivingEncounter();
                 _authority.Step();
                 if (_authority.Phase != before) PublishState(force: true);
             }, () => _authority.Paused);
@@ -590,6 +599,12 @@ public partial class Main : Node, IGameSession
         }
         else if (_role == SessionRole.Guest && !Connected && Status == "Connecting" && Time.GetTicksMsec() - _started > (ulong)_connectionTimeout)
             FailConnection("connection-failed", "Connection deadline expired.");
+    }
+
+    private void ConfigureReceivingEncounter()
+    {
+        if (_receivingEncounter is not null && _authority!.ConfigureReceivingEncounter(_receivingEncounter == "protected-field"))
+            Emit(new("controlled-encounter", State: _authority.Snapshot(), Message: _receivingEncounter + ": explicit synthetic tower materials / member wound / physical poses / Keep health; numerical transport only."));
     }
 
     private void PublishState(bool force)

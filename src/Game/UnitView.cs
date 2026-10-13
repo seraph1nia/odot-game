@@ -111,7 +111,9 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     {
         if (current is not null) State = current;
         UnitState state = State;
-        tick = state.Hex?.FrozenTick ?? tick;
+        // FrozenTick freezes physical motion/facing, not the corpse's death
+        // clip. The shared playback clock (including pause) owns that clip.
+        if (!Dead) tick = state.Hex?.FrozenTick ?? tick;
         Visible = PresentationLimits.SamplesPose(state, focus);
         _statusBadge.Text = Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
         _statusBadge.Visible = false; // Compact squad summary owns default status presentation.

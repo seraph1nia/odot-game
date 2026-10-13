@@ -105,6 +105,7 @@ internal sealed partial class Runner
             {
                 "solo-session" => "Socketless local authority and fresh application session state; pure core tests miss delivery/lifetime.",
                 "playing-host-lifecycle" => "Bound host, real guest delivery, reconnect and host termination; dedicated tests lack local authority presentation.",
+                "active-fallen" => "Fixed numerical active-field Keep-health controls: real host/ENet/codec, exact member/action/claim receiving, same-host peer/process resume and actual later impacts. Synthetic inputs, NOT balance/full-game acceptance.",
                 "eliminated-resume" => "Two early paid waves: exposed Keep elimination, stored survivor, exact ENet spectator receiving/reconnect/restart/ledger, command nonmutation and living-owner future allocation. Active fallen fighters are a separate deterministic authority witness.",
                 "authority-resume-victory" => "Dedicated ENet authority, ownership/refusals, retry and real peer recovery; ordinary investment through wave eight adds earned personal research, active captured burn deadlines and a paused owned process restart. Research setup bounded at wave ten/120s, reuses peers and cleanup; terminal/boss campaign owned by SessionCampaignTests.",
                 _ => "Preserved real ENet gameplay/lifecycle integration"
@@ -117,6 +118,7 @@ internal sealed partial class Runner
                     case "authority-resume-victory": await worker.AuthorityResumeVictory(options.Port ?? owned.Port(), token); break;
                     case "redistribution": await worker.Redistribution(owned.Port(), token); break;
                     case "eliminated-resume": await worker.EliminatedResume(owned.Port(), token); break;
+                    case "active-fallen": await worker.ActiveFallen(owned.Port(), token); break;
                     case "defeat": await worker.Defeat(owned.Port(), token); break;
                     case "failure-cases": await worker.FailureCases(token); break;
                     case "solo-session": await worker.SoloSessionTest(token); break;

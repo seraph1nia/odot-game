@@ -121,17 +121,34 @@ internal sealed partial class CombatSimulation : IDisposable
     private CombatUnit ProjectMember(CombatUnit member)
     {
         if (member.Location.Lifecycle == UnitLifecycle.Dying || !_squads.TryGetValue(member.SquadId, out CombatSquad? squad)) return member;
-        return member with { Location = squad.Location with { Lifecycle = member.Location.Lifecycle }, Action = squad.Action, Decision = squad.Decision };
+        HexPosePoint? aim = squad.Location.FrozenAim;
+        if (member.StrikeAim is { } observed && observed.AttackSequence == squad.Action.AttackSequence
+            && squad.Action.Attack?.Target is { Kind: CombatTargetKind.Unit } target && observed.SquadId == target.Id
+            && (squad.Location.FrozenTick is not null || !_entities.TryGetValue(observed.MemberId, out Entity aimed)
+                || _world.Get<CombatUnit>(aimed).Health <= 0)) aim = observed.Pose;
+        // Live targets already have received poses. Do not repeat an unused
+        // FrozenAim in every event/member payload and inflate bounded history.
+        return member with
+        {
+            Location = squad.Location with
+            {
+                Lifecycle = member.Location.Lifecycle,
+                FrozenAim = aim
+            },
+            Action = squad.Action,
+            Decision = squad.Decision
+        };
     }
     private UnitState Project(CombatUnit member)
     {
         CombatUnit projection = ProjectMember(member);
         UnitState state = CombatProjection.Snapshot(projection, _tick, _work);
         if (projection.Action.Attack?.Target is not { } target) return state;
+        int primary = target.Kind != CombatTargetKind.Unit ? 0 : member.StrikeAim?.AttackSequence == projection.Action.AttackSequence && member.StrikeAim.SquadId == target.Id ? member.StrikeAim.MemberId
+            : _squads.TryGetValue(target.Id, out CombatSquad? defender) ? Members(defender).FirstOrDefault()?.Id ?? 0 : 0;
         return state with
         {
-            TargetId = target.Kind == CombatTargetKind.Unit && _squads.TryGetValue(target.Id, out CombatSquad? defender)
-                ? Members(defender).FirstOrDefault()?.Id ?? 0 : target.Id,
+            TargetId = target.Kind == CombatTargetKind.Unit ? primary : target.Id,
             TargetCity = target.Kind != CombatTargetKind.Unit,
             TargetKind = target.Kind switch { CombatTargetKind.Unit => SquadTargetKind.Squad, CombatTargetKind.City => SquadTargetKind.Keep, _ => SquadTargetKind.Watchpost }
         };
@@ -207,7 +224,7 @@ internal sealed partial class CombatSimulation : IDisposable
     internal void Assign(int id, ArmyAssignment assignment)
     {
         CombatUnit member = Unit(id); int old = member.SquadId;
-        member = member with { Assignment = assignment, Location = new(assignment.Stored ? UnitLifecycle.Stored : UnitLifecycle.Queued, default), Statuses = StatusState.Empty };
+        member = member with { Assignment = assignment, Location = new(assignment.Stored ? UnitLifecycle.Stored : UnitLifecycle.Queued, default), Statuses = StatusState.Empty, StrikeAim = null };
         // Hide the member's old claim while finding its destination group.
         Unit(id) = member with { SquadId = 0 };
         int squad = FindSquad(member);
@@ -218,7 +235,7 @@ internal sealed partial class CombatSimulation : IDisposable
     internal void RestoreHomes()
     {
         foreach (CombatUnit member in Living())
-            Unit(member.Id) = member with { Location = new(member.Assignment is { Stored: true } ? UnitLifecycle.Stored : UnitLifecycle.Alive, default), Statuses = StatusState.Empty };
+            Unit(member.Id) = member with { Location = new(member.Assignment is { Stored: true } ? UnitLifecycle.Stored : UnitLifecycle.Alive, default), Statuses = StatusState.Empty, StrikeAim = null };
         foreach (CombatSquad squad in _squads.Values.ToArray())
         {
             CombatUnit? first = Living().FirstOrDefault(u => u.SquadId == squad.Id);
@@ -290,7 +307,8 @@ internal sealed partial class CombatSimulation : IDisposable
                 Location = new(member.Assignment is { Stored: true } ? UnitLifecycle.Stored
                 : reserves.Contains(member.Id) || member.Faction == Faction.Adventurers && (_eliminatedOwners.Contains(member.Owner) || owners.Any(c => c.Id == member.Owner && c.Eliminated)) ? UnitLifecycle.Reserve
                 : member.Faction == Faction.Skeletons ? UnitLifecycle.Queued : UnitLifecycle.Alive, default),
-                Statuses = StatusState.Empty
+                Statuses = StatusState.Empty,
+                StrikeAim = null
             };
         foreach (CombatSquad squad in _squads.Values.ToArray())
         {
@@ -370,6 +388,9 @@ internal sealed partial class CombatSimulation : IDisposable
                 foreach (StrikeContribution contribution in contributions)
                 {
                     CombatUnit attacker = attackers.Single(m => m.Id == contribution.AttackerMemberId);
+                    CombatUnit primary = defenders.Single(m => m.Id == contribution.PrimaryMemberId);
+                    attacker = attacker with { StrikeAim = new(action.AttackSequence, target.Id, primary.Id, ProjectMember(primary).Pose(tick)) };
+                    Unit(attacker.Id) = attacker;
                     foreach (MemberDamage hit in contribution.Damage.Where(d => d.Damage > 0))
                     {
                         CombatUnit defender = defenders.Single(m => m.Id == hit.MemberId); int amount = defender.Capabilities.Reduce(hit.Damage);
@@ -515,8 +536,17 @@ internal sealed partial class CombatSimulation : IDisposable
             Decision = squad.Decision with
             { ObjectiveId = target.Id, ObjectiveCity = target.Kind != CombatTargetKind.Unit, ObjectiveCell = cell, Route = [], Visited = [] }
         };
-        CombatUnit? primary = target.Kind == CombatTargetKind.Unit && _squads.TryGetValue(target.Id, out CombatSquad? defender) ? Members(defender).FirstOrDefault() : null;
-        foreach (CombatUnit member in members) Emit(CombatEventType.AttackStarted, ProjectMember(member), primary?.Id ?? target.Id, target.Kind != CombatTargetKind.Unit, primary: primary);
+        CombatUnit[] defenders = target.Kind == CombatTargetKind.Unit && _squads.TryGetValue(target.Id, out CombatSquad? defender) ? Members(defender) : [];
+        CombatAction committed = _squads[squad.Id].Action;
+        foreach (CombatUnit member in members)
+        {
+            int primaryId = defenders.Length == 0 ? 0 : SquadDamage.Primary(defenders.Select(d => d.Id),
+                Key(member.Id, squad.Destination, committed.AttackSequence, 0, CombatPurpose.Splash));
+            CombatUnit? primary = defenders.FirstOrDefault(m => m.Id == primaryId);
+            CombatUnit observed = member with { StrikeAim = primary is null ? null : new(committed.AttackSequence, target.Id, primary.Id, ProjectMember(primary).Pose(_tick)) };
+            Unit(member.Id) = observed;
+            Emit(CombatEventType.AttackStarted, ProjectMember(observed), primary?.Id ?? target.Id, target.Kind != CombatTargetKind.Unit, primary: primary);
+        }
     }
     private void StartDefense(City city, DefenseActor defense)
     {
@@ -539,6 +569,9 @@ internal sealed partial class CombatSimulation : IDisposable
                 : target.Kind == CombatTargetKind.City ? _arena.Keep(target.Id) : _arena.Watchpost(target.Id);
             return new(new(cell, 1));
         }
+        if (member.StrikeAim?.AttackSequence == member.Action.AttackSequence && member.StrikeAim.SquadId == target.Id)
+            return _entities.TryGetValue(member.StrikeAim.MemberId, out Entity aimed)
+                ? ProjectMember(_world.Get<CombatUnit>(aimed)).Pose(_tick) ?? member.StrikeAim.Pose : member.StrikeAim.Pose;
         // Retained casualties are still available during simultaneous resolution.
         // Capture a value pose, never a live target reference or an occupancy lease.
         CombatUnit? defender = All().Where(u => u.SquadId == target.Id && u.Deployed)
@@ -562,6 +595,10 @@ internal sealed partial class CombatSimulation : IDisposable
                 FrozenMoveTicks = projected.Action is CombatAction.Moving move ? checked((int)(_tick - move.StartTick)) : 0
             }
         };
+        // A primary can die during someone else's pending windup. Retain its
+        // exact physical death pose, not a new live member of the same group.
+        foreach (CombatUnit observer in Living().Where(u => u.StrikeAim?.MemberId == member.Id))
+            Unit(observer.Id) = observer with { StrikeAim = observer.StrikeAim! with { Pose = projected.Pose(_tick) } };
         Emit(CombatEventType.Death, Unit(member.Id));
         if (_squads.TryGetValue(member.SquadId, out CombatSquad? squad) && squad.Alive && Members(squad).Length == 0)
         {

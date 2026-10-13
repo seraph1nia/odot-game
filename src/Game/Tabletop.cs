@@ -551,7 +551,7 @@ public partial class Tabletop : Node3D
             }
         }
     }
-    private void UpdateStockpiles(Node3D board, CityState city)
+    internal void UpdateStockpiles(Node3D board, CityState city)
     {
         int gold = PresentationLimits.StockpileCount(city.Gold), food = PresentationLimits.StockpileCount(city.Food), wood = PresentationLimits.StockpileCount(city.Wood);
         string key = $"{gold}:{food}:{wood}";

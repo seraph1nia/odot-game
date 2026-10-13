@@ -28,11 +28,16 @@ public static class SquadDamage
         if (defenders.Length == 0) return [];
         return strikes.Select(strike =>
         {
-            int primary = defenders.OrderBy(id => SeededDecision.Mix(SeededDecision.State(key with { ActorId = strike.MemberId }) ^ (ulong)id)).ThenBy(id => id).First();
+            int primary = Primary(defenders, key with { ActorId = strike.MemberId });
             return new StrikeContribution(strike.MemberId, primary, defenders.Select(id => new MemberDamage(id,
                 id == primary ? strike.Damage.Primary : strike.Damage.Secondary)).ToArray());
         }).ToArray();
     }
+    // The same existing seeded selection projects a member's visual intent;
+    // presentation never performs its own random choice or target-group AI.
+    internal static int Primary(IEnumerable<int> defenders, CombatDecisionKey key)
+        => defenders.OrderBy(id => SeededDecision.Mix(SeededDecision.State(key) ^ (ulong)id)).ThenBy(id => id).First();
+
     public static MemberDamage[] Accumulate(IEnumerable<StrikeContribution> contributions)
         => contributions.SelectMany(c => c.Damage).GroupBy(d => d.MemberId).OrderBy(g => g.Key)
             .Select(g => new MemberDamage(g.Key, checked(g.Aggregate(0, (sum, damage) => checked(sum + damage.Damage))))).ToArray();

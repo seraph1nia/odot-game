@@ -3,6 +3,11 @@ namespace Game.Core;
 internal sealed record CombatLocation(UnitLifecycle Lifecycle, HexPosition Position, long AdmittedTick = 0,
     long DeathStartTick = 0, long DeathEndTick = 0, int FrozenMoveTicks = 0, long? FrozenTick = null, HexPosePoint? FrozenAim = null);
 
+// Observed intent/realized primary of a squad-owned strike, never AI or damage
+// input. Its detached pose keeps a lost primary from visually retargeting during
+// recovery; existing TargetId/FrozenAim snapshot fields carry the observation.
+internal sealed record StrikeAim(long AttackSequence, int SquadId, int MemberId, HexPosePoint? Pose);
+
 // This value is stored once, as an Arch component. Numerical policies receive
 // immutable values; the serialized UnitState never serves as simulation input.
 internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfile Profile, CombatLocation Location,
@@ -11,6 +16,7 @@ internal sealed record CombatUnit(UnitIdentity Identity, int Health, WeaponProfi
     public int SquadId { get; init; }
     public int FormationSlot { get; init; }
     public int Experience { get; init; }
+    public StrikeAim? StrikeAim { get; init; }
     public UnitCapabilities Capabilities { get; init; }
     public ArmyAssignment? Assignment { get; init; }
     public bool RecoveryEligible { get; init; }

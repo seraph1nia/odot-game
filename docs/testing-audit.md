@@ -902,6 +902,77 @@ independent work. Final paid calibration, including ranged viability/cooperative
 Keep danger, awaits that prerequisite. No model/session/tool/dependency/asset/global
 change, full pipeline, push, PR or publication occurred.
 
+## Controlled active-field ENet and native presentation (2026-10-13)
+
+Instruction014 closes a specific active fallen-fighter receiving gap, not complete
+network/reconnect, earned balance or graphical acceptance. The independent
+`active-fallen` selector joins eight retained deep network cases; the three
+ordinary defaults stay unchanged. Its fixed seed1 production playing-host/ENet/
+session/codec encounter has two identified six-member field rosters and explicitly
+synthetic tower materials, one enemy, physical poses, a 33-HP member and 5-HP Keep.
+The paired disconfirming control changes only that Keep to 100 HP. No seed search,
+new simulator/supervisor/general loader/RPC mutation or phase implementation.
+
+| Boundary | Executed proof / preserved limitation |
+| --- | --- |
+| Active fallen fighters, not stored substitutes | Actual peer sees a nonempty current field roster after Keep loss, exact authoritative member/HP/squad/source/action/claim/event/config agreement at accepted pause, new-peer and credential-file process resume on the original host, and a later landed field impact with nonempty victims. A missed live window fails. Keep-health control remains alive at its received impact. Controlled inputs are not earned injury/economy/balance. |
+| Ownership/future/host negatives | Owned guest actually refuses the named fixture before peer/session creation. Fallen owner weapons stop (same-tick effects remain legal); actual unpaused city commands/refused retries preserve full gameplay. Living owner alone settles and advances, fallen fighters become next-wave Reserve with no claims. Original-host end disables requests. Existing paid spectator ledger, malformed/legacy codec, same-tick defeat, Watchpost disruption and real abrupt-host cases remain independent, not inferred from this encounter. |
+| Numerical primary observation | Fixed 1-v-3 production encounter first reproduced representative member2 instead of actual seeded primary3. `StrikeAim` now records squad-owned intent/realized primary through existing TargetId/FrozenAim fields; death/recovery cannot visually retarget. Same X/Y selector/key, profiles, damage, rules7/protocol14 and full configuration identity stay unchanged. This observation is not member AI or damage input. |
+| Native source/primary/arrival/projectile | Strengthened existing minimal `animation` case uses genuine imported rigs/AnimationTree/bones/socket and native projectile meshes. Zero-X/five-member uncapped Y-only impacts identify the actual primary/secondary victims. Launch predicts only already committed movement, actual impacts use pre-damage pose plus member formation; no future-move/hit guarantee or pixel/choreography claim. |
+| Native individual health/status/death/resources | Real health control preserves hundredths/max/fraction/input transparency; individual Chill versus healthy squadmates and formation offsets remain distinct. A real other-squad kill produces a committed miss, not a forged cue. Corpse physical pose freezes while actual imported death skeleton advances on common playback clock, health/status hide, logical expiry and actual node release complete. Stock resources instantiate from unchanged immutable exports; accepted quote/codec updates coarse props at real band crossing, never optimistically or within-band needlessly. Existing receiving case covers exact resource labels/signals and native HUD/Worldtree. |
+| Payload/custody | First broad selection caught 4,112,123 JSON characters against retained 4,000,000 bound. Unused live-target FrozenAim repetition was removed, not the bound enlarged. Existing ordered Child/ScenarioScope waits, PID/exit/runtime receipts remain; no new reader, shutdown/admission/deadline or history policy. |
+
+Retained evidence root: `logs/shared-arena-task/presentation-batch/`.
+- `encounter.txt`: **1 passed / 1 failed**, querying a now-expired historical
+  destruction event at later impact. Capture the actual destruction barrier,
+  not wider history; `encounter-02.txt`: **2/2, 2.69s including runner**.
+- `primary-before.txt`: actual primary3 / representative2; `primary-after.txt`:
+  three overlapping focused preflights passed **2.81s**. `native-before.txt`:
+  fixture incorrectly expected a percentage in compact Chill badge; corrected
+  actual per-member badge/state, not production UI. `native-before-02.txt` catches
+  stale/group-center launch aim. `native-aim-after.txt` then catches frozen death
+  skeleton. One-line UnitView clock distinction fixes it; measured pose0 to
+  0.6458333134651184 at tick52 while physical (3,0,93.753845) stays identical,
+  death interval28..76. `native-death-after.txt` retained a coarse-stockpile test
+  assumption: six/four wood are intentionally the same band. Actual three paid
+  Farm quotes cross wood6 to0; no resource tuning.
+- `coherent-fast.txt`, `logs/20261013-110359-953d4856`: **332 core passed / 1
+  failed / 333**, 51s; payload budget above fixed causally. Runner did **not**
+  complete: legacy MeleeVisualProofTests used old one-sector board/city-filtered
+  milestone/old exact windows and CombatProgressionProofTests used anchor3;
+  cancellation retained alongside two unexecuted Windows platform rows. These
+  graphical-validator input/production seams need coherent replacement, not
+  assertion-by-assertion tuning. No full-fast pass is claimed.
+- `bounded-history-02.txt`: budget/primary selection **2/2, 3.00s** after narrow
+  payload correction. `affected-final.txt`, `logs/20261013-111522-c6d53920`:
+  **261 core + 104 runner passed, zero failures/skips, 39.80s**, exact filter
+  retained. Overlaps are not summed; this is partial affected-fast coverage.
+- `network.txt`, `logs/20261013-102101-45a7baff`: original real controlled
+  witness/control **22.70s / 28.08s including preparation**. After primary/payload
+  changes plus guest gate negative, `network-final.txt`,
+  `logs/20261013-111638-8e05d8f1`: **21.22s / 26.31s**. Expected guest exit1,
+  ordinary peers exit0; actual same-host active-field receiving/impact, not a
+  component adapter or complete end-user acceptance.
+- `native-final.txt`, `logs/20261013-111432-84a250d3`: strengthened minimal
+  animation **1.85s / 9.87s**. `arena-final.txt`,
+  `logs/20261013-111954-fbe47fb1`: **3.43s / 8.60s**;
+  `receiving-final.txt`, `logs/20261013-112004-1c442e15`: **24.06s / 29.35s**.
+  Serialized locked preparation; no graphical/world/application acceptance.
+- Final review computes each intent primary once per contributor rather than
+  again inside a member-search predicate; numerical selection is unchanged.
+  `review-last.txt`: **4 overlapping focused rows passed, 4.33s**;
+  `build-last.txt`: **0 warnings/errors, 18.00s**. Custody checks verify recorded
+  owned PIDs/runtime paths absent; immutable manifest check covers57 files with
+  zero SHA/byte mismatches. Formatting/source/whitespace review passed.
+
+Instruction015 subsequently reports battle-flow PR24 actually landed at
+`a557e3f811ea294d348c6d5bc412a7b621d40149`, MAIN78477f8. This checkpoint still
+qualifies the pre-integration head. Independently verify/merge that source next,
+explicitly reconcile the two protocol14 schemas/identities/refusals, and rerun
+actual final no-fourth-spending paid calibration (including ranged defeats and
+cooperative Keep risks). Full-fast/deep/stress/packages/final-head CI and rendered
+art/GPU remain unfinished; no first task done, owning pipeline or publication.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints

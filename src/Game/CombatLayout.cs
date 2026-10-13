@@ -8,6 +8,8 @@ namespace Game;
 internal sealed class CombatLayout(HexBoard board)
 {
     private int _capacity = 3;
+    private string? _match;
+    private readonly Dictionary<int, Vector3> _formations = []; // Cosmetic offsets only; reset per match/playback layout.
     internal static Vector3 ArenaOrigin => new(0, 0, 100);
     private Vector3 Offset => CellCenter(board.Cells[0].Id).Lerp(CellCenter(board.Cells[^1].Id), .5f);
     public static Vector3 Center(int city) => new((city - 1) * 40, 0, 0);
@@ -17,7 +19,14 @@ internal sealed class CombatLayout(HexBoard board)
         return new(coordinate.Column * VillageLayout.HalfWidth * 2 + (Math.Abs(coordinate.R) % 2) * VillageLayout.HalfWidth, 0, coordinate.R * VillageLayout.RowStep);
     }
     internal Vector3 CellPosition(int id) => CellCenter(id) - Offset;
-    internal void Synchronize(MatchSnapshot state) => _capacity = state.Rules.Arena.SquadCapacity;
+    internal void Synchronize(MatchSnapshot state)
+    {
+        if (_match != state.MatchId) { _formations.Clear(); _match = state.MatchId; }
+        _capacity = state.Rules.Arena.SquadCapacity;
+        foreach (UnitState member in state.CombatEvents.Where(e => e.Unit is not null).Select(e => e.Unit!)
+            .Concat(state.Enemies).Concat(state.Players.SelectMany(c => c.Soldiers)).Concat(state.DyingBodies))
+            _formations[member.Id] = Formation(member);
+    }
     private Vector3 Formation(UnitState unit)
     {
         if (unit.IsBoss) return Vector3.Zero;
@@ -55,10 +64,12 @@ internal sealed class CombatLayout(HexBoard board)
         else if (unit.Hex is { FrozenAim: { } aim } frozen && (frozen.Lifecycle == UnitLifecycle.Dying || frozen.FrozenTick is not null)) direction = AimPosition(unit, aim) - from;
         else if (unit.TargetCity && Arena is not null) direction = StructurePosition(unit.TargetId, unit.TargetKind, Arena) - from;
         else if (units.TryGetValue(unit.TargetId, out UnitState? target) && target.Deployed) direction = Position(target, tick) - from;
+        else if (unit.Hex?.FrozenAim is { } lost) direction = AimPosition(unit, lost) - from;
         if (direction.LengthSquared() < .00001f) direction = new(0, 0, unit.Faction == Faction.Adventurers ? -1 : 1);
         return Mathf.Atan2(direction.X, direction.Z);
     }
-    public Vector3 AimPosition(UnitState unit, HexPosePoint aim) => PosePosition(unit.Destination, aim);
+    public Vector3 AimPosition(UnitState unit, HexPosePoint aim)
+        => PosePosition(unit.Destination, aim) + (!unit.TargetCity ? _formations.GetValueOrDefault(unit.TargetId) : Vector3.Zero);
     public Vector3 PosePosition(int city, HexPosePoint pose)
     {
         HexUnitState target = new(0, city, Faction.Adventurers, UnitLifecycle.Alive, pose.Position,
@@ -69,6 +80,16 @@ internal sealed class CombatLayout(HexBoard board)
     {
         if (entry.Structure is { } structure) return ArenaOrigin + CellPosition(structure.Cell) + new Vector3(0, 1, 0);
         if (entry.TargetCity && entry.Unit is { } unit && Arena is not null) return StructurePosition(entry.TargetId, unit.TargetKind, Arena) + new Vector3(0, 1, 0);
-        return entry.ImpactPose is { } pose ? PosePosition(1, pose) + new Vector3(0, .5f, 0) : null;
+        if (entry.ImpactPose is not { } pose) return null;
+        // Launch predicts only the target's already committed transition, never
+        // a later move or guaranteed hit. Impact uses the actual pre-damage pose.
+        if (entry.Type == CombatEventType.AttackStarted)
+        {
+            long untilImpact = (entry.Tower?.ImpactTick ?? entry.Unit!.ImpactTick) - entry.Tick;
+            pose = pose with { ElapsedTicks = checked(pose.ElapsedTicks + (int)Math.Clamp(untilImpact, 0, Math.Max(0, pose.DurationTicks - pose.ElapsedTicks))) };
+        }
+        Vector3 formation = entry.Type is CombatEventType.Hit or CombatEventType.Death && entry.Unit is { } member
+            ? Formation(member) : _formations.GetValueOrDefault(entry.TargetId);
+        return PosePosition(1, pose) + formation + new Vector3(0, .5f, 0);
     }
 }

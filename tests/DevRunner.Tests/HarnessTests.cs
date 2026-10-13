@@ -395,6 +395,7 @@ public sealed class HarnessTests
         Options selected = Options.Parse(["test-network", "--scenario", "defeat", "--jobs", "1"]);
         Assert.Equal("defeat", selected.Scenario); Assert.Equal(1, selected.Jobs);
         Assert.Equal("eliminated-resume", Options.Parse(["test-network", "--scenario", "eliminated-resume"]).Scenario);
+        Assert.Equal("active-fallen", Options.Parse(["test-network", "--scenario", "active-fallen"]).Scenario);
         Assert.Equal(2, Options.Parse(["test-network"]).Jobs);
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-network", "--scenario", "defeat", "--port", "7001"]));
         Assert.Equal(7001, Options.Parse(["test-network", "--scenario", "authority-resume-victory", "--port", "7001"]).Port);

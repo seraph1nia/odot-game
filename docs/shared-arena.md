@@ -127,6 +127,8 @@ source/action/claims and individual HP; a later fallen-owner strike lands, servi
 persists, and its members become nonparticipating reserves next wave. The same-tick
 last-enemy/last-Keep codec witness still requires defeat, no reward and valid claims.
 These inputs are not earned balance or active fallen-fighter ENet evidence.
+The independent controlled ENet witness below now closes that specific active-field
+receiving gap; it does not turn this paid stored-spectator selector into active proof.
 
 The minimal native `arena` component receives compressed compatible snapshots,
 retains the fallen roster, denies actual disabled readiness input and guarded
@@ -135,8 +137,32 @@ Its delayed session adapter is explicitly not transport. Exact executed receipts
 first failures, terminal owned PID/exit evidence and remaining gaps are in the
 [testing audit](testing-audit.md#shared-squad-eliminated-owner-receiving-and-resume-2026-10-13).
 Malformed/legacy compressed shapes remain direct codec negatives; old-protocol
-handshake refusal is real ENet. Complete end-user networking, active fallen-fighter
-ENet capture, packages, final timing and native artistic acceptance remain separate.
+handshake refusal is real ENet. Complete end-user networking, packages, final timing
+and native artistic acceptance remain separate.
+
+### Controlled active-field receiving
+
+`test-network --scenario active-fallen` runs a fixed seed1 numerical encounter on
+existing production playing-host/ENet/session/codec owners. Two identified
+six-member field rosters start through actual commands; the named owned fixture
+explicitly supplies synthetic tower materials, physical poses, a 33-HP member,
+one retained enemy and a 5-HP Keep. Its paired disconfirming control changes only
+that Keep to 100 HP. This is **controlled numerical/transport proof, not earned
+injury/economy/balance, full-game or complete network/reconnect acceptance**.
+The one-shot source-defined seam requires an owned supervised headless loopback
+playing host, seed1 and a named case; an owned guest is actually refused before
+session/peer creation. It is not a general state loader or network command.
+
+The peer actually receives nonempty active fallen fields, exact member/HP/squad/
+source/action/claim/event/config agreement at an accepted pause, new-peer and
+credential-file process restoration on the same original host, and a later
+landed field impact with nonempty victims. Fallen-owner weapons stop (same-tick
+simultaneous effects remain legal), city commands and refused retries cannot
+mutate state, and the living owner alone produces/advances while those veterans
+become next-wave nonparticipating reserves without claims. Original-host end
+disables requests. Existing paid/codec/malformed/legacy/same-tick defeat/Watchpost/
+actual abrupt-host negatives remain separate retained witnesses. No missed live
+window or stored veteran can satisfy this selector's active-field guards.
 
 ## Provisional paid campaign measurements
 
@@ -166,7 +192,24 @@ home. Combat presents all owners together, with local camera navigation only.
 owned tiles and compact per-member HP/count/status summaries. Its camera derives
 bounds and travel from the complete arena, not old per-city framing. Formation
 slots persist in snapshots, while animation, member offsets and short melee
-lunges remain cosmetic. The opaque native base covers the projected safe camera
+lunges remain cosmetic. `StrikeAim` is detached observation of the squad-owned
+seeded intent/realized primary, not member AI or a damage input. The same existing
+X/Y selection supplies that observation; a primary death cannot silently point
+recovery at another member. Existing TargetId/FrozenAim fields carry it without
+new rules/profile/wire shape or a second simulator. Unneeded live-target frozen
+poses are not repeated into bounded event payloads.
+
+Native cue projection includes the selected member's formation. Launch predicts
+only its already committed transition through the impact deadline—not later
+moves or a guaranteed hit; landed effects use the actual pre-damage primary pose.
+Death freezes physical position/facing while the shared paused/playback clock
+advances the imported death clip until ordinary expiry/cleanup. Coarse stockpile
+props update only across quantity bands; exact resource labels still consume
+accepted snapshots without optimistic spending. The existing `animation` minimal
+component now checks actual AnimationTree/bones/socket/projectile/health/status/
+formation/death/cleanup/stock resources, plus a real numerical committed-miss
+control. These are headless resource/node proofs, not pixels or choreography.
+The opaque native base covers the projected safe camera
 boundary. Keep fall disables defenses without inventing tower destruction.
 
 The existing headless component runner has a focused `test-engine --scenario arena`

@@ -49,6 +49,33 @@ public sealed class SharedCombatTests
         Assert.DoesNotContain(combat.Events(), e => e.Type == CombatEventType.SquadDeath && e.SquadId == target.Id);
     }
 
+    // Tier A: a representative squad member is not the realized numerical
+    // primary. Existing damage totals miss wrong native aim/early recovery loss.
+    // One fixed 1-v-3 encounter/12 steps, no transport/graphics (estimated <1s).
+    [Fact]
+    public void RealizedPrimaryRemainsThePublishedAimAfterItsDeathWithoutRetargetingTheCommittedGroup()
+    {
+        using var combat = new CombatSimulation(new() { SoldierDamage = 15, RangedDamage = 0 });
+        int actor = Group(combat, UnitType.Swordsman, 1, 1, Faction.Adventurers, 17)[0];
+        int[] defenders = Group(combat, UnitType.Crossbowman, 3, 0, Faction.Skeletons, 18);
+        foreach (int id in defenders) combat.Seed(combat.Inspect(id) with { Health = HealthPoints.FromWhole(10) });
+        combat.StartActions([]);
+        CombatEvent started = Assert.Single(combat.Events(), e => e.Type == CombatEventType.AttackStarted && e.Unit?.Id == actor);
+        combat.Advance(12, []);
+        CombatEvent impact = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == actor);
+        UnitState recovery = combat.Read(actor);
+        Assert.True(impact.Landed); Assert.Equal(0, combat.Read(impact.TargetId).Health);
+        Assert.Equal(2, combat.Enemies().Length);
+        Assert.Equal(impact.TargetId, started.TargetId);
+        Assert.Equal(impact.TargetId, impact.Unit!.TargetId);
+        Assert.Equal(impact.TargetId, recovery.TargetId);
+        Assert.Equal(impact.ImpactPose, recovery.Hex!.FrozenAim);
+        Assert.Equal(UnitActionKind.Recovery, recovery.Hex.Action);
+        Assert.Equal(started.Unit!.AttackSequence, recovery.AttackSequence);
+        Assert.Equal(started.Unit.ReadyTick, recovery.ReadyTick);
+        Assert.Contains(combat.Reservations.Positions, p => p.UnitId == combat.Read(impact.TargetId).SquadId && p.Cell == 18); // The surviving target squad still owns its source.
+    }
+
     [Fact]
     public void KeepCanBeHitWhileDistantAlliesLiveAndFallenOwnersSurviveTheBattle()
     {
