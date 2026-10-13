@@ -173,7 +173,7 @@ internal sealed partial class Runner
         await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Building, "solo ordinary turn progression", token);
         turn = Latest(client).TurnSerial;
         await ClickAck(client, "Ready", token);
-        await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Building, "solo funded building production", token);
+        await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Preparation, "solo second production enters final preparation", token);
         await Pick(client, 1, token);
         await ClickAck(client, "Barracks", token);
         UiObservation recruitment = await UiProtocol.Probe(client, options.StartupTimeout, token);
@@ -181,12 +181,9 @@ internal sealed partial class Runner
         Require(meleeControl.X > 0 && meleeControl.X < recruitment.Width && meleeControl.Y > 0 && meleeControl.Y < recruitment.Height, "Recruit fits at " + size);
         GameEvent recruit = await ClickAck(client, "Recruit", token);
         Require(State(recruit).Players[0].Soldiers.Length == 1, "solo explicit recruitment follows ordinary production");
-        turn = Latest(client).TurnSerial;
-        await ClickAck(client, "Ready", token);
-        await Observe(client, s => s.TurnSerial > turn && s.Phase == Phase.Preparation, "solo third ordinary production", token);
-        // This menu route enters no battle and needs no further production. The
-        // actual Farm investment refunds the last wood needed for ranged equipment.
+        Require(Latest(client).Phase == Phase.Preparation && Latest(client).ProductionCount == 2, "solo final preparation retains two settled productions before its last settlement");
         await Action(client, "sell 0", token);
+        await Action(client, "sell 1", token);
         await Pick(client, 2, token);
         await ClickAck(client, "Sell", token);
         await ClickAck(client, "ArcheryRange", token);

@@ -78,12 +78,8 @@ internal sealed partial class Runner
     {
         MatchSnapshot? resolved = null;
         foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
-        if (resolved!.Phase == Phase.Preparation)
-        {
-            MatchSnapshot preparation = resolved;
-            foreach (Child child in clients) await Observe(child, s => s.Phase == Phase.Preparation && s.TurnSerial == preparation.TurnSerial, "preparation synchronization", token);
-            foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
-        }
+        // One Advance means one visible numbered preparation, never a hidden
+        // extra income-free ready check. Final editing happens in preparation 3.
         MatchSnapshot target = resolved!;
         // Ready can acknowledge Preparation while the next authority tick
         // starts combat, before peers receive that intermediate revision.
@@ -245,7 +241,7 @@ internal sealed partial class Runner
         int deadId = c.PlayerId;
         await Action(a, "start", token); foreach (Child p in new[] { b, c }) await Observe(p, s => s.Phase == Phase.Building, "transfer start", token);
         await Economy(a, token); await Economy(b, token);
-        for (int preparation = 0; preparation < 4; preparation++)
+        for (int preparation = 0; preparation < 3; preparation++)
         {
             await ReinforcementInvestment(a, true, token); await ReinforcementInvestment(b, false, token);
             foreach (Child child in new[] { a, b, c }) await Action(child, "ready", token);
@@ -276,10 +272,10 @@ internal sealed partial class Runner
         GameEvent restored = await observer.WaitFor(e => e.Type == "connected", "eliminated observer resume", options.StartupTimeout, token);
         Require(restored.PlayerId == deadId && State(restored).Players.Single(p => p.Id == deadId).Eliminated, "resume cannot revive eliminated city");
         await Action(observer, "build 0 mine", token, false); await Action(observer, "pause", token); await Action(observer, "resume", token);
-        for (int preparation = 0; preparation < 4; preparation++)
+        for (int preparation = 0; preparation < 3; preparation++)
         {
             await ReinforcementInvestment(a, true, token);
-            if (preparation == 3) await Action(b, "recruit 1", token);
+            if (preparation == 2) await Action(b, "recruit 1", token);
             await Action(a, "ready", token);
             MatchSnapshot advanced = State(await Action(b, "ready", token));
             await Observe(a, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase, "transfer preparation synchronized", token);
@@ -318,7 +314,7 @@ internal sealed partial class Runner
         await using var server = started.Server; port = started.Port;
         await using var client = StartGame("defeat-client", false, true, port, null, "--automated"); await client.WaitFor(e => e.Type == "connected", "defeat client", options.StartupTimeout, token);
         await Action(client, "start", token);
-        for (int readiness = 0; readiness < 4; readiness++) await Action(client, "ready", token);
+        for (int readiness = 0; readiness < 3; readiness++) await Action(client, "ready", token);
         MatchSnapshot lost = await Observe(client, s => s.Phase == Phase.Defeat, "ordinary losing strategy", token);
         Require(lost.Players.All(p => p.Eliminated && p.Health == 0) && lost.DefeatReason == DefeatReason.AllCitiesFallen && lost.Stall is null, "zero city health ends match with ordinary defeat, without stall fallback");
     }

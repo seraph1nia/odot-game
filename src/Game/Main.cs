@@ -571,7 +571,7 @@ public partial class Main : Node, IGameSession
             _pacing.Run(() =>
             {
                 Phase before = _authority.Phase;
-                _authority.Step();
+                _authority.Advance(delta);
                 if (_authority.Phase != before) PublishState(force: true);
             }, () => _authority.Paused);
             PublishState(force: false);

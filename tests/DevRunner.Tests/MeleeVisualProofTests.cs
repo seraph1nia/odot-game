@@ -67,8 +67,8 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
             }).ToArray();
         return new() { Units = units, Strikes = strikes, CombatTick = state.Tick };
     }
-    private static void Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty)
-        => Assert.True(match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[city].Slots[slot].Generation : 0)).Accepted);
+    private static void Act(Match match, int city, string action, int slot = -1, Building building = Building.Empty, ConstructionPayment payment = ConstructionPayment.Standard)
+        => Assert.True(match.Apply(city, new(1, match.Id, match.Phase, match.TurnSerial, action, city, slot, building, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[city].Slots[slot].Generation : 0, Payment: payment)).Accepted);
     [Fact]
     public void AVisibleRetainedDeathStillRequiresRenderedBodyClearance()
     {
@@ -129,12 +129,12 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
     private static Match PreparedAdmissionControl()
     {
         var match = new Match(combatSeed: 1); match.Join(); match.Join(); Act(match, 1, "start");
-        Act(match, 1, "build", 0, Building.Farm); Act(match, 1, "build", 2, Building.MetalMine); Act(match, 1, "build", 1, Building.Barracks);
-        for (int production = 1; production <= 3; production++)
-        {
-            Act(match, 1, "ready"); Act(match, 2, "ready");
-            while (match.Players[1].Soldiers.Count < 6 && match.Players[1].Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(match, 1, "recruit", 1);
-        }
+        Act(match, 1, "build", 0, Building.Farm); Act(match, 1, "build", 2, Building.MetalMine); Act(match, 1, "build", 3, Building.MetalMine);
+        Act(match, 1, "build", 4, Building.Lumbermill, ConstructionPayment.GoldRecovery);
+        for (int preparation = 1; preparation <= 2; preparation++) { Act(match, 1, "ready"); Act(match, 2, "ready"); }
+        Act(match, 1, "build", 1, Building.Barracks);
+        for (int recruit = 0; recruit < 6; recruit++) Act(match, 1, "recruit", 1);
+        Assert.Equal(6, match.Players[1].Soldiers.Count); Assert.Equal(4, match.Players[1].Metal); Assert.Equal(10, match.Players[1].Food);
         Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(0, match.Tick);
         return match;
     }
@@ -304,21 +304,20 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
     [InlineData(0UL)]
     [InlineData(1UL)]
     [InlineData(123UL)]
-    public void OrdinarySixSwordOpeningGeneratesTheRequiredCheckpointOpportunities(ulong seed)
+    public void PaidSixSwordOpeningGeneratesTheRequiredCheckpointOpportunities(ulong seed)
     {
         using var match = new Match(combatSeed: seed); match.Join(); match.Join(); Act(match, 1, "start");
-        Act(match, 1, "build", 0, Building.Farm); Act(match, 1, "build", 2, Building.MetalMine); Act(match, 1, "build", 1, Building.Barracks);
-        if (seed == 0)
+        foreach (int city in seed == 0 ? new[] { 1, 2 } : new[] { 1 })
         {
-            Act(match, 2, "build", 0, Building.Farm); Act(match, 2, "build", 2, Building.MetalMine); Act(match, 2, "build", 1, Building.Barracks);
+            Act(match, city, "build", 0, Building.Farm); Act(match, city, "build", 2, Building.MetalMine); Act(match, city, "build", 3, Building.MetalMine);
+            Act(match, city, "build", 4, Building.Lumbermill, ConstructionPayment.GoldRecovery);
         }
-        for (int production = 1; production <= 3; production++)
-        {
-            Act(match, 1, "ready"); Act(match, 2, "ready");
-            while (match.Players[1].Soldiers.Count < 6 && match.Players[1].Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(match, 1, "recruit", 1);
-            if (seed == 0) while (match.Players[2].Soldiers.Count < 6 && match.Players[2].Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(match, 2, "recruit", 1);
-        }
-        Assert.Equal(6, match.Players[1].Soldiers.Count); Assert.Equal(15, match.Players[1].Food); Assert.Equal(0, match.Players[1].Wood);
+        for (int preparation = 1; preparation <= 2; preparation++) { Act(match, 1, "ready"); Act(match, 2, "ready"); }
+        foreach (int city in seed == 0 ? new[] { 1, 2 } : new[] { 1 }) Act(match, city, "build", 1, Building.Barracks);
+        for (int batch = 0; batch < 3; batch++)
+            foreach (int city in seed == 0 ? new[] { 1, 2 } : new[] { 1 })
+                for (int recruit = 0; recruit < 2; recruit++) Act(match, city, "recruit", 1);
+        Assert.Equal(6, match.Players[1].Soldiers.Count); Assert.Equal(10, match.Players[1].Food); Assert.Equal(0, match.Players[1].Wood); Assert.Equal(4, match.Players[1].Metal);
         Act(match, 1, "ready"); Act(match, 2, "ready");
         MeleeCoverage coverage = MeleeCoverage.None; var opportunities = new HashSet<(MeleeCoverage Phase, MeleeCoverage Side)>(); bool simultaneousCapture = false;
         MeleeCoverage capturedSide = MeleeCoverage.None; long windupTick = -1, impactTick = -1;

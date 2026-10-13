@@ -65,7 +65,7 @@ public sealed class WorldtreeResearchTests
         Act("build", 0, Building.Stonecutter);
         Command stale = RequestFor("research-tech", technology: TechnologyId.MeleeFoundation); Act("ready"); Assert.Contains("Stale match, phase or turn", Send(stale with { Sequence = ++sequence }).Message);
         for (int slot = 1; slot <= 4; slot++) Act("build", slot, Building.ResearchTower);
-        Act("upgrade", 1); Act("ready"); Act("ready");
+        Act("upgrade", 1); Act("ready");
         Act("research-tech", technology: TechnologyId.MeleeFoundation); Act("research-tech", technology: TechnologyId.Guardian);
         Command purchase = RequestFor("research-tech", technology: TechnologyId.Stonecraft);
         Assert.True(Send(purchase).Accepted); Assert.Equal(Send(purchase), Send(purchase));

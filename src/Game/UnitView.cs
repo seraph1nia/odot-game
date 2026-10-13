@@ -78,7 +78,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         {
             Position = new(0, 0.015f, 0),
             Mesh = new CylinderMesh { TopRadius = 0.21f, BottomRadius = 0.21f, Height = 0.025f, RadialSegments = 12 },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new(State.Faction == Faction.Skeletons ? "bb4b43" : "487ecc"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new(State.Id < 0 ? "d9aa52" : State.Faction == Faction.Skeletons ? "bb4b43" : "487ecc"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
         };
         AddChild(_marker);
         _statusBadge = new Label3D { Name = "StatusBadge", Position = new(0, 3.5f, 0), FontSize = 32, PixelSize = .018f, VerticalAlignment = VerticalAlignment.Bottom, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Modulate = new Color("b8f5ef"), OutlineModulate = new Color("233a3f"), OutlineSize = 3, NoDepthTest = true }; AddChild(_statusBadge);
@@ -113,7 +113,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         UnitState state = State;
         tick = state.Hex?.FrozenTick ?? tick;
         Visible = PresentationLimits.SamplesPose(state, focus);
-        _statusBadge.Text = Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
+        _statusBadge.Text = state.Id < 0 ? $"NEXT • L{state.Level}" : Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
         _statusBadge.Visible = !Dead && _statusBadge.Text.Length > 0;
         _statusBadge.Modulate = state.Statuses.Burn is { } burn && tick < burn.ExpiresTick ? new Color("ffb078")
             : state.Statuses.Poison.Any(p => tick < p.ExpiresTick) ? new Color("b6ef78") : new Color("b8f5ef");

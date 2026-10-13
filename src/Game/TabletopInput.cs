@@ -7,7 +7,7 @@ public partial class Tabletop
     private Vector2? _pressPosition;
     private Vector3? _dragAnchor;
     private bool _dragging;
-    private bool BlocksWorld(Vector2 point) => Application.BlocksWorldInput(point) || _resources.GetGlobalRect().HasPoint(point) || _inspector.Contains(point);
+    private bool BlocksWorld(Vector2 point) => Application.BlocksWorldInput(point) || _resources.GetGlobalRect().HasPoint(point) || _speedPanel.Visible && _speedPanel.GetGlobalRect().HasPoint(point) || _inspector.Contains(point);
     private void CancelGesture() { _pressPosition = null; _dragAnchor = null; _dragging = false; _navigation?.Interrupt(); }
     public override void _Notification(int what)
     {
@@ -75,11 +75,5 @@ public partial class Tabletop
         if (!game.Connected || selected is < 0 or >= Game.Core.ArmyConfiguration.TotalPlots) return;
         _slot = selected; UpdateUi();
     }
-    private UnitView? PickUnit(Vector2 point)
-    {
-        Vector3 origin = _camera.ProjectRayOrigin(point), direction = _camera.ProjectRayNormal(point);
-        return _units.Values.Where(view => view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && !_camera.IsPositionBehind(view.GlobalPosition))
-            .Select(view => (View: view, Distance: VillageLayout.RayBounds(origin, direction, view.PickingBounds())))
-            .Where(hit => hit.Distance is >= 0).OrderBy(hit => hit.Distance).ThenBy(hit => hit.View.State.Id).Select(hit => hit.View).FirstOrDefault();
-    }
+    private UnitView? PickUnit(Vector2 point) => UnitPicking.Pick(_units.Values, _camera, point);
 }

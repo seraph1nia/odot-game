@@ -96,18 +96,22 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.Equal(14, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
     }
     [Fact]
-    public void ThirdProductionCanBeSpentBeforeBattleAndPreparationHasNoIncome()
+    public void FinalPreparationSettlesProductionBeforeUpkeepWithoutAnotherEditingWindow()
     {
         using Match match = Start(); Assert.True(Act(match, 1, "build", 0, Building.Farm).Accepted);
         Assert.True(Act(match, 1, "build", 1, Building.Barracks).Accepted);
         Assert.True(Act(match, 1, "build", 2, Building.MetalMine).Accepted);
-        for (int n = 0; n < 3; n++) Assert.True(Act(match, 1, "ready").Accepted);
-        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(3, match.ProductionCount); Assert.Equal(3, match.Turn);
+        for (int n = 0; n < 2; n++) Assert.True(Act(match, 1, "ready").Accepted);
+        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(2, match.ProductionCount); Assert.Equal(3, match.Turn);
         Command stale = new(1, match.Id, Phase.Building, match.TurnSerial - 1, "ready", 1);
         Assert.False(match.Apply(1, stale).Accepted);
         Assert.True(Act(match, 1, "recruit", 1).Accepted); CityState before = match.Players[1].Snapshot();
         Assert.True(Act(match, 1, "ready").Accepted); Assert.Equal(Phase.Combat, match.Phase);
-        CityState after = match.Players[1].Snapshot(); Assert.Equal(before.Gold, after.Gold); Assert.Equal(before.Food - match.Economy.Upkeep(UnitType.Swordsman), after.Food); Assert.Equal(before.Wood, after.Wood);
+        CityState after = match.Players[1].Snapshot();
+        Assert.True(before.Resources.TryAdd(before.ProductionIncome!.Value, out ResourceCost produced));
+        Assert.True(produced.TryPay(new(Food: match.Economy.Upkeep(UnitType.Swordsman)), out ResourceCost paid));
+        Assert.Equal(paid, after.Resources); Assert.Equal(3, match.ProductionCount);
+        Assert.False(Act(match, 1, "recruit", 1).Accepted);
     }
     [Theory]
     [InlineData(UnitType.Swordsman, Building.Barracks)]

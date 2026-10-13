@@ -42,11 +42,12 @@ public sealed class VillageAuthorityTests
         Assert.True(Send(Request("build", 2, Building.ResearchTower)).Accepted); Assert.True(Send(Request("build", 3, Building.ResearchTower)).Accepted);
         Assert.True(Send(Request("upgrade", 2)).Accepted); Assert.True(Send(Request("upgrade", 3)).Accepted);
         Assert.True(Send(Request("build", 1, Building.ResearchTower)).Accepted); Assert.True(Send(Request("upgrade", 1)).Accepted);
-        for (int production = 0; production < 2; production++)
-        {
-            Assert.True(Send(Request("ready")).Accepted);
-            if (production == 1) Assert.True(Send(Request("upgrade", 7)).Accepted);
-        }
+        Assert.True(Send(Request("ready")).Accepted);
+        Assert.True(Send(Request("upgrade", 7)).Accepted);
+        Assert.True(Send(Request("ready")).Accepted);
+        Assert.Equal(Phase.Combat, session.Phase); Assert.Equal(3, session.Snapshot().ProductionCount);
+        for (int tick = 0; tick < 3000 && session.Phase == Phase.Combat; tick++) session.Step();
+        Assert.Equal(Phase.Building, session.Phase);
         Assert.True(Send(Request("sell", 1)).Accepted); Assert.True(Send(Request("build", 1, building)).Accepted); Assert.True(Send(Request("upgrade", 1)).Accepted);
         TechnologyId foundation = Catalogs.Class(role) switch { UnitClass.Melee => TechnologyId.MeleeFoundation, UnitClass.Ranged => TechnologyId.RangedFoundation, _ => TechnologyId.MagicFoundation };
         Command rank = Request("research-tech") with { Technology = foundation }; Assert.True(Send(rank).Accepted);
@@ -61,14 +62,14 @@ public sealed class VillageAuthorityTests
         Command bad = Request("recruit", 0); Assert.False(Send(bad).Accepted);
     }
     [Fact]
-    public void PreparationDisconnectAndPauseResolveExactlyOneIncomeFreeCheck()
+    public void PreparationDisconnectAndPauseResolveExactlyOneFinalSettlement()
     {
         using var match = new Match(); match.Join(); match.Join(); VillageStrategyTests.Act(match, 1, "start");
-        for (int production = 0; production < 3; production++)
+        for (int preparation = 0; preparation < 2; preparation++)
         { Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); Assert.True(VillageStrategyTests.Act(match, 2, "ready").Accepted); }
-        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(3, match.ProductionCount);
+        Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(2, match.ProductionCount);
         Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); Assert.True(VillageStrategyTests.Act(match, 2, "pause").Accepted);
-        match.SetConnected(2, false); Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(18, match.Players[1].Gold);
+        match.SetConnected(2, false); Assert.Equal(Phase.Preparation, match.Phase); Assert.Equal(16, match.Players[1].Gold);
         Assert.True(VillageStrategyTests.Act(match, 1, "resume").Accepted); Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(18, match.Players[1].Gold);
         Assert.Equal(3, match.ProductionCount); Assert.All(match.Players.Values, c => Assert.False(c.Ready));
     }

@@ -139,7 +139,7 @@ public sealed class BuildingTransactionTests
         }
         else Assert.True(Send(RequestAt("start")).Accepted);
         Assert.True(Send(RequestAt("build", 0, Building.Stonecutter)).Accepted);
-        for (int production = 0; production < 3; production++)
+        for (int production = 0; production < 2; production++)
         {
             Assert.True(Send(RequestAt("ready")).Accepted);
             if (remote && policy == AuthorityPolicy.PlayingHost)
@@ -170,7 +170,7 @@ public sealed class BuildingTransactionTests
         RejectUnchanged(match, Request(match, "research", 1));
         Act(match, "build", 0, Building.Barracks); Assert.Single(city.Soldiers); Assert.Equal(1, city.Slots[0].Level);
         Act(match, "build", 2, Building.CatapultTower); Act(match, "sell", 2); Assert.Empty(city.Towers);
-        for (int turn = 0; turn < 4; turn++) Act(match, "ready");
+        for (int turn = 0; turn < 3; turn++) Act(match, "ready");
         for (int step = 0; step < 200; step++) match.Step();
         Assert.DoesNotContain(match.Snapshot().CombatEvents, e => e.Tower?.Slot == 2);
     }

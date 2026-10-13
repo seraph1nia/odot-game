@@ -47,15 +47,14 @@ internal sealed partial class Runner
         async Task Clear(int wave)
         {
             MatchSnapshot result = await Observe(client, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == wave + 1, "paid army early clear " + wave, token);
-            Require(result.Phase == Phase.Building && result.LastRewardedWave == wave, "ordinary six-unit army clears early wave " + wave);
+            Require(result.Phase == Phase.Building && result.LastRewardedWave == wave, "ordinary paid army clears early wave " + wave);
             await WaitUi(client, p => p.Units.All(u => u.Hex?.Lifecycle != UnitLifecycle.Dying), "army retained death cleanup", token);
             CityState city = City();
             Require(city.Soldiers.Where(u => u.Assignment is { Stored: false }).All(u => u.Hex!.Position == u.Assignment!.Position), "all surviving field ids return to their exact physical homes");
         }
         await Pick(client, 0, token); await ClickAck(client, "Farm", token);
         await Pick(client, 1, token); await ClickAck(client, "MetalMine", token);
-        await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
-        await Pick(client, 3, token); await Click(client, "ProductionChoices", token); await ClickAck(client, "LumbermillRecovery", token);
+        await Pick(client, 3, token); await Click(client, "ProductionChoices", token); await ClickAck(client, "Lumbermill", token);
         // Reuse the paid opening to catch accidental world-label restoration or
         // broad title suppression. Live glyph text plus an existing PNG/pick route;
         // no extra peer, battle or display, and only one small capture/probe.
@@ -68,31 +67,32 @@ internal sealed partial class Runner
         Require(labels.WorldLabels.Contains("Bakery L1", StringComparer.Ordinal)
             && Enumerable.Range(3, 4).All(i => labels.WorldLabels.Contains($"Army {i} · locked · purchase", StringComparer.Ordinal)), "other building titles and locked-space text are retained");
         Require(labels.ArmyHomes?.PurchasedHomes == 2 && labels.Targets["Upgrade"].Visible && labels.Targets["Sell"].Enabled, "hut actions and army-space capacity remain available");
-        await ClickAck(client, "Ready", token); await ClickAck(client, "Ready", token);
+        await ClickAck(client, "Ready", token);
         await Pick(client, 4, token); await ClickAck(client, "Stonecutter", token);
-        await ClickAck(client, "Ready", token); await UiSwords(client, 2, 6, token, actualInput: false);
+        await ClickAck(client, "Ready", token);
+        await Pick(client, 0, token); await ClickAck(client, "Sell", token);
+        await Pick(client, 2, token); await ClickAck(client, "Barracks", token);
+        await UiSwords(client, 2, 4, token, actualInput: false);
         await Pick(client, 11, token);
         UiObservation opening = await WaitUi(client, p => p.ArmyHomes?.PurchasedHomes == 2 && p.Targets["BuyPlot"].Text.Contains("5 gold", StringComparison.Ordinal), "initial physical home quote", token);
-        Require(City().Soldiers.Length == 6 && opening.HomeMarkers.Count(n => n.StartsWith("LockedHome", StringComparison.Ordinal)) == 4, "six normally equipped units occupy two homes with four physical locks");
+        Require(City().Soldiers.Length == 4 && opening.HomeMarkers.Count(n => n.StartsWith("LockedHome", StringComparison.Ordinal)) == 4, "four normally equipped units retain two purchased homes and four physical locks");
         await Pick(client, 2, token);
-        Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["Recruit"].Enabled, "full-home recruitment disables with no equipment payment");
+        Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["Recruit"].Enabled, "unfunded recruitment disables with no equipment payment");
         string full = EconomicCity(City()); await Action(client, "recruit 2", token, accepted: false); Require(EconomicCity(City()) == full, "full recruitment rejection is atomic through the actual session");
         await Checkpoint(client, "army-opening", token, owner);
         await ClickAck(client, "Ready", token); await Clear(1);
-        await ClickAck(client, "Ready", token); // Actual production supplies Town hall materials.
+        await Pick(client, 0, token); await ClickAck(client, "Farm", token);
+        await ClickAck(client, "Ready", token); await ClickAck(client, "Ready", token);
         await Pick(client, 5, token); await ClickAck(client, "BuyPlot", token); await Click(client, "ArmyChoices", token); await ClickAck(client, "TownHall", token);
-        int[] veterans = City().Soldiers.OrderBy(u => u.Health).ThenBy(u => u.Id).Take(3).Select(u => u.Id).ToArray(); Require(veterans.Length == 3, "paid opening supplies three reserve veterans");
+        await UiSwords(client, 2, 4, token, actualInput: false);
+        int[] veterans = City().Soldiers.Where(u => u.RecoveryEligible).OrderBy(u => u.Health).ThenBy(u => u.Id).Take(3).Select(u => u.Id).ToArray(); Require(veterans.Length == 3, "paid opening supplies three reserve veterans");
         foreach (int id in veterans) { Require(Unit(id).RecoveryEligible, "completed paid receipt authorizes veteran recovery"); await Store(id); }
         int reserve = veterans[0], wounded = Unit(reserve).Health;
         await SelectUnit(City().Soldiers.First(u => !u.Assignment!.Stored).Id);
         Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["StoreUnit"].Enabled, "full hall disables Store with its capacity reason");
         full = EconomicCity(City()); await Action(client, $"store 5 {City().Soldiers.First(u => !u.Assignment!.Stored).Id}", token, accepted: false); Require(EconomicCity(City()) == full, "full hall rejection loses no id, health or resources");
         await Pick(client, 2, token); await UiSwords(client, 2, 6, token, actualInput: false);
-        for (int production = 0; production < 2; production++)
-        {
-            await ClickAck(client, "Ready", token); await UiSwords(client, 2, 6, token, actualInput: false);
-            Require(Unit(reserve).Health == Math.Min(Unit(reserve).Profile.Health, wounded + 200 * (production + 1)), "stored paid veteran heals exactly once per actual 5% production");
-        }
+        Require(Unit(reserve).Health == wounded, "storage in final preparation does not heal before settlement");
         Require(City().Soldiers.Count(u => !u.Assignment!.Stored) == 6, "normally paid replacements fill the two homes");
         await Pick(client, 5, token); await Click(client, "OpenTownHall", token);
         UiObservation hall = await WaitUi(client, p => p.TownHallOpen && p.Targets.ContainsKey("HallUnit" + reserve), "visible six-size Town hall roster", token);
@@ -100,8 +100,7 @@ internal sealed partial class Runner
         await Click(client, "HallUnit" + reserve, token);
         Require(!(await UiProtocol.Probe(client, options.StartupTimeout, token)).Targets["HallSend"].Enabled, "full battlefield disables hall Send instead of speculative overflow");
         await Checkpoint(client, "army-hall-full", token, owner);
-        int health = Unit(reserve).Health; await ClickAck(client, "UpgradeHallHealing", token);
-        Require(City().Slots[5] is { HealingLevel: 2, CapacityLevel: 1 } && Unit(reserve).Health == health && City().Army!.PurchasedHomes == 2, "actual healing upgrade is independent and neither heals nor buys field space");
+        int health = Unit(reserve).Health;
         await Click(client, "CloseTownHall", token); await BuyArmyPlot(client, token);
         UiObservation expanded = await WaitUi(client, p => p.ArmyHomes?.PurchasedHomes == 3 && p.HomeMarkers.Count(n => n.StartsWith("LockedHome", StringComparison.Ordinal)) == 3, "paid physical home removes exactly one lock", token);
         Require(expanded.WorldLabels.Contains("Army 3 · owned · empty", StringComparer.Ordinal)
@@ -115,21 +114,29 @@ internal sealed partial class Runner
         ResourceCost stocks = City().Resources; await SelectUnit(retire); await ClickAck(client, "RetireUnit", token);
         Require(City().Resources == stocks && City().Soldiers.All(u => u.Id != retire) && City().Soldiers.Count(u => !u.Assignment!.Stored) == 6, "actual inspector Retire frees room permanently with no refund");
         await Checkpoint(client, "army-expansion-retirement", token, owner);
-        await ClickAck(client, "Ready", token); int[] storedIds = City().Soldiers.Where(u => u.Assignment!.Stored).Select(u => u.Id).ToArray();
+        int[] storedIds = City().Soldiers.Where(u => u.Assignment!.Stored).Select(u => u.Id).ToArray();
+        Dictionary<int, int> beforeSettlement = storedIds.ToDictionary(id => id, id => Unit(id).Health);
+        await ClickAck(client, "Ready", token);
+        Require(storedIds.All(id => Unit(id).Health == Math.Min(Unit(id).Profile.Health, beforeSettlement[id] + 200)), "final production recovers completed paid stored veterans exactly once at 5%");
         BattleUpkeepReceipt receipt = City().LastUpkeep!;
         Require(receipt.Funded.Length == 8 && storedIds.All(id => receipt.Funded.Contains(id) && !receipt.Participating.Contains(id)), "battle pays all eight living ids but stored ids never participate");
         await Clear(2);
         Dictionary<int, int> oldHealth = storedIds.ToDictionary(id => id, id => Unit(id).Health);
-        for (int production = 1; production <= 3; production++)
+        await Pick(client, 5, token); await Click(client, "OpenTownHall", token); await ClickAck(client, "UpgradeHallHealing", token);
+        Require(City().Slots[5] is { HealingLevel: 2, CapacityLevel: 1 } && storedIds.All(id => Unit(id).Health == oldHealth[id]) && City().Army!.PurchasedHomes == 3, "actual healing upgrade is independent and neither heals nor buys field space");
+        await Click(client, "CloseTownHall", token);
+        for (int production = 1; production <= 2; production++)
         {
             await ClickAck(client, "Ready", token);
-            Require(storedIds.All(id => Unit(id).Health == Math.Min(Unit(id).Profile.Health, oldHealth[id] + 400 * production)), "three actual 10% productions recover only completed paid stored ids");
+            Require(storedIds.All(id => Unit(id).Health == Math.Min(Unit(id).Profile.Health, oldHealth[id] + 400 * production)), "actual 10% productions recover only completed paid stored ids");
         }
         await Pick(client, 5, token); await Click(client, "OpenTownHall", token);
         await ClickAck(client, "UpgradeHallCapacity", token);
         Require(City().Slots[5] is { HealingLevel: 2, CapacityLevel: 2 } && City().Army!.PurchasedHomes == 3, "actual storage upgrade leaves recovery level and battlefield capacity unchanged");
         await Checkpoint(client, "army-paid-recovery", token, owner);
         await Click(client, "CloseTownHall", token);
+        await ClickAck(client, "Ready", token);
+        Require(storedIds.All(id => Unit(id).Health == Math.Min(Unit(id).Profile.Health, oldHealth[id] + 1200)), "final preparation settles the third paid recovery before combat");
         await client.Send("quit"); Require(await client.WaitExit(token) == 0, "owned army window exits cleanly");
     }
 }

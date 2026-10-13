@@ -101,8 +101,8 @@ public sealed class CampaignTests
     public void FallenRosterStillCreatesBossesAndWoundedTransferRetainsUpkeepAndProfile()
     {
         using Match match = Start(3);
-        for (int wave = 1; wave < 10; wave++) { Begin(match); Clear(match); }
-        match.Players[3].Health = 0; match.SetConnected(2, false); Begin(match);
+        for (int wave = 1; wave < 10; wave++) { Begin(match); if (wave == 9) match.Players[3].Health = 0; Clear(match); }
+        match.SetConnected(2, false); Begin(match);
         Assert.Equal(3, match.Enemies.Count); Assert.Equal(2, match.Enemies.Count(e => e.Destination == 1));
         Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(6, e.Size); Assert.Equal(58400, e.Profile.Health); });
         UnitState inherited = Assert.Single(match.Enemies, e => e.Origin == 3); Assert.Equal(1, inherited.Destination);
@@ -178,6 +178,6 @@ public sealed class CampaignTests
         Assert.False(VillageStrategyTests.Act(match, 1, "ready").Accepted);
         Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options)); Assert.Null(city.LastUpkeep);
         city.Gold = 0; Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); Assert.Equal(Phase.Combat, match.Phase);
-        void BeginPreparation() { for (int production = 0; production < 3; production++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); }
+        void BeginPreparation() { for (int preparation = 0; preparation < 2; preparation++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); }
     }
 }

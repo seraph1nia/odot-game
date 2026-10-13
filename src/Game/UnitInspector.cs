@@ -55,6 +55,7 @@ internal sealed partial class UnitInspector : PanelContainer
         _name.Text = ProgressionPresentation.UnitName(unit); _description.Text = ProgressionPresentation.UnitDescription(unit);
         _health.Value = PresentationLimits.HealthFraction(unit.Health, unit.Profile.Health) * 100;
         _stats.Text = ProgressionPresentation.UnitStats(unit, tick);
+        if (unit.Id < 0) _stats.Text += "\nNext wave · read-only forecast. Enters combat when all living connected cities are ready.";
         if (unit.Assignment is { } assignment) _stats.Text += $"\nHome tile {assignment.Tile} · anchor {assignment.Anchor}\n{(unit.RecoveryEligible ? "Last completed battle food paid" : "No completed paid recovery receipt")}";
     }
     internal void ConfigureActions(CityState? city, bool editable, ArmyConfiguration? army)

@@ -107,7 +107,7 @@ public sealed class SplashTowerTests
         Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "buy-plot", 1, 8, ExpectedExpansionCount: 0)).Accepted);
         Assert.True(VillageStrategyTests.Act(match, 1, "build", 8, Building.ArrowTower).Accepted);
-        for (int n = 0; n < 3; n++) VillageStrategyTests.Act(match, 1, "ready");
+        for (int n = 0; n < 2; n++) VillageStrategyTests.Act(match, 1, "ready");
         foreach (UnitState enemy in match.Enemies) match.Combat.Remove(enemy.Id);
         int near = match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
         int far = match.Combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
@@ -129,10 +129,10 @@ public sealed class SplashTowerTests
             Assert.True(VillageStrategyTests.Act(match, 1, "build", 0, Building.Stonecutter).Accepted);
             Assert.True(VillageStrategyTests.Act(match, 1, "build", 1, Building.MetalMine).Accepted);
             Assert.True(VillageStrategyTests.Act(match, 1, "build", 2, Building.Lumbermill).Accepted);
-            for (int n = 0; n < 3; n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+            for (int n = 0; n < 2; n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
         }
         Assert.True(VillageStrategyTests.Act(match, 1, "build", 4, building).Accepted);
-        for (int n = 0; n < (building == Building.CatapultTower ? 1 : 4); n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+        for (int n = 0; n < (building == Building.CatapultTower ? 1 : 3); n++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
         int bodies = match.Combat.Snapshot().Length; match.Step();
         TowerState tower = match.Players[1].Towers[4]; Assert.Equal(1, tower.AttackSequence); Assert.Equal(1 + windup, tower.ImpactTick); Assert.Equal(1 + cadence, tower.ReadyTick);
         Assert.True(VillageStrategyTests.Act(match, 1, "pause").Accepted); CombatFixture.Steps(match, 100); Assert.Equal(tower, match.Players[1].Towers[4]);

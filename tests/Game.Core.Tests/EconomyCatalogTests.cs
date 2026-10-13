@@ -166,23 +166,23 @@ public sealed class EconomyCatalogTests
         Assert.True(Act(match, 1, "ready").Accepted);
         Assert.True(Act(match, 1, "build", 1, Building.Barracks).Accepted);
         Assert.True(Act(match, 1, "recruit", 1).Accepted);
-        Assert.True(Act(match, 1, "ready").Accepted);
         Assert.Equal(Phase.Preparation, match.Phase);
         Assert.True(Act(match, 1, "sell", 0).Accepted);
+        Assert.True(Act(match, 1, "sell", 1).Accepted);
         Assert.True(Act(match, 1, "sell", 2).Accepted);
         Assert.True(Act(match, 1, "build", 2, Building.ArcheryRange).Accepted);
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "recruit", 1, 2,
             SoldierType: UnitType.Crossbowman, ExpectedGeneration: city.Slots[2].Generation)).Accepted);
-        Assert.Equal(new ResourceCost(18, Food: 15, Metal: 9), city.Resources);
+        Assert.Equal(new ResourceCost(16, Food: 10, Metal: 5), city.Resources);
         Assert.Collection(city.Soldiers,
             soldier => Assert.Equal(UnitType.Swordsman, soldier.Type),
             soldier => Assert.Equal(UnitType.Crossbowman, soldier.Type));
         Assert.Equal(2, city.Snapshot().FoodForecast!.Demand);
-        Assert.Equal(3, match.ProductionCount);
+        Assert.Equal(2, match.ProductionCount);
     }
 
     [Fact]
-    public void DefaultOpeningFundsSixSwordsmenWithoutSpendingGoldOnBasicBuildings()
+    public void DefaultOpeningFundsFourSwordsmenAndRetainsSixUnitCapacity()
     {
         using var match = new Match(combatSeed: 1); City city = match.Join()!;
         Assert.True(Act(match, 1, "start").Accepted);
@@ -190,13 +190,16 @@ public sealed class EconomyCatalogTests
         Assert.True(Act(match, 1, "build", 1, Building.MetalMine).Accepted);
         Assert.True(Act(match, 1, "build", 2, Building.Barracks).Accepted);
         Assert.Equal(12, city.Gold); Assert.Equal(0, city.Wood);
-        for (int turn = 0; turn < 3; turn++) Assert.True(Act(match, 1, "ready").Accepted);
+        for (int turn = 0; turn < 2; turn++) Assert.True(Act(match, 1, "ready").Accepted);
         Assert.Equal(Phase.Preparation, match.Phase);
-        Assert.Equal(new ResourceCost(18, Food: 15, Metal: 12), city.Resources);
-        for (int recruit = 0; recruit < 6; recruit++) Assert.True(Act(match, 1, "recruit", 2).Accepted);
-        Assert.Equal(6, city.Soldiers.Count); Assert.Equal(0, city.Metal);
+        Assert.Equal(new ResourceCost(16, Food: 10, Metal: 8), city.Resources);
+        for (int recruit = 0; recruit < 4; recruit++) Assert.True(Act(match, 1, "recruit", 2).Accepted);
+        Assert.Equal(4, city.Soldiers.Count); Assert.Equal(0, city.Metal);
+        Assert.Equal(2, city.Snapshot().Army!.PurchasedHomes);
+        Assert.Equal(8, city.Snapshot().Army!.Homes.Where(h => h.Purchased).Sum(h => h.Used));
+        Assert.False(Act(match, 1, "recruit", 2).Accepted);
         Assert.True(Act(match, 1, "ready").Accepted);
-        Assert.Equal(18, city.Gold); Assert.Equal(9, city.Food); Assert.Equal(6, city.LastUpkeep!.Paid);
+        Assert.Equal(18, city.Gold); Assert.Equal(11, city.Food); Assert.Equal(4, city.Metal); Assert.Equal(4, city.LastUpkeep!.Paid);
     }
 
 }

@@ -51,7 +51,7 @@ public sealed class AssetPresentationTests
         Assert.Equal(Building.Farm, farm.Type); Assert.Equal(Resource.Food, farm.Produces);
         CityState city = match.Snapshot().Players[0] with { Food = 0 };
         MarketRate rate = match.Economy.MarketRates().Single(r => r.Resource == Resource.Food);
-        Assert.Equal($"Need {rate.Units} more food · Bakery", ProgressionPresentation.FoodSalePreview(city, rate));
+        Assert.Equal($"Need {rate.Units} more food · Bakery", ProgressionPresentation.FoodSalePreview(city, rate, Phase.Building));
         Assert.Equal(0, city.Food);
     }
 }

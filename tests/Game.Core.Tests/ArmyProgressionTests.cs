@@ -20,7 +20,7 @@ public sealed class ArmyProgressionTests
     private static void Stock(City city) { city.Gold = 1000; city.Wood = 1000; city.Stone = 1000; city.Metal = 1000; city.Cloth = 1000; }
     private static void Prepare(Match match)
     {
-        for (int turn = 0; turn < 3; turn++)
+        for (int turn = 0; turn < 2; turn++)
             foreach (City city in match.Players.Values.Where(c => c.Connected))
                 Assert.True(match.Apply(city.Id, new(1, match.Id, match.Phase, match.TurnSerial, "ready", city.Id)).Accepted);
         Assert.Equal(Phase.Preparation, match.Phase);
@@ -182,8 +182,8 @@ public sealed class ArmyProgressionTests
         Assert.True(Send(RequestAt("build", 0, Building.Farm)).Accepted);
         Assert.True(Send(RequestAt("build", 1, Building.MetalMine)).Accepted);
         Assert.True(Send(RequestAt("build", 2, Building.Barracks)).Accepted);
-        for (int production = 0; production < 3; production++) Assert.True(Send(RequestAt("ready")).Accepted);
-        Assert.True(Send(RequestAt("recruit", 2)).Accepted); Assert.Equal(15, Assert.Single(session.Snapshot().Players).Food);
+        for (int preparation = 0; preparation < 2; preparation++) Assert.True(Send(RequestAt("ready")).Accepted);
+        Assert.True(Send(RequestAt("recruit", 2)).Accepted); Assert.Equal(10, Assert.Single(session.Snapshot().Players).Food);
         Assert.True(Send(RequestAt("pause")).Accepted); Assert.False(Send(RequestAt("ready")).Accepted);
         Assert.True(Send(RequestAt("resume")).Accepted); Command ready = RequestAt("ready"); Assert.True(Send(ready).Accepted);
         Assert.True(Send(RequestAt("pause")).Accepted); CityState before = Assert.Single(session.Snapshot().Players);

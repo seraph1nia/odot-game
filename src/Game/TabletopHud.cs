@@ -5,6 +5,22 @@ namespace Game;
 
 public partial class Tabletop
 {
+    private readonly Dictionary<CombatSpeed, Button> _speeds = [];
+    private PanelContainer _speedPanel = null!;
+    private void RefreshCombatSpeed()
+    {
+        MatchSnapshot? state = game.State;
+        bool allowed = game.Connected && state?.Phase is Phase.Building or Phase.Preparation or Phase.Combat
+            && (game.HostPlayerId == 0 || game.HostPlayerId == game.PlayerId);
+        _speedPanel.Visible = state is not null && state.Phase != Phase.Lobby;
+        foreach ((CombatSpeed speed, Button button) in _speeds)
+        {
+            button.SetPressedNoSignal(state?.CombatSpeed == speed);
+            button.Disabled = !allowed;
+            button.TooltipText = allowed ? "Global combat pace · applies to all players. 1x is half the former pace; 2x is the former pace."
+                : "Only the original host can change combat speed. The selected speed is synchronized.";
+        }
+    }
     private Label _quoteDetails = null!;
     private Label _inspectionRoster = null!;
     private Label _armyDetails = null!;
@@ -25,6 +41,26 @@ public partial class Tabletop
     }
     private void CreateHud(Control root)
     {
+        _speedPanel = new PanelContainer { Name = "CombatSpeed", Position = new(152, 12), MouseFilter = Control.MouseFilterEnum.Stop };
+        root.AddChild(_speedPanel);
+        var speedRow = new HBoxContainer(); _speedPanel.AddChild(speedRow);
+        Text(speedRow, "Combat speed", 14);
+        foreach (CombatSpeed speed in Enum.GetValues<CombatSpeed>())
+        {
+            CombatSpeed selected = speed;
+            Button control = Button(speedRow, CombatSpeedRates.Label(speed), () =>
+            {
+                if (game.Connected && (game.HostPlayerId == 0 || game.HostPlayerId == game.PlayerId))
+                    game.SendAction(CombatSpeedRates.Action(selected));
+                // A native toggle is not an accepted global choice. Restore the
+                // delivered selection until an authority acknowledgment arrives.
+                RefreshCombatSpeed();
+            });
+            control.Name = "Speed" + speed;
+            control.ToggleMode = true;
+            control.CustomMinimumSize = new(56, 36);
+            _speeds.Add(speed, control);
+        }
         _resources = (PanelContainer)UiAssets.Component("resource_ledger", root);
         _resources.Name = "ResourceTable";
         _resources.MouseFilter = Control.MouseFilterEnum.Stop;
@@ -143,7 +179,7 @@ public partial class Tabletop
         _phase = Text(match, "Lobby", 12);
         _counters = Text(match, "", 11);
         var phases = new VBoxContainer(); phases.AddThemeConstantOverride("separation", 0); match.AddChild(phases);
-        for (int i = 0; i < 5; i++) _phaseRows.Add(Text(phases, "", 12));
+        for (int i = 0; i < 4; i++) _phaseRows.Add(Text(phases, "", 12));
         _start = Button(match, "Start match", () => game.SendAction("start"));
         var controls = new HBoxContainer(); match.AddChild(controls);
         _ready = Button(controls, "Ready", () => game.SendAction(Me()?.Ready == true ? "unready" : "ready"));

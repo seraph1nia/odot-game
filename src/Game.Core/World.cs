@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 
 namespace Game.Core;
 
+// Serialized enum meanings remain stable. Building covers preparations 1/2;
+// Preparation is the final preparation 3 (formerly phase 4).
 public enum Phase { Lobby, Building, Preparation, Combat, Victory, Defeat }
 public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, ResearchTower = 7, ArrowTower, CatapultTower, Stonecutter, MetalMine, Weaver, Market, TownHall, RapidArrowTower, BombardTower }
 public sealed record Rules
@@ -114,6 +116,13 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
 }
 public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Phase Phase, bool Paused, int Wave, int Turn, int TurnSerial, Rules Rules, CityState[] Players, UnitState[] Enemies)
 {
+    public const int CurrentBattleFlowVersion = 2;
+    // Missing on historical snapshots => 0; never silently read a fourth
+    // preparation as one of the new three phases.
+    public int BattleFlowVersion { get; init; }
+    public CombatSpeed CombatSpeed { get; init; } = CombatSpeed.One;
+    // Presentation-only forecast; never a member of the combat ECS/target index.
+    public UnitState[] NextWave { get; init; } = [];
     public ulong CombatSeed { get; init; }
     public int CombatRulesVersion { get; init; }
     public int DecisionAlgorithmVersion { get; init; } = 1;
@@ -217,8 +226,12 @@ public sealed class City
     public int DefenderCooldown { get; set; }
     public TowerState Defender { get; set; }
     public CityState Snapshot() => Snapshot(_combat.Soldiers(Id));
-    internal CityState Snapshot(UnitState[] soldiers, bool terminal = false) => new(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
-    { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots, ArmyPlots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray()), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), FoodForecast = terminal ? null : BattleFood.Forecast(soldiers, Food, _economy), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+    internal CityState Snapshot(UnitState[] soldiers, bool terminal = false, bool settleProduction = false)
+    {
+        var state = new CityState(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
+        { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots, ArmyPlots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray()), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+        return state with { FoodForecast = terminal ? null : BattleFood.Project(state, settleProduction) };
+    }
 }
 
 public sealed class Match : IDisposable
@@ -274,6 +287,10 @@ public sealed class Match : IDisposable
     public IReadOnlyList<UnitState> Enemies => _combat.Enemies();
     public Phase Phase { get; private set; } = Phase.Lobby;
     public bool Paused { get; private set; }
+    public CombatSpeed CombatSpeed { get; private set; } = CombatSpeed.One;
+    internal bool HasPendingSteps => Phase == Phase.Combat || _combat.HasDeaths;
+    private UnitState[] _nextWave = [];
+    private int _nextPreviewId = -1;
     public long Revision { get; private set; }
     public long Tick { get; private set; }
     public int Wave { get; private set; } = 1;
@@ -306,8 +323,11 @@ public sealed class Match : IDisposable
         var units = _combat.ProjectAll();
         var soldiers = units.Living.Where(u => u.Faction == Faction.Adventurers).GroupBy(u => u.Owner).ToDictionary(g => g.Key, g => g.ToArray());
         return new(Id, Revision, Tick, Phase, Paused, Wave, Turn, TurnSerial,
-        Rules with { Army = Army.Definition(), Combat = Rules.Combat with { Board = Configuration.Board.Definition() }, Campaign = Campaign.Definition() }, Players.Values.Select(p => p.Snapshot(soldiers.GetValueOrDefault(p.Id) ?? [], Phase is Phase.Victory or Phase.Defeat)).ToArray(), units.Living.Where(u => u.Faction == Faction.Skeletons).ToArray())
+        Rules with { Army = Army.Definition(), Combat = Rules.Combat with { Board = Configuration.Board.Definition() }, Campaign = Campaign.Definition() }, Players.Values.Select(p => p.Snapshot(soldiers.GetValueOrDefault(p.Id) ?? [], Phase is Phase.Victory or Phase.Defeat, Phase == Phase.Preparation)).ToArray(), units.Living.Where(u => u.Faction == Faction.Skeletons).ToArray())
         {
+            BattleFlowVersion = MatchSnapshot.CurrentBattleFlowVersion,
+            CombatSpeed = CombatSpeed,
+            NextWave = Phase is Phase.Building or Phase.Preparation ? _nextWave.ToArray() : [],
             TotalWaves = Campaign.TotalWaves,
             LastRewardedWave = LastRewardedWave,
             WaveCatalog = Campaign.Definition().Waves,
@@ -342,6 +362,12 @@ public sealed class Match : IDisposable
         if (command.City != 0 && command.City != sender) return Reject("You do not own this city.");
         if (Phase is Phase.Victory or Phase.Defeat) return Reject("Match finished. Restart the server for a new match.");
         if (!Enum.IsDefined(command.Payment) || command.Payment != ConstructionPayment.Standard && command.Action != "build") return Reject("Invalid construction payment choice.");
+        if (CombatSpeedRates.TryAction(command.Action, out CombatSpeed speed))
+        {
+            if (Phase == Phase.Lobby) return Reject("Start the match first.");
+            if (CombatSpeed != speed) { CombatSpeed = speed; Revision++; }
+            return new(command.Sequence, true, $"Combat speed {CombatSpeedRates.Label(speed)}.");
+        }
         if (command.Action is "pause" or "resume")
         {
             if (Phase == Phase.Lobby) return Reject("Start the match first.");
@@ -354,7 +380,7 @@ public sealed class Match : IDisposable
         {
             if (Phase != Phase.Lobby) return Reject("Match already started.");
             foreach (int absent in Players.Values.Where(p => !p.Connected).Select(p => p.Id).ToArray()) Players.Remove(absent);
-            _roster = Players.Keys.ToArray(); Phase = Phase.Building; Revision++;
+            _roster = Players.Keys.ToArray(); Phase = Phase.Building; PlanWave(); Revision++;
             return new(command.Sequence, true, "Match started.");
         }
         if (Phase is not (Phase.Building or Phase.Preparation) || city.Eliminated) return Reject("Only living cities can act during building.");
@@ -380,40 +406,38 @@ public sealed class Match : IDisposable
         if (Phase == Phase.Preparation && _combat.HasDeaths) return true;
         var balances = new Dictionary<int, ResourceCost>();
         var research = new Dictionary<int, ResearchState>();
-        var recovery = new Dictionary<int, int>();
-        if (Phase == Phase.Building)
+        Dictionary<int, int> recovery;
+        try
         {
-            try
+            foreach (City city in Players.Values.Where(p => !p.Eliminated))
             {
-                foreach (City city in Players.Values.Where(p => !p.Eliminated))
-                {
-                    ResourceCost income = Economy.Production(city.Slots, city.Research);
-                    if (!city.Resources.TryAdd(income, out ResourceCost balance)) return false;
-                    balances.Add(city.Id, balance);
-                    research.Add(city.Id, city.Research.Income(progress: Economy.ResearchProduction(city.Slots)));
-                }
-                recovery = _combat.RecoveryPlan(Players.Values.Where(p => !p.Eliminated));
+                ResourceCost income = Economy.Production(city.Slots, city.Research);
+                if (!city.Resources.TryAdd(income, out ResourceCost balance)) return false;
+                balances.Add(city.Id, balance);
+                research.Add(city.Id, city.Research.Income(progress: Economy.ResearchProduction(city.Slots)));
             }
-            catch (OverflowException) { return false; }
+            recovery = _combat.RecoveryPlan(Players.Values.Where(p => !p.Eliminated));
         }
+        catch (OverflowException) { return false; }
         if (Phase == Phase.Preparation)
         {
             ResourceCost reward = Campaign.WaveRule(Wave).Reward;
             foreach (City city in Players.Values.Where(c => !c.Eliminated))
             {
-                BattleFoodForecast forecast = _combat.FoodForecast(city.Id, city.Food, Economy);
-                try { _ = city.Research.Income(points: 1); } catch (OverflowException) { return false; }
-                if (!city.Resources.TryPay(new(Food: forecast.Paid), out ResourceCost afterFood) || !afterFood.TryAdd(reward, out _)) return false;
+                ResourceCost balance = balances[city.Id];
+                BattleFoodForecast forecast = _combat.FoodForecast(city.Id, balance.Food, Economy);
+                try { _ = research[city.Id].Income(points: 1); } catch (OverflowException) { return false; }
+                if (!balance.TryPay(new(Food: forecast.Paid), out ResourceCost afterFood) || !afterFood.TryAdd(reward, out _)) return false;
             }
         }
         foreach (City city in Players.Values) city.Ready = false;
         TurnSerial++;
-        if (Phase == Phase.Preparation) { BeginWave(); Revision++; return true; }
         foreach ((int id, ResourceCost balance) in balances) { Players[id].Resources = balance; Players[id].Research = research[id]; }
         _combat.Heal(recovery);
         ProductionCount++;
+        if (Phase == Phase.Preparation) { BeginWave(); Revision++; return true; }
+        Turn++;
         if (Turn == 3) Phase = Phase.Preparation;
-        else Turn++;
         Revision++; return true;
     }
     private void BeginWave()
@@ -429,17 +453,44 @@ public sealed class Match : IDisposable
             city.DefenderCooldown = 0;
             city.Defender = city.Defender with { TargetId = 0, PendingImpact = false, ReadyTick = Math.Max(Tick, city.Defender.ReadyTick) };
             foreach (TowerState tower in city.Towers.Values.ToArray()) city.Towers[tower.Slot] = tower with { TargetId = 0, PendingImpact = false, ReadyTick = Tick };
-            foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
-                for (int n = 0; n < entry.Count; n++) Spawn(city.Id, city.Id, entry);
         }
-        int assigned = 0;
-        foreach (int dead in _roster.Where(id => Players[id].Eliminated))
-            foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
-                for (int n = 0; n < entry.Count; n++) Spawn(dead, living[assigned++ % living.Length].Id, entry);
+        // Consume the very manifest shown during preparation. No display path
+        // rolls randomness or creates live targets/reservations ahead of battle.
+        foreach (UnitState enemy in _nextWave)
+            _combat.Create(enemy.Type, 0, enemy.Origin, enemy.Destination, Faction.Skeletons, enemy.Rank, enemy.IsBoss, enemy.Level);
+        _nextWave = [];
         _combat.BeginWave(Wave, food.Values.SelectMany(f => f.Unfed));
         UpdateEngagements([]);
     }
-    private void Spawn(int origin, int destination, SpawnEntry entry) => _combat.Create(entry.Type, 0, origin, destination, Faction.Skeletons, entry.Rank, entry.IsBoss, entry.Level);
+    private void PlanWave()
+    {
+        var planned = new List<UnitState>();
+        int[] living = _roster.Where(id => !Players[id].Eliminated).ToArray();
+        int assigned = 0;
+        void Add(int origin, int destination, SpawnEntry entry)
+        {
+            WeaponProfile profile = _combat.Profile(entry.Type, entry.Rank, entry.IsBoss, entry.Level);
+            // Negative forecast identities cannot collide with allocated live IDs.
+            int id = _nextPreviewId;
+            _nextPreviewId = checked(_nextPreviewId - 1);
+            planned.Add(new(id, profile.Health, Origin: origin, Destination: destination)
+            {
+                Type = entry.Type,
+                Faction = Faction.Skeletons,
+                Rank = entry.Rank,
+                IsBoss = entry.IsBoss,
+                Level = entry.Level,
+                Profile = profile
+            });
+        }
+        foreach (int city in living)
+            foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
+                for (int n = 0; n < entry.Count; n++) Add(city, city, entry);
+        foreach (int dead in _roster.Where(id => Players[id].Eliminated))
+            foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
+                for (int n = 0; n < entry.Count; n++) Add(dead, living[assigned++ % living.Length], entry);
+        _nextWave = planned.ToArray();
+    }
 
     public void Step()
     {
@@ -489,7 +540,7 @@ public sealed class Match : IDisposable
         }
         if (!_combat.HasDeaths) RestoreHomes();
         if (Wave == Campaign.TotalWaves) Phase = Phase.Victory;
-        else { Wave++; Turn = 1; TurnSerial++; Phase = Phase.Building; }
+        else { Wave++; Turn = 1; TurnSerial++; Phase = Phase.Building; PlanWave(); }
     }
     private void UpdateEngagements(int[] healthProgress, CombatUnit[]? enemies = null)
     {

@@ -199,6 +199,34 @@ The original package exclusion of EngineTests predates the landed opt-in Worldtr
 package probe. The combined client intentionally retains that minimal scene for
 its guarded headless dispatch; the retired ui-resources launcher remains excluded.
 
+## Battle-flow authority and component coverage (2026-10-12)
+
+`BattleFlowTests` is Tier A: seeded same-combat comparisons at 0.5/0.75/1.0
+wall rates, fixed equivalent simulated time, bounded catch-up, paused debt,
+host/dedicated authority, retry/disconnect/resume, three-stage/three-production
+settlement and atomic two-event overflow, stable forecast-to-spawn identity,
+codec round trip and explicit historical fourth-phase refusal. Inputs are
+numerical authorities, explicit wall slices and no children. Existing cheaper
+arithmetic tests miss the authoritative admission/manifest boundary; expected
+incremental cost is under a second per case (actual aggregate receipt is linked
+below). Existing phase helpers now use three readiness checks rather than four;
+playback fixtures explicitly select the former pace when testing tick boundaries.
+No gameplay balance constants are altered to make a fixture pass.
+
+The existing `receiving` Tier B selection additionally runs `EngineBattleFlow`:
+real top native speed buttons, pointer and keyboard activation, delayed accepted
+selection/disconnected denial, imported ordinary enemy rigs in the authoritative
+forecast formation, the same production unit-bounds ray picker, ordinary unit
+inspection with no army actions, live-membership exclusion and owned forecast
+removal. This minimal Controls/rig component creates no Main, application,
+Tabletop world, multiplayer peer or alternate assets. Pure A cannot prove native
+input/resource/picking behavior. It reuses the existing owner/frame helpers and
+60s bound, rather than adding another journey. Headless cannot certify cool
+rendered presentation, GPU pixels, desktop focus or a complete UI-session
+transition. Historical four-phase economy transcripts may need explicit
+reconciliation; an intermediate broad failure is not presented as green coverage.
+See [battle-flow receipts and exact limits](battle-flow.md).
+
 ## Combined Tabletop receiving coverage (2026-10-12)
 
 `test-engine --scenario receiving` is the fifth source Tier B selection, owned by

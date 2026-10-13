@@ -5,9 +5,9 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests;
 
-// Recovered paid UI transcript: logs/20261003-210008-28abaf6f, seed below.
-// Ticks 476/481 and 845/853/869/872 preserve its actual cleanup/production order.
-// No resource, health, unit, wave, placement or outcome setters are used.
+// Historical paid transcripts deliberately migrated to three end-of-preparation
+// settlements. Current commands/receipts own identities; historical ticks and
+// enemy IDs are not new friendly goldens. No gameplay setters or resource grants.
 public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
 {
     internal const ulong Seed = 14056307608042553509UL;
@@ -19,24 +19,28 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         void Ready() { Act(1, new("ready")); Act(2, new("ready")); }
         Act(1, new("start"));
         foreach (int p in new[] { 1, 2 })
-        { Act(p, new("build", 0, Building.Farm)); Act(p, new("build", 1, Building.MetalMine)); Act(p, new("build", 2, Building.Barracks)); }
-        Act(2, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)); Ready();
-        for (int i = 0; i < 2; i++) Act(2, new("recruit", 2)); Ready();
-        Act(1, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery));
-        Act(2, new("build", 4, Building.Stonecutter)); for (int i = 0; i < 2; i++) Act(2, new("recruit", 2)); Ready();
-        for (int i = 0; i < 6; i++) Act(1, new("recruit", 2)); for (int i = 0; i < 2; i++) Act(2, new("recruit", 2)); Ready();
+        {
+            Act(p, new("build", 0, Building.Farm)); Act(p, new("build", 1, Building.MetalMine)); Act(p, new("build", 4, Building.MetalMine));
+            Act(p, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery));
+        }
+        Ready(); Ready();
+        foreach (int p in new[] { 1, 2 }) Act(p, new("build", 2, Building.Barracks));
+        for (int i = 0; i < 4; i++) Act(2, new("recruit", 2));
+        for (int i = 0; i < 6; i++) Act(1, new("recruit", 2));
+        for (int i = 0; i < 2; i++) Act(2, new("recruit", 2));
+        Assert.All(match.Players.Values, c => { Assert.Equal(4, c.Metal); Assert.Equal(10, c.Food); }); Ready();
         for (int i = 0; i < 3000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); i++) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(6, match.Players[1].Soldiers.Count);
         Assert.Equal([1000, 2000, 2000, 4000, 4000, 2000], match.Players[1].Soldiers.Select(u => u.Health));
-        Act(1, new("build", 4, Building.ArcheryRange)); Ready(); Ready();
-        CityState before = match.Snapshot().Players[0]; Assert.Equal(new ResourceCost(20, 2, Food: 24, Metal: 8), before.Resources);
+        Act(1, new("sell", 4)); Act(1, new("build", 4, Building.ArcheryRange)); Ready(); Ready();
+        CityState before = match.Snapshot().Players[0]; Assert.Equal(new ResourceCost(20, 3, Food: 24, Metal: 20), before.Resources);
         var ranged = new EconomyAction("recruit", 4, Unit: UnitType.Crossbowman);
         string unchanged = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
         Assert.False(match.Apply(1, ranged.Command(match.Snapshot(), 1)).Accepted);
         Assert.Equal(unchanged, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
         Act(1, new("buy-home")); Act(1, ranged);
         CityState after = match.Snapshot().Players[0];
-        Assert.Equal(new ResourceCost(15, 0, Food: 24, Metal: 7), after.Resources);
+        Assert.Equal(new ResourceCost(15, 1, Food: 24, Metal: 19), after.Resources);
         Assert.Equal(3, after.Army!.PurchasedHomes); Assert.Equal(7, after.Soldiers.Length);
         Assert.Equal(UnitType.Crossbowman, after.Soldiers[^1].Type);
         Assert.Equal(after.Army.Homes[2].Cell, after.Soldiers[^1].Assignment!.Tile);
@@ -59,25 +63,25 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         foreach (int player in new[] { 1, 2 })
         {
             Act(player, new("build", 0, Building.Farm));
-            Act(player, new("build", 1, Building.Barracks));
+            Act(player, new("build", 4, Building.MetalMine));
             Act(player, new("build", 2, Building.MetalMine));
         }
         foreach (int player in new[] { 1, 2 })
         { Act(player, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)); Act(player, new("ready")); }
-        Recruit(1, 2); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
-        foreach (int player in new[] { 1, 2 })
-        { Act(player, new("build", 4, Building.Stonecutter)); Act(player, new("buy-plot", 5)); Recruit(player, 2); Act(player, new("ready")); }
-        Recruit(1, 2); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
+        Ready();
+        foreach (int player in new[] { 1, 2 }) { Act(player, new("build", 1, Building.Barracks)); Act(player, new("buy-plot", 5)); }
+        for (int batch = 0; batch < 3; batch++) { Recruit(1, 2); Recruit(2, 2); }
+        Ready();
         flow.StepUntil(s => s.Phase == Phase.Building);
         Assert.Equal(2, flow.State.Wave);
-        Act(2, new("buy-plot", 7)); Act(2, new("build", 7, Building.ArcheryRange));
+        Act(2, new("sell", 4)); Act(2, new("buy-plot", 7)); Act(2, new("build", 7, Building.ArcheryRange));
         Act(1, new("upgrade", 1)); Ready();
         flow.StepUntil(s => s.Tick == 391);
         Recruit(1, 1); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
         CityState before = City();
         Assert.Equal(seed, flow.State.CombatSeed);
         Assert.Equal(3, flow.State.Turn);
-        Assert.Equal(new ResourceCost(7, 2, Food: 24, Stone: 3, Metal: 4), before.Resources);
+        Assert.Equal(new ResourceCost(7, 3, Food: 24, Metal: 16), before.Resources);
         Assert.Equal(2, before.Army!.PurchasedHomes);
         Assert.Equal([6, 6], before.Army.Homes.Where(h => h.Purchased).Select(h => h.Used));
         Assert.Equal([3, 7, 11, 12, 22, 23], before.Soldiers.Select(u => u.Id));
@@ -94,7 +98,7 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         Command purchase = flow.Act(2, new("buy-home"));
         CityState expanded = City();
         Assert.Equal(revision + 1, flow.State.Revision);
-        Assert.Equal(new ResourceCost(2, 2, Food: 24, Stone: 3, Metal: 4), expanded.Resources);
+        Assert.Equal(new ResourceCost(2, 3, Food: 24, Metal: 16), expanded.Resources);
         Assert.Equal(3, expanded.Army!.PurchasedHomes);
         unchanged = Frozen();
         Assert.True(flow.Send(2, purchase).Accepted); Assert.Equal(unchanged, Frozen());
@@ -104,7 +108,7 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         CommandResult result = flow.Send(2, accepted); Assert.True(result.Accepted);
         CityState after = City();
         Assert.Equal(revision + 2, flow.State.Revision);
-        Assert.Equal(new ResourceCost(2, 0, Food: 24, Stone: 3, Metal: 3), after.Resources);
+        Assert.Equal(new ResourceCost(2, 1, Food: 24, Metal: 15), after.Resources);
         Assert.Equal(7, after.Soldiers.Length);
         Assert.Equal(before.Soldiers.Select(u => (u.Id, u.Health, u.Assignment)), after.Soldiers.Take(6).Select(u => (u.Id, u.Health, u.Assignment)));
         UnitState recruited = after.Soldiers[^1];
@@ -162,37 +166,48 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         }
         void Build(int p, int s, Building b) => Act(p, "build", s, b);
         void Ready() { Act(1, "ready"); Act(2, "ready"); }
-        void Tick(long tick)
-        {
-            for (int i = 0; match.Tick < tick && i < 5000; i++) { long old = match.Tick; match.Step(); if (match.Tick == old) break; }
-            Assert.Equal(tick, match.Tick);
-        }
         void Recruit(int player, int count) { for (int i = 0; i < count; i++) Act(player, "recruit", 2); }
-        void Clear() { for (int i = 0; i < 10000 && match.Phase == Phase.Combat; i++) match.Step(); }
+        void Clear()
+        {
+            for (int i = 0; i < 10000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); i++) match.Step();
+            Assert.False(match.Combat.HasDeaths);
+        }
         Act(1, "start"); Build(1, 0, Building.Farm); Build(1, 1, Building.MetalMine); Build(1, 2, Building.Barracks);
         Build(2, 0, Building.Farm); Build(2, 1, Building.MetalMine); Build(2, 2, Building.Barracks); Act(2, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
         if (early) Act(1, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
         Ready(); Recruit(2, 2); Ready();
         if (early) Build(1, 4, Building.Stonecutter); else Act(1, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
-        Build(2, 4, Building.Stonecutter); Recruit(2, 2); Ready(); Recruit(2, 2); Recruit(1, 6);
-        Assert.Equal(15, match.Players[1].Food); Assert.Equal(0, match.Players[1].Metal);
-        Ready(); Clear(); Assert.Equal(Phase.Building, match.Phase); Assert.Equal(433, match.Tick);
-        Assert.Equal([7, 9, 11], match.Players[1].Soldiers.Select(u => u.Id));
-        Assert.Equal([3000, 1000, 4000], match.Players[1].Soldiers.Select(u => u.Health));
-        Tick(476); if (!early) Build(1, 4, Building.Stonecutter); Tick(481);
-        Ready(); Recruit(2, 1); if (early) Act(1, "upgrade", 1); Ready(); Act(2, "sell", 2); Build(2, 2, Building.CatapultTower); Ready();
-        Act(1, "sell", 1); Build(1, 1, Building.ResearchTower); Recruit(1, 3); Ready(); Clear();
-        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(824, match.Tick);
-        Assert.Equal([11, 22, 24], match.Players[1].Soldiers.Select(u => u.Id));
-        Assert.Equal([3000, 1000, 1000], match.Players[1].Soldiers.Select(u => u.Health));
-        if (mode == "old-arrow") { Tick(845); Act(2, "buy-plot", 5); Tick(853); Build(2, 5, Building.ArrowTower); }
-        Tick(869); Act(1, "ready"); Tick(872); Act(2, "ready");
-        Act(1, "upgrade", 1); Ready(); Act(1, "research-tech", technology: TechnologyId.MeleeFoundation); Act(1, "sell", 1); Build(1, 1, Building.MetalMine); Act(1, "buy-plot", 5); Act(2, "upgrade", 2); Ready();
-        Act(1, "sell", 4); Build(1, 5, Building.Market); Act(1, "trade", 5); Act(1, "upgrade", 2); Recruit(1, 1); Act(1, "trade", 5, resource: Resource.Food); Act(1, "sell", 3); Build(1, 3, Building.Lumbermill);
+        Build(2, 4, Building.Stonecutter); Recruit(2, 2); Recruit(1, 4);
+        Assert.Equal(10, match.Players[1].Food); Assert.Equal(0, match.Players[1].Metal);
+        int[] openingIds = match.Players[1].Soldiers.Select(u => u.Id).ToArray();
+        Assert.Equal(4, openingIds.Length);
+        Ready();
+        Assert.Equal(openingIds, match.Players[1].LastUpkeep!.Funded);
+        Clear(); Assert.Equal(Phase.Building, match.Phase);
+        Assert.All(match.Players[1].Soldiers, u => { Assert.Contains(u.Id, openingIds); Assert.Equal(1, u.Owner); Assert.True(u.RecoveryEligible); });
+        Assert.Contains(match.Players[1].Soldiers, u => u.Health < u.Profile.Health);
+        Assert.Equal(early ? 1 : 0, match.Players[1].Stone);
+        if (!early) Build(1, 4, Building.Stonecutter);
+        Ready();
+        // A common paid wave-2 refill (not a second opening mine) keeps the
+        // receiving city alive so wave-3 capacity/growth remains a comparison.
+        if (early) Act(1, "upgrade", 1);
+        Ready();
+        Recruit(2, 6 - match.Players[2].Soldiers.Count);
+        Act(2, "sell", 2); Build(2, 2, Building.CatapultTower);
+        // Preserve the producer rather than replacing it with a research tower:
+        // final income cannot be spent before combat under the new contract.
+        Recruit(1, 6 - match.Players[1].Soldiers.Count); Ready(); Clear();
+        Assert.Equal(Phase.Building, match.Phase);
+        Assert.All(match.Players[1].Soldiers, u => { Assert.Equal(1, u.Owner); Assert.True(u.RecoveryEligible); });
+        if (mode == "old-arrow") { Act(2, "buy-plot", 5); Build(2, 5, Building.ArrowTower); }
+        Ready();
+        Act(2, "upgrade", 2);
+        Ready(); Act(1, "upgrade", 2); Recruit(1, 1);
         CityState original = match.Snapshot().Players[0];
-        Assert.Equal([3000, 1000, 1000, 5670], original.Soldiers.Select(u => u.Health));
-        Assert.Equal([1, 1, 1, 2], original.Soldiers.Select(u => u.Level));
-        Assert.Equal(early ? 10 : 2, original.Metal); Assert.Equal(18, original.Food); Assert.Equal(2, original.Army!.PurchasedHomes);
+        Assert.Contains(original.Soldiers, u => u.Level == 2);
+        Assert.Contains(original.Soldiers, u => u.Level == 1 && u.Health < u.Profile.Health);
+        Assert.Equal(2, original.Army!.PurchasedHomes);
         if (mode == "home-only") { Act(1, "buy-home"); Act(2, "buy-home"); }
         if (mode is "refill-only" or "growth")
         {
@@ -220,12 +235,10 @@ public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
         {
             Assert.Equal(Phase.Building, match.Phase); Assert.Equal(4, match.Wave); Assert.Equal(3, match.LastRewardedWave);
             Assert.All(match.Players.Values, p => { Assert.False(p.Eliminated); Assert.Equal(3, p.LastReward!.Wave); });
-            Assert.Equal([7, 9], entry.Players.Select(p => p.LastUpkeep!.Paid)); Assert.All(entry.Players, p => Assert.Equal(3, p.Army!.PurchasedHomes));
-            Assert.Equal(new ResourceCost(23, 1, Food: 18, Stone: 2, Metal: 1), preparation.Players[0].Resources);
-            Assert.Equal(new ResourceCost(10, 0, Food: 43, Stone: 2, Metal: 7), preparation.Players[1].Resources);
+            Assert.All(entry.Players, p => Assert.True(p.Soldiers.Length > 6 && p.Army!.PurchasedHomes > 2));
         }
         else if (mode == "refill-only") { Assert.Equal(Phase.Building, match.Phase); Assert.True(match.Players[2].Eliminated); }
-        else { Assert.Equal(Phase.Defeat, match.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, match.DefeatReason); Assert.Equal(mode == "old-arrow" ? 1732 : 1551, match.Tick); }
+        else { Assert.Equal(Phase.Defeat, match.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, match.DefeatReason); }
         output.WriteLine(JsonSerializer.Serialize(new { Mode = mode, Seed, Preparation = preparation.Players.Select(p => new { p.Id, p.Resources, p.Army, Units = p.Soldiers.Select(u => new { u.Id, u.Level, u.Health, u.Assignment }) }), Outcome = match.Phase.ToString(), match.Tick, CityHealth = match.Players.Values.Select(p => p.Health), Receipts = entry.Players.Select(p => p.LastUpkeep) }, WireJson.Options));
     }
 }

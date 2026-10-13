@@ -6,9 +6,9 @@ namespace DevRunner.Tests;
 
 public sealed class ResearchReadinessTests
 {
-    private static CommandResult Act(Match match, int player, string action, int slot = -1, Building building = Building.Empty)
+    private static CommandResult Act(Match match, int player, string action, int slot = -1, Building building = Building.Empty, ConstructionPayment payment = ConstructionPayment.Standard)
         => match.Apply(player, new(match.Revision + 1, match.Id, match.Phase, match.TurnSerial, action, player, slot, building,
-            ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[player].Slots[slot].Generation : 0));
+            ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[player].Slots[slot].Generation : 0, Payment: payment));
     // Ordinary paid two-city opening, no combat state setters or grants.
     private static Match AfterClear(bool finishCleanup)
     {
@@ -17,17 +17,23 @@ public sealed class ResearchReadinessTests
         foreach (int player in new[] { 1, 2 })
         {
             Assert.True(Act(match, player, "build", 0, Building.Farm).Accepted);
-            Assert.True(Act(match, player, "build", 1, Building.Barracks).Accepted);
             Assert.True(Act(match, player, "build", 2, Building.MetalMine).Accepted);
+            Assert.True(Act(match, player, "build", 3, Building.MetalMine).Accepted);
+            Assert.True(Act(match, player, "build", 4, Building.Lumbermill, ConstructionPayment.GoldRecovery).Accepted);
         }
-        for (int turn = 0; turn < 3; turn++) foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "ready").Accepted);
-        foreach (int player in new[] { 1, 2 }) for (int recruit = 0; recruit < 6; recruit++) Assert.True(Act(match, player, "recruit", 1).Accepted);
+        for (int turn = 0; turn < 2; turn++) foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "ready").Accepted);
+        foreach (int player in new[] { 1, 2 })
+        {
+            Assert.True(Act(match, player, "build", 1, Building.Barracks).Accepted);
+            for (int recruit = 0; recruit < 6; recruit++) Assert.True(Act(match, player, "recruit", 1).Accepted);
+            Assert.Equal(4, match.Players[player].Metal); Assert.Equal(10, match.Players[player].Food);
+        }
         foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "ready").Accepted);
         for (int step = 0; step < 3600 && match.Phase == Phase.Combat; step++) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave);
         Assert.NotEmpty(match.Snapshot().DyingBodies);
         if (finishCleanup) for (int step = 0; step < 120 && match.Snapshot().DyingBodies.Length > 0; step++) match.Step();
-        for (int turn = 0; turn < 3; turn++) foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "ready").Accepted);
+        for (int turn = 0; turn < 2; turn++) foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "ready").Accepted);
         Assert.Equal(Phase.Preparation, match.Phase);
         return match;
     }
@@ -62,7 +68,8 @@ public sealed class ResearchReadinessTests
             CityState before = started.Players.Single(c => c.Id == p.Id);
             Assert.NotNull(before.FoodForecast);
             Assert.Equal(before.FoodForecast.Paid, p.LastUpkeep.Paid);
-            Assert.Equal(before.Food - p.LastUpkeep.Paid, p.Food);
+            Assert.Equal(before.FoodForecast.Available - p.LastUpkeep.Paid, p.Food);
+            Assert.Equal(before.FoodForecast.Funded, p.LastUpkeep.Funded);
         });
         // The obsolete driver sends a fresh Ready after automatic entry and
         // receives the same error as the network trace, despite living cities.

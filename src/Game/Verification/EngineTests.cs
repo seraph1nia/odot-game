@@ -32,7 +32,7 @@ public partial class EngineTests : Node
                 case "renderer-compatibility": RendererStartup("gl_compatibility"); break;
                 case "animation": Animation(); break;
                 case "worldtree": await Worldtree(); break;
-                case "receiving": await Receiving(); break;
+                case "receiving": await Receiving(); await BattleFlow(); break;
                 case "assets": await AssetFidelityProbe.Run(this); return;
                 default: throw new ArgumentException("Unknown engine scenario: " + scenario);
             }
