@@ -473,7 +473,7 @@ internal sealed class ReceivingSession(Match authority, int player = 1) : IGameS
     public int HostPlayerId => 1;
     public List<Command> Commands { get; } = [];
     public List<CommandResult> Results { get; } = [];
-    public void Acknowledge() { State = authority.Snapshot(); SnapshotCompatibility.RequireSharedArena(State); }
+    public void Acknowledge() => State = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(authority.Snapshot()));
     public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman,
         TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0,
         ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0, int squadId = 0, int cell = 0)

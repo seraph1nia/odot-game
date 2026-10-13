@@ -219,6 +219,36 @@ internal static class CampaignStrategy
         RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[1].Level);
         return city.Soldiers.Length < target ? Recruit(city, 1, quote) : null;
     }
+    // Bounded transport input, not a balance strategy: earn one individual and
+    // a Hall without a Farm. The unfunded/stored survivor must not be deleted,
+    // produced/healed or admitted next wave when its exposed Keep falls.
+    internal static EconomyAction? SpectatorReserveOpening(MatchSnapshot state, int player)
+    {
+        CityState city = state.Players.Single(c => c.Id == player);
+        foreach (var (slot, building, payment) in new[]
+        {
+            (1, Building.MetalMine, ConstructionPayment.Standard),
+            (2, Building.Barracks, ConstructionPayment.Standard),
+            (4, Building.Stonecutter, ConstructionPayment.Standard),
+            (3, Building.Lumbermill, ConstructionPayment.GoldRecovery)
+        })
+        {
+            if (city.Slots[slot].Type != Building.Empty) continue;
+            BuildingDefinition definition = state.BuildingCatalog.Single(b => b.Type == building);
+            ResourceCost price = payment == ConstructionPayment.GoldRecovery ? definition.RecoveryConstruction!.Value : definition.Construction;
+            return city.Resources.TryPay(price, out _) ? new("build", slot, building, Payment: payment) : null;
+        }
+        if (city.Soldiers.Length == 0)
+        {
+            RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1);
+            return city.Resources.TryPay(quote.Cost, out _) ? new("recruit", 2) : null;
+        }
+        if (city.Slots[0].Type == Building.Empty)
+            return city.Resources.TryPay(state.BuildingCatalog.Single(b => b.Type == Building.TownHall).Construction, out _) ? new("build", 0, Building.TownHall) : null;
+        UnitState? member = city.Soldiers.FirstOrDefault(u => u.Assignment is { Stored: false });
+        return member is null ? null : new("store", 0, UnitId: member.Id);
+    }
+
     private static (UnitType Type, int Target)[] Targets(string family, int wave)
     {
         if (family == "ranged") return [(UnitType.Crossbowman, wave == 1 ? 6 : wave < 5 ? 12 : 18)];

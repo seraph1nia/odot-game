@@ -103,6 +103,41 @@ and simultaneous last-enemy/last-Keep defeat precedence. `SharedStateTests` cove
 real paid veteran reinforcement, stable member/group/formation identity through
 serialization, deployment home-claim transfer and explicit legacy refusal.
 
+## Eliminated-owner receiving and resume
+
+The selected `test-network --scenario eliminated-resume` uses genuine headless
+ENet peers and accepted paid commands on the original playing host. Two early
+waves expose a damaged third Keep, retain its paid stored individual after the
+Keep falls, and verify exact paused roster/HP/injury/action/claim/event/rule
+agreement. Same-process peer reconnect and credential-file process restart retain
+that city and its accepted recruitment ledger without a fresh city or second
+payment. Building-phase readiness, construction, recruitment, retirement and
+research commands from the fallen owner refuse without mutation, including retries.
+Only living owners advance production/research and the next fifteen-member wave;
+fallen-owner origins are allocated among surviving destinations, without new
+upkeep/participation/claims for its stored survivor. Spectators intentionally retain
+shared pause/resume. Host end disables requests and leaves a headless return event;
+that is not graphical menu/focus acceptance.
+
+**The ENet survivor is stored, not an actively fighting fallen-owner unit.** Active
+survivor continuation is separately covered by a controlled production
+`World.Step`/compressed-receiving encounter: paid IDs/formations plus explicit
+arithmetic poses, a wounded member and a five-HP Keep. Keep loss preserves current
+source/action/claims and individual HP; a later fallen-owner strike lands, service
+persists, and its members become nonparticipating reserves next wave. The same-tick
+last-enemy/last-Keep codec witness still requires defeat, no reward and valid claims.
+These inputs are not earned balance or active fallen-fighter ENet evidence.
+
+The minimal native `arena` component receives compressed compatible snapshots,
+retains the fallen roster, denies actual disabled readiness input and guarded
+investment callbacks, and leaves another owner's city independently editable.
+Its delayed session adapter is explicitly not transport. Exact executed receipts,
+first failures, terminal owned PID/exit evidence and remaining gaps are in the
+[testing audit](testing-audit.md#shared-squad-eliminated-owner-receiving-and-resume-2026-10-13).
+Malformed/legacy compressed shapes remain direct codec negatives; old-protocol
+handshake refusal is real ENet. Complete end-user networking, active fallen-fighter
+ENet capture, packages, final timing and native artistic acceptance remain separate.
+
 ## Provisional paid campaign measurements
 
 [Paid squad baselines](paid-squad-baselines.md) record actual legal investments,
@@ -137,6 +172,7 @@ boundary. Keep fall disables defenses without inventing tower destruction.
 The existing headless component runner has a focused `test-engine --scenario arena`
 selector. It owns minimal native arena/camera/Controls/imported-model/rig components
 and a numerical receiving adapter. It is **not** real transport, a full application
-journey, pixel/artistic readability, rendered choreography or GPU proof. Full
-campaign balance, real authority transport/reconnect and packaged boundaries still
-need their own separately recorded qualification; filtered checks remain partial.
+journey, pixel/artistic readability, rendered choreography or GPU proof. Complete
+campaign balance, authority/transport behavior beyond the selected receipts above,
+and packaged boundaries still need their own separately recorded qualification;
+filtered checks remain partial.

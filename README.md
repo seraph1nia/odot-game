@@ -98,6 +98,7 @@ mise run test-network --scenario playing-host-lifecycle
 # Explicit headless deep qualification, not the default development loop:
 mise run test-campaign
 mise run test-network --scenario redistribution
+mise run test-network --scenario eliminated-resume # fallen-owner spectator/ledger receiving; not active-fighter proof
 mise run test-deep
 mise run test-network --jobs 1
 mise run ci-source

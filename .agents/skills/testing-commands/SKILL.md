@@ -56,6 +56,7 @@ mise run test-network                      # failure-cases, solo-session, playin
 mise run test-network --scenario failure-cases
 mise run test-network --scenario playing-host-lifecycle
 mise run test-network --scenario redistribution  # explicit deeper paid transfer journey
+mise run test-network --scenario eliminated-resume # paid fallen owner, stored survivor, real spectator reconnect/denial
 mise run test-network --jobs 1             # same default cases, serial
 ```
 
@@ -96,7 +97,7 @@ Never run two preparation/export tasks concurrently in one worktree.
 ```sh
 mise run test-campaign
 mise run test-campaign --filter 'FullyQualifiedName~FrontlineCampaignTests'
-mise run test-deep                         # all deep C# + all six headless network journeys
+mise run test-deep                         # all deep C# + all seven retained headless network journeys
 mise run ci-source --startup-timeout-ms 60000
 mise run ci-linux-package --startup-timeout-ms 60000
 mise run ci                               # sequential headless source, exports, package probes

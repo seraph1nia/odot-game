@@ -95,6 +95,35 @@ public partial class EngineTests
             hud.RefreshHud(2, 0); hud.RefreshSquads(); await Frames();
             Check(Find("ReinforceSquad").Disabled && Find("RegroupMember").Disabled, "native ally inspection never grants army editing ownership");
             await ArenaModels(match, arenaView);
+            // Explicit numerical fallen-city receiving input; actual ENet and
+            // physical elimination ordering are separate C/A owners. Exercise
+            // genuine native roster/HUD callbacks after compressed delivery.
+            match.Players[1].Health = 0;
+            session.Acknowledge(); hud.RefreshHud(1, 0); hud.RefreshSquads(); await Frames();
+            int commands = session.Commands.Count;
+            ResourceCost stocks = match.Players[1].Resources;
+            Check(session.State.Players[0].Eliminated && session.State.Players[0].Soldiers.Length == 2,
+                "native receiver retains each fallen owner's individual instead of deleting its roster");
+            foreach (string name in new[] { "ReinforceSquad", "RegroupMember", "SquadRetireMember" })
+            {
+                Button button = Find(name);
+                Check(button.Disabled, "fallen-owner native action is disabled: " + name);
+                button.EmitSignal(BaseButton.SignalName.Pressed);
+            }
+            modalHost.GetChildren().OfType<UiDialog>().Single(d => d.Title.StartsWith("Shared army", StringComparison.Ordinal)).GetOkButton().EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            Button ready = Find("Ready");
+            Check(ready.Disabled, "fallen spectator cannot use native readiness");
+            this.Click(ready.GetGlobalRect().GetCenter()); await Frames();
+            Check(session.Commands.Count == commands && match.Players[1].Soldiers.Count == 2 && match.Players[1].Resources == stocks
+                && host.FindChildren("SelectedPlot", "Label", true, false).OfType<Label>().Single().Text.Contains("fallen", StringComparison.Ordinal),
+                "retained native callbacks deny fallen owner without optimistic member or stock mutation");
+            Check(!Find("Pause").Disabled, "fallen spectator retains deliberate shared pause privilege");
+            peer.Acknowledge(); peer.SendAction("unready");
+            Check(peer.Results[^1].Accepted, "living peer explicitly leaves its earlier ready state before editing");
+            peer.Acknowledge(); peer.SendAction("build", 0, Building.Farm);
+            Check(peer.Results[^1].Accepted && match.Players[2].Slots[0].Type == Building.Farm,
+                "another owner's accepted city investment remains independently live");
             Console.WriteLine("MEASURE arena receiving: native components and accepted/denied numerical authority, no real transport or complete UI journey.");
         }
         finally

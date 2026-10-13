@@ -52,24 +52,60 @@ public sealed class SharedCombatTests
     [Fact]
     public void KeepCanBeHitWhileDistantAlliesLiveAndFallenOwnersSurviveTheBattle()
     {
-        using var match = new Match(new() { SoldierDamage = 0, DefenderDamage = 0 }, combatSeed: 1);
-        City city = match.Join()!;
-        match.Combat.ConfigureArena([city.Id]);
-        int allied = Group(match.Combat, UnitType.Swordsman, 1, city.Id, Faction.Adventurers, 17)[0];
-        int enemy = match.Combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        var arena = new SharedArena([1]);
-        int approach = match.Combat.Board.Cell(arena.Keep(1)).Neighbors.First(arena.CanOccupy);
+        // Tier A controlled physical encounter on an actual paid two-owner
+        // roster. Explicit wounded Keep/member and poses isolate World.Step's
+        // elimination ordering; this is not an earned balance/real ENet claim.
+        using Match match = PaidCampaignFixture.Opening(seed: 1);
+        var arena = new SharedArena([1, 2]);
+        City city = match.Players[2];
+        int enemy = match.Combat.Enemies().Last().Id;
+        foreach (UnitState extra in match.Combat.Enemies().Where(u => u.Id != enemy)) match.Combat.Remove(extra.Id);
+        foreach (SquadState squad in match.Snapshot().Squads.Where(s => s.Faction == Faction.Adventurers))
+        {
+            int home = match.Combat.Read(squad.Members[0]).Assignment!.Tile;
+            int cell = squad.Owner == 1 ? arena.EnemyCells(1)[home] : arena.Deployment(1, home);
+            foreach (int id in squad.Members)
+                match.Combat.Seed(match.Combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, 1)) });
+        }
+        int approach = arena.Board.Cell(arena.Keep(2)).Neighbors.First(arena.CanOccupy);
         match.Combat.Seed(match.Combat.Inspect(enemy) with { Location = new(UnitLifecycle.Alive, new(approach, 1)) });
+        int injured = city.Soldiers[0].Id;
+        match.Combat.Seed(match.Combat.Inspect(injured) with { Health = HealthPoints.FromWhole(33) });
         city.Health = HealthPoints.FromWhole(5);
-        match.Combat.StartActions([city]); match.Combat.Advance(12, [city]);
-        Assert.True(city.Eliminated);
-        Assert.True(match.Combat.Read(allied).Health > 0);
-        Assert.Equal(UnitLifecycle.Alive, match.Combat.Read(allied).Hex!.Lifecycle);
-        Assert.Contains(match.Combat.Events(), e => e.Type == CombatEventType.StructureDestroyed && e.Structure?.Kind == ArenaStructureKind.Keep);
-        match.Combat.EliminateArmy(city.Id);
-        Assert.Equal(UnitLifecycle.Alive, match.Combat.Read(allied).Hex!.Lifecycle);
-        match.Combat.BeginWave(2, [], [city]);
-        Assert.Equal(UnitLifecycle.Reserve, match.Combat.Read(allied).Hex!.Lifecycle);
+        MatchSnapshot before = match.Snapshot();
+        for (int tick = 0; tick < 20 && !city.Eliminated; tick++) { before = match.Snapshot(); match.Step(); }
+        Assert.True(city.Eliminated); Assert.Equal(Phase.Combat, match.Phase);
+        MatchSnapshot fallen = Game.SnapshotPayload.DecodeForReceiving(Game.SnapshotPayload.Encode(match.Snapshot()));
+        UnitState[] survivors = fallen.Players[1].Soldiers;
+        Assert.Equal(before.Players[1].Soldiers.Select(u => (u.Id, u.Health, u.Level, u.Experience, u.SquadId, u.FormationSlot)),
+            survivors.Select(u => (u.Id, u.Health, u.Level, u.Experience, u.SquadId, u.FormationSlot)));
+        Assert.All(survivors, u => { Assert.True(u.Participating); Assert.Equal(UnitLifecycle.Alive, u.Hex!.Lifecycle); });
+        Assert.Equal(HealthPoints.FromWhole(33), survivors.Single(u => u.Id == injured).Health);
+        foreach (SquadState squad in fallen.Squads.Where(s => s.Owner == 2))
+        {
+            SquadState previous = before.Squads.Single(s => s.Id == squad.Id);
+            Assert.Equal(previous.Hex, squad.Hex); Assert.Equal(previous.ImpactTick, squad.ImpactTick); Assert.Equal(previous.ReadyTick, squad.ReadyTick);
+            Assert.Contains(fallen.Reservations.Positions, claim => claim.UnitId == squad.Id && claim.Cell == squad.Hex.Position.Cell && claim.Anchor == squad.Hex.Position.Anchor);
+        }
+        PaidCampaignFixture.Legal(fallen);
+        Assert.Contains(fallen.CombatEvents, e => e.Type == CombatEventType.StructureDestroyed && e.Structure?.Owner == 2 && e.Structure.Kind == ArenaStructureKind.Keep);
+        long cursor = fallen.EventSequence; bool continued = false;
+        for (int tick = 0; tick < 3000 && match.Phase == Phase.Combat; tick++)
+        {
+            match.Step();
+            continued |= match.Combat.Events().Any(e => e.Sequence > cursor && e.Type == CombatEventType.Impact && e.Landed && e.Unit?.Owner == 2);
+            cursor = match.Combat.EventSequence;
+        }
+        Assert.True(continued, "Fallen-owner survivors must actually land a later current-battle strike.");
+        Assert.Equal(Phase.Building, match.Phase);
+        Assert.Contains(city.Soldiers, u => u.Experience == 1);
+        for (int cleanup = 0; cleanup < 120 && match.Combat.HasDeaths; cleanup++) match.Step();
+        Assert.False(match.Combat.HasDeaths);
+        for (int gate = 0; gate < 4; gate++) PaidCampaignFixture.Apply(match, 1, new("ready"));
+        MatchSnapshot next = match.Snapshot();
+        Assert.Equal(Phase.Combat, next.Phase);
+        Assert.All(next.Players[1].Soldiers, u => { Assert.False(u.Participating); Assert.Equal(UnitLifecycle.Reserve, u.Hex!.Lifecycle); });
+        Assert.DoesNotContain(next.Reservations.Positions, p => next.Squads.Single(s => s.Id == p.UnitId).Owner == 2);
     }
 
     [Fact]
@@ -188,6 +224,12 @@ public sealed class SharedCombatTests
         for (int tick = 0; tick < 20 && match.Phase == Phase.Combat; tick++) match.Step();
         Assert.Equal(Phase.Defeat, match.Phase); Assert.Equal(1, match.Wave); Assert.Equal(gold, city.Gold);
         Assert.Empty(match.Combat.Enemies()); Assert.True(match.Combat.Read(allied).Health > 0);
-        Assert.Contains(match.Snapshot().DyingBodies, u => u.Faction == Faction.Skeletons);
+        MatchSnapshot received = Game.SnapshotPayload.DecodeForReceiving(Game.SnapshotPayload.Encode(match.Snapshot()));
+        Assert.Contains(received.DyingBodies, u => u.Faction == Faction.Skeletons);
+        Assert.Equal(Phase.Defeat, received.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, received.DefeatReason);
+        Assert.Equal(0, received.LastRewardedWave); Assert.Null(received.Players[0].LastReward);
+        CombatEvent destroyed = Assert.Single(received.CombatEvents, e => e.Type == CombatEventType.StructureDestroyed && e.Structure?.Kind == ArenaStructureKind.Keep);
+        Assert.Contains(received.CombatEvents, e => e.Type == CombatEventType.Death && e.Unit?.Faction == Faction.Skeletons && e.Tick == destroyed.Tick);
+        PaidCampaignFixture.Legal(received);
     }
 }

@@ -822,6 +822,86 @@ recalibration, pure-ranged follow-up, complete deep/full-fast qualification,
 eliminated-spectator/reconnect transport, packages and native aiming/animation/
 resources remain unfinished.
 
+## Shared-squad eliminated-owner receiving and resume (2026-10-13)
+
+Instruction013 is an independent bounded authority/transport/receiving batch, not
+final campaign or package acceptance. No unlanded battle-flow source, phase/speed/
+preview authoring, prices, damage rules, subsidized ENet settlement, graphical
+process, new supervisor or transport control plane was added. Default commands and
+ordinary real headless peers remain owned by Runner/Child/ScenarioScope. Routine
+network defaults are unchanged; `eliminated-resume` is an explicit selection and
+joins the seven retained deep network cases.
+
+| Boundary | Actual witness and limitation |
+| --- | --- |
+| Active fallen-owner squads/current-battle continuation | Strengthened existing SharedCombat production World.Step witness uses a paid two-owner roster, explicit arithmetic poses, a 33-HP member and 5-HP Keep. The destruction step preserves member IDs/HP/levels/service/formation and committed source/action/claims; compressed receiving reconstructs those claims. Fallen survivors actually land a later impact and retain earned service, then become nonparticipating reserves without next-wave claims. This controlled physical encounter is **not earned injury/balance or active-fighter ENet evidence**. |
+| Simultaneous all-Keep defeat | Existing final-enemy/final-Keep witness now also receives through strict compression/compatibility: same-tick structure destruction/member death, AllCitiesFallen, no clear/reward and valid reconstructed claims. It remains deterministic A, not staged network simultaneity. |
+| Real fallen spectator receiving/resume | `eliminated-resume` launches one playing host/two real ENet guests, seed1, two paid early waves plus next allocation, <=100 decisions/gate. The third owner buys a real member and Hall without a Farm; its stored member survives Keep loss off-grid. Three actual peers agree exactly on the paused members/HP/injuries/squads/actions/claims/events/config. Same-process peer reconnect and credential-file process restart restore the same fallen owner, with the accepted recruitment retry paid only once. **The ENet fallen survivor is stored, not an actively fighting unit; its initially full HP does not isolate wounded-Hall healing.** |
+| Fallen city negatives/future continuity | Actual unpaused Building acknowledgments refuse readiness, construction, recruitment, retirement and research with unchanged complete gameplay, including duplicate refused requests. Living owners alone settle income/research and start W3; the fallen city's stocks/research/member HP/identity/equipment/status/service stay unchanged, with no new upkeep or claim. The fifteen-member initial roster contains fallen-origin enemies but no fallen destination. In-memory AuthoritySession/strict codec witness preserves the same independent boundary; it is not called real transport. |
+| Malformed/legacy/ordering/payment | Real old-protocol admission and malformed requests refuse without mutation. Direct SnapshotPayload negatives retain retired fields, missing/malformed geometry, duplicate identity, compression and compatibility refusal. Existing authority/session/credential/retry/playback negatives remain, not replaced by a transport golden. Matching paused revisions and accepted Ready receipts are synchronization authorities; no sleep/retry/deadline/history or ordering-policy change. |
+| Native receiving/resources | Existing minimal arena case delivers compressed snapshots through its delayed numerical adapter and exercises genuine native member controls, guarded reinforcement/regroup/retire callbacks, actual disabled Ready input, fallen explanation, pause privilege and independently editable living peer. Existing receiving case covers actual HUD/Worldtree/fonts/layout/resources after the same codec change. Neither adapter is real network or a complete application/world/UI journey; no rendered pixels, GPU, choreography or graphical menu claim. |
+| Host end/loss and custody | New scenario checks orderly host end, spectator request disablement and headless menu event. Existing playing-host-lifecycle remains the real abrupt owned-host termination/guest return-path guard. Child now records actual ProcessId/HasExited/ExitCode/expected-failure/group ownership after its existing waits; admission, shutdown ordering/deadlines and runtime disposal are unchanged. Harness checks the terminal receipt and preservation of an unrelated process. |
+
+Retained receipts under `logs/shared-arena-task/transport-batch/`:
+- `probe*.txt` / corresponding TRX: finite paid W1–W3 witness selection did **not**
+  find an active fallen-owner survivor. Diagnostic passes did not establish that
+  behavior; the probe was replaced coherently, not shipped as a no-assertion test.
+  No campaign calibration or rule tuning followed those observations.
+- `build.txt`: actual PositionReservation API mismatch, xUnit collection analyzer
+  and formatting; corrected without suppression. `authority.txt`: **1 passed /
+  2 failed / 3**; real GoldRecovery requires zero wood and ordinary death cleanup
+  precedes next combat. Paid construction order/cleanup barrier corrected, not
+  production prices/readiness. `authority-02.txt`: **3/3, 5.10s**.
+- `engine-arena.txt`, `logs/20261013-092912-0ebf1c99`: first component failure was
+  deliberately emitting a disabled Ready signal, which bypasses native input.
+  Readiness now uses genuine disabled-button input after closing the modal;
+  guarded investment callbacks retain explicit signal negatives. `build-05.txt`
+  retained a wrong UiDialog API name; actual GetOkButton used. `engine-arena-02.txt`,
+  `logs/20261013-093340-392b62d8`: living peer was still Ready from the earlier
+  native witness, so its build correctly refused. Explicit accepted Unready now
+  preserves that independent guard. No gameplay fix or deadline increase.
+- `coherent-fast.txt`, `logs/20261013-093706-12ccd6d2`: affected A **94 core +
+  104 runner passed, zero failures/skips, 21.52s**. Includes the new paid spectator,
+  active/last-Keep authority, session/codec/claims/playback, individual recovery/
+  roster/payment and child/credential/selection guards. This is **not full-fast**.
+- `network.txt`, `logs/20261013-092707-9d533f6a`: real selected eliminated-resume
+  **18.31s / 23.34s including preparation**, no transport failure. Retained paused
+  tick1566/revision1647/W2 shows owner3/member5 (4,000 HP hundredths), plus living
+  wounded members as low as400 hundredths and five moving friendly squads;
+  full source/action/claims/events/config are in the bounded child state receipts.
+- `host-lifecycle.txt`, `logs/20261013-093621-2de5251b`: existing genuine playing-host
+  lifecycle **12.59s / 17.69s including preparation**, including abrupt owned
+  termination, expired credentials, post-loss command disablement and headless return.
+- `engine-arena-03.txt`, `logs/20261013-093441-52d7ac3b`: corrected minimal component
+  **3.33s / 8.40s including preparation**. `engine-receiving.txt`,
+  `logs/20261013-093450-eec39557`: existing receiving component **24.07s / 29.16s**.
+- After adding terminal PID evidence, `terminal-runner.txt`,
+  `logs/20261013-094228-7ccc63b3`: affected runner **104/104, 2.55s**, overlapping
+  earlier selection (not summed). `network-terminal.txt`,
+  `logs/20261013-094231-e5f9b708`: same selected real ENet **21.59s / 26.68s**;
+  `engine-terminal.txt`, `logs/20261013-094258-c6238443`: minimal arena **3.43s /
+  8.69s**. Repeated only to qualify changed owned terminal receipts, not balance.
+  Recorded owned PIDs exited and were absent afterward, runtime directories were
+  removed; old-protocol child exit1 is explicitly expected, ordinary peers/components
+  exit0. Full locked solution builds passed zero warnings/errors; exact diff,
+  formatting and whitespace checks cover the checkpoint.
+- Final source review caches the owned PID at spawn because error evidence can be
+  requested after Process disposal. Harness now checks the original unexpected
+  engine-error message and attributable terminal receipt, not just an exception
+  type. `review-runner.txt`, `logs/20261013-094918-06193f4b`: affected runner
+  **104/104, 2.81s**; final full solution build **0 warnings/errors, 7.20s**.
+  Already-passed ENet/native gameplay inputs were unchanged and not repeated for
+  this post-disposal diagnostic-only correction. `custody-review-02.txt` verifies
+  recorded owned PIDs/runtime absence using absolute runtime paths only.
+
+These overlapping selections do not establish complete networking/reconnect,
+active fallen-fighter ENet capture, all-seed balance, full-fast/deep/stress/package
+qualification or final-head CI. Native numerical-primary aiming/melee/animation/
+resource seams and the actually landed phase/speed/preview prerequisite remain
+independent work. Final paid calibration, including ranged viability/cooperative
+Keep danger, awaits that prerequisite. No model/session/tool/dependency/asset/global
+change, full pipeline, push, PR or publication occurred.
+
 ## Remaining risks / deliberately unclaimed guarantees
 
 Legacy E graphical code is still substantial maintenance surface; its entrypoints
