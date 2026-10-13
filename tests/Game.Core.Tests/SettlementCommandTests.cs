@@ -99,7 +99,7 @@ public sealed class SettlementCommandTests
         Rejected(flow.Command(player, new("unknown", plot)), "Unknown action.");
         Rejected(flow.Command(player, new("research", plot)), "Unknown action.");
         Rejected(flow.Command(player, new("store", -1, UnitId: City().Soldiers.First().Id)), "Choose a Town hall.");
-        Rejected(flow.Command(player, new("recruit", -1)), "Choose a slot from 0 to 8.");
+        Rejected(flow.Command(player, new("recruit", -1)), "Choose a city or army plot.");
     }
 
     [Theory]

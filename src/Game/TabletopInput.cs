@@ -69,9 +69,12 @@ public partial class Tabletop
         if (InArena) { SelectArena(point); return; }
         UnitView? unit = PickUnit(point);
         if (unit is not null) { _inspector.Select(unit.State); return; }
-        if (!game.Connected) return;
-        int selected = Pick(point);
-        if (selected >= 0) _slot = selected;
+        SelectPlot(Pick(point));
+    }
+    internal void SelectPlot(int selected)
+    {
+        if (!game.Connected || selected is < 0 or >= Game.Core.ArmyConfiguration.TotalPlots) return;
+        _slot = selected; UpdateUi();
     }
     private UnitView? PickUnit(Vector2 point)
     {

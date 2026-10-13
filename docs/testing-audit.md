@@ -16,6 +16,29 @@ scenario registrations and historical evidence. It does not assert that a small
 C# test replaces native rendering. No forbidden graphical/live desktop/Vulkan
 baseline was rerun. No toolchain/driver upgrade, release or branch-rule mutation.
 
+## Army plot/tower coverage admission (2026-10-12)
+
+`ArmyPlotTowerTests` adds Tier A against actual SettlementCommands/ArmyConfiguration,
+DefenseActor/CombatSimulation and the snapshot/AuthoritySession boundary. Existing
+catalog/roster tests could not catch arbitrary paid plot IDs, a tower allowing
+unit Send/recruit into its full footprint, exclusive-path races, or a bombard
+radius implemented only cosmetically. Fixed seeds, owned serialized ECS worlds
+and numerical profiles keep this cheap. Four paired initial-selection rows and
+an unchanged-base-tower replay catch metadata-only rerolls; original paid economy
+fixture goldens remain unchanged. `DefensePolicyTests` now asserts the complete
+six-profile set and configured behavior, not a permissive count/timing bound.
+
+The existing `receiving` Tier B case now additionally hosts the real army receiver,
+HUD and native camera with current main resources. It catches wrong roof/ground
+picking, absent/optimistic/stale native purchase/build/upgrade bindings and full-
+footprint recruitment availability without launching Main, a world or a session.
+No scenario/supervisor/display or separate test framework was added. Graphical
+fixtures now use actual army-plot selection instead of BuyHome; they remain
+unexecuted, not replaced by a claim of graphical equivalence. No existing negative
+coverage was removed. [Exact receipts, admission costs, failures and limits](army-plots-towers.md)
+distinguish 48 targeted cases from the final broad fast 484/649 passes and two
+platform skips; actual `receiving` component time was 9.28s.
+
 ## Core groups
 
 Names below are relative to `tests/Game.Core.Tests`; `Tests.cs` suffix is omitted
@@ -97,6 +120,42 @@ complete paid balance evidence.
 The retained broad diagnostic (341 passed / 148 failed) is still unresolved; no
 blanket golden update or full-fast-green claim is made. Legacy synthetic profiling
 and remaining actor-policy tests still require explicit migration.
+
+### Landed tower integration
+
+Integrated actual MAIN `f9f02b6bb44e247a7a124699905649cf2d04bc94` from
+https://github.com/seraph1nia/odot-game/pull/22 by normal merge, preserving paid
+numbered arbitrary-order plot purchases, both exclusive tower paths, refunds,
+full configuration identity and host-loss/menu publication order. Squad home
+claims skip locked and tower-occupied plots, not the first N cells inferred from
+purchase count. Army-plot weapons occupy their corresponding shared deployment
+cell until sold; city-plot weapons retain dedicated static cells. Native markers,
+roof/ground picking, squad reinforcement, deployment highlights and Town Hall
+return use the same accepted ownership projections.
+
+Migrated landed tower damage/receiving cases from capped cross-hex/member targets
+to committed squad targets and independently configured X/Y. Five-member Bombard
+coverage catches a retained three-victim cap; adjacent groups/friendlies receive
+no damage. A selected group survives member loss/sector redirection, but loss of
+its final member misses without retargeting. Tower catalog/HUD tooltips expose
+actual X/Y and physical range. Historical old-anchor transcript vectors were
+replaced with complete rules/seed reconstruction and ordered squad-state/event
+comparison, not refreshed hashes. Upgrade costs, identities, timing, denial,
+retry and credential resume checks remain.
+
+Post-merge paid/shared selection passed 21 tests in 5s. Integrated selection
+passed 110/112 in 18s; the two obsolete individual transcript fixtures were then
+migrated and passed their focused recheck (2 tests / 2s). These are selected proofs,
+not a complete fast-suite pass. Whole solution compiled. Focused native `arena`
+passed 2.97s (8.18s including preparation), and `receiving` passed 23.33s (41.80s
+including preparation). Receiving first caught obsolete six-size/radius tooltip
+claims; source and expectations were corrected to the actual squad profile. A
+later harness cancellation occurred during preparation build before engine launch;
+process-local non-shared compilation/node reuse off completed the recheck without
+changing tools or touching an unrelated compiler. Existing runner owned cleanup
+was retained. No graphical/application/campaign journey, real transport/package,
+GPU/choreography or historical native-failure diagnosis is claimed. Three-phase
+integration and full redesigned-game qualification remain pending.
 
 ## Runner and linked production-boundary groups
 

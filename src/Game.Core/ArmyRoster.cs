@@ -11,7 +11,14 @@ public sealed record ArmyAssignment(int HallSlot, long HallGeneration, int Tile,
     public bool Stored => HallSlot >= 0;
     public HexPosition Position => new(Tile, Anchor);
 }
-public sealed record ArmyHomeState(int Cell, bool Purchased, int Used);
+public enum ArmyPlotStatus { Locked, OwnedEmpty, UnitOccupied, TowerOccupied }
+public sealed record ArmyHomeState(int Cell, bool Purchased, int Used)
+{
+    public int PlotId { get; init; }
+    public int Number => PlotId - ArmyConfiguration.PlotOffset + 1;
+    public SlotState Plot { get; init; } = new(Building.Empty, 0) { Purchased = false };
+    public ArmyPlotStatus State => !Purchased ? ArmyPlotStatus.Locked : Plot.Type != Building.Empty ? ArmyPlotStatus.TowerOccupied : Used > 0 ? ArmyPlotStatus.UnitOccupied : ArmyPlotStatus.OwnedEmpty;
+}
 public sealed record TownHallState(int Slot, long Generation, int CapacityLevel, int HealingLevel,
     int Capacity, int HealingPercent, ResourceCost? CapacityQuote, ResourceCost? HealingQuote);
 public sealed record ArmyState(int PurchasedHomes, ArmyHomeState[] Homes, int[] HomePrices, TownHallState[] Halls)
@@ -24,6 +31,11 @@ public sealed record ArmyState(int PurchasedHomes, ArmyHomeState[] Homes, int[] 
 // Health and lifetime remain in combat.
 public sealed class ArmyConfiguration
 {
+    // City construction plots retain their existing 0..8 identities. Army plots
+    // use the same command/instance lifecycle without changing city production.
+    public const int PlotOffset = 9, PlotCount = 6, TotalPlots = PlotOffset + PlotCount;
+    public static bool IsArmyPlot(int id) => id is >= PlotOffset and < TotalPlots;
+    public static bool IsTower(Building type) => type is Building.ArrowTower or Building.CatapultTower or Building.RapidArrowTower or Building.BombardTower;
     private readonly int[] _prices;
     private readonly int[] _anchors;
     private readonly int[] _cells;
@@ -57,7 +69,7 @@ public sealed class ArmyConfiguration
         return checked((int)Math.Min(maximum, (long)health + ((long)maximum * percent + 99) / 100));
     }
     public ArmyAssignment? Find(IEnumerable<UnitState> soldiers, int purchased, int size, int hallSlot = -1, long generation = 0, int capacity = 0,
-        UnitType? type = null, int squadId = 0)
+        IReadOnlyList<SlotState>? plots = null, UnitType? type = null, int squadId = 0)
     {
         if (size is < 1 or > 6 || purchased is < 2 or > 6 || squadId < -1) throw new ArgumentOutOfRangeException(nameof(size));
         UnitState[] claims = soldiers.Where(u => u.Health > 0 && u.Assignment is not null)
@@ -69,20 +81,25 @@ public sealed class ArmyConfiguration
                 if (!claims.Any(u => u.Assignment!.Tile == tile)) return new(hallSlot, generation, tile, _anchors[0]);
             return null;
         }
+        int[] available = _cells.Where((_, index) => plots is null ? index < purchased : plots[index].Purchased && plots[index].Type == Building.Empty).ToArray();
         if (squadId >= 0)
-            foreach (var group in claims.GroupBy(u => u.Assignment!.Tile).OrderBy(g => Array.IndexOf(_cells, g.Key)))
+            foreach (var group in claims.Where(u => available.Contains(u.Assignment!.Tile)).GroupBy(u => u.Assignment!.Tile).OrderBy(g => g.Key))
                 if (group.Count() < _squadCapacity && group.All(u => (!type.HasValue || u.Type == type) && !u.IsBoss)
                     && (squadId == 0 || group.All(u => u.SquadId == squadId))) return group.First().Assignment;
         if (squadId > 0) return null;
-        foreach (int tile in _cells.Take(purchased))
+        foreach (int tile in available)
             if (!claims.Any(u => u.Assignment!.Tile == tile)) return new(-1, 0, tile, _anchors[0]);
         return null;
     }
-    public ArmyState Snapshot(IEnumerable<UnitState> soldiers, int purchased, IReadOnlyList<SlotState> slots)
+    public ArmyState Snapshot(IEnumerable<UnitState> soldiers, int purchased, IReadOnlyList<SlotState> slots, IReadOnlyList<SlotState>? plots = null)
     {
         UnitState[] living = soldiers.Where(u => u.Health > 0).ToArray();
-        return new(purchased, _cells.Select((cell, index) => new ArmyHomeState(cell, index < purchased,
-            living.Count(u => u.Assignment is { Stored: false } a && a.Tile == cell))).ToArray(), Prices(),
+        return new(purchased, _cells.Select((cell, index) =>
+        {
+            SlotState plot = plots?[index] ?? new SlotState(Building.Empty, 0) { Purchased = index < purchased };
+            return new ArmyHomeState(cell, plot.Purchased, living.Count(u => u.Assignment is { Stored: false } a && a.Tile == cell))
+            { PlotId = PlotOffset + index, Plot = plot };
+        }).ToArray(), Prices(),
             slots.Select((slot, index) => (slot, index)).Where(s => s.slot.Type == Building.TownHall)
                 .Select(s => new TownHallState(s.index, s.slot.Generation, s.slot.CapacityLevel, s.slot.HealingLevel,
                     Capacity(s.slot.CapacityLevel), HealingPercent(s.slot.HealingLevel), Upgrade(s.slot.CapacityLevel, false), Upgrade(s.slot.HealingLevel, true))).ToArray())

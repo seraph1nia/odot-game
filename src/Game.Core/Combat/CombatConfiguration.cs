@@ -29,7 +29,9 @@ public sealed record CombatSettings
     public int MageSplashHexRadius { get; init; } = 1;
     public DefenseTiming Defender { get; init; } = new(12, 48);
     public DefenseTiming ArrowTower { get; init; } = new(12, 48);
+    public DefenseTiming RapidArrowTower { get; init; } = new(6, 24);
     public DefenseTiming CatapultTower { get; init; } = new(30, 90, 3);
+    public DefenseTiming BombardTower { get; init; } = new(30, 90, 3, 1);
     public int ArrowLevelOneDamage { get; init; } = 5;
     public int ArrowLevelTwoDamage { get; init; } = 7;
     public int CatapultLevelOneDamage { get; init; } = 6;
@@ -95,6 +97,11 @@ public sealed class CombatConfiguration
     public int NoHealthProgressTicks { get; }
     public int MaximumWaveTicks { get; }
     public CombatFingerprint Fingerprint { get; }
+    // Added upgrade profiles must not reroll legacy actor tie-breaking. The
+    // decision namespace retains the rules-v5 serialization of ALL legacy
+    // settings; full compatibility identity includes the actual six profiles.
+    private readonly TowerDefinition[] _legacyDecisionTowers;
+    internal CombatFingerprint ActorDecisionFingerprint { get; }
 
     public CombatConfiguration(Rules rules)
     {
@@ -125,19 +132,20 @@ public sealed class CombatConfiguration
             _ = profile.Researched(2); _ = profile.CadenceTicks;
         }
         _profiles = Units.ToFrozenDictionary(p => p.Type);
-        foreach (DefenseTiming timing in new[] { Defender, settings.ArrowTower, settings.CatapultTower })
+        foreach (DefenseTiming timing in new[] { Defender, settings.ArrowTower, settings.RapidArrowTower, settings.CatapultTower, settings.BombardTower })
         {
             if (timing.WindupTicks <= 0 || timing.RecoveryTicks <= 0 || timing.VictimCap <= 0 || timing.SplashHexRadius < 0)
                 throw new ArgumentException("Defense windup/recovery and victim cap must be positive.", nameof(rules));
             _ = timing.CadenceTicks;
         }
+        _legacyDecisionTowers = TowerProfiles(rules, includeUpgrades: false);
         Towers = Array.AsReadOnly(TowerProfiles(rules));
         BuiltInDefense = new(DefenderDamage, Defender.WindupTicks, Defender.RecoveryTicks, Defender.VictimCap, Defender.SplashHexRadius);
         _towerProfiles = Towers.ToFrozenDictionary(p => (p.Type, p.Level),
             p => new DefenseProfile(p.Damage, p.WindupTicks, checked(p.CadenceTicks - p.WindupTicks), p.VictimCap, p.SplashHexRadius));
         // Reject values that could overflow the shared same-tick accumulator
-        // even if every deployed body plus all nine towers hit one victim.
-        int maxActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 40);
+        // even if every deployed member plus all city/army defenses hit one victim.
+        int maxActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 4 * (ArmyConfiguration.TotalPlots + 1));
         if (Units.Any(p => p.Researched(2).Damage > int.MaxValue / maxActors)
             || Towers.Any(p => p.Damage > int.MaxValue / maxActors) || DefenderDamage > int.MaxValue / maxActors)
             throw new ArgumentException("Damage could overflow a simultaneous accumulator.", nameof(rules));
@@ -150,6 +158,7 @@ public sealed class CombatConfiguration
             for (int level = 1; level <= 6; level++) _ = Unit(type, rank: 2, level: level);
         _ = Unit(UnitType.Swordsman, rank: 2, isBoss: true, level: 3);
         _ = Unit(UnitType.Swordsman, rank: 2, isBoss: true, level: 5);
+        ActorDecisionFingerprint = ComputeFingerprint(actorNamespace: true);
         Fingerprint = ComputeFingerprint();
     }
 
@@ -181,7 +190,7 @@ public sealed class CombatConfiguration
         }).Researched(rank);
         WeaponProfile modified = capabilities.Apply(resolved.Runtime());
         resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage };
-        int maximumActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 40);
+        int maximumActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 4 * (ArmyConfiguration.TotalPlots + 1));
         if (UnitCapabilities.Scale(UnitCapabilities.Scale(Math.Max(Math.Max(resolved.Damage, resolved.SecondaryDamage), resolved.StructureDamage), 10), 20) > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
         _resolved.Add(key, resolved); return resolved;
     }
@@ -216,15 +225,24 @@ public sealed class CombatConfiguration
             })
         };
     }
-    internal static TowerDefinition[] TowerProfiles(Rules rules)
+    internal static TowerDefinition[] TowerProfiles(Rules rules, bool includeUpgrades = true)
     {
         CombatSettings c = rules.Combat;
         TowerDefinition Tower(Building type, int level, int damage, DefenseTiming timing) => new(type, level, HealthPoints.FromWhole(damage),
-            timing.WindupTicks, timing.CadenceTicks, timing.VictimCap, timing.SplashHexRadius);
-        return [Tower(Building.ArrowTower, 1, c.ArrowLevelOneDamage, c.ArrowTower), Tower(Building.ArrowTower, 2, c.ArrowLevelTwoDamage, c.ArrowTower),
+            timing.WindupTicks, timing.CadenceTicks, timing.VictimCap, timing.SplashHexRadius)
+        {
+            SecondaryDamage = type is Building.CatapultTower or Building.BombardTower ? HealthPoints.FromWhole(rules.Arena.CatapultSecondaryDamage) : 0,
+            HexRange = type is Building.CatapultTower or Building.BombardTower ? rules.Arena.CatapultRange : rules.Arena.ArrowRange
+        };
+        TowerDefinition[] legacy = [Tower(Building.ArrowTower, 1, c.ArrowLevelOneDamage, c.ArrowTower),
+            Tower(Building.ArrowTower, 2, c.ArrowLevelTwoDamage, c.ArrowTower),
             Tower(Building.CatapultTower, 1, c.CatapultLevelOneDamage, c.CatapultTower), Tower(Building.CatapultTower, 2, c.CatapultLevelTwoDamage, c.CatapultTower)];
+        if (!includeUpgrades) return legacy;
+        return [.. legacy.Select(t => t.Type == Building.ArrowTower ? t with { VictimCap = 1, SplashHexRadius = 0 } : t),
+            Tower(Building.RapidArrowTower, 2, c.ArrowLevelTwoDamage, c.RapidArrowTower with { VictimCap = 1, SplashHexRadius = 0 }),
+            Tower(Building.BombardTower, 2, c.CatapultLevelTwoDamage, c.BombardTower)];
     }
-    private CombatFingerprint ComputeFingerprint()
+    private CombatFingerprint ComputeFingerprint(bool actorNamespace = false)
     {
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
@@ -233,7 +251,7 @@ public sealed class CombatConfiguration
             // fixed order, explicit lengths, and no runtime object hashes.
             new ResearchCatalog().Write(writer, prices: false); Statuses.Write(writer);
             writer.Write(RulesVersion);
-            writer.Write(SharedArena.SectorWidth); writer.Write(SharedArena.Depth); writer.Write(1); // arena layout/movement contract version
+            writer.Write(SharedArena.SectorWidth); writer.Write(SharedArena.Depth); writer.Write(2); // squad arena plus optional army-plot weapons
             writer.Write(Arena.SquadCapacity); writer.Write(Arena.WatchpostHealth); writer.Write(Arena.RallyDamageReductionPercent); writer.Write(Arena.RallyDurationTicks);
             writer.Write(Arena.DefenderRange); writer.Write(Arena.ArrowRange); writer.Write(Arena.CatapultRange);
             writer.Write(Arena.SwordsmanSecondaryDamage); writer.Write(Arena.BerserkerSecondaryDamage); writer.Write(Arena.CrossbowmanSecondaryDamage); writer.Write(Arena.MageSecondaryDamage);
@@ -267,10 +285,16 @@ public sealed class CombatConfiguration
                 writer.Write(p.VictimCap); writer.Write(p.SplashHexRadius);
             }
             writer.Write(DefenderDamage); writer.Write(Defender.WindupTicks); writer.Write(Defender.RecoveryTicks); writer.Write(Defender.VictimCap); writer.Write(Defender.SplashHexRadius);
-            writer.Write(Towers.Count);
-            foreach (TowerDefinition p in Towers)
-            { writer.Write((int)p.Type); writer.Write(p.Level); writer.Write(p.Damage); writer.Write(p.WindupTicks); writer.Write(p.CadenceTicks); writer.Write(p.VictimCap); writer.Write(p.SplashHexRadius); }
+            TowerDefinition[] towerIdentity = actorNamespace ? _legacyDecisionTowers : Towers.ToArray();
+            writer.Write(towerIdentity.Length);
+            foreach (TowerDefinition p in towerIdentity)
+            { writer.Write((int)p.Type); writer.Write(p.Level); writer.Write(p.Damage); writer.Write(p.WindupTicks); writer.Write(p.CadenceTicks); writer.Write(p.VictimCap); writer.Write(p.SplashHexRadius); writer.Write(p.SecondaryDamage); writer.Write(p.HexRange); }
             writer.Write(RetryTicks); writer.Write(NoHealthProgressTicks); writer.Write(MaximumWaveTicks);
+            if (!actorNamespace)
+            {
+                writer.Write(ActorDecisionFingerprint.A); writer.Write(ActorDecisionFingerprint.B);
+                writer.Write(ActorDecisionFingerprint.C); writer.Write(ActorDecisionFingerprint.D);
+            }
         }
         byte[] hash = SHA256.HashData(stream.ToArray());
         return new(BinaryPrimitives.ReadUInt64LittleEndian(hash), BinaryPrimitives.ReadUInt64LittleEndian(hash.AsSpan(8)),

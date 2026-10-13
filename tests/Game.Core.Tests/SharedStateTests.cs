@@ -62,6 +62,36 @@ public sealed class SharedStateTests
     }
 
     [Fact]
+    public void ArbitraryPurchasedPlotsAndPhysicalTowersShareExclusiveSquadDeploymentClaims()
+    {
+        // Tier A landed tower integration: total purchase count must not grant an
+        // unpurchased cell or let a squad occupy a physical army-plot weapon.
+        using var match = new Match(new() { StartingGold = 200, StartingWood = 200 }, combatSeed: 6);
+        City city = match.Join()!; match.Join(); city.Metal = 100;
+        long sequence = 0;
+        CommandResult Apply(string action, int slot = -1, Building type = Building.Empty, int squadId = 0, int cell = 0)
+            => match.Apply(1, Command.FromSnapshot(match.Snapshot(), ++sequence, action, 1, slot, type, squadId: squadId, cell: cell));
+        Assert.True(Apply("start").Accepted); Assert.True(Apply("build", 0, Building.Barracks).Accepted);
+        Assert.True(Apply("build", 10, Building.ArrowTower).Accepted);
+        Assert.True(Apply("buy-plot", 14).Accepted);
+        for (int member = 0; member < 4; member++) Assert.True(Apply("recruit", 0).Accepted);
+        var arena = new SharedArena([1, 2]);
+        UnitState high = city.Soldiers.Single(u => u.Assignment!.Tile == 5);
+        Assert.Equal(arena.Deployment(1, 5), high.Hex!.Position.Cell);
+        Assert.False(Apply("deploy-squad", squadId: high.SquadId, cell: arena.Deployment(1, 2)).Accepted);
+        Assert.False(Apply("deploy-squad", squadId: high.SquadId, cell: arena.Deployment(1, 1)).Accepted);
+        StructureState weapon = Assert.Single(match.Snapshot().Structures, s => s.Owner == 1 && s.Slot == 10);
+        Assert.Equal(arena.Deployment(1, 1), weapon.Cell);
+        SnapshotCompatibility.RequireSharedArena(match.Snapshot());
+        Assert.True(Apply("sell", 10).Accepted);
+        Assert.True(Apply("deploy-squad", squadId: high.SquadId, cell: arena.Deployment(1, 1)).Accepted);
+        Assert.Equal(1, city.Soldiers.Single(u => u.Id == high.Id).Assignment!.Tile);
+        Assert.True(Apply("build", 14, Building.ArrowTower).Accepted);
+        SnapshotCompatibility.RequireSharedArena(match.Snapshot());
+        Assert.Equal(arena.Deployment(1, 5), Assert.Single(match.Snapshot().Structures, s => s.Owner == 1 && s.Slot == 14).Cell);
+    }
+
+    [Fact]
     public void LegacyOrOverlappingSnapshotsAreRefusedRatherThanInventingSquads()
     {
         using var match = new Match(combatSeed: 1); match.Join();

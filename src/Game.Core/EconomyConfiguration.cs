@@ -128,6 +128,12 @@ public sealed class EconomyConfiguration
         if (expansionCount < 0 || expansionCount >= _expansionPrices.Length) return false;
         quote = new(_expansionPrices[expansionCount]); return true;
     }
+    public bool TryTowerUpgrade(Building path, out ResourceCost quote)
+    {
+        quote = default;
+        return path is Game.Core.Building.RapidArrowTower or Game.Core.Building.BombardTower
+            && TryUpgrade(path == Game.Core.Building.RapidArrowTower ? Game.Core.Building.ArrowTower : Game.Core.Building.CatapultTower, 1, out quote);
+    }
     public bool TryUpgrade(Building type, int level, out ResourceCost quote)
     {
         quote = default;

@@ -11,8 +11,9 @@ internal static class BattlefieldFrame
     internal static Aabb Content(MatchSnapshot? state, IEnumerable<Aabb> buildings)
     {
         var points = new List<Vector3> { VillageLandscape.Home, VillageLandscape.Defender };
-        _ = state; // Combat framing is owned by SharedArenaView, never settlement bounds.
         points.AddRange(Enumerable.Range(0, 9).Select(VillageLayout.Slot));
+        if (state is not null)
+            points.AddRange(Enumerable.Range(ArmyConfiguration.PlotOffset, ArmyConfiguration.PlotCount).Select(id => ArmyPlotView.PlotPosition(state, id)));
         // Complete persistent settlement silhouettes, not combat actor positions.
         Vector3 min = points.Aggregate((a, b) => a.Min(b)) - new Vector3(VillageLayout.Radius, 0, VillageLayout.Radius);
         Vector3 max = points.Aggregate((a, b) => a.Max(b)) + new Vector3(VillageLayout.Radius, 0, VillageLayout.Radius);

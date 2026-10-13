@@ -37,7 +37,7 @@ public sealed class SharedArena
     private readonly HashSet<int> _staticCells;
     public HexBoard Board { get; }
     public ReadOnlyCollection<ArenaFootprint> Footprints { get; }
-    public SharedArena(IEnumerable<int> owners)
+    public SharedArena(IEnumerable<int> owners, IEnumerable<(int Owner, int Slot)>? armyTowers = null)
     {
         int[] roster = owners.Order().ToArray();
         if (roster.Length is < 1 or > 4 || roster.Any(id => id <= 0) || roster.Distinct().Count() != roster.Length)
@@ -67,6 +67,12 @@ public sealed class SharedArena
             for (int slot = 0; slot < towerCells.Length; slot++)
                 footprints.Add(new(owner, ArenaStructureKind.ArrowTower, slot, Cell(start + towerCells[slot].Column, towerCells[slot].Row)));
         }
+        (int Owner, int Slot)[] armyWeapons = (armyTowers ?? []).ToArray();
+        if (armyWeapons.Distinct().Count() != armyWeapons.Length || armyWeapons.Any(t => !roster.Contains(t.Owner) || !ArmyConfiguration.IsArmyPlot(t.Slot)))
+            throw new ArgumentException("Invalid army-plot weapon footprint.", nameof(armyTowers));
+        foreach (var weapon in armyWeapons.OrderBy(t => t.Owner).ThenBy(t => t.Slot))
+            footprints.Add(new(weapon.Owner, ArenaStructureKind.ArrowTower, weapon.Slot,
+                sectors.Single(s => s.Owner == weapon.Owner).DeploymentCells[weapon.Slot - ArmyConfiguration.PlotOffset]));
         _sectors = sectors.ToArray(); _footprints = footprints.ToArray();
         _staticCells = footprints.Select(f => f.Cell).ToHashSet();
         Footprints = Array.AsReadOnly(_footprints);
@@ -79,6 +85,11 @@ public sealed class SharedArena
     public int[] EnemyCells(int owner) => _sectors.Single(s => s.Owner == owner).EnemyCells.ToArray();
     public bool CanOccupy(int cell) => Board.Cells.Any(c => c.Id == cell) && !_staticCells.Contains(cell);
     public bool CanDeploy(int owner, int cell, int homes) => homes is >= 2 and <= 6 && _sectors.Any(s => s.Owner == owner && s.DeploymentCells.Take(homes).Contains(cell));
+    public bool CanDeploy(int owner, int cell, IReadOnlyList<SlotState> plots)
+    {
+        int home = DeploymentHome(owner, cell);
+        return home >= 0 && home < plots.Count && plots[home].Purchased && plots[home].Type == Building.Empty && CanOccupy(cell);
+    }
     public ArenaState Snapshot() => new(Board.Definition(), _sectors.Select(s => s with
     { DeploymentCells = s.DeploymentCells.ToArray(), EnemyCells = s.EnemyCells.ToArray() }).ToArray(), _footprints.ToArray());
 

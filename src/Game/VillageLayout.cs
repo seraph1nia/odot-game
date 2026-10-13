@@ -23,9 +23,10 @@ internal static class VillageLayout
         new Basis(Vector3.Up, Mathf.Pi / 2 + turns * Mathf.Pi / 3).Scaled(Vector3.One * TerrainScale),
         new Vector3(Hex(column, row).X, DetailedGround.Elevation(column, row), Hex(column, row).Z));
     public static Vector3 Slot(int slot) => Hex(slot % 3 - 1, slot / 3 + 2);
-    public static bool Contains(int slot, Vector3 point)
+    public static bool Contains(int slot, Vector3 point) => ContainsPoint(Slot(slot), point);
+    public static bool ContainsPoint(Vector3 center, Vector3 point)
     {
-        Vector3 local = point - Slot(slot);
+        Vector3 local = point - center;
         float x = Math.Abs(local.X), z = Math.Abs(local.Z);
         return x <= HalfWidth && z <= Radius - x / Mathf.Sqrt(3);
     }

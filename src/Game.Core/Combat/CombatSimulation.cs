@@ -56,11 +56,13 @@ internal sealed partial class CombatSimulation : IDisposable
     internal CombatUnit Inspect(int id) => ProjectMember(Unit(id));
     internal CombatUnit[] Units() => All().Select(ProjectMember).ToArray();
     private CombatDecisionKey Key(int id, int city, long sequence, int generation, CombatPurpose purpose, CombatActorKind kind = CombatActorKind.Unit)
-        => new(_seed, _configuration.Fingerprint, _wave, city, kind, id, sequence, generation, purpose);
+        => new(_seed, _configuration.ActorDecisionFingerprint, _wave, city, kind, id, sequence, generation, purpose);
     private CombatDecisionState NewDecision(int id, int city, long sequence)
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
-    internal void ConfigureArena(IEnumerable<int> owners)
-    { _arena = new(owners); RestoreHomes(); }
+    internal void ConfigureArena(IEnumerable<int> owners, IEnumerable<City>? cities = null)
+    { _arena = new(owners, ArmyWeapons(cities ?? [])); RestoreHomes(); }
+    private static IEnumerable<(int Owner, int Slot)> ArmyWeapons(IEnumerable<City> cities)
+        => cities.SelectMany(city => city.Towers.Keys.Where(ArmyConfiguration.IsArmyPlot).Select(slot => (city.Id, slot)));
     private static int HomeIndex(ArmyAssignment assignment)
     {
         if (assignment.Tile is < 0 or > 5) throw new ArgumentException("Legacy or invalid roster home refused.", nameof(assignment));
@@ -168,8 +170,8 @@ internal sealed partial class CombatSimulation : IDisposable
         if (_watchposts.TryGetValue(city.Id, out StructureState? watchpost)) structures.Add(watchpost with { Active = !city.Eliminated });
         else structures.Add(new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth)) { Active = !city.Eliminated });
         structures.AddRange(city.Towers.Values.OrderBy(t => t.Slot).Select(t => new StructureState(city.Id,
-            t.Type == Building.CatapultTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower, t.Slot, _arena.Tower(city.Id, t.Slot), 1, 1, t.Level)
-        { Active = !city.Eliminated }));
+            t.Type is Building.CatapultTower or Building.BombardTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower, t.Slot, _arena.Tower(city.Id, t.Slot), 1, 1, t.Level)
+        { Active = !city.Eliminated, TowerType = t.Type }));
         return structures;
     }).ToArray();
     private int _cityHealth = 100;
@@ -231,10 +233,11 @@ internal sealed partial class CombatSimulation : IDisposable
             };
         }
     }
-    internal bool Place(int owner, int squadId, int cell, int homes)
+    internal bool Place(int owner, int squadId, int cell, int homes, IReadOnlyList<SlotState>? plots = null)
     {
         CombatUnit[] roster = Living();
-        if (!_squads.TryGetValue(squadId, out CombatSquad? squad) || squad.Owner != owner || !_arena.CanDeploy(owner, cell, homes)
+        bool permitted = plots is null ? _arena.CanDeploy(owner, cell, homes) : _arena.CanDeploy(owner, cell, plots);
+        if (!_squads.TryGetValue(squadId, out CombatSquad? squad) || squad.Owner != owner || !permitted
             || !roster.Any(u => u.SquadId == squadId && u.Assignment is { Stored: false })
             || _squads.Values.Any(s => s.Id != squadId && s.Owner == owner && s.DeploymentCell == cell && roster.Any(u => u.SquadId == s.Id && u.Assignment is { Stored: false }))) return false;
         int home = _arena.DeploymentHome(owner, cell);
@@ -272,6 +275,7 @@ internal sealed partial class CombatSimulation : IDisposable
     internal void BeginWave(int wave, IEnumerable<int>? unfed, IEnumerable<City> cities)
     {
         var reserves = (unfed ?? []).ToHashSet(); City[] owners = cities.ToArray();
+        if (owners.Length > 0) _arena = new(owners.Select(c => c.Id), ArmyWeapons(owners));
         _wave = wave; _events.Clear();
         foreach (int owner in _watchposts.Keys.Except(owners.Select(c => c.Id)).ToArray()) _watchposts.Remove(owner);
         foreach (City city in owners.Where(c => !c.Eliminated))
@@ -419,7 +423,7 @@ internal sealed partial class CombatSimulation : IDisposable
     }
     private int DefenseCell(DefenseActor defense) => defense.Identity.Kind == CombatActorKind.Defender ? _arena.Watchpost(defense.State.City) : _arena.Tower(defense.State.City, defense.State.Slot);
     private int DefenseRange(DefenseActor defense) => defense.Identity.Kind == CombatActorKind.Defender ? _configuration.Arena.DefenderRange
-        : defense.State.Type == Building.CatapultTower ? _configuration.Arena.CatapultRange : _configuration.Arena.ArrowRange;
+        : defense.State.Type is Building.CatapultTower or Building.BombardTower ? _configuration.Arena.CatapultRange : _configuration.Arena.ArrowRange;
     private static void Accumulate(SortedDictionary<int, int> damage, int id, int amount) => damage[id] = checked(damage.GetValueOrDefault(id) + amount);
     private void ResolveDefense(City city, DefenseActor defense, SortedDictionary<int, int> damage)
     {
@@ -428,10 +432,11 @@ internal sealed partial class CombatSimulation : IDisposable
         CombatSquad? target = _squads.GetValueOrDefault(tower.TargetId);
         bool valid = target is { Alive: true, Faction: Faction.Skeletons } && Board.Distance(DefenseCell(defense), target.Location.Position.Cell) <= DefenseRange(defense);
         CombatUnit[] victims = valid ? Members(target!) : [];
-        int y = tower.Type == Building.CatapultTower ? HealthPoints.FromWhole(_configuration.Arena.CatapultSecondaryDamage) : 0;
+        int y = tower.Type is Building.CatapultTower or Building.BombardTower ? HealthPoints.FromWhole(_configuration.Arena.CatapultSecondaryDamage) : 0;
         StrikeContribution[] strikes = SquadDamage.Contributions([new(defense.Identity.KeyId, new(defense.Profile.Damage, y))], victims.Select(m => m.Id), Key(defense.Identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Splash, defense.Identity.Kind));
         foreach (MemberDamage hit in SquadDamage.Accumulate(strikes)) Accumulate(damage, hit.MemberId, Unit(hit.MemberId).Capabilities.Reduce(hit.Damage));
-        EmitTower(CombatEventType.Impact, tower, victims.FirstOrDefault(), defense.Profile.Damage, valid, victims.Select(m => m.Id).ToArray());
+        EmitTower(CombatEventType.Impact, tower, victims.FirstOrDefault(m => strikes.Any(s => s.PrimaryMemberId == m.Id)), defense.Profile.Damage, valid,
+            strikes.SelectMany(s => s.Damage).Where(d => d.Damage > 0).Select(d => d.MemberId).Distinct().ToArray());
         defense.Commit(city, tower with { PendingImpact = false });
     }
     public void StartActions(IEnumerable<City> cities)

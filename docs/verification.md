@@ -66,6 +66,16 @@ headless camera/control/resource checks from unexecuted rendered/GPU/live-sessio
 acceptance, and retain the new failed runtime-invocation receipt and its correction.
 These local implementation receipts are not final PR-head or CI qualification.
 
+## Army plot and tower batch (2026-10-12)
+
+[Authority/interaction receipt and causal diagnosis](army-plots-towers.md) records
+stable numbered plot acquisition, whole-plot tower exclusion, the two explicit
+upgrade profiles, preserved legacy decision/economy behavior and honest limits.
+Local fast coverage passed 484 core + 649 runner cases with two Windows-only
+skips; the selected native `receiving` component also passed. These receipts do
+not claim full-world input, rendered presentation, network delivery or export
+qualification, and do not substitute for subsequent current-head PR/CI gates.
+
 ## Overhaul measurements (2026-10-11)
 
 Baseline source: `d7f1728` (the actual `origin/main` head when audited).

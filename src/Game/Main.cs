@@ -676,6 +676,7 @@ public partial class Main : Node, IGameSession
                     break;
                 case "build-recovery": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), payment: ConstructionPayment.GoldRecovery); break;
                 case "build": SendAction("build", int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true), parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
+                case "upgrade-tower": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), Enum.Parse<Building>(parts[2], true)); break;
                 case "buy-plot":
                 case "sell":
                 case "upgrade":
@@ -781,10 +782,11 @@ public partial class Main : Node, IGameSession
     {
         if (_finished || _role != SessionRole.Guest) return;
         _finished = true; Connected = false; Status = type == "connection-failed" ? "Connection failed" : "Disconnected"; Feedback = message;
-        Emit(new(type, Message: message));
         SessionGeneration++;
         ReleaseGuestPump();
         ResetRpcNode(); Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); _peer?.Close();
+        // Responses to this event must be queued against the post-loss generation.
+        Emit(new(type, Message: message));
         if (_automated) GetTree().Quit(type == "connection-failed" ? 1 : 0);
     }
 

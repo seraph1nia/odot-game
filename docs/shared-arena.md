@@ -47,7 +47,17 @@ All-Keeps defeat is checked before wave clear/victory.
 ## Roster and compatibility
 
 A home holds one homogeneous squad, not a numerical body-size budget. Persistent
-home indexes are 0–5, distinct from physical arena cell IDs. Deployment to an empty
+home indexes are 0–5, distinct from physical arena cell IDs. Buy any numbered
+locked army plot at the current purchase-count quote; total ownership never grants
+unbought intervening homes. A paid tower can occupy an empty owned home instead
+of a squad. Its physical arena weapon then blocks that deployment cell, and
+recruitment, return and deployment all skip it until sale. Base arrow upgrades
+retain the exclusive Rapid Arrow/Bombard paths, prices and individual weapon
+windup/cadence. Arrows use X only; Catapult/Bombard use within-group X/Y, not
+cross-hex radius/victim caps. The catalog, native preview and selected inspection
+show the actual channels and range.
+
+Deployment to an empty
 owned purchased home transfers the entire squad's home claim; subsequent new
 recruitment cannot stack another actor on that destination. Recruitment
 and reinforcement still pay equipment per individual at the recruitment building's

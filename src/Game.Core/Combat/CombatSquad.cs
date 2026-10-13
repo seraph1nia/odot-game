@@ -15,6 +15,7 @@ public sealed record SquadState(int Id, int Owner, int Destination, Faction Fact
 public sealed record StructureState(int Owner, ArenaStructureKind Kind, int Slot, int Cell, int Health, int MaximumHealth,
     int Level = 1, long DestroyedTick = 0)
 {
+    public Building TowerType { get; init; } = Building.Empty;
     public bool Active { get; init; } = true;
     public bool Destroyed => Health <= 0;
 }

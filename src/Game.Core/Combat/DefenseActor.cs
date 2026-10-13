@@ -10,7 +10,7 @@ internal readonly record struct DefenseIdentity
     public int KeyId => Kind == CombatActorKind.Defender ? City : Slot + 1;
     private DefenseIdentity(CombatActorKind kind, int city, int slot)
     {
-        if (city <= 0 || kind == CombatActorKind.Tower && slot is < 0 or > 8) throw new ArgumentException("Invalid defense identity.");
+        if (city <= 0 || kind == CombatActorKind.Tower && slot is < 0 or >= ArmyConfiguration.TotalPlots) throw new ArgumentException("Invalid defense identity.");
         Kind = kind; City = city; Slot = slot;
     }
     public static DefenseIdentity Defender(int city) => new(CombatActorKind.Defender, city, 0);

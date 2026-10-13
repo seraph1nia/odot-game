@@ -50,7 +50,8 @@ internal sealed partial class SharedArenaView : Node3D
             }; AddChild(_diorama);
         }
         CityState? own = state.Players.FirstOrDefault(p => p.Id == localOwner);
-        int[] purchased = arena.Sectors.FirstOrDefault(s => s.Owner == localOwner)?.DeploymentCells.Take(own?.Army?.PurchasedHomes ?? 0).ToArray() ?? [];
+        int[] homes = arena.Sectors.FirstOrDefault(s => s.Owner == localOwner)?.DeploymentCells ?? [];
+        int[] purchased = own?.Army?.Homes.Where(h => h.Purchased && h.Plot.Type == Building.Empty).Select(h => homes[h.Cell]).ToArray() ?? [];
         int[] occupied = state.Squads.Where(s => s.Owner == localOwner && s.Members.Length > 0 && s.Hex.Lifecycle != UnitLifecycle.Stored).Select(s => s.DeploymentCell > 0 ? s.DeploymentCell : s.Hex.Position.Cell).ToArray();
         foreach ((int id, MeshInstance3D tile) in _cells)
             tile.MaterialOverride = deployment && purchased.Contains(id) ? occupied.Contains(id) ? _occupied : _available : _ground;
@@ -91,7 +92,7 @@ internal sealed partial class SharedArenaView : Node3D
             }
             view.Model.Visible = !structure.Destroyed;
             bool objective = structure.Kind is ArenaStructureKind.Keep or ArenaStructureKind.Watchpost;
-            view.Label.Text = $"P{structure.Owner} {structure.Kind}" + (objective ? $" · {HealthPoints.Format(structure.Health)}/{HealthPoints.Format(structure.MaximumHealth)}" : $" L{structure.Level}")
+            view.Label.Text = $"P{structure.Owner} {(objective ? structure.Kind.ToString() : AssetCatalog.BuildingName(structure.TowerType))}" + (objective ? $" · {HealthPoints.Format(structure.Health)}/{HealthPoints.Format(structure.MaximumHealth)}" : $" L{structure.Level}")
                 + (structure.Destroyed ? " · fallen" : !structure.Active ? " · inactive" : "");
         }
     }
@@ -155,7 +156,7 @@ internal sealed partial class SharedArenaView : Node3D
     }
     internal Vector3? WeaponOrigin(TowerState tower)
     {
-        ArenaStructureKind kind = tower.Slot < 0 ? ArenaStructureKind.Watchpost : tower.Type == Building.CatapultTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower;
+        ArenaStructureKind kind = tower.Slot < 0 ? ArenaStructureKind.Watchpost : tower.Type is Building.CatapultTower or Building.BombardTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower;
         if (!_structures.TryGetValue((tower.City, kind, tower.Slot), out var view)) return null;
         Aabb bounds = view.Model.Transform * LandscapeAssets.Bounds(view.Model.GetChild<Node3D>(0));
         return Position + new Vector3(bounds.GetCenter().X, bounds.End.Y - .1f, bounds.GetCenter().Z);

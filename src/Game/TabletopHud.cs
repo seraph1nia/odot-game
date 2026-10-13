@@ -119,6 +119,8 @@ public partial class Tabletop
         _mine = _construction[Building.Mine]; _farm = _construction[Building.Farm]; _barracks = _construction[Building.Barracks];
         _buildingActions = new HBoxContainer(); context.AddChild(_buildingActions);
         _upgrade = Button(_buildingActions, "Upgrade", () => ContextAction("upgrade"));
+        _rapidTower = Button(_buildingActions, "Rapid arrow tower", () => ContextAction("upgrade-tower", Building.RapidArrowTower)); _rapidTower.Name = "RapidArrowUpgrade";
+        _bombardTower = Button(_buildingActions, "Bombard tower", () => ContextAction("upgrade-tower", Building.BombardTower)); _bombardTower.Name = "BombardUpgrade";
         _sell = Button(_buildingActions, "Sell", () => ContextAction("sell")); _sell.Name = "Sell";
         _marketActions = new HBoxContainer(); context.AddChild(_marketActions);
         foreach (Game.Core.Resource resource in Enum.GetValues<Game.Core.Resource>().Where(r => r != Game.Core.Resource.Gold))

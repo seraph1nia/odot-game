@@ -304,12 +304,12 @@ internal sealed partial class Runner
     }
     private static void CombatContact(MatchSnapshot state)
     {
-        var board = new HexBoard(state.Rules.Combat.Board);
+        SnapshotCompatibility.RequireSharedArena(state);
         UnitState[] units = CombatPlayback.All(state).Concat(state.DyingBodies).ToArray();
         Require(units.All(u => u.Hex is not null && u.Hex.Id == u.Id && u.Hex.City == u.Destination && u.Hex.Faction == u.Faction), "complete hex identity for living and dying units");
-        CombatReservations reconstructed = CombatReservations.Reconstruct(board, units.Select(u => u.Hex!));
+        CombatReservations reconstructed = CombatReservations.Reconstruct(state.Arena!, state.Squads);
         Require(JsonSerializer.Serialize(reconstructed, WireJson.Options) == JsonSerializer.Serialize(state.Reservations, WireJson.Options),
-            "complete occupied and moving/death reservations reconstruct from current units");
+            "exclusive squad sources and committed transits reconstruct independently of dying member cosmetics");
         Require(RulesIdentity.Resolve(state.Rules) == state.ConfigurationFingerprint, "published combat configuration matches board and profiles");
     }
     private async Task Defeat(int port, CancellationToken token)
