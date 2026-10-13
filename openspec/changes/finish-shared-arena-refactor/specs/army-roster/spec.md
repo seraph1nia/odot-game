@@ -20,7 +20,7 @@ Each owner SHALL have six numbered army homes, two initially purchased, with the
 
 #### Scenario: Fill two homes
 - **WHEN** six same-type members in two capacity-three squads are recruited onto two initial homes
-- **THEN** three are assigned to the first tile and three to the second at distinct anchors
+- **THEN** three are assigned to the first tile and three to the second, each squad sharing anchor 1 with distinct cosmetic formation slots
 - **AND** a seventh recruit rejects without material payment unless another home is bought or an assignment is freed
 
 #### Scenario: Buy a chosen locked army plot

@@ -36,7 +36,7 @@ paid-capacity, tower-path, legacy-profile and refund rules and concrete values.
 legacy aliases and configuration/decision identity. This batch receipt records
 causal evidence and executed scope rather than a second current rule table.
 
-Current shared-squad rules are **combat 7 / protocol 14**. `UnitTiming`,
+Current shared-squad rules are **combat 7 / protocol 15**. `UnitTiming`,
 `DefenseTiming`, runtime member profiles and tower catalog entries contain no
 size/cap/radius authoring fields. Full compatibility covers all six actual X/Y,
 range and cycle profiles. The landed independent base-actor decision namespace

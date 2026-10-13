@@ -50,9 +50,9 @@ public sealed class SharedArenaTests
             Assert.Equal(6, sector.DeploymentCells.Length);
             Assert.All(sector.DeploymentCells, cell => Assert.True(arena.CanOccupy(cell)));
             Assert.All(snapshot.Footprints, footprint => Assert.False(arena.CanOccupy(footprint.Cell)));
-            Assert.NotEmpty(arena.Route(sector.EnemyCells[0], arena.Keep(sector.Owner), 1, _ => true));
+            Assert.NotEmpty(arena.Routes(sector.EnemyCells[0], [arena.Keep(sector.Owner)], 1, _ => true)[arena.Keep(sector.Owner)]);
             if (players > 1)
-                Assert.NotEmpty(arena.Route(sector.DeploymentCells[0], arena.Keep(sector.Owner % players + 1), 1, _ => true));
+                Assert.NotEmpty(arena.Routes(sector.DeploymentCells[0], [arena.Keep(sector.Owner % players + 1)], 1, _ => true)[arena.Keep(sector.Owner % players + 1)]);
         }
         snapshot.Sectors[0].DeploymentCells[0] = -1;
         Assert.True(arena.CanDeploy(1, arena.Deployment(1, 0), 2));

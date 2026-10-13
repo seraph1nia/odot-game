@@ -14,12 +14,15 @@ public sealed class HexRoutingTests
     {
         var arena = new SharedArena(Enumerable.Range(1, players));
         int source = arena.Deployment(1, 0), target = arena.Keep(players);
-        int[] direct = arena.Route(source, target, 1, _ => true);
+        var work = new WorkCounters(); work.Support(WorkMetric.BfsSearches, WorkMetric.BfsDequeues, WorkMetric.BfsEdges);
+        IReadOnlyDictionary<int, int[]> routes = arena.Routes(source, [target, arena.Watchpost(1)], 1, _ => true, work);
+        int[] direct = routes[target];
+        Assert.Equal(2, routes.Count); Assert.Equal(1, work.Snapshot()[WorkMetric.BfsSearches]);
         Assert.NotEmpty(direct);
         var blockers = new HashSet<int> { direct[0] };
-        int[] detour = arena.Route(source, target, 1, cell => !blockers.Contains(cell));
+        int[] detour = arena.Routes(source, [target], 1, cell => !blockers.Contains(cell))[target];
         Assert.NotEmpty(detour); Assert.DoesNotContain(detour, blockers.Contains);
-        Assert.Equal(detour, arena.Route(source, target, 1, cell => !blockers.Contains(cell)));
+        Assert.Equal(detour, arena.Routes(source, [target], 1, cell => !blockers.Contains(cell))[target]);
         int previous = source;
         foreach (int cell in detour)
         {
@@ -30,8 +33,13 @@ public sealed class HexRoutingTests
         Assert.Equal(1, arena.Board.Distance(detour[^1], target));
         // Geometry oracle preserves independent shortest-distance evidence from
         // retired RoutingScoreEfficiency without obsolete goal/size cache policy.
-        var distances = new HexReachability(arena.Board, source, cell => arena.CanOccupy(cell) && !blockers.Contains(cell));
-        int shortest = distances.Distances.Where(p => arena.Board.Distance(p.Key, target) == 1).Min(p => p.Value);
+        var distances = new Dictionary<int, int> { [source] = 0 };
+        var pending = new Queue<int>(); pending.Enqueue(source);
+        while (pending.TryDequeue(out int current))
+            foreach (int neighbor in arena.Board.Cell(current).Neighbors)
+                if (arena.CanOccupy(neighbor) && !blockers.Contains(neighbor) && distances.TryAdd(neighbor, distances[current] + 1))
+                    pending.Enqueue(neighbor);
+        int shortest = distances.Where(p => arena.Board.Distance(p.Key, target) == 1).Min(p => p.Value);
         Assert.Equal(shortest, detour.Length);
         if (players == 4) Assert.True(arena.Board.Cell(detour[^1]).Coordinate.Column >= 21);
     }
@@ -40,11 +48,11 @@ public sealed class HexRoutingTests
     public void BlockedRouteCannotEnterOccupiedGoalAndBecomesAvailableWhenBlockersLeave()
     {
         var arena = new SharedArena([1]); int source = arena.Deployment(1, 3), target = arena.Watchpost(1);
-        Assert.NotEmpty(arena.Route(source, target, 1, _ => true));
-        Assert.Empty(arena.Route(source, target, 1, _ => false));
-        Assert.NotEmpty(arena.Route(source, target, 1, _ => true));
-        Assert.Empty(arena.Route(source, target, arena.Board.Diameter, _ => false)); // already in range, no needless movement
-        Assert.Throws<ArgumentException>(() => arena.Route(arena.Keep(1), target, 1, _ => true));
-        Assert.Throws<ArgumentException>(() => arena.Route(source, target, 0, _ => true));
+        Assert.NotEmpty(arena.Routes(source, [target], 1, _ => true)[target]);
+        Assert.Empty(arena.Routes(source, [target], 1, _ => false)[target]);
+        Assert.NotEmpty(arena.Routes(source, [target], 1, _ => true)[target]);
+        Assert.Empty(arena.Routes(source, [target], arena.Board.Diameter, _ => false)[target]);
+        Assert.Throws<ArgumentException>(() => arena.Routes(arena.Keep(1), [target], 1, _ => true));
+        Assert.Throws<ArgumentException>(() => arena.Routes(source, [target], 0, _ => true));
     }
 }

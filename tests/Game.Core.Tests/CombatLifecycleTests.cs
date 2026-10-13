@@ -47,6 +47,46 @@ public sealed class CombatLifecycleTests
             Assert.DoesNotContain(combat.Reservations.Transit, r => r.UnitId == mover);
         }
     }
+    [Theory]
+    [InlineData("retire")]
+    [InlineData("regroup")]
+    [InlineData("store")]
+    public void LastLivingRosterDepartureReleasesActorBeforeRetainedCasualtyExpires(string action)
+    {
+        using var combat = new CombatSimulation(new Rules { DefenderDamage = 0 }, seed: 123);
+        var arena = new SharedArena([1]);
+        int casualty = combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
+        int survivor = combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
+        int oldSquad = combat.Read(survivor).SquadId;
+        HexTransition transition = arena.Board.Transition(new(17, 1), new(18, 1));
+        var move = new CombatAction.Moving(1, transition.Destination, transition.Id, 0, 100);
+        combat.Seed(combat.Inspect(casualty) with
+        {
+            Health = 1,
+            Location = new(UnitLifecycle.Alive, transition.Source),
+            Action = move,
+            Statuses = StatusPolicy.Apply(StatusState.Empty, new(casualty, StatusKind.Burn, survivor, 1, 0, 100), new())
+        });
+        combat.Seed(combat.Inspect(survivor) with { Location = new(UnitLifecycle.Alive, transition.Source), Action = move });
+        combat.Advance(60, []); combat.StopActions([]);
+        UnitState body = Assert.Single(combat.Dying());
+        Assert.Equal(oldSquad, Assert.Single(combat.Reservations.Transit).UnitId);
+        if (action == "retire") combat.Remove(survivor);
+        else combat.Assign(survivor, action == "store" ? new(1, 1, 0, 1) : new(-1, 0, 1, 1));
+        Assert.DoesNotContain(combat.Reservations.Positions, p => p.UnitId == oldSquad);
+        Assert.DoesNotContain(combat.Reservations.Transit, p => p.UnitId == oldSquad);
+        Assert.DoesNotContain(combat.SquadSnapshots(), s => s.Id == oldSquad);
+        Assert.Equal(body, Assert.Single(combat.Dying()));
+        combat.RestoreHomes();
+        combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1)); combat.RestoreHomes();
+        CombatReservations rebuilt = CombatReservations.Reconstruct(arena, combat.SquadSnapshots());
+        Assert.Equal(combat.Reservations.Positions, rebuilt.Positions); Assert.Empty(rebuilt.Transit);
+        Assert.Equal(body, Assert.Single(combat.Dying()));
+        combat.Cleanup(body.Hex!.DeathEndTick);
+        Assert.Empty(combat.Dying());
+        Assert.NotEmpty(combat.Snapshot());
+    }
+
     [Fact]
     public void DyingTransferIsRejectedWithoutChangingFrozenIdentityOrOtherSquadClaims()
     {

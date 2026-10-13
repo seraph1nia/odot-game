@@ -219,7 +219,7 @@ internal sealed partial class CombatSimulation : IDisposable
     {
         if (!_entities.Remove(id, out Entity entity)) return;
         int squad = _world.Get<CombatUnit>(entity).SquadId; _world.Destroy(entity);
-        if (!All().Any(u => u.SquadId == squad)) _squads.Remove(squad);
+        if (!Living().Any(u => u.SquadId == squad)) _squads.Remove(squad);
     }
     internal void Assign(int id, ArmyAssignment assignment)
     {
@@ -230,7 +230,7 @@ internal sealed partial class CombatSimulation : IDisposable
         int squad = FindSquad(member);
         int[] slots = Living().Where(u => u.SquadId == squad).Select(u => u.FormationSlot).ToArray();
         Unit(id) = member with { SquadId = squad, FormationSlot = Enumerable.Range(0, _configuration.Arena.SquadCapacity).First(slot => !slots.Contains(slot)) };
-        if (!All().Any(u => u.SquadId == old)) _squads.Remove(old);
+        if (!Living().Any(u => u.SquadId == old)) _squads.Remove(old);
     }
     internal void RestoreHomes()
     {

@@ -32,6 +32,7 @@ public sealed class SnapshotPayloadTests
     [InlineData("missing-version")]
     [InlineData("old-version")]
     [InlineData("future-version")]
+    [InlineData("null-forecast-profile")]
     public void ReceivingClearlyRefusesRetiredOrUnversionedWireContracts(string defect)
     {
         // Tier A: actual compressed payload into the same receiving boundary as
@@ -52,6 +53,10 @@ public sealed class SnapshotPayloadTests
             case "mage-radius": combat["MageSplashHexRadius"] = 1; break;
             case "weapon-size": json["UnitCatalog"]![0]!["Profile"]!["Size"] = 6; break;
             case "tower-radius": json["TowerCatalog"]![0]!["SplashHexRadius"] = 1; break;
+            case "null-forecast-profile":
+                json["NextWave"] = new JsonArray(JsonSerializer.SerializeToNode(new UnitState(-1, 0) { Faction = Faction.Skeletons }, WireJson.Options));
+                json["NextWave"]![0]!["Profile"] = null;
+                break;
             case "missing-version": combat.Remove("RulesVersion"); break;
             case "old-version": combat["RulesVersion"] = 6; json["CombatRulesVersion"] = 6; break;
             default: combat["RulesVersion"] = 8; json["CombatRulesVersion"] = 8; break;
@@ -72,16 +77,53 @@ public sealed class SnapshotPayloadTests
     [InlineData("full-fingerprint")]
     [InlineData("null-forecast")]
     [InlineData("forecast-profile")]
+    [InlineData("member-cell")]
+    [InlineData("member-anchor")]
+    [InlineData("member-hex")]
+    [InlineData("member-action")]
+    [InlineData("member-statuses")]
+    [InlineData("member-poison")]
+    [InlineData("member-decision")]
+    [InlineData("null-body")]
+    [InlineData("body-duplicate")]
+    [InlineData("body-member-collision")]
+    [InlineData("body-cell")]
+    [InlineData("body-aim")]
+    [InlineData("actor-transit")]
+    [InlineData("actor-action")]
+    [InlineData("null-event")]
+    [InlineData("event-cell")]
+    [InlineData("event-pose")]
     public void MalformedSharedIdentitiesAreRefusedAfterRealCodecDelivery(string defect)
     {
         using var match = new Match(combatSeed: 1); match.Join();
         match.Combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
         match.Combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
+        match.Combat.RestoreHomes();
         MatchSnapshot valid = match.Snapshot();
         UnitState[] soldiers = valid.Players[0].Soldiers;
+        MatchSnapshot WithMember(UnitState member) => valid with { Players = [valid.Players[0] with { Soldiers = [member, soldiers[1]] }] };
+        UnitState body = soldiers[0] with { Id = 999, Health = 0, Hex = soldiers[0].Hex! with { Id = 999, Lifecycle = UnitLifecycle.Dying, DeathStartTick = 1, DeathEndTick = 49 } };
         MatchSnapshot invalid = defect switch
         {
             "member-duplicate" => valid with { Players = [valid.Players[0] with { Soldiers = [soldiers[0], soldiers[0]] }] },
+            "member-cell" => WithMember(soldiers[0] with { Hex = soldiers[0].Hex! with { Position = new(int.MaxValue, 1) } }),
+            "member-anchor" => WithMember(soldiers[0] with { Hex = soldiers[0].Hex! with { Position = new(soldiers[0].Hex!.Position.Cell, 2) } }),
+            "member-hex" => WithMember(soldiers[0] with { Hex = null }),
+            "member-action" => WithMember(soldiers[0] with { Hex = soldiers[0].Hex! with { Action = UnitActionKind.Recovery } }),
+            "member-statuses" => WithMember(soldiers[0] with { Statuses = null! }),
+            "member-poison" => WithMember(soldiers[0] with { Statuses = new() { Poison = [null!] } }),
+            "member-decision" => WithMember(soldiers[0] with { Decision = soldiers[0].Decision! with { Route = null! } }),
+            "null-body" => valid with { DyingBodies = [null!] },
+            "body-duplicate" => valid with { DyingBodies = [body, body] },
+            "body-member-collision" => valid with { DyingBodies = [body with { Id = soldiers[0].Id, Hex = body.Hex! with { Id = soldiers[0].Id } }] },
+            "body-cell" => valid with { DyingBodies = [body with { Hex = body.Hex! with { Position = new(int.MaxValue, 1) } }] },
+            "body-aim" => valid with { DyingBodies = [body with { Hex = body.Hex! with { FrozenAim = new HexPosePoint(new(int.MaxValue, 1)) } }] },
+            "actor-transit" => valid with { Squads = [valid.Squads[0] with { Hex = valid.Squads[0].Hex with { Action = UnitActionKind.Moving, ActionSequence = 1, EndTick = 30, Destination = new(int.MaxValue, 1) } }] },
+            "actor-action" => valid with { Squads = [valid.Squads[0] with { Hex = valid.Squads[0].Hex with { Action = UnitActionKind.Windup } }] },
+            "null-event" => valid with { CombatEvents = [null!] },
+            "event-cell" => valid with { CombatEvents = [new(1, 0, CombatEventType.Hit, soldiers[0] with { Hex = soldiers[0].Hex! with { Position = new(int.MaxValue, 1) } })] },
+            "event-pose" => valid with { CombatEvents = [new(1, 0, CombatEventType.Hit, soldiers[0]) { ImpactPose = new(new(int.MaxValue, 1)) }] },
             "squad-duplicate" => valid with { Squads = [valid.Squads[0], valid.Squads[0]] },
             "formation" => valid with { Players = [valid.Players[0] with { Soldiers = [soldiers[0], soldiers[1] with { FormationSlot = soldiers[0].FormationSlot }] }] },
             "missing-squad" => valid with { Squads = [] },
@@ -94,7 +136,12 @@ public sealed class SnapshotPayloadTests
             "forecast-profile" => valid with { NextWave = [new(-1, 10) { Faction = Faction.Skeletons, Profile = new() { Health = 10 } }] },
             _ => valid with { Squads = [valid.Squads[0] with { Members = null! }] }
         };
-        Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(invalid)));
+        string before = JsonSerializer.Serialize(valid, WireJson.Options);
+        JsonObject wire = JsonSerializer.SerializeToNode(invalid, WireJson.Options)!.AsObject();
+        if (defect == "member-statuses") wire["Players"]![0]!["Soldiers"]![0]!["Statuses"] = null;
+        if (defect == "member-decision") wire["Players"]![0]!["Soldiers"]![0]!["Decision"]!["Route"] = null;
+        Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(Compress(wire)));
+        Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
         MatchSnapshot received = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(valid));
         Assert.Equal(JsonSerializer.Serialize(valid, WireJson.Options), JsonSerializer.Serialize(received, WireJson.Options));
     }

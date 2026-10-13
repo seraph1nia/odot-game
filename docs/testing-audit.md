@@ -39,6 +39,41 @@ coverage was removed. [Exact receipts, admission costs, failures and limits](arm
 distinguish 48 targeted cases from the final broad fast 484/649 passes and two
 platform skips; actual `receiving` component time was 9.28s.
 
+## Shared-arena review regression coverage
+
+Tier A additions exercise serialized local/remote squad-selector rejection and
+retry ledgers (`ArmyCommandTests`), last-survivor retirement/regroup/storage while
+a real periodic casualty retains its frozen body (`CombatLifecycleTests`), and
+compressed malformed member/body/event/forecast projections (`SnapshotPayloadTests`).
+Existing ownership, combat-death and codec tests omitted these particular inputs.
+Expected outcomes are rejection without mutation, immediate release of empty
+actor claims independent of body expiry, and refusal before snapshot admission.
+Fixed seeds and bounded ECS fixtures own no engine processes; estimated cost is
+seconds, not a new campaign or graphical qualification. Native Welcome credential
+persistence is not independently exercised by these codec checks.
+
+Removed the unused single-target `SharedArena.Route`; all former routing tests
+now call production `Routes`. They retain blocked/static/cross-sector, shortest
+adjacent path and invalid-origin/range cases, add a one-search multi-target work
+assertion, and use an independent test BFS distance oracle. No routing behavior
+coverage was dropped; these tests still do not prove native transport or pixels.
+
+Review-phase local receipt: locked `dotnet restore Odot.slnx --locked-mode` and
+`dotnet format Odot.slnx --no-restore --include <changed C# paths>` completed.
+The initial `dotnet test tests/Game.Core.Tests/Game.Core.Tests.csproj --no-restore`
+selection covered `ArmyCommandTests`, `CombatLifecycleTests`, `HexRoutingTests`,
+`SharedArenaTests`, `SnapshotPayloadTests`, `SharedStateTests`, `SharedCombatTests`,
+`CombatReceivingEncounterTests`, `SessionFlowTests` and `AuthorityCombatTests`:
+95 passed, two failed because null DTO fields were omitted rather than delivered
+as explicit JSON nulls. After correcting those inputs, the snapshot-only rerun
+passed 40; after extending identity checks to body/member collisions, the final
+snapshot-only rerun passed 42. No skips. TRX evidence is under
+`logs/shared-arena-review/{shared-arena-review,snapshot-review-corrected,snapshot-review-final}.trx`.
+These are filtered passes, not a complete suite or native qualification. Full
+suite, engine, transport, graphical, package and delivery CI remain outer-phase
+work. Initial shim trust refusal occurred before restore; process-scoped
+`MISE_TRUSTED_CONFIG_PATHS` allowed execution without changing global trust.
+
 ## Core groups
 
 Names below are relative to `tests/Game.Core.Tests`; `Tests.cs` suffix is omitted

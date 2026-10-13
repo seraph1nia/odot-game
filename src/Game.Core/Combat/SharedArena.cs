@@ -126,24 +126,4 @@ public sealed class SharedArena
         return routes;
     }
 
-    // Deterministic breadth-first path to any attack cell. Occupied endpoints
-    // are excluded by the caller; structure cells are always impassable.
-    internal int[] Route(int source, int target, int range, Func<int, bool> passable)
-    {
-        if (!CanOccupy(source) || range < 1) throw new ArgumentException("Invalid arena route origin/range.");
-        var previous = new Dictionary<int, int> { [source] = 0 };
-        var queue = new Queue<int>(); queue.Enqueue(source);
-        while (queue.TryDequeue(out int current))
-        {
-            if (Board.Distance(current, target) <= range)
-            {
-                var path = new List<int>();
-                for (int at = current; at != source; at = previous[at]) path.Add(at);
-                path.Reverse(); return path.ToArray();
-            }
-            foreach (int next in Board.Cell(current).Neighbors)
-                if (CanOccupy(next) && passable(next) && previous.TryAdd(next, current)) queue.Enqueue(next);
-        }
-        return [];
-    }
 }

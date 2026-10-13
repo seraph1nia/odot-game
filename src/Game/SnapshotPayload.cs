@@ -30,7 +30,7 @@ public static class SnapshotPayload
             SnapshotCompatibility.RequireSharedArena(state);
             return state;
         }
-        catch (Exception error) when (error is JsonException or ArgumentException or InvalidDataException or FormatException)
+        catch (Exception error) when (error is JsonException or ArgumentException or InvalidDataException or FormatException or OverflowException)
         {
             throw new InvalidDataException("Combat snapshot refused: incompatible or malformed squad rules. Rejoin a compatible authority or start a fresh match.", error);
         }

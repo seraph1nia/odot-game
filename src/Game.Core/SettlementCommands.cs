@@ -8,6 +8,8 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
     {
         CommandResult Reject(string message) => new(command.Sequence, false, message);
         CommandResult Accept() => new(command.Sequence, true, $"{command.Action} accepted.");
+        if (command.Action is "recruit" or "regroup-member" or "send" or "store" && command.SquadId < -1)
+            return Reject("Choose a valid squad selector.");
         if (command.Action == "research-tech")
         {
             TechnologyEligibility eligibility;
