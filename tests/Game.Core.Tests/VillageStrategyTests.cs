@@ -49,13 +49,6 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
             foreach (UnitState unit in after.Soldiers.Where(u => !before.Soldiers.Any(old => old.Id == u.Id)))
             { Assert.Equal(id, unit.Owner); born.Add(unit.Id, (unit.Owner, unit.Type, unit.Level)); }
         }
-        void Build(int id, int slot, Building type, ConstructionPayment payment = ConstructionPayment.Standard)
-            => Paid(id, Command.FromSnapshot(match.Snapshot(), 1, "build", id, slot, type, payment: payment));
-        foreach (int id in new[] { 1, 2 })
-        {
-            Build(id, 0, Building.Farm); Build(id, 2, Building.MetalMine); Build(id, 4, Building.MetalMine);
-            Build(id, 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
-        }
         void Invest(int id)
         {
             City city = match.Players[id];
@@ -65,39 +58,47 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         }
         void Prepare(bool firstWave)
         {
+            while (match.Phase is Phase.Building or Phase.Preparation)
+            {
+                foreach ((int player, EconomyAction action) in CampaignStrategy.RedistributionPreparation(match.Snapshot(), 1, 2))
+                    Paid(player, action.Command(match.Snapshot(), player));
+                MatchSnapshot? settlement = null;
+                foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
+                {
+                    if (!firstWave)
+                    {
+                        if (city.Id == 1) Invest(city.Id);
+                        else if (city.Id == 2 && match.Turn > 1) Paid(2, Command.FromSnapshot(match.Snapshot(), 1, "recruit", 2, 1));
+                    }
+                    if (city.Id == (firstWave ? 3 : 2)) settlement = match.Snapshot();
+                    Assert.True(Act(match, city.Id, "ready").Accepted);
+                }
+                Assert.NotNull(settlement);
+                for (int ticks = 0; match.ProductionCount == settlement.ProductionCount; ticks++)
+                {
+                    Assert.True(ticks < 120); match.Step();
+                }
+                Assert.Equal(settlement.ProductionCount + 1, match.ProductionCount);
+                foreach (CityState city in settlement.Players.Where(c => !c.Eliminated))
+                {
+                    Assert.True(city.Resources.TryAdd(city.ProductionIncome!.Value, out ResourceCost balance));
+                    if (match.Phase == Phase.Combat)
+                    {
+                        Assert.True(balance.TryPay(new(Food: match.Players[city.Id].LastUpkeep!.Paid), out ResourceCost funded));
+                        balance = funded;
+                    }
+                    Assert.Equal(balance, match.Players[city.Id].Resources);
+                }
+            }
             if (firstWave)
             {
-                for (int preparation = 0; preparation < 2; preparation++)
-                    foreach (int player in new[] { 1, 2, 3 }) Assert.True(Act(match, player, "ready").Accepted);
-                foreach (int player in new[] { 1, 2 }) Build(player, 1, Building.Barracks);
-                // Retain the witness's two-city insertion order with actual
-                // affordable two-unit batches, not guessed friendly IDs. All
-                // twelve recruits now pay in final preparation from sixteen
-                // metal per equipped city; no final income is spent here.
-                for (int batch = 0; batch < 3; batch++)
-                    foreach (int player in new[] { 1, 2 })
-                        for (int recruit = 0; recruit < 2; recruit++) Paid(player, Command.FromSnapshot(match.Snapshot(), 1, "recruit", player, 1));
-                foreach (int player in new[] { 1, 2, 3 }) Assert.True(Act(match, player, "ready").Accepted);
+                Assert.Equal(3, match.ProductionCount);
                 Assert.All(match.Players.Values.Where(c => c.Id != 3), c =>
                 {
                     Assert.Equal(6, c.Soldiers.Count); Assert.Equal(6, c.LastUpkeep!.Paid);
                     Assert.Equal(c.Soldiers.Select(u => u.Id), c.LastUpkeep.Funded);
                     Assert.Equal(12, c.Metal); Assert.Equal(9, c.Food);
                 });
-                return;
-            }
-            Paid(1, Command.FromSnapshot(match.Snapshot(), 1, "sell", 1, 4));
-            Build(1, 4, Building.Stonecutter);
-            while (match.Phase is Phase.Building or Phase.Preparation)
-            {
-                foreach (City city in match.Players.Values.Where(c => !c.Eliminated && !c.Ready))
-                {
-                    if (city.Id == 1) Invest(city.Id);
-                    else if (city.Id == 2 && match.Phase == Phase.Preparation) Paid(2, Command.FromSnapshot(match.Snapshot(), 1, "recruit", 2, 1));
-
-                    Assert.True(Act(match, city.Id, "ready").Accepted);
-                }
-                if (match.Players.Values.Where(c => !c.Eliminated).All(c => c.Ready)) match.Step();
             }
         }
         Prepare(true);

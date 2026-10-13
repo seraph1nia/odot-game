@@ -190,6 +190,30 @@ internal static class CampaignStrategy
         }
         return null;
     }
+    public static IEnumerable<(int Player, EconomyAction Action)> RedistributionPreparation(MatchSnapshot state, int receivingCity, int partnerCity)
+    {
+        int[] players = [receivingCity, partnerCity];
+        if (state.Wave == 1 && state.Turn == 1)
+            foreach (int player in players)
+            {
+                yield return (player, new("build", 0, Building.Farm));
+                yield return (player, new("build", 2, Building.MetalMine));
+                yield return (player, new("build", 4, Building.MetalMine));
+                yield return (player, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery));
+            }
+        if (state.Wave == 1 && state.Turn == 3)
+        {
+            foreach (int player in players) yield return (player, new("build", 1, Building.Barracks));
+            for (int batch = 0; batch < 3; batch++)
+                foreach (int player in players)
+                    for (int recruit = 0; recruit < 2; recruit++) yield return (player, new("recruit", 1));
+        }
+        if (state.Wave == 2 && state.Turn == 1)
+        {
+            yield return (receivingCity, new("sell", 4));
+            yield return (receivingCity, new("build", 4, Building.Stonecutter));
+        }
+    }
     public static EconomyAction? ReinforcementInvestment(MatchSnapshot state, int player, bool receivingCity)
     {
         CityState city = state.Players.Single(p => p.Id == player);

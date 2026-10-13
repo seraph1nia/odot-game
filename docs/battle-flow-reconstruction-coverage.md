@@ -198,6 +198,69 @@ Only the historical seed-position coupling is retired. The nonempty occupied
 contract is explicitly established, stronger downstream protection executes, and
 no old meaningful contract is silently deleted, skipped or accepted arbitrarily.
 
+## Opt-in redistribution consumer migration (review R1)
+
+The retained `test-network --scenario redistribution` driver now consumes
+`CampaignStrategy.RedistributionPreparation`, also executed by the existing
+`PaidThreeCityProgressionPreservesClearedTransferIdentityAndCompletes(seed:109)`
+Tier A witness. Both equipped cities pay for Farm, two Metal Mines and the
+GoldRecovery Lumbermill during Preparation 1; after two settlements they build
+Barracks and recruit six units in alternating two-unit batches. Preparation 3
+settles before combat with twelve metal and nine food per equipped city and
+six actual funded IDs, with no fourth spending opportunity. Wave 2 sells the
+receiving city's second mine for its actual refund, builds its Stonecutter,
+uses the existing earned investment policy and recruits one partner unit in
+both Preparations 2 and 3, rather than only the last preparation.
+
+The driver checks actual quoted debits/refunds and paid birth identities,
+three/six production counts and funded identities, original twelve-enemy
+allocation (four fallen-origin enemies, six per living destination), eliminated
+observer resume/refusal, cleared-city transfer identity/damage, bounded first
+admitted identity, reservation reconstruction, engagement and nonempty owned
+survivors. Existing child/event-reader, cancellation, endpoint and runtime
+ownership are unchanged. Preparation synchronization waits for the actual
+settlement, including ordinary final-preparation death cleanup; it does not
+require an intermediate acknowledgment phase to remain visible.
+
+Only the obsolete seed-front positioning coupling is retired from this driver.
+Its genuinely nonempty occupied-source guard maps to the eight role/death cases
+in `HexBattleTests.RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes`
+and the same-input occupied/empty counterfactual
+`OccupiedSourceRatherThanSeededPaidOutcomeDeterminesLegalIncomingBand`.
+The negative ownership, capacity, malformed placement, atomic reservation and
+cumulative death-lease mappings above remain unchanged. No source positions,
+resources, units, balance, movement or death leases are forced or changed.
+
+Coverage admission: the observable regression is an obsolete four-unit paid
+transport opening defeating before next-wave allocation, compounded by the
+historical occupied-front setup guard. The existing pure witness had its own
+correct transcript but could not detect the stale driver schedule. Sharing the
+schedule makes the existing deterministic Tier A case execute the consumer's
+actual actions and assert published payments, every settlement and the earned
+transfer/survivor result. This adds no journey or test case; estimated extra
+cost is negligible relative to its existing bounded two-wave simulation. Pure
+execution does not prove automation parsing, peer publication timing or live
+transport. The retained native redistribution scenario is **unexecuted**, not
+proven equivalent to the pure witness; no full native campaign/application/world/
+UI or graphical journey is authorized or claimed. Historical failed receipts
+and prior exact-head qualifications below are unchanged, not current-head passes.
+
+Focused review-fix verification on top of
+`0b423f52197529c28b32c8ee94183d6b85f599e7` passed **11/11**, zero failures/skips:
+the paid seed-109 progression, eight occupied role/death cases, occupied/empty
+counterfactual and cumulative compatible death-release admission case. Exact
+selection was `FullyQualifiedName~VillageStrategyTests.PaidThreeCityProgressionPreservesClearedTransferIdentityAndCompletes|FullyQualifiedName~HexBattleTests.RedistributionIntoOccupiedClearedFrontageAdmitsEngagesAndCompletes|FullyQualifiedName~HexBattleTests.OccupiedSourceRatherThanSeededPaidOutcomeDeterminesLegalIncomingBand|FullyQualifiedName~HexBattleTests.ClearedProtectedEntryBoundUsesCumulativeCompatibleDeathReleases`.
+Evidence is `logs/review-r1/tests.log` and `redistribution.trx`; measured test
+duration was 796 ms. Sequential locked solution restore used installed package
+cache plus an empty worktree-local feed, with no package acquisition. Targeted
+`dotnet format Odot.slnx --no-restore --include` for the three changed C# files
+and `dotnet build tools/DevRunner/DevRunner.csproj --no-restore` passed; driver
+build had zero warnings/errors in 6.62 s. Restore/format/build logs are beside
+the test receipt. The initial SDK version check was refused by mise's untrusted
+worktree configuration; a process-local `MISE_TRUSTED_CONFIG_PATHS` allowed the
+locked 10.0.401 SDK without changing global trust or installing tools. This
+partial selection is not a full test/lint, native scenario or pipeline approval.
+
 ## Completed local qualification / delivery handoff
 
 - Initial split focused selection passed **39/39**, no skips:
