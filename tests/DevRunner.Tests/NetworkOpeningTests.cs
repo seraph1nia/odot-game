@@ -20,19 +20,18 @@ public sealed class NetworkOpeningTests
                 => Assert.True(match.Apply(player, Command.FromSnapshot(match.Snapshot(), match.Revision + 1,
                     action, player, slot, building, payment: payment)).Accepted);
             Act(1, "start");
-            foreach (int player in new[] { 1, 2 })
+            for (int preparation = 0; preparation < 3; preparation++)
             {
-                Act(player, "build", 0, Building.Farm); Act(player, "build", 1, Building.Barracks); Act(player, "build", 2, Building.MetalMine);
-                Act(player, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery); Act(player, "ready");
+                foreach (var (player, action) in CampaignStrategy.RedistributionPreparation(match.Snapshot(), 1, 2))
+                    Act(player, action.Action, action.Slot, action.Building, action.Payment);
+                foreach (int player in new[] { 1, 2 }) Act(player, "ready");
             }
-            foreach (int player in new[] { 1, 2 }) { Act(player, "recruit", 1); Act(player, "recruit", 1); Act(player, "ready"); }
-            foreach (int player in new[] { 1, 2 })
+            Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(3, match.ProductionCount);
+            Assert.All(match.Players.Values, city =>
             {
-                Act(player, "build", 4, Building.Stonecutter); Act(player, "buy-plot", 5);
-                Act(player, "recruit", 1); Act(player, "recruit", 1); Act(player, "ready");
-            }
-            foreach (int player in new[] { 1, 2 }) { Act(player, "recruit", 1); Act(player, "recruit", 1); Act(player, "ready"); }
-            Assert.Equal(Phase.Combat, match.Phase);
+                Assert.Equal(6, city.Soldiers.Count); Assert.Equal(6, city.LastUpkeep!.Paid);
+                Assert.Equal(9, city.Food); Assert.Equal(12, city.Metal); Assert.Equal(0, city.Stone);
+            });
             for (int ticks = 0; ticks < 3000 && match.Phase == Phase.Combat; ticks++) match.Step();
             Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave);
             Assert.All(match.Players.Values, city => Assert.False(city.Eliminated));

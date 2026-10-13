@@ -78,12 +78,8 @@ internal sealed partial class Runner
     {
         MatchSnapshot? resolved = null;
         foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
-        if (resolved!.Phase == Phase.Preparation)
-        {
-            MatchSnapshot preparation = resolved;
-            foreach (Child child in clients) await Observe(child, s => s.Phase == Phase.Preparation && s.TurnSerial == preparation.TurnSerial, "preparation synchronization", token);
-            foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
-        }
+        // One Advance means one visible numbered preparation, never a hidden
+        // extra income-free ready check. Final editing happens in preparation 3.
         MatchSnapshot target = resolved!;
         // Ready can acknowledge Preparation while the next authority tick
         // starts combat, before peers receive that intermediate revision.
@@ -229,14 +225,6 @@ internal sealed partial class Runner
         await using var staleSession = ExpectedFailure(StartGame("stale-session", false, true, port, null, "--automated", "--session-file", bPath));
         await staleSession.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("expired"), "expired session refusal", options.StartupTimeout, token);
     }
-    private async Task ReinforcementInvestment(Child child, bool receivingCity, CancellationToken token)
-    {
-        while (CampaignStrategy.ReinforcementInvestment(Latest(child), child.PlayerId, receivingCity) is EconomyAction action)
-        {
-            string request = action.Action == "build" ? $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}" : $"{action.Action} {action.Slot}";
-            await Action(child, request, token);
-        }
-    }
     private async Task Redistribution(int port, CancellationToken token)
     {
         // Paid shared-arena rescue + exact wire agreement/resume. Old teleport
@@ -251,15 +239,70 @@ internal sealed partial class Runner
         foreach (Child p in new[] { a, b, c }) await p.WaitFor(e => e.Type == "connected", "three-player lobby", options.StartupTimeout, token);
         int thirdId = c.PlayerId;
         await Action(a, "start", token); foreach (Child p in new[] { b, c }) await Observe(p, s => s.Phase == Phase.Building, "transfer start", token);
-        await Economy(a, token); await Economy(b, token);
-        for (int preparation = 0; preparation < 4; preparation++)
+        await SimulationSpeed(a, 1, token);
+        var born = new Dictionary<int, (int Owner, UnitType Type, int Level)>();
+        async Task Paid(Child child, EconomyAction action)
         {
-            await ReinforcementInvestment(a, true, token); await ReinforcementInvestment(b, false, token);
-            foreach (Child child in new[] { a, b, c }) await Action(child, "ready", token);
-            MatchSnapshot advanced = Latest(c);
-            foreach (Child child in new[] { a, b }) await Observe(child, state => state.Revision >= advanced.Revision && state.Phase == advanced.Phase, "reinforcement opening synchronized", token);
+            MatchSnapshot before = Latest(child);
+            CityState city = before.Players.Single(p => p.Id == child.PlayerId);
+            ResourceCost quote = action.Action switch
+            {
+                "build" => action.Payment == ConstructionPayment.GoldRecovery
+                    ? before.BuildingCatalog.Single(b => b.Type == action.Building).RecoveryConstruction!.Value
+                    : before.BuildingCatalog.Single(b => b.Type == action.Building).Construction,
+                "upgrade" => city.Slots[action.Slot].UpgradeQuote!.Value,
+                "recruit" => city.RecruitmentQuotes.Single(q => q.Type == action.Unit && q.Level == city.Slots[action.Slot].Level).Cost,
+                "buy-home" => new(city.Army!.HomePrices[city.Army.PurchasedHomes - 2]),
+                "sell" => default,
+                _ => throw new InvalidOperationException("Unexpected redistribution action: " + action.Action)
+            };
+            string request = action.Action switch
+            {
+                "build" => $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}",
+                "recruit" => $"recruit {action.Slot} {action.Unit}",
+                _ => $"{action.Action} {action.Slot}"
+            };
+            CityState after = State(await Action(child, request, token)).Players.Single(p => p.Id == child.PlayerId);
+            Require(city.Resources.TryPay(quote, out ResourceCost balance), "redistribution action is actually affordable");
+            if (action.Action == "sell")
+            {
+                Require(balance.TryAdd(city.Slots[action.Slot].Refund, out ResourceCost refunded), "redistribution sale refund fits");
+                balance = refunded;
+            }
+            Require(after.Resources == balance, "redistribution pays the published quote or receives the actual investment refund");
+            UnitState[] recruited = after.Soldiers.Where(u => !city.Soldiers.Any(old => old.Id == u.Id)).ToArray();
+            Require(recruited.Length == (action.Action == "recruit" ? 1 : 0), "only recruitment creates a paid unit identity");
+            foreach (UnitState unit in recruited)
+            {
+                Require(unit.Owner == child.PlayerId && unit.Type == action.Unit && unit.Level == city.Slots[action.Slot].Level, "paid births retain owned type and trainer level");
+                born.Add(unit.Id, (unit.Owner, unit.Type, unit.Level));
+            }
         }
-        MatchSnapshot initial = Latest(a); CombatContact(initial);
+        async Task Prepare(Child[] clients, bool firstWave)
+        {
+            MatchSnapshot before = Latest(a);
+            foreach ((int player, EconomyAction action) in CampaignStrategy.RedistributionPreparation(before, a.PlayerId, b.PlayerId))
+                await Paid(player == a.PlayerId ? a : b, action);
+            if (!firstWave)
+            {
+                for (int actions = 0; CampaignStrategy.ReinforcementInvestment(Latest(a), a.PlayerId, true) is EconomyAction investment; actions++)
+                {
+                    Require(actions < 100, "bounded receiving-city investment");
+                    await Paid(a, investment);
+                }
+                if (before.Turn > 1) await Paid(b, new("recruit", 1));
+            }
+            foreach (Child child in clients) await Action(child, "ready", token);
+            foreach (Child child in clients)
+                await Observe(child, s => s.TurnSerial > before.TurnSerial && s.ProductionCount == before.ProductionCount + 1,
+                    "redistribution preparation settlement synchronized", token);
+        }
+        for (int preparation = 0; preparation < 3; preparation++) await Prepare([a, b, c], true);
+        MatchSnapshot initial = await Observe(a, s => s.Phase == Phase.Combat && s.Wave == 1, "paid redistribution opening", token);
+        Require(initial.ProductionCount == 3 && initial.Players.Where(p => p.Id != thirdId).All(p => p.Soldiers.Length == 6
+            && p.Metal == 12 && p.Food == 9 && p.LastUpkeep!.Paid == 6 && p.LastUpkeep.Unfed.Length == 0
+            && p.LastUpkeep.Funded.Order().SequenceEqual(p.Soldiers.Select(u => u.Id).Order())), "six actually funded opening identities per equipped city");
+        CombatContact(initial);
         Require(initial.Players.Single(p => p.Id == thirdId).Soldiers.Length == 0, "third sector has no privately seeded army");
         // Combat publication can skip transient revisions. An ordinary accepted
         // pause gives every peer the same stable receipt before exact comparison.
@@ -283,13 +326,20 @@ internal sealed partial class Runner
         CombatContact(State(restored));
         await Observe(a, s => s.DyingBodies.Length == 0, "cosmetic cleanup before investment", token);
         MatchSnapshot? next = null;
-        for (int preparation = 0; preparation < 4; preparation++)
+        for (int preparation = 0; preparation < 3; preparation++)
         {
-            await ReinforcementInvestment(a, true, token); await ReinforcementInvestment(b, false, token);
+            foreach (var (player, action) in CampaignStrategy.RedistributionPreparation(Latest(a), a.PlayerId, b.PlayerId))
+                await Paid(player == a.PlayerId ? a : b, action);
+            foreach (Child client in new[] { a, b })
+                for (int actions = 0; CampaignStrategy.ReinforcementInvestment(Latest(client), client.PlayerId, client == a) is EconomyAction investment; actions++)
+                {
+                    Require(actions < 100, "bounded receiving-city investment");
+                    await Paid(client, investment);
+                }
             GameEvent? ready = null;
             foreach (Child child in new[] { a, b, observer }) ready = await Action(child, "ready", token);
             MatchSnapshot advanced = State(ready!);
-            if (preparation == 3) next = advanced;
+            if (preparation == 2) next = advanced;
             await Observe(a, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase, "shared preparation synchronized", token);
         }
         // Initial allocation belongs to the accepted final Ready receipt. A
@@ -297,6 +347,7 @@ internal sealed partial class Runner
         Require(next is { Phase: Phase.Combat, Wave: 2 } && next.Enemies.Length == 12
             && next.Players.All(p => next.Enemies.Count(e => e.Destination == p.Id) == 4), "next roster counted once and divided 4/4/4");
         CombatContact(next!);
+
     }
     private static void CombatContact(MatchSnapshot state)
     {
@@ -314,7 +365,7 @@ internal sealed partial class Runner
         await using var server = started.Server; port = started.Port;
         await using var client = StartGame("defeat-client", false, true, port, null, "--automated"); await client.WaitFor(e => e.Type == "connected", "defeat client", options.StartupTimeout, token);
         await Action(client, "start", token);
-        for (int readiness = 0; readiness < 4; readiness++) await Action(client, "ready", token);
+        for (int readiness = 0; readiness < 3; readiness++) await Action(client, "ready", token);
         MatchSnapshot lost = await Observe(client, s => s.Phase == Phase.Defeat, "ordinary losing strategy", token);
         Require(lost.Players.All(p => p.Eliminated && p.Health == 0) && lost.DefeatReason == DefeatReason.AllCitiesFallen && lost.Stall is null, "zero city health ends match with ordinary defeat, without stall fallback");
     }

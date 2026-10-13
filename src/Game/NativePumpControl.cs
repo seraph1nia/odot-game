@@ -227,7 +227,7 @@ internal static class NativePumpControl
             if (!result.Accepted) throw new InvalidOperationException(result.Message);
         }
         Act(1, "start"); Act(1, "build", 0, Building.Farm); Act(1, "build", 2, Building.MetalMine); Act(1, "build", 1, Building.Barracks);
-        for (int turn = 0; turn < 3; turn++)
+        for (int turn = 0; turn < 2; turn++)
         {
             Act(1, "ready"); Act(2, "ready");
             while (match.Players[1].Soldiers.Count < 6 && match.Players[1].Resources.TryPay(match.Economy.Recruitment(UnitType.Swordsman), out _)) Act(1, "recruit", 1);

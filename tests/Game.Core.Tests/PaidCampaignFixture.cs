@@ -7,19 +7,25 @@ namespace Game.Core.Tests;
 
 // Verification driver, not a simulator: production Match, default twenty waves,
 // accepted paid commands and fixed steps only. Never grants resources or members.
-// Current-source economics are PROVISIONAL: three Building END incomes followed
-// by a fourth, income-free Preparation edit/Ready. The pending phase ship is not
-// implemented here. Tier A uses bounded openings; full runs are selected Tier Deep.
+// Integrated economics: exactly three Preparations; final END settles and
+// enters Combat immediately. Tier A uses bounded openings; full runs are Tier
+// Deep. Historical four-edit baselines are not qualification for these inputs.
 internal static class PaidCampaignFixture
 {
     internal sealed record Receipt(Command Command, ResourceCost Before, ResourceCost After, ResearchState ResearchBefore, ResearchState ResearchAfter);
     internal sealed record Wave(int Number, int Ticks, int KeepDamage, int WatchpostDamage, int Casualties, int Injured, int LostHealth,
-        int Unfed, int PaidFood, int ForeignOriginImpacts, CityState[] Entry, CityState[] Exit);
+        int Unfed, int PaidFood, int ForeignOriginImpacts, CityState[] Entry, CityState[] Exit)
+    {
+        // Opt-in diagnostic transcript of the existing numerical event reader;
+        // never expands incoming snapshots, protocol history or simulation.
+        public UnitState[] EnemyEntry { get; init; } = [];
+        public CombatEvent[] Events { get; init; } = [];
+    }
     internal sealed record Result(string Family, int Players, ulong Seed, int MaximumHomes, int MaximumTier, bool HallUpgrades,
         Phase Outcome, DefeatReason Reason, StallDiagnostic? Stall, int ReachedWave, int ProductionCount, int CombatTicks,
         long HealedHealth, ResourceCost RecoveryInvestment, Receipt[] Commands, Wave[] Waves, MatchSnapshot Final)
     {
-        public string Economics { get; init; } = "PROVISIONAL: current three Building incomes + fourth income-free Preparation edit";
+        public string Economics { get; init; } = "Integrated PR24: exactly three Preparations, final END settles and enters Combat without another spending window";
         public int RequestedHorizon { get; init; } = 20;
     }
     internal static Match Opening(int players = 2, ulong seed = 1)
@@ -32,15 +38,23 @@ internal static class PaidCampaignFixture
             foreach (int player in match.Players.Keys)
             {
                 Apply(match, player, new("build", 0, Building.Farm));
-                Apply(match, player, new("build", 1, Building.Barracks));
                 Apply(match, player, new("build", 2, Building.MetalMine));
+                Apply(match, player, new("build", 4, Building.MetalMine));
                 Apply(match, player, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery));
             }
-            for (int preparation = 0; preparation < 4; preparation++)
+            for (int preparation = 0; preparation < 3; preparation++)
                 foreach (int player in match.Players.Keys)
                 {
-                    if (preparation > 0) for (int recruit = 0; recruit < 2; recruit++) Apply(match, player, new("recruit", 1));
-                    if (preparation == 2) Apply(match, player, new("build", 4, Building.Stonecutter));
+                    if (preparation == 2)
+                    {
+                        // Two actually paid mines earn twelve equipment metal
+                        // before final END. Refund and earned timber fund the
+                        // trainer; the stone producer waits for real next-wave
+                        // stock, never final-income spending or a grant.
+                        Apply(match, player, new("sell", 4));
+                        Apply(match, player, new("build", 1, Building.Barracks));
+                        for (int recruit = 0; recruit < 6; recruit++) Apply(match, player, new("recruit", 1));
+                    }
                     Apply(match, player, new("ready"));
                 }
             Assert.Equal(Phase.Combat, match.Phase);
@@ -52,12 +66,27 @@ internal static class PaidCampaignFixture
     {
         for (int tick = 0; tick < 4000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); tick++) match.Step();
         Assert.Equal(Phase.Building, match.Phase); Assert.False(match.Combat.HasDeaths);
+        if (match.Wave == 2)
+            foreach (City city in match.Players.Values.Where(c => !c.Eliminated && c.Slots[4].Type == Building.Empty))
+                Apply(match, city.Id, new("build", 4, Building.Stonecutter));
         Legal(match.Snapshot());
     }
     internal static Receipt Apply(Match match, int player, EconomyAction action)
     {
         MatchSnapshot before = match.Snapshot(); CityState city = before.Players.Single(c => c.Id == player);
         Command command = action.Command(before, player, before.Revision + 1);
+        CommandResult accepted = match.Apply(player, command);
+        Assert.True(accepted.Accepted, $"P{player} W{before.Wave} {before.Phase}/{before.Turn}: {action}: {accepted.Message}");
+        MatchSnapshot after = match.Snapshot();
+        AssertPaidTransition(before, after, player, action);
+        CityState next = after.Players.Single(c => c.Id == player);
+        return new(command with { MatchId = "session" }, city.Resources, next.Resources, city.Research, next.Research);
+    }
+    // Same quote/production/identity check for a real AuthoritySession request;
+    // numerical ownership remains Match, no second economy or supervisor.
+    internal static void AssertPaidTransition(MatchSnapshot before, MatchSnapshot after, int player, EconomyAction action)
+    {
+        CityState city = before.Players.Single(c => c.Id == player);
         ResourceCost cost = action.Action switch
         {
             "build" => action.Payment == ConstructionPayment.GoldRecovery
@@ -67,6 +96,8 @@ internal static class PaidCampaignFixture
             "buy-plot" => ArmyConfiguration.IsArmyPlot(action.Slot) ? new(city.Army!.HomePrices[city.Army.PurchasedHomes - 2])
                 : new(before.PlotPrices[city.Slots.Count(s => s.Purchased) - 5]),
             "upgrade" => Plot(city, action.Slot).UpgradeQuote!.Value,
+            "upgrade-tower" => before.BuildingCatalog.Single(b => b.Type == (action.Building == Building.RapidArrowTower
+                ? Building.ArrowTower : Building.CatapultTower)).Upgrade,
             "upgrade-capacity" => city.Army!.Halls.Single(h => h.Slot == action.Slot).CapacityQuote!.Value,
             "upgrade-healing" => city.Army!.Halls.Single(h => h.Slot == action.Slot).HealingQuote!.Value,
             "recruit" => city.RecruitmentQuotes.Single(q => q.Type == action.Unit && q.Level == city.Slots[action.Slot].Level).Cost,
@@ -79,9 +110,7 @@ internal static class PaidCampaignFixture
             "trade" => new(checked(before.MarketRates.Single(r => r.Resource == action.Resource).Gold * action.Bundles)),
             _ => default
         };
-        CommandResult accepted = match.Apply(player, command);
-        Assert.True(accepted.Accepted, $"P{player} W{before.Wave} {before.Phase}/{before.Turn}: {action}: {accepted.Message}");
-        MatchSnapshot after = match.Snapshot(); CityState next = after.Players.Single(c => c.Id == player);
+        CityState next = after.Players.Single(c => c.Id == player);
         foreach (CityState old in before.Players)
         {
             ResourceCost expected = old.Resources;
@@ -122,7 +151,6 @@ internal static class PaidCampaignFixture
             Assert.Equal(action.Unit, recruit.Type); Assert.Equal(recruit.Profile.Health, recruit.Health); Assert.Equal(0, recruit.Experience);
         }
         Legal(after);
-        return new(command with { MatchId = "session" }, city.Resources, next.Resources, city.Research, next.Research);
     }
     private static SlotState Plot(CityState city, int slot) => ArmyConfiguration.IsArmyPlot(slot)
         ? city.Army!.Homes.Single(h => h.PlotId == slot).Plot : city.Slots[slot];
@@ -155,6 +183,7 @@ internal static class PaidCampaignFixture
         for (int i = 0; i < players; i++) match.Join();
         var commands = new List<Receipt>(); var waves = new List<Wave>();
         int ticks = 0; long healed = 0; ResourceCost recovery = default;
+        bool trace = Environment.GetEnvironmentVariable("ODOT_CAMPAIGN_TRACE") == "1";
         commands.Add(Apply(match, 1, new("start")));
         while (match.Phase is not (Phase.Victory or Phase.Defeat) && match.Wave <= stopAfterWave)
         {
@@ -162,7 +191,7 @@ internal static class PaidCampaignFixture
             // restoration of persistent homes after cosmetic death expiry.
             for (int cleanup = 0; cleanup < 120 && match.Combat.HasDeaths; cleanup++) match.Step();
             Assert.False(match.Combat.HasDeaths);
-            for (int preparation = 0; preparation < 4 && match.Phase is Phase.Building or Phase.Preparation; preparation++)
+            for (int preparation = 0; preparation < 3 && match.Phase is Phase.Building or Phase.Preparation; preparation++)
                 foreach (City city in match.Players.Values.Where(c => !c.Eliminated))
                 {
                     for (int actions = 0; ; actions++)
@@ -188,12 +217,14 @@ internal static class PaidCampaignFixture
             Assert.Equal(Phase.Combat, match.Phase);
             MatchSnapshot entry = match.Snapshot(); long start = match.Tick, cursor = match.Combat.EventSequence;
             int casualties = 0, keep = 0, post = 0, foreign = 0;
+            var events = new List<CombatEvent>();
             while (match.Phase == Phase.Combat)
             {
                 Assert.True(++ticks <= 100000, "Paid campaign exceeded its documented fixed-step bound.");
                 match.Step();
                 foreach (CombatEvent e in match.Combat.Events().Where(e => e.Sequence > cursor))
                 {
+                    if (trace) events.Add(e);
                     if (e.Type == CombatEventType.Death && e.Unit?.Faction == Faction.Adventurers) casualties++;
                     if (e.Type is CombatEventType.StructureHit or CombatEventType.StructureDestroyed)
                     { if (e.Structure?.Kind == ArenaStructureKind.Keep) keep += e.Damage; if (e.Structure?.Kind == ArenaStructureKind.Watchpost) post += e.Damage; }
@@ -217,7 +248,15 @@ internal static class PaidCampaignFixture
             waves.Add(new(entry.Wave, checked((int)(match.Tick - start)), keep, post, casualties, injured,
                 entry.Players.Sum(c => c.Soldiers.Sum(u => u.Health)) - exit.Players.Sum(c => c.Soldiers.Sum(u => u.Health)),
                 entry.Players.Where(c => c.LastUpkeep?.Wave == entry.Wave).Sum(c => c.LastUpkeep!.Unfed.Length),
-                entry.Players.Where(c => c.LastUpkeep?.Wave == entry.Wave).Sum(c => c.LastUpkeep!.Paid), foreign, entry.Players, exit.Players));
+                entry.Players.Where(c => c.LastUpkeep?.Wave == entry.Wave).Sum(c => c.LastUpkeep!.Paid), foreign, entry.Players, exit.Players)
+            { EnemyEntry = trace ? entry.Enemies : [], Events = events.ToArray() });
+            if (trace)
+            {
+                Dictionary<int, int> origins = entry.Enemies.ToDictionary(u => u.Id, u => u.Origin);
+                int independentlyCounted = events.Count(e => e.Type == CombatEventType.Impact && e.Landed
+                    && e.Unit is { Faction: Faction.Adventurers } u && e.Victims.Any(id => origins.TryGetValue(id, out int origin) && origin != u.Owner));
+                Assert.Equal(foreign, independentlyCounted);
+            }
             output.WriteLine($"PROVISIONAL {family}/{players}/seed={seed} W{entry.Wave}: ticks={match.Tick - start}, Keep={keep}, Watchpost={post}, casualties={casualties}, injured={injured}, foreign-origin member impacts={foreign}, result={match.Phase}/{match.DefeatReason}");
         }
         Result result = new(family, players, seed, maximumHomes, maximumTier, hallUpgrades, match.Phase, match.DefeatReason, match.Stall,

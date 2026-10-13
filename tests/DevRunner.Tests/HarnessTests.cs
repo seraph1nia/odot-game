@@ -56,7 +56,7 @@ public sealed class HarnessTests
         var original = new UiObservation
         {
             ResourceIncome = new() { ["Gold"] = "+2", ["Food"] = "0", ["Wood"] = "Unavailable" },
-            IncomeLabel = "Next building turn",
+            IncomeLabel = "Next production",
             IncomeContext = "Stale · waiting for connection",
             CompactUpkeep = ["Paid this battle · W3", "4 food", "Sat out", "2"],
             Targets = new() { ["UpkeepTable"] = new(1000, 220, true, true) { Width = 240, Height = 44 }, ["LumbermillRecovery"] = new(500, 670, true, false) { Tooltip = "Need 1 more gold" } }

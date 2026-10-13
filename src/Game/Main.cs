@@ -185,7 +185,7 @@ public partial class Main : Node, IGameSession
         }
         if (_receivingEncounter is not null && (!_supervised || !_pacing.Owned || DisplayServer.GetName() != "headless"
             || role != SessionRole.PlayingHost || _bind != "127.0.0.1" || _combatSeed != 1
-            || _receivingEncounter is not ("fallen-field" or "protected-field")))
+            || _receivingEncounter is not ("fallen-field" or "protected-field" or "fallen-stored" or "protected-stored")))
             throw new ArgumentException("Controlled receiving encounter requires an owned supervised headless loopback playing host, seed 1 and a named fixed case.");
         if (simulationSpeed != 1 && !_pacing.Configure(simulationSpeed, role != SessionRole.Guest))
             throw new ArgumentException("Simulation pacing requires an owned verification authority.");
@@ -513,9 +513,15 @@ public partial class Main : Node, IGameSession
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable, TransferChannel = 1)]
     private void Snapshot(string json)
     {
+        Timing?.Record("snapshot-rpc-admission", State, info: new { Role = _role, Connected, Sender = Multiplayer.GetRemoteSenderId(), Authority = FromAuthority(), Characters = json.Length });
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
         Timing?.Record("snapshot-rpc-receive", State, OwnedTimingTrace.Digest(json));
-        if (AcceptState(json) && (_automated || _supervised)) Emit(new("snapshot", Multiplayer.GetUniqueId(), State, PlayerId: PlayerId));
+        if (AcceptState(json) && (_automated || _supervised))
+        {
+            Timing?.Record("snapshot-observer-emit-begin", State);
+            Emit(new("snapshot", Multiplayer.GetUniqueId(), State, PlayerId: PlayerId));
+            Timing?.Record("snapshot-observer-emit-end", State);
+        }
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void SessionEnded(string matchId, string message)
@@ -538,9 +544,17 @@ public partial class Main : Node, IGameSession
     {
         if (!TryReceiveState(json, out MatchSnapshot? state)) return false;
         Timing?.Record("snapshot-decode-complete", state, OwnedTimingTrace.Digest(json));
-        if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
+        if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision)))
+        {
+            Timing?.Record("snapshot-state-refused", state, info: new { CurrentMatch = State?.MatchId, CurrentRevision = State?.Revision });
+            return false;
+        }
         try { SetState(state); return true; }
-        catch (ArgumentException error) { Feedback = error.Message; return false; }
+        catch (ArgumentException error)
+        {
+            Timing?.Record("snapshot-apply-refused", state, info: new { Error = error.GetType().Name, error.Message });
+            Feedback = error.Message; return false;
+        }
     }
     private void SetState(MatchSnapshot? state)
     {
@@ -592,7 +606,7 @@ public partial class Main : Node, IGameSession
             {
                 Phase before = _authority.Phase;
                 ConfigureReceivingEncounter();
-                _authority.Step();
+                _authority.Advance(delta);
                 if (_authority.Phase != before) PublishState(force: true);
             }, () => _authority.Paused);
             PublishState(force: false);
@@ -603,8 +617,11 @@ public partial class Main : Node, IGameSession
 
     private void ConfigureReceivingEncounter()
     {
-        if (_receivingEncounter is not null && _authority!.ConfigureReceivingEncounter(_receivingEncounter == "protected-field"))
-            Emit(new("controlled-encounter", State: _authority.Snapshot(), Message: _receivingEncounter + ": explicit synthetic tower materials / member wound / physical poses / Keep health; numerical transport only."));
+        if (_receivingEncounter is not null && _authority!.ConfigureReceivingEncounter(_receivingEncounter))
+            Emit(new("controlled-encounter", State: _authority.Snapshot(), Message: _receivingEncounter +
+                (_receivingEncounter.EndsWith("stored", StringComparison.Ordinal)
+                    ? ": paid service/Hall members retained; controlled original enemy roster / physical poses / Keep threshold; NOT default paid campaign outcome."
+                    : ": explicit synthetic tower materials / member wound / physical poses / Keep health; numerical transport only.")));
     }
 
     private void PublishState(bool force)
@@ -618,8 +635,9 @@ public partial class Main : Node, IGameSession
         {
             Timing?.Record("authority-encode-begin", state);
             string payload = SnapshotPayload.Encode(state);
-            Timing?.Record("authority-publish", state, OwnedTimingTrace.Digest(payload));
-            Rpc(MethodName.Snapshot, payload);
+            Timing?.Record("authority-publish", state, OwnedTimingTrace.Digest(payload), new { Characters = payload.Length, Peers = Multiplayer.GetPeers() });
+            Error result = Rpc(MethodName.Snapshot, payload);
+            Timing?.Record("authority-send-result", state, info: new { Result = result });
         }
         if (Connected && (_automated || _supervised)) Emit(new("snapshot", 1, State, PlayerId: PlayerId));
     }

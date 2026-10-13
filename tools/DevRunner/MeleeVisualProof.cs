@@ -21,13 +21,13 @@ internal static class MeleeVisualProof
             && u.AttackSequence > 0 && !u.TargetCity))
         {
             UnitState? target = standing.SingleOrDefault(u => u.Id == actor.TargetId);
-            if (target is null || target.Faction == actor.Faction || target.Destination != actor.Destination
+            if (target is null || target.Faction == actor.Faction || actor.SquadId <= 0 || target.SquadId <= 0
                 || board.Distance(actor.Hex!.Position.Cell, target.Hex!.Position.Cell) != 1) continue;
-            if (standing.Count(u => u.Destination == actor.Destination && u.Hex!.Position.Cell == actor.Hex.Position.Cell) < 2
-                || standing.Count(u => u.Destination == actor.Destination && u.Hex!.Position.Cell == target.Hex.Position.Cell) < 2) continue;
+            if (standing.Count(u => u.SquadId == actor.SquadId && u.Hex!.Lifecycle == UnitLifecycle.Alive) < 2
+                || standing.Count(u => u.SquadId == target.SquadId && u.Hex!.Lifecycle == UnitLifecycle.Alive) < 2) continue;
             if (phase == MeleeCoverage.Impact && actor.AttackLanded == true && state.Tick >= actor.ImpactTick && state.Tick < actor.ImpactTick + 12) return true;
             if (phase == MeleeCoverage.Windup && actor.PendingImpact && actor.ImpactTick - state.Tick >= 6
-                && standing.Any(u => u.Hex is { Lifecycle: UnitLifecycle.Alive } && u.Faction == target.Faction && u.Destination == actor.Destination
+                && standing.Any(u => u.Hex is { Lifecycle: UnitLifecycle.Alive } && u.SquadId == target.SquadId
                     && u.PendingImpact && u.ImpactTick == actor.ImpactTick && u.Hex.Position.Cell == target.Hex.Position.Cell
                     && standing.Any(t => t.Id == u.TargetId && t.Hex!.Position.Cell == actor.Hex.Position.Cell))) return true;
         }
@@ -41,12 +41,14 @@ internal static class MeleeVisualProof
         {
             UnitObservation? actor = standing.SingleOrDefault(u => u.Id == strike.Id), target = standing.SingleOrDefault(u => u.Id == strike.TargetId);
             if (actor is null || target is null || actor.Dead || actor.Class != UnitClass.Melee || actor.Faction == target.Faction
-                || actor.Destination != target.Destination || board.Distance(actor.Hex!.Position.Cell, target.Hex!.Position.Cell) != 1
+                || actor.SquadId <= 0 || target.SquadId <= 0 || board.Distance(actor.Hex!.Position.Cell, target.Hex!.Position.Cell) != 1
                 || actor.AttackSequence != strike.AttackSequence || actor.ImpactTick != strike.ImpactTick) continue;
             MeleeCoverage coverage = MeleeCoverage.None;
-            UnitObservation[] allies = standing.Where(u => u.Destination == actor.Destination && u.Hex!.Position.Cell == actor.Hex.Position.Cell).ToArray();
-            UnitObservation[] opponents = standing.Where(u => u.Destination == actor.Destination && u.Hex!.Position.Cell == target.Hex.Position.Cell).ToArray();
-            if (allies.Length >= 2 && opponents.Length >= 2) coverage |= MeleeCoverage.Shared;
+            UnitObservation[] allies = standing.Where(u => u.SquadId == actor.SquadId).ToArray();
+            UnitObservation[] opponents = standing.Where(u => u.SquadId == target.SquadId).ToArray();
+            // Retained body poses may witness clearance/near-far, never living
+            // group participation or exclusive occupancy.
+            if (allies.Count(u => !u.Dead) >= 2 && opponents.Count(u => !u.Dead) >= 2) coverage |= MeleeCoverage.Shared;
             double Distance(UnitObservation u) => Math.Sqrt(Math.Pow(u.X - actor.X, 2) + Math.Pow(u.Z - actor.Z, 2));
             double distance = Distance(target);
             double near = opponents.Min(Distance), far = opponents.Max(Distance);

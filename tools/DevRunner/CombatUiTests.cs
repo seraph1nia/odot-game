@@ -29,7 +29,7 @@ internal sealed partial class Runner
         // are exempt; settled living/death anchors must never collapse.
         UnitObservation[] units = observation.Units.Where(u => u.Visible && u.Deployed && u.Hex?.HoldsTransit != true).ToArray();
         foreach (UnitObservation unit in units)
-            foreach (UnitObservation other in units.Where(u => u.Id > unit.Id && u.Destination == unit.Destination))
+            foreach (UnitObservation other in units.Where(u => u.Id > unit.Id))
                 if (Math.Sqrt(Math.Pow(unit.X - other.X, 2) + Math.Pow(unit.Z - other.Z, 2)) < 0.4 - 1e-4)
                     throw new InvalidOperationException("Settled rendered anchors collapsed: " + unit.Id + "/" + other.Id);
         foreach (StrikeObservation strike in observation.Strikes.Where(s => s.Visible))
@@ -43,7 +43,7 @@ internal sealed partial class Runner
             double tick = actor.Hex?.FrozenTick ?? observation.CombatTick;
             Require(tick >= actor.ActionStartTick && tick < strike.ImpactTick + 12,
                 "melee connection stays inside its shared action window");
-            if (target is not null && target.Destination == actor.Destination)
+            if (target is not null)
                 Require(Math.Abs(strike.TargetX - target.X) < .02 && Math.Abs(strike.TargetZ - target.Z) < .02,
                     "melee connection follows the actual sampled target position");
             Require(strike.CueStyle == "dashed-intent-local-strike" && strike.IntentDashes == 12 && strike.StrikeRadius <= .35f,
@@ -64,7 +64,6 @@ internal sealed partial class Runner
         else { await Action(observer, "build 0 farm", token); await Action(observer, "build 1 metalmine", token); await Action(observer, "build 2 barracks", token); }
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
         await Action(client, "build-recovery 3 lumbermill", token);
-        await UiReadyPair(client, observer, token);
         await Pick(client, 2, token);
         UiObservation equipment = await UiProtocol.Probe(client, options.StartupTimeout, token);
         Require(equipment.Targets["Recruit"].Text.Contains("L1", StringComparison.Ordinal)
@@ -88,7 +87,7 @@ internal sealed partial class Runner
         UiObservation controls = await UiProtocol.Probe(client, options.StartupTimeout, token); UiTarget control = controls.Targets["RecruitRanged"];
         Require(control.Visible && !control.Enabled && control.X > 0 && control.X < controls.Width && control.Y > 0 && control.Y < controls.Height,
             "ranged recruitment remains visible, disabled without equipment and inside the window");
-        await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
+        if (towers) await TowerInvestment(observer, token);
         if (towers) await Click(client, "City" + observer.PlayerId, token);
         await SimulationSpeed(_scope!.Children.First(c => c.Name.StartsWith("ui-server", StringComparison.Ordinal)), 1, token);
         await UiReadyPair(client, observer, token);
@@ -100,12 +99,12 @@ internal sealed partial class Runner
         await Action(client, "build 0 farm", token);
         await Action(client, "build 1 metalmine", token);
         await Action(client, "build 2 barracks", token); await TowerOpening(observer, token);
-        await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
         await Action(client, "build-recovery 3 lumbermill", token);
-        await UiReadyPair(client, observer, token, actualInput: false); await UiSwords(client, 2, 6, token, actualInput: false); await TowerInvestment(observer, token);
-        await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 1, token);
+        await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
         await Action(client, "build 4 stonecutter", token);
-        for (int production = 0; production < 3; production++) { await UiReadyPair(client, observer, token, actualInput: false); await TowerInvestment(observer, token); }
+        await UiSwords(client, 2, 4, token, actualInput: false); await TowerInvestment(observer, token);
+        await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 1, token);
+        for (int production = 0; production < 2; production++) { await UiReadyPair(client, observer, token, actualInput: false); await TowerInvestment(observer, token); }
         await Action(client, "sell 1", token); await Action(client, "build 1 weaver", token);
         await Action(client, "sell 4", token); await Action(client, "build 4 arcanum", token);
         await Pick(client, 2, token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitBerserker", token);
@@ -116,7 +115,7 @@ internal sealed partial class Runner
         if (!Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Berserker))
         { await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitBerserker", token); }
         await ClickAck(client, "Sell", token); await ClickAck(client, "ArcheryRange", token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitRanged", token);
-        await UiReadyPair(client, observer, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false);
+        await UiReadyPair(client, observer, token, actualInput: false);
         UiObservation piles = await UiProtocol.Probe(client, options.StartupTimeout, token); CityState city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(piles.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "specialist equipment updates exact current stockpile tiers");
         Require(city.Soldiers.Any(u => u.Type == UnitType.Mage) && city.Soldiers.Any(u => u.Type == UnitType.Berserker) && city.Soldiers.Any(u => u.Type == UnitType.Crossbowman), "ordinary three-wave specialist supply chain fields all required friendly roles");

@@ -69,6 +69,9 @@ public sealed class SnapshotPayloadTests
     [InlineData("null-members")]
     [InlineData("null-cell")]
     [InlineData("null-footprint")]
+    [InlineData("full-fingerprint")]
+    [InlineData("null-forecast")]
+    [InlineData("forecast-profile")]
     public void MalformedSharedIdentitiesAreRefusedAfterRealCodecDelivery(string defect)
     {
         using var match = new Match(combatSeed: 1); match.Join();
@@ -84,6 +87,11 @@ public sealed class SnapshotPayloadTests
             "missing-squad" => valid with { Squads = [] },
             "null-cell" => valid with { Arena = valid.Arena! with { Board = valid.Arena.Board with { Cells = [null!] } } },
             "null-footprint" => valid with { Arena = valid.Arena! with { Footprints = [null!] } },
+            // Integrated identity covers phase/rules, not colliding numeric14
+            // alone. These use the actual production codec, no socket required.
+            "full-fingerprint" => valid with { ConfigurationFingerprint = default },
+            "null-forecast" => valid with { NextWave = null! },
+            "forecast-profile" => valid with { NextWave = [new(-1, 10) { Faction = Faction.Skeletons, Profile = new() { Health = 10 } }] },
             _ => valid with { Squads = [valid.Squads[0] with { Members = null! }] }
         };
         Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(invalid)));

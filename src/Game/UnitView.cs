@@ -78,7 +78,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         {
             Position = new(0, 0.015f, 0),
             Mesh = new CylinderMesh { TopRadius = 0.21f, BottomRadius = 0.21f, Height = 0.025f, RadialSegments = 12 },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = SharedArenaView.OwnerColor(State.Owner), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = State.Id < 0 ? new Color("d9aa52") : SharedArenaView.OwnerColor(State.Owner), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded }
         };
         AddChild(_marker);
         _statusBadge = new Label3D { Name = "StatusBadge", Position = new(0, 3.5f, 0), FontSize = 32, PixelSize = .018f, VerticalAlignment = VerticalAlignment.Bottom, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Modulate = new Color("b8f5ef"), OutlineModulate = new Color("233a3f"), OutlineSize = 3, NoDepthTest = true }; AddChild(_statusBadge);
@@ -115,8 +115,8 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         // clip. The shared playback clock (including pause) owns that clip.
         if (!Dead) tick = state.Hex?.FrozenTick ?? tick;
         Visible = PresentationLimits.SamplesPose(state, focus);
-        _statusBadge.Text = Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
-        _statusBadge.Visible = false; // Compact squad summary owns default status presentation.
+        _statusBadge.Text = state.Id < 0 ? $"NEXT • L{state.Level}" : Dead ? "" : ProgressionPresentation.StatusBadge(state.Statuses, tick);
+        _statusBadge.Visible = state.Id < 0; // Compact squad summary owns default live-member status presentation.
         _statusBadge.Modulate = state.Statuses.Burn is { } burn && tick < burn.ExpiresTick ? new Color("ffb078")
             : state.Statuses.Poison.Any(p => tick < p.ExpiresTick) ? new Color("b6ef78") : new Color("b8f5ef");
         Position = layout.Position(state, tick);

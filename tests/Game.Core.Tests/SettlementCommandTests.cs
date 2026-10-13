@@ -24,7 +24,7 @@ public sealed class SettlementCommandTests
             Assert.Equal(wave + 1, flow.State.Wave);
         }
         // Earn one full production cycle without further policy spending.
-        for (int turn = 0; turn < 3; turn++) flow.Act(player, new("ready"));
+        for (int turn = 0; turn < 2; turn++) flow.Act(player, new("ready"));
         CityState City() => flow.State.Players.Single();
         string State() => JsonSerializer.Serialize(flow.State, WireJson.Options);
         void Earn(ResourceCost cost)

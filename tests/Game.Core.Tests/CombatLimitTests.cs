@@ -34,7 +34,7 @@ public sealed class CombatLimitTests
             match.Combat.Create(UnitType.Swordsman, players, players, players, assignment: new(-1, 0, 0, 1));
             match.Players[players].Food = 1;
         }
-        for (int n = 0; n < 4; n++)
+        for (int n = 0; n < 3; n++)
             foreach (City city in match.Players.Values) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
         if (progress)
         {

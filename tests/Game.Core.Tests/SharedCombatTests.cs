@@ -128,7 +128,7 @@ public sealed class SharedCombatTests
         Assert.Contains(city.Soldiers, u => u.Experience == 1);
         for (int cleanup = 0; cleanup < 120 && match.Combat.HasDeaths; cleanup++) match.Step();
         Assert.False(match.Combat.HasDeaths);
-        for (int gate = 0; gate < 4; gate++) PaidCampaignFixture.Apply(match, 1, new("ready"));
+        for (int gate = 0; gate < 3; gate++) PaidCampaignFixture.Apply(match, 1, new("ready"));
         MatchSnapshot next = match.Snapshot();
         Assert.Equal(Phase.Combat, next.Phase);
         Assert.All(next.Players[1].Soldiers, u => { Assert.False(u.Participating); Assert.Equal(UnitLifecycle.Reserve, u.Hex!.Lifecycle); });
@@ -148,7 +148,7 @@ public sealed class SharedCombatTests
         }
         Apply("start"); Apply("build", 0, Building.Barracks);
         for (int n = 0; n < 6; n++) Apply("recruit", 0);
-        Apply("ready"); Apply("ready"); Apply("ready"); Apply("ready");
+        Apply("ready"); Apply("ready"); Apply("ready");
         for (int tick = 0; tick < 6000 && match.Phase == Phase.Combat; tick++)
         {
             match.Step();
@@ -177,7 +177,9 @@ public sealed class SharedCombatTests
         for (int n = 0; n < 6; n++) Apply("recruit", 0);
         SquadState[] roster = match.Snapshot().Squads;
         Assert.Equal(2, roster.Length); Assert.All(roster, s => Assert.Equal(3, s.Members.Length));
-        Apply("ready"); Apply("ready"); Apply("ready");
+        // Numerical partial-funding input precedes the real third END, not
+        // a retired fourth investment gate. Preserve exact2funded/4unfed.
+        Apply("ready"); Apply("ready");
         city.Food = 2; Apply("ready");
         Assert.Equal(Phase.Combat, match.Phase);
         MatchSnapshot snapshot = match.Snapshot();

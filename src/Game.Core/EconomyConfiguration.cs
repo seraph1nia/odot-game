@@ -191,7 +191,8 @@ public static class RulesIdentity
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(1);
+            writer.Write(2);
+            writer.Write(MatchSnapshot.CurrentBattleFlowVersion);
             foreach (CombatFingerprint part in new[] { combat, economy, campaign })
             { writer.Write(part.A); writer.Write(part.B); writer.Write(part.C); writer.Write(part.D); }
         }

@@ -101,8 +101,14 @@ public sealed class CampaignTests
     public void FallenRosterStillCreatesBossesAndWoundedTransferRetainsUpkeepAndProfile()
     {
         using Match match = Start(3);
-        for (int wave = 1; wave < 10; wave++) { Begin(match); Clear(match); }
-        match.Players[3].Health = 0; match.SetConnected(2, false); Begin(match);
+        WaveClearReceipt? fallenReceipt = null;
+        for (int wave = 1; wave < 10; wave++)
+        {
+            Begin(match);
+            if (wave == 9) { fallenReceipt = match.Players[3].LastReward; match.Players[3].Health = 0; }
+            Clear(match);
+        }
+        match.SetConnected(2, false); Begin(match);
         Assert.Equal(3, match.Enemies.Count); Assert.Equal(2, match.Enemies.Count(e => e.Destination == 1));
         Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(1, e.Hex!.Size); Assert.Equal(58400, e.Profile.Health); });
         UnitState inherited = Assert.Single(match.Enemies, e => e.Origin == 3); Assert.Equal(1, inherited.Destination);
@@ -118,7 +124,8 @@ public sealed class CampaignTests
         Assert.Equal(food, match.Players[2].Food); Assert.Equal(foodBefore, JsonSerializer.Serialize(match.Players[2].LastUpkeep));
         Clear(match); Assert.Equal(11, match.Wave); Assert.Equal(10, match.LastRewardedWave);
         Assert.Equal(10, match.Players[2].LastReward!.Wave); Assert.Equal(1, match.Players[2].LastReward!.Research); Assert.Equal(10, match.Players[2].Research.Points); Assert.Equal(new ResourceCost(4, 2, 10), match.Players[2].LastReward!.Amount);
-        Assert.Equal(9, match.Players[1].LastReward!.Wave); Assert.Equal(9, match.Players[3].LastReward!.Wave);
+        Assert.Equal(9, match.Players[1].LastReward!.Wave);
+        Assert.Equal(8, fallenReceipt!.Wave); Assert.Equal(fallenReceipt, match.Players[3].LastReward);
         match.SetConnected(2, true); Begin(match); Assert.Equal(15, match.Enemies.Count);
         Assert.All(match.Enemies, e => Assert.Equal(2, e.Destination));
         foreach (int origin in Enumerable.Range(1, 3)) Assert.Equal(5, match.Enemies.Count(e => e.Origin == origin));
@@ -178,6 +185,6 @@ public sealed class CampaignTests
         Assert.False(VillageStrategyTests.Act(match, 1, "ready").Accepted);
         Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options)); Assert.Null(city.LastUpkeep);
         city.Gold = 0; Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); Assert.Equal(Phase.Combat, match.Phase);
-        void BeginPreparation() { for (int production = 0; production < 3; production++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); }
+        void BeginPreparation() { for (int preparation = 0; preparation < 2; preparation++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted); }
     }
 }

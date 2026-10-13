@@ -32,6 +32,12 @@ public sealed record ArenaState(HexBoardDefinition Board, ArenaSector[] Sectors,
 public sealed class SharedArena
 {
     public const int SectorWidth = 7, Depth = 9;
+    // Exactly four constant, immutable topologies. Full snapshot identity
+    // validation must not rebuild all-pairs routing for the four-owner
+    // approach allowance on every received state. Owner IDs, footprints,
+    // claims and mutable projections remain per arena, never in this cache.
+    private static readonly Lazy<HexBoard>[] Boards = Enumerable.Range(1, 4)
+        .Select(count => new Lazy<HexBoard>(() => BuildBoard(count))).ToArray();
     private readonly ArenaSector[] _sectors;
     private readonly ArenaFootprint[] _footprints;
     private readonly HashSet<int> _staticCells;
@@ -44,16 +50,7 @@ public sealed class SharedArena
             throw new ArgumentException("Arena needs one to four distinct owners.", nameof(owners));
         int width = roster.Length * SectorWidth;
         int Cell(int column, int row) => row * width + column + 1;
-        var cells = new List<HexCellDefinition>();
-        for (int row = 0; row < Depth; row++)
-            for (int column = 0; column < width; column++)
-                cells.Add(new(Cell(column, row), HexCoordinate.FromOffset(column, row),
-                    row == 0 ? DeploymentAffinity.Skeletons : row == Depth - 1 ? DeploymentAffinity.Adventurers : DeploymentAffinity.Neutral, []));
-        HexCellDefinition[] graph = cells.Select(c => c with
-        { Neighbors = cells.Where(n => n.Id != c.Id && c.Coordinate.Distance(n.Coordinate) == 1).Select(n => n.Id).ToArray() }).ToArray();
-        int[] Row(int row) => graph.Where(c => c.Coordinate.R == row).Select(c => c.Id).ToArray();
-        Board = new(new("shared-watch-arena", 1, 1, graph, [new(1, 0, 0)],
-            [new(Faction.Adventurers, Row(8), Row(7)), new(Faction.Skeletons, Row(0), Row(1))], Row(7)));
+        Board = Boards[roster.Length - 1].Value;
         var sectors = new List<ArenaSector>();
         var footprints = new List<ArenaFootprint>();
         (int Column, int Row)[] towerCells = [(0, 5), (6, 5), (0, 6), (6, 6), (0, 7), (6, 7), (1, 8), (5, 8), (3, 7)];
@@ -77,6 +74,22 @@ public sealed class SharedArena
         _staticCells = footprints.Select(f => f.Cell).ToHashSet();
         Footprints = Array.AsReadOnly(_footprints);
     }
+    private static HexBoard BuildBoard(int count)
+    {
+        int width = count * SectorWidth;
+        int Cell(int column, int row) => row * width + column + 1;
+        var cells = new List<HexCellDefinition>();
+        for (int row = 0; row < Depth; row++)
+            for (int column = 0; column < width; column++)
+                cells.Add(new(Cell(column, row), HexCoordinate.FromOffset(column, row),
+                    row == 0 ? DeploymentAffinity.Skeletons : row == Depth - 1 ? DeploymentAffinity.Adventurers : DeploymentAffinity.Neutral, []));
+        HexCellDefinition[] graph = cells.Select(c => c with
+        { Neighbors = cells.Where(n => n.Id != c.Id && c.Coordinate.Distance(n.Coordinate) == 1).Select(n => n.Id).ToArray() }).ToArray();
+        int[] Row(int row) => graph.Where(c => c.Coordinate.R == row).Select(c => c.Id).ToArray();
+        return new(new("shared-watch-arena", 1, 1, graph, [new(1, 0, 0)],
+            [new(Faction.Adventurers, Row(8), Row(7)), new(Faction.Skeletons, Row(0), Row(1))], Row(7)));
+    }
+
     public int Keep(int owner) => _footprints.Single(f => f.Owner == owner && f.Kind == ArenaStructureKind.Keep).Cell;
     public int Watchpost(int owner) => _footprints.Single(f => f.Owner == owner && f.Kind == ArenaStructureKind.Watchpost).Cell;
     public int Tower(int owner, int slot) => _footprints.Single(f => f.Owner == owner && f.Slot == slot && f.Slot >= 0).Cell;

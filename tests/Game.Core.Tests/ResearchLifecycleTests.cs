@@ -20,7 +20,7 @@ public sealed class ResearchLifecycleTests
     public void RewardResearchOverflowRejectsBattleBeforeUpkeepAndPauseFreezesActiveStatuses()
     {
         using var m = new Match(); m.Join(); Assert.True(VillageStrategyTests.Act(m, 1, "start").Accepted);
-        for (int n = 0; n < 3; n++) Assert.True(VillageStrategyTests.Act(m, 1, "ready").Accepted);
+        for (int n = 0; n < 2; n++) Assert.True(VillageStrategyTests.Act(m, 1, "ready").Accepted);
         m.Players[1].Research = new(int.MaxValue); string before = JsonSerializer.Serialize(m.Snapshot(), WireJson.Options);
         Assert.False(VillageStrategyTests.Act(m, 1, "ready").Accepted); Assert.Equal(before, JsonSerializer.Serialize(m.Snapshot(), WireJson.Options));
         m.Players[1].Research = default; Assert.True(VillageStrategyTests.Act(m, 1, "ready").Accepted);

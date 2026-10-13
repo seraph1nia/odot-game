@@ -1,8 +1,9 @@
 # Paid squad numerical baselines — provisional (2026-10-13)
 
-These are **current-source numerical measurements, not final redesigned balance
-or delivery acceptance**. The three-preparation/speed/preview prerequisite is
-still unlanded and has not been imported, recreated or simulated here.
+These are **numerical measurements, not final redesigned balance or delivery
+acceptance**. The landed three-preparation/speed/preview prerequisite is now
+integrated in the working tree. The current integrated measurements below
+supersede, but do not erase, the historical four-edit measurements.
 
 ## Exact scope and economics dependency
 
@@ -15,24 +16,57 @@ squad claims, legal homogeneous purchased homes, individual Hall capacity and
 survivor service XP. Stored members have no deployment pose or logical claim.
 Commands and per-wave entry/exit states are retained as credential-free JSON.
 
-The source currently permits **three Building edits/ENDs, each settling income
-and healing, followed by a fourth income-free Preparation edit/Ready**. The last
-edit can spend the third END's income before combat. The approved replacement
-removes that fourth post-income edit. These receipts therefore cannot certify
-final purchases, recruitment timing, food funding, healing opportunity, research
-availability or campaign outcomes on the future phase flow. Final calibration
-must run against the actually landed phase implementation, including its pace
-and preview-to-spawn identity. No missing income or edit was synthesized, and no
-price/damage/profile/production rule was tuned to make these checks pass.
+Integrated battle flow2 permits **exactly three edits/ENDs**. The third END
+settles income/healing/food and enters Combat immediately, with no fourth
+post-income investment window. The historical checkpoint permitted that fourth
+edit and therefore cannot certify integrated purchases or outcomes. No missing
+income/edit was synthesized, and no price/damage/profile/production rule was
+tuned to make the current measurements pass.
 
 Selected horizon: default twenty waves, seeds **1 and 123**, at most 100,000
-combat steps/run, 100 paid decisions/edit, four current readiness gates/wave and
+combat steps/run, 100 paid decisions/edit, three integrated readiness gates/wave and
 120 ordinary cosmetic cleanup steps. Short Tier A paid witnesses stop earlier;
 `RequestedHorizon` distinguishes those receipts. Full runs use `Tier=Deep` and
 existing runner selection/admission. Numerical encounters are explicitly
 arithmetic fixtures, not earned research or rendered proof.
 
-## Representative current-source outcomes
+## Integrated default-price matrix: incomplete balance qualification
+
+`test-campaign --filter 'FullyQualifiedName~SquadCampaignBaselineTests'`,
+`logs/20261013-193823-db03264e`: **13 verification passes / 1 failure**, 35s
+binary duration, fourteen complete numerical transcripts. These outcomes are
+**ten twenty-wave victories and four genuine W1 defeats**, not thirteen wins.
+The cooperative seed123 row additionally fails the required foreign-origin
+impact witness. All four defeats are AllCitiesFallen. Default protocol15,
+rules7/flow2, exactly three ENDs; existing policies/seeds/horizon unchanged.
+
+| Policy | Seed | Outcome | Combat ticks | Individual casualties | Foreign impacts | Funded Hall healing (hundredths) |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
+| Frontline | 1 | Victory W20 | 4675 | 41 | 0 | 0 |
+| Frontline | 123 | Victory W20 | 4600 | 38 | 0 | 0 |
+| Mixed | 1 | Victory W20 | 4015 | 35 | 0 | 0 |
+| Mixed | 123 | Victory W20 | 4426 | 37 | 0 | 0 |
+| Ranged | 1 | AllCitiesFallen W1 | 794 | 1 | 0 | 0 |
+| Ranged | 123 | AllCitiesFallen W1 | 763 | 1 | 0 | 0 |
+| Cooperative rescue | 1 | AllCitiesFallen W1 | 2894 | 8 | 6 | 0 |
+| Cooperative rescue | 123 | AllCitiesFallen W1 | 2025 | 8 | 0 | 0 |
+| Research | 1 | Victory W20 | 4887 | 35 | 0 | 0 |
+| Research | 123 | Victory W20 | 4951 | 38 | 0 | 0 |
+| Reserve | 1 | Victory W20 | 4531 | 27 | 0 | 175255 |
+| Reserve | 123 | Victory W20 | 4615 | 25 | 0 | 204720 |
+| Towers | 1 | Victory W20 | 4679 | 36 | 0 | 0 |
+| Towers | 123 | Victory W20 | 4862 | 44 | 0 | 0 |
+
+Raw paid commands, payments, settlements, identities and entry/exit states:
+`logs/shared-arena-task/battle-integration/final-qualification/campaigns/`.
+The ranged opening now funds one Crossbowman, not the old two. Both cooperative
+support owners fund four members; eight casualties are all eight actual members.
+These measurements justify further earned policy/balance investigation, not
+subsidies, extra spending gates, different seeds or relaxed rescue assertions.
+No current paired restricted-home/tier/basic-Hall or final repeated-seed/stress/
+package acceptance follows from this selective failed batch.
+
+## Historical four-edit outcomes (superseded, retained evidence)
 
 Health values are integer hundredths. Ticks are fixed simulation ticks, not
 wall-clock time. `Injured` sums wounded survivors at each wave end, so the same

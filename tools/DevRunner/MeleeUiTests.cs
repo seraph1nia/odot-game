@@ -9,18 +9,18 @@ internal sealed partial class Runner
     {
         await Pick(client, 0, token); await ClickAck(client, "Farm", token);
         await Pick(client, 2, token); await ClickAck(client, "MetalMine", token);
-        await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
-        for (int production = 1; production <= 3; production++)
+        await Action(client, "build 3 metalmine", token);
+        await Action(client, "build-recovery 4 lumbermill", token);
+        for (int production = 1; production <= 2; production++)
         {
             await Action(client, "ready", token); MatchSnapshot resolved = State(await Action(observer, "ready", token));
             await Observe(client, s => s.Revision >= resolved.Revision && s.ProductionCount == production, "melee production synchronization", token);
-            await Pick(client, 1, token);
-            ResourceCost cost = resolved.Players.Single(c => c.Id == client.PlayerId).RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Cost;
-            while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Soldiers.Length < 6 && Latest(client).Players.Single(c => c.Id == client.PlayerId).Resources.TryPay(cost, out _)) await ClickAck(client, "Recruit", token);
         }
+        await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
+        for (int recruit = 0; recruit < 6; recruit++) await ClickAck(client, "Recruit", token);
         CityState army = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(army.Soldiers.Length == 6 && army.Soldiers.All(u => u.Type == UnitType.Swordsman)
-            && army.Food == 15 && army.Wood == 0, "ordinary Farm/Metal Mine recruitment equips six frontline units without food spending or grants");
+            && army.Food == 10 && army.Wood == 0 && army.Metal == 4, "two paid Metal Mines supply sixteen metal before final readiness; six frontline units spend twelve without food spending or grants");
         // Admit speed 1 BEFORE Ready can start combat. Detailed authored
         // scenes made the former post-entry barrier acknowledge at tick 404,
         // after the seed-1 shared windup at 301 had already passed.
@@ -55,14 +55,14 @@ internal sealed partial class Runner
                     UiObservation live = await WaitUi(client, f => phase == "step" ? f.Units.Any(u => u.Visible && !u.Dead && u.Clip == "walk" && u.WalkingBlend > 0)
                         : f.Units.Any(u => u.Visible && !u.Dead && u.Class == UnitClass.Melee && u.AttackActive && u.AttackBlend > 0 && u.Clip != "hit"),
                         "normal-speed " + phase + " progression", deadline.Token, live: true);
-                    CombatProgressionProof.Motion(live, board); frames.Add(live); timestamps.Add(DateTimeOffset.UtcNow);
+                    CombatProgressionProof.Motion(live, board, Latest(client).Rules.Arena.SquadCapacity); frames.Add(live); timestamps.Add(DateTimeOffset.UtcNow);
                     UiObservation next = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: true);
-                    CombatProgressionProof.Motion(next, board); frames.Add(next); timestamps.Add(DateTimeOffset.UtcNow);
+                    CombatProgressionProof.Motion(next, board, Latest(client).Rules.Arena.SquadCapacity); frames.Add(next); timestamps.Add(DateTimeOffset.UtcNow);
                     string path = Path.Combine(_scope!.EvidenceDirectory, $"combat-progression-{phase}-{index}.png");
                     UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, path, deferred: true, live: true);
                     Require(frame.Screenshot is null && frame.RawCapture is { } raw && raw.Id == frame.Id && raw.Path == path && raw.Width == frame.Width && raw.Height == frame.Height,
                         "actual raw acquisition retains fresh frame identity/resolution without pretending PNG exists");
-                    RenderedContact(frame); HealthBars(frame); CombatProgressionProof.Motion(frame, board);
+                    RenderedContact(frame); HealthBars(frame); CombatProgressionProof.Motion(frame, board, Latest(client).Rules.Arena.SquadCapacity);
                     captures.Add(frames.Count); frames.Add(frame); timestamps.Add(DateTimeOffset.UtcNow);
 
                 }
@@ -116,7 +116,7 @@ internal sealed partial class Runner
     }
     private async Task MeleeCheckpoint(Child client, Child observer, CancellationToken token, MeleeAdmission? admission = null, Task<MatchSnapshot>? earlyPause = null)
     {
-        var board = new HexBoard(Latest(client).Rules.Combat.Board);
+        var board = new HexBoard(Latest(client).Arena!.Board);
         MeleeCoverage covered = MeleeCoverage.None;
         var witnesses = new List<MeleeWitness>();
         var captures = new HashSet<MeleeCoverage>();
@@ -134,7 +134,7 @@ internal sealed partial class Runner
             {
                 MeleeCoverage phase = !captures.Contains(MeleeCoverage.Windup) ? MeleeCoverage.Windup : MeleeCoverage.Impact;
                 UiObservation initial = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: true);
-                RenderedContact(initial); HealthBars(initial); CombatProgressionProof.Motion(initial, board);
+                RenderedContact(initial); HealthBars(initial); CombatProgressionProof.Motion(initial, board, Latest(client).Rules.Arena.SquadCapacity);
                 MatchSnapshot state = initialPause ?? Latest(client); initialPause = null;
                 if (state.Phase == Phase.Combat && !state.Paused)
                 {
@@ -153,7 +153,7 @@ internal sealed partial class Runner
                         while (!pause.IsCompleted)
                         {
                             UiObservation moving = await UiProtocol.Probe(client, options.StartupTimeout, deadline.Token, live: true);
-                            RenderedContact(moving); HealthBars(moving); CombatProgressionProof.Motion(moving, board);
+                            RenderedContact(moving); HealthBars(moving); CombatProgressionProof.Motion(moving, board, Latest(client).Rules.Arena.SquadCapacity);
                             foreach (MeleeWitness witness in MeleeVisualProof.Inspect(moving, board)) { covered |= witness.Coverage; witnesses.Add(witness); }
                         }
                         state = await pause;

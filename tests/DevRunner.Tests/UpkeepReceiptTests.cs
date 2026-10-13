@@ -19,7 +19,7 @@ public sealed class UpkeepReceiptTests
             Act(match, player, "build", 1, Building.Barracks);
             Act(match, player, "build", 2, Building.MetalMine);
         }
-        for (int turn = 0; turn < 3; turn++) foreach (int player in new[] { 1, 2 }) Act(match, player, "ready");
+        for (int turn = 0; turn < 2; turn++) foreach (int player in new[] { 1, 2 }) Act(match, player, "ready");
         foreach (int player in new[] { 1, 2 }) { Act(match, player, "recruit", 1); Act(match, player, "ready"); }
         Assert.Equal(Phase.Combat, match.Phase);
         return match;

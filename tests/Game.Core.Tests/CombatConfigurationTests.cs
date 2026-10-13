@@ -165,7 +165,7 @@ public sealed class CombatConfigurationTests
     public void PublishedBoardAndDecisionArraysCannotMutateTheAuthority()
     {
         using var match = new Match(combatSeed: 123); match.Join(); VillageStrategyTests.Act(match, 1, "start");
-        for (int n = 0; n < 4; n++) VillageStrategyTests.Act(match, 1, "ready");
+        for (int n = 0; n < 3; n++) VillageStrategyTests.Act(match, 1, "ready");
         match.Step(); MatchSnapshot published = match.Snapshot();
         UnitState actor = published.Enemies.First(u => u.Decision!.Route.Length > 0);
         HexPosition expected = actor.Decision!.Route[0]; actor.Decision.Route[0] = default;

@@ -72,8 +72,10 @@ Town Hall capacity and healing remain individual-soldier rules, independent of
 squad population. Food funds members in the existing field-first, veteran-first,
 stable-ID order; an empty-funded squad creates no combat occupancy.
 
-Wire protocol **14 / combat rules 7** refuses older peers with the existing
-protocol-mismatch response. Snapshots carry the connected arena, squads, individual
+Wire protocol **15 / combat rules 7 / battle flow 2** refuses older peers with
+the existing protocol-mismatch response. Both independently advanced predecessor
+branches used protocol14 for incompatible schemas; numeric equality was not
+compatibility and neither predecessor is silently admitted. Snapshots carry the connected arena, squads, individual
 members, authoritative formation slots, physical structures and events. Combat
 profiles author X/Y, structural damage, range and timing—not member size, victim
 caps or cross-hex radius. One squad claims one cell, including a one-member boss.
@@ -81,7 +83,9 @@ The old city-transfer admission DTO and cosmetic-death admission bound are remov
 
 Receiving explicitly refuses old/unversioned combat settings, retired authoring
 fields, legacy size-budget boards, missing arena data and inconsistent member/actor
-projections. Welcome, acknowledgment and snapshot delivery use the same codec plus
+projections. The integrated full rules fingerprint includes battle-flow identity;
+the required forecast array, distinct negative forecast IDs and actual configured
+profiles are validated alongside shared geometry and member/squad identity. Welcome, acknowledgment and snapshot delivery use the same codec plus
 compatibility boundary before live state or reconnect credentials change. Failure
 explains how to rejoin a compatible authority or start a fresh match; it does not
 invent squads or silently reinterpret old fields. Session files are credentials

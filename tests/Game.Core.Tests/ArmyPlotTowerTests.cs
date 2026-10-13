@@ -181,7 +181,7 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
         foreach (Match match in new[] { baseline, variant })
         {
             match.Join(); Act(match, "start"); Act(match, "build", 0, Building.ArrowTower);
-            for (int n = 0; n < 4; n++) Act(match, "ready");
+            for (int n = 0; n < 3; n++) Act(match, "ready");
         }
         for (int n = 0; n < 180; n++)
         {

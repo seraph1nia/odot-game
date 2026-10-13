@@ -13,6 +13,14 @@ public sealed record BattleUpkeepReceipt(int Wave, int Paid, int[] Participating
 
 public static class BattleFood
 {
+    public static BattleFoodForecast? Project(CityState city, bool settleProduction, MarketRate? sale = null)
+    {
+        if (!city.Resources.TryPay(sale is null ? default : new ResourceCost().With(sale.Resource, sale.Units), out ResourceCost balance)
+            || sale is not null && !balance.TryAdd(new(Gold: sale.Gold), out balance)) return null;
+        if (settleProduction && (city.ProductionIncome is not ResourceCost income || !balance.TryAdd(income, out balance))) return null;
+        return Forecast(city.Soldiers, balance.Food, city.RecruitmentQuotes);
+    }
+
     public static BattleFoodForecast Forecast(IEnumerable<UnitState> soldiers, int available, EconomyConfiguration economy)
         => Forecast(soldiers.Select(u => (u.Id, u.Health, u.Faction, u.Level, u.Type, Stored: u.Assignment?.Stored == true)), available, economy.Upkeep);
     public static BattleFoodForecast Forecast(IEnumerable<UnitState> soldiers, int available, IReadOnlyList<RecruitmentQuote> quotes)

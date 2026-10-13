@@ -4,10 +4,10 @@ using Xunit.Abstractions;
 namespace Game.Core.Tests;
 
 // Selected numerical qualification, not final earned-balance acceptance. Finite
-// seeds 1 and 123, production twenty-wave horizon, 100000 fixed steps, four current
-// readiness gates/wave and <=100 paid decisions/gate. No stock/HP/wave setters.
+// seeds 1 and 123, production twenty-wave horizon, 100000 fixed steps, three
+// END gates/wave and <=100 paid decisions/gate. No stock/HP/wave setters.
 // A diagnostic row records genuine loss/stall, never labels it a campaign win.
-// Legacy full-victory acceptance remains separate until timing lands/calibration.
+// Landed flow2 timing is integrated; earned balance/calibration is not waived.
 [Trait("Tier", "Deep")]
 public sealed class SquadCampaignBaselineTests(ITestOutputHelper output)
 {

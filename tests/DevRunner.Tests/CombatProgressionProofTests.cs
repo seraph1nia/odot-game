@@ -7,24 +7,34 @@ namespace DevRunner.Tests;
 
 public sealed class CombatProgressionProofTests
 {
-    private static readonly HexBoard Board = new(HexBoardDefinition.Default());
-    private static UiObservation Frame(double tick)
+    private static readonly HexBoard Board = new SharedArena([1, 2]).Board;
+    private static UiObservation Frame(double tick, int owner = 1, int slot = 0, int capacity = 3, bool boss = false, bool dead = false)
     {
-        HexUnitState hex = new(1, 1, Faction.Adventurers, UnitLifecycle.Alive, new(14, 1), UnitActionKind.Moving,
-            new(11, 3), StartTick: 100, EndTick: 130);
-        System.Numerics.Vector3 Anchor(HexPosition position)
-        {
-            HexCoordinate cell = Board.Cell(position.Cell).Coordinate; HexAnchor anchor = Board.Anchor(position.Anchor);
-            return new(cell.Column * 3 + (Math.Abs(cell.R) % 2) * 1.5f + anchor.AnchorX / 1000f, 0,
-                cell.R * (1.1547005f * 1.5f * 1.5f) + anchor.AnchorForward / 1000f);
-        }
-        System.Numerics.Vector3 position = CombatVisualTiming.Position(Anchor(hex.Position), Anchor(hex.Destination), hex, tick);
+        HexUnitState hex = new(1, owner, Faction.Adventurers, dead ? UnitLifecycle.Dying : UnitLifecycle.Alive, new(14, 1), UnitActionKind.Moving,
+            new(Board.Cell(14).Neighbors.First(), 1), StartTick: 100, EndTick: 130, FrozenMoveTicks: dead ? 10 : 0);
+        var position = SharedCombatProjection.Position(Board, hex, slot, capacity, boss, tick);
         return new()
         {
             CombatTick = tick,
-            Units = [new() { Id = 1, Destination = 1, Visible = true, Deployed = true, Hex = hex,
+            Units = [new() { Id = 1, Destination = owner, FormationSlot = slot, IsBoss = boss, Dead = dead, Visible = true, Deployed = true, Hex = hex,
                 X = position.X, Z = position.Z, Clip = "walk", WalkingBlend = .8 }]
         };
+    }
+    [Fact]
+    public void SharedProjectionHasIndependentCenteredHexAndCosmeticSlotGeometry()
+    {
+        // Analytical two-sector geometry, not another call to the projection:
+        // 14 columns x9 rows, 3-world-unit column spacing, 2.598076 row
+        // spacing. The connected midpoint is (19.5,0,10.392304), NOT +40
+        // per owning city. Slots are cosmetic; a boss has no slot offset.
+        var source = Game.SharedCombatProjection.CellPosition(Board, 14);
+        Assert.Equal(19.5f, source.X, .0001f); Assert.Equal(-10.392304f, source.Z, .0001f);
+        var boss = Game.SharedCombatProjection.Formation(2, 3, true); Assert.Equal(System.Numerics.Vector3.Zero, boss);
+        var slot = Game.SharedCombatProjection.Formation(0, 3, false);
+        Assert.Equal(0, slot.X, .0001f); Assert.Equal(-.65f, slot.Z, .0001f);
+        var body = new HexUnitState(1, 2, Faction.Adventurers, UnitLifecycle.Alive, new(14, 1));
+        var position = Game.SharedCombatProjection.Position(Board, body, 0, 3, false, 100);
+        Assert.Equal(19.5f, position.X, .0001f); Assert.Equal(88.957696f, position.Z, .0001f);
     }
     [Fact]
     public void LiveMotionWitnessRejectsDetoursSprintsAndStaticSamples()
@@ -36,6 +46,20 @@ public sealed class CombatProgressionProofTests
         Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { X = first.Units[0].X + .1f }] }, Board));
         Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { Clip = "run" }] }, Board));
         Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { WalkingBlend = 1 }] }, Board));
+    }
+    [Theory]
+    [InlineData(1, 0, 3, false, false)]
+    [InlineData(2, 2, 3, false, false)]
+    [InlineData(2, 4, 6, false, false)]
+    [InlineData(2, 2, 3, true, false)]
+    [InlineData(2, 2, 3, false, true)]
+    public void SharedMotionRetainsOwnerIndependenceFormationBossAndFrozenCorpseClock(int owner, int slot, int capacity, bool boss, bool dead)
+    {
+        UiObservation first = Frame(110, owner, slot, capacity, boss, dead), next = Frame(120, owner, slot, capacity, boss, dead);
+        CombatProgressionProof.Motion(first, Board, capacity); CombatProgressionProof.Motion(next, Board, capacity);
+        Assert.Equal(!dead, CombatProgressionProof.MovementAdvanced([first, next]));
+        Assert.False(CombatProgressionProof.MovementAdvanced([first, first]));
+        Assert.Throws<InvalidOperationException>(() => CombatProgressionProof.Motion(first with { Units = [first.Units[0] with { X = first.Units[0].X + 40 }] }, Board, capacity));
     }
     [Theory]
     [InlineData(UnitType.Swordsman)]

@@ -9,6 +9,50 @@ public sealed partial class AuthoritySession
 {
     private bool _receivingPrepared, _receivingPlaced;
 
+    internal bool ConfigureReceivingEncounter(string name) => name switch
+    {
+        "fallen-field" => ConfigureReceivingEncounter(false),
+        "protected-field" => ConfigureReceivingEncounter(true),
+        "fallen-stored" => ConfigureStoredReceivingEncounter(false),
+        "protected-stored" => ConfigureStoredReceivingEncounter(true),
+        _ => false
+    };
+
+    // Different declared numerical input, not earned campaign/balance history:
+    // real paid W1 service/W2 Hall snapshots and W3 production remain intact;
+    // only original enemy roster/physical poses/Keep threshold are controlled.
+    private bool ConfigureStoredReceivingEncounter(bool protectedKeep)
+    {
+        if (IsEnded || _receivingPlaced || _match.Players.Count != 3 || _match.Wave != 3 || _match.Phase != Phase.Combat) return false;
+        MatchSnapshot initial = _match.Snapshot();
+        CityState storedOwner = initial.Players.Single(c => c.Id == 3);
+        if (storedOwner.Soldiers.Length == 0 || storedOwner.Soldiers.Any(u => u.Experience < 1 || u.Assignment is not { Stored: true } || u.Participating)
+            || !initial.Squads.Any(s => s.Owner != 3 && s.Faction == Faction.Adventurers && s.ParticipatingMembers.Length > 0))
+            throw new InvalidOperationException("Controlled stored encounter requires actual paid served Hall veterans and another living field roster.");
+        var arena = new SharedArena(_match.Players.Keys);
+        int enemy = _match.Combat.Enemies().Last().Id;
+        foreach (UnitState extra in _match.Combat.Enemies().Where(u => u.Id != enemy)) _match.Combat.Remove(extra.Id);
+        foreach (SquadState squad in initial.Squads.Where(s => s.Faction == Faction.Adventurers && s.ParticipatingMembers.Length > 0))
+        {
+            int home = _match.Combat.Read(squad.Members[0]).Assignment!.Tile;
+            int cell = arena.EnemyCells(squad.Owner)[home];
+            foreach (int id in squad.Members)
+                _match.Combat.Seed(_match.Combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, 1)) });
+        }
+        // The retained ranged actor prefers an in-range Watchpost. Choose a
+        // real firing cell within its ACTUAL Keep range but outside Watchpost
+        // range; do not forge a destroyed post/aim/impact or change its profile.
+        int range = _match.Combat.Read(enemy).Profile.HexRange;
+        int approach = arena.Board.Cells.Where(c => arena.CanOccupy(c.Id)
+            && arena.Board.Distance(c.Id, arena.Keep(3)) <= range
+            && arena.Board.Distance(c.Id, arena.Watchpost(3)) > range)
+            .OrderBy(c => arena.Board.Distance(c.Id, arena.Keep(3))).ThenBy(c => c.Id).First().Id;
+        _match.Combat.Seed(_match.Combat.Inspect(enemy) with { Location = new(UnitLifecycle.Alive, new(approach, 1)) });
+        _match.Players[3].Health = HealthPoints.FromWhole(protectedKeep ? 100 : 5);
+        _receivingPlaced = true;
+        return true;
+    }
+
     internal bool ConfigureReceivingEncounter(bool protectedKeep)
     {
         if (IsEnded || _match.Players.Count != 2) return false;

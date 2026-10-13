@@ -91,7 +91,7 @@ internal sealed partial class Runner
         await Observe(client, s => s.Players.Count(p => p.Slots[0].Type == Building.Farm && p.Slots[1].Type == Building.Barracks) >= 2, "both sides see ordinary purchases", token);
         for (int turn = 1; turn <= 3; turn++)
         {
-            await Observe(client, s => s.Phase == Phase.Building && s.Turn == turn, "shared build turn " + turn, token);
+            await Observe(client, s => s.Phase is Phase.Building or Phase.Preparation && s.Turn == turn, "shared preparation " + turn, token);
             await RecruitAll(client, token);
             await Action(client, "ready", token);
             await Observe(client, s => s.Phase != Phase.Building || s.Turn > turn, "both ready advance turn " + turn, token);

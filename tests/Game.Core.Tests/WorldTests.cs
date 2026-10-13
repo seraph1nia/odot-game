@@ -19,7 +19,7 @@ public sealed class WorldTests
         foreach (City c in m.Players.Values.Where(c => !c.Eliminated && c.Connected)) Act(m, c.Id, "ready");
         for (int tick = 0; tick < 48 && m.Phase == Phase.Preparation && m.Players.Values.Where(c => !c.Eliminated && c.Connected).All(c => c.Ready); tick++) m.Step();
     }
-    private static void Battle(Match m) { Ready(m); Ready(m); Ready(m); Ready(m); Assert.Equal(Phase.Combat, m.Phase); }
+    private static void Battle(Match m) { Ready(m); Ready(m); Ready(m); Assert.Equal(Phase.Combat, m.Phase); }
 
     [Theory]
     [InlineData(1)]
@@ -64,7 +64,7 @@ public sealed class WorldTests
         Ready(m); Assert.Equal(5, m.Players[1].Food); Assert.Empty(m.Players[1].Soldiers);
         Assert.False(m.Apply(1, Cmd(m, 1, "recruit", 0)).Accepted);
         Act(m, 1, "recruit", 1); Assert.Single(m.Players[1].Soldiers); Assert.Equal(5, m.Players[1].Food);
-        Ready(m); Ready(m); m.Players[1].Wood = 10; // Isolate the upgrade transaction from the separate supply-chain gate.
+        Ready(m); m.Players[1].Wood = 10; // Isolate the upgrade transaction from the separate supply-chain gate.
         Act(m, 1, "upgrade", 1); int food = m.Players[1].Food;
         Act(m, 1, "recruit", 1); Assert.Equal(food, m.Players[1].Food);
         Assert.Equal(4000, m.Players[1].Soldiers[0].Health); Assert.Equal(2, m.Players[1].Soldiers[1].Level);
@@ -80,7 +80,7 @@ public sealed class WorldTests
         m.SetConnected(2, true); Assert.False(m.Apply(2, stale).Accepted);
         m.SetConnected(1, false); m.SetConnected(2, false); long revision = m.Revision;
         for (int i = 0; i < 100; i++) m.Step(); Assert.Equal(revision, m.Revision); Assert.Equal(2, m.Turn);
-        m.SetConnected(1, true); Ready(m); Ready(m); Ready(m); Assert.Equal(Phase.Combat, m.Phase);
+        m.SetConnected(1, true); Ready(m); Ready(m); Assert.Equal(Phase.Combat, m.Phase);
         Assert.False(m.Apply(1, Cmd(m, 1, "recruit", 0)).Accepted);
     }
     [Fact]
@@ -170,7 +170,7 @@ public sealed class WorldTests
         CombatFixture.Steps(match, 13);
         Assert.Equal(Phase.Building, match.Phase); Assert.Empty(match.Enemies);
         UnitState corpse = Assert.Single(match.Snapshot().DyingBodies); Assert.Equal(61, corpse.Hex!.DeathEndTick);
-        Ready(match); Ready(match); Ready(match); Assert.Equal(Phase.Preparation, match.Phase);
+        Ready(match); Ready(match); Assert.Equal(Phase.Preparation, match.Phase);
         CityState prepared = match.Players[1].Snapshot(); Act(match, 1, "ready");
         Assert.Equal(Phase.Preparation, match.Phase); Assert.True(match.Players[1].Ready);
         Act(match, 1, "pause"); CombatFixture.Steps(match, 100); Assert.Equal(13, match.Tick);
@@ -179,7 +179,7 @@ public sealed class WorldTests
         match.Step(); Assert.Equal(Phase.Combat, match.Phase); Assert.Equal(2, match.Wave); Assert.Empty(match.Snapshot().DyingBodies);
         Assert.Equal(6, match.ProductionCount); Assert.False(match.Players[1].Ready);
         CityState started = match.Players[1].Snapshot();
-        Assert.Equal((prepared.Gold, prepared.Food, prepared.Wood), (started.Gold, started.Food, started.Wood));
+        Assert.Equal((prepared.Gold + 2, prepared.Food, prepared.Wood), (started.Gold, started.Food, started.Wood));
         match.Step(); Assert.Equal(2, match.Wave); Assert.Equal(6, match.ProductionCount);
     }
     [Fact]
@@ -216,10 +216,10 @@ public sealed class WorldTests
         using Match m = Started(rules: new Rules { Campaign = CampaignFixture.Three() }); m.Players[1].Food = 3; CombatFixture.Soldier(m, 900, 1, 7); m.Players[1].Health = 80;
         for (int wave = 1; wave <= 3; wave++)
         {
-            Assert.Equal((wave - 1) * 5 + 1, m.TurnSerial); Battle(m); Assert.Equal(wave, m.Wave);
+            Assert.Equal((wave - 1) * 4 + 1, m.TurnSerial); Battle(m); Assert.Equal(wave, m.Wave);
             Assert.Equal(7, m.Players[1].Soldiers[0].Health); CombatFixture.ClearEnemies(m); m.Step();
         }
-        Assert.Equal(Phase.Victory, m.Phase); Assert.Equal(15, m.TurnSerial); Assert.Equal(9, m.ProductionCount); Assert.Equal(80, m.Players[1].Health);
+        Assert.Equal(Phase.Victory, m.Phase); Assert.Equal(12, m.TurnSerial); Assert.Equal(9, m.ProductionCount); Assert.Equal(80, m.Players[1].Health);
         MatchSnapshot outcome = m.Snapshot(); m.Step(); Assert.Equal(outcome.Tick, m.Tick); Assert.False(m.Apply(1, Cmd(m, 1, "ready")).Accepted);
         using var defeat = Started(new Rules { SoldierHealth = 10, DefenderDamage = 10, Campaign = CampaignFixture.Three(first: 1), MeleeWindupTicks = 1, Combat = new() { Defender = new(1, 59) } });
         Battle(defeat); defeat.Players[1].Health = 2;
@@ -257,14 +257,14 @@ public sealed class WorldTests
         Assert.Equal(14, m.Players[2].Gold);
     }
     [Fact]
-    public void OrdinaryPaidOpeningFieldsSixFedSoldiersAndClearsFirstWave()
+    public void OrdinaryPaidOpeningFieldsFourFedSoldiersAndClearsFirstWave()
     {
         using Match m = Started(seed: 1);
         Act(m, 1, "build", 0, Building.Farm); Act(m, 1, "build", 2, Building.MetalMine); Act(m, 1, "build", 1, Building.Barracks);
-        Ready(m); Ready(m); Ready(m);
+        Ready(m); Ready(m);
         while (m.Players[1].Resources.TryPay(m.Economy.Recruitment(UnitType.Swordsman), out _)) Act(m, 1, "recruit", 1);
-        Assert.Equal(6, m.Players[1].Soldiers.Count); Assert.Equal(15, m.Players[1].Food);
-        Ready(m); Assert.Equal(9, m.Players[1].Food); Assert.All(m.Players[1].Soldiers, u => Assert.True(u.Participating));
+        Assert.Equal(4, m.Players[1].Soldiers.Count); Assert.Equal(10, m.Players[1].Food);
+        Ready(m); Assert.Equal(11, m.Players[1].Food); Assert.Equal(4, m.Players[1].Metal); Assert.All(m.Players[1].Soldiers, u => Assert.True(u.Participating));
         int steps = 0; while (m.Phase == Phase.Combat && steps++ < 6000) m.Step();
         Assert.Equal(Phase.Building, m.Phase); Assert.Equal(2, m.Wave); Assert.False(m.Players[1].Eliminated);
         // First-wave paid evidence only; shared-squad twenty-wave strategy

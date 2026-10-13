@@ -5,9 +5,9 @@ namespace Game;
 // Decorative geometry only; these IDs remain the nine authoritative array indices.
 internal static class VillageLayout
 {
-    public const float HalfWidth = 1.5f;
+    public const float HalfWidth = SharedCombatProjection.HalfWidth;
     public const float Radius = 1.1547005f * HalfWidth;
-    public const float RowStep = Radius * 1.5f;
+    public const float RowStep = SharedCombatProjection.RowStep;
     public const float TerrainScale = Radius / 2.55f;
     public const int RiverRow = 5;
     public const int BridgeColumn = 1;

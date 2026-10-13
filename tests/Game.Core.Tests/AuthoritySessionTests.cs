@@ -185,7 +185,7 @@ public sealed class AuthoritySessionTests
         using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, Campaign = CampaignFixture.Three(first: 1) });
         AdmissionResult player = Join(session, 2);
         Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 1, "start")).Accepted);
-        for (int sequence = 2; sequence <= 5; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
+        for (int sequence = 2; sequence <= 4; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
         Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 6, "pause")).Accepted);
         session.Disconnect(2);
         Assert.Equal(player.PlayerId, Join(session, 3, player.Credential).PlayerId);
@@ -217,7 +217,7 @@ public sealed class AuthoritySessionTests
         Command purchase = Cmd(session, guest.PlayerId, 1, "build", 0, Building.Farm);
         CommandResult purchased = Remote(session, 2, purchase);
         Assert.True(purchased.Accepted);
-        for (int turn = 0; turn < 4; turn++)
+        for (int turn = 0; turn < 3; turn++)
         {
             Assert.True(session.ExecuteLocal(Cmd(session, 1, turn + 2, "ready")).Accepted);
             Assert.True(Remote(session, 2, Cmd(session, guest.PlayerId, turn + 2, "ready")).Accepted);

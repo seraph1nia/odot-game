@@ -4,7 +4,7 @@ using Xunit;
 
 namespace DevRunner.Tests;
 
-public sealed class BurnAdmissionTests
+public sealed class BurnAdmissionTests(Xunit.Abstractions.ITestOutputHelper output)
 {
     private static readonly string[] OnePause = ["pause"];
     private static readonly string[] RearmedPause = ["pause", "resume", "pause"];
@@ -104,9 +104,37 @@ public sealed class BurnAdmissionTests
     {
         using var match = new Match(combatSeed: Runner.AuthorityResumeVictorySeed);
         match.Join(); match.Join();
+        var payments = new List<object>();
+        void Paid(int player, Command command)
+        {
+            MatchSnapshot before = match.Snapshot(); CommandResult result = match.Apply(player, command); MatchSnapshot after = match.Snapshot();
+            payments.Add(new
+            {
+                Command = command,
+                Result = result,
+                Before = new
+                {
+                    before.Phase,
+                    before.Wave,
+                    before.Turn,
+                    before.Tick,
+                    before.ProductionCount,
+                    Owners = before.Players.Select(c => new { c.Id, c.Resources, c.Research, c.Slots, c.Soldiers })
+                },
+                After = new
+                {
+                    after.Phase,
+                    after.Wave,
+                    after.Turn,
+                    after.Tick,
+                    after.ProductionCount,
+                    Owners = after.Players.Select(c => new { c.Id, c.Resources, c.Research, c.Slots, c.Soldiers })
+                }
+            });
+            Assert.True(result.Accepted, result.Message);
+        }
         void Act(int player, string action, TechnologyId technology = TechnologyId.None)
-            => Assert.True(match.Apply(player, Command.FromSnapshot(match.Snapshot(), match.Revision + 1,
-                action, player, technology: technology)).Accepted);
+            => Paid(player, Command.FromSnapshot(match.Snapshot(), match.Revision + 1, action, player, technology: technology));
         Act(1, "start");
         // Earn research, pay for the army and reach a live burn through ordinary waves.
         for (int steps = 0; steps < 30000 && match.Wave <= 10 && match.Phase is not (Phase.Victory or Phase.Defeat); steps++)
@@ -123,16 +151,39 @@ public sealed class BurnAdmissionTests
                     MatchSnapshot state = match.Snapshot();
                     EconomyAction? action = CampaignStrategy.ResearchWitness(state, city.Id);
                     if (action is null) break;
-                    Assert.True(match.Apply(city.Id, action.Command(state, city.Id, match.Revision + 1)).Accepted);
+                    Paid(city.Id, action.Command(state, city.Id, match.Revision + 1));
                 }
                 foreach (TechnologyId id in new[] { TechnologyId.MagicFoundation, TechnologyId.Fire })
                     if (match.Economy.Research.Eligibility(city.Research, id).Available && city.Soldiers.Any(u => u.Type == UnitType.Mage))
                         Act(city.Id, "research-tech", id);
                 Act(city.Id, "ready");
             }
-            if (match.Phase == Phase.Preparation && match.Players.Values.All(c => c.Ready)) match.Step();
+            if (match.Wave == 1 && match.Phase == Phase.Combat)
+                Assert.All(match.Players.Values, c => Assert.Equal(6, c.Soldiers.Count));
+            // Third END can wait only for actual death-animation cleanup.
+            // Fallen owners are excluded from readiness, not a reason to stop
+            // advancing that existing cleanup clock with a living owner ready.
+            if (match.Phase == Phase.Preparation && match.Players.Values.Where(c => c.Connected && !c.Eliminated).All(c => c.Ready)) match.Step();
         }
         MatchSnapshot origin = match.Snapshot(), current = origin;
+        string? evidenceDirectory = Environment.GetEnvironmentVariable("ODOT_CAMPAIGN_EVIDENCE_DIRECTORY");
+        if (!string.IsNullOrEmpty(evidenceDirectory))
+        {
+            Directory.CreateDirectory(evidenceDirectory);
+            File.WriteAllText(Path.Combine(evidenceDirectory, $"research-paid-{advanceBeforeRequest}.json"),
+                System.Text.Json.JsonSerializer.Serialize(new { Payments = payments, Origin = origin }, WireJson.Options));
+        }
+        output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+        {
+            origin.Phase,
+            origin.Wave,
+            origin.Tick,
+            origin.Turn,
+            origin.TurnSerial,
+            origin.ProductionCount,
+            Players = origin.Players.Select(c => new { c.Id, c.Eliminated, c.Ready, c.Health, c.Resources, c.Technologies, c.Soldiers }),
+            Enemies = origin.Enemies.Select(u => new { u.Id, u.Health, u.Rank, u.Statuses })
+        }, WireJson.Options));
         Assert.Equal(Phase.Combat, origin.Phase);
         UnitState target = origin.Enemies.First(u => BurnAdmission.Active(origin, u));
         long sequence = origin.Revision + 1;

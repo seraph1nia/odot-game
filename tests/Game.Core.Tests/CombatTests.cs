@@ -21,7 +21,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
             { Owner = 1, Type = type, Deployed = false, SquadId = 100 + home, FormationSlot = (id - 1) % 3, Assignment = new(-1, 0, home, 1) });
         }
         match.Players[1].Food = match.Players[1].Soldiers.Sum(u => match.Economy.Upkeep(u.Type)); // Normally fed, deliberate seeded combat fixture.
-        Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
+        Apply(match, "start"); Apply(match, "ready"); Apply(match, "ready"); Apply(match, "ready");
         return match;
     }
     private static CommandResult Apply(Match match, string action, int slot = -1, UnitType type = UnitType.Swordsman)
@@ -210,7 +210,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal(10, match.Players[1].Food); Assert.Equal(16, match.Players[1].Gold);
         Assert.Equal(17, match.Players[1].Metal);
         Assert.Equal(3000, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
-        Apply(match, "ready"); Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
+        Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
         Assert.False(Apply(match, "recruit", 1, UnitType.Crossbowman).Accepted);
     }
     [Fact]

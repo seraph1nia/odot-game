@@ -63,7 +63,7 @@ internal static class ReferenceTraces
         City city = terminal.Join()!; city.Food = 100;
         Assert.True(VillageStrategyTests.Act(terminal, 1, "start").Accepted);
         for (int i = 0; i < 6; i++) terminal.Combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, i / 3, 1));
-        for (int i = 0; i < 4; i++) Assert.True(VillageStrategyTests.Act(terminal, 1, "ready").Accepted);
+        for (int i = 0; i < 3; i++) Assert.True(VillageStrategyTests.Act(terminal, 1, "ready").Accepted);
         using var stateHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         for (int i = 0; i < 1000 && (terminal.Phase == Phase.Combat || terminal.Combat.HasDeaths); i++)
         {

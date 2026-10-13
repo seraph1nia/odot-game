@@ -14,7 +14,17 @@ internal static class BattlefieldFrame
         points.AddRange(Enumerable.Range(0, 9).Select(VillageLayout.Slot));
         if (state is not null)
             points.AddRange(Enumerable.Range(ArmyConfiguration.PlotOffset, ArmyConfiguration.PlotCount).Select(id => ArmyPlotView.PlotPosition(state, id)));
-        // Complete persistent settlement silhouettes, not combat actor positions.
+        // Forecast art lives outside combat occupancy. Include the actual display
+        // formation in the same content-derived framing owner, including custom
+        // allocation sizes; never assume the old approach bounds happen to fit.
+        if (state?.NextWave is { Length: > 0 } manifest)
+        {
+            Dictionary<int, Vector3> positions = NextWaveFormation.Positions(manifest);
+            points.AddRange(manifest.Select(u => positions[u.Id] - CombatLayout.Center(u.Destination)));
+            points.Add(new(0, 0, -14)); // next-wave heading
+        }
+        // Complete persistent settlement/forecast silhouettes, not live combat
+        // positions: SharedArenaView owns the independent complete arena bounds.
         Vector3 min = points.Aggregate((a, b) => a.Min(b)) - new Vector3(VillageLayout.Radius, 0, VillageLayout.Radius);
         Vector3 max = points.Aggregate((a, b) => a.Max(b)) + new Vector3(VillageLayout.Radius, 0, VillageLayout.Radius);
         min.Y = Ground; max.Y = Roof;

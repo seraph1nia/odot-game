@@ -51,7 +51,7 @@ public sealed class PresentationEfficiencyTests
     public void PlaybackIndexesOnlyAcceptedInputsAndDetachesRoutesEventsAndResults()
     {
         using Match match = CombatReplayFixture.StartFight(2, 1);
-        MatchSnapshot state = match.Snapshot();
+        MatchSnapshot state = match.Snapshot() with { CombatSpeed = CombatSpeed.Two };
         UnitState first = state.Enemies[0];
         UnitState routed = first with { Decision = first.Decision! with { Route = [new(11, 1)], Visited = [17] } };
         state = state with { Enemies = [routed] };

@@ -298,6 +298,34 @@ The original package exclusion of EngineTests predates the landed opt-in Worldtr
 package probe. The combined client intentionally retains that minimal scene for
 its guarded headless dispatch; the retired ui-resources launcher remains excluded.
 
+## Battle-flow authority and component coverage (2026-10-12)
+
+`BattleFlowTests` is Tier A: seeded same-combat comparisons at 0.5/0.75/1.0
+wall rates, fixed equivalent simulated time, bounded catch-up, paused debt,
+host/dedicated authority, retry/disconnect/resume, three-stage/three-production
+settlement and atomic two-event overflow, stable forecast-to-spawn allocation/profile,
+codec round trip and explicit historical fourth-phase refusal. Inputs are
+numerical authorities, explicit wall slices and no children. Existing cheaper
+arithmetic tests miss the authoritative admission/manifest boundary; expected
+incremental cost is under a second per case (actual aggregate receipt is linked
+below). Existing phase helpers now use three readiness checks rather than four;
+playback fixtures explicitly select the former pace when testing tick boundaries.
+No gameplay balance constants are altered to make a fixture pass.
+
+The existing `receiving` Tier B selection additionally runs `EngineBattleFlow`:
+real top native speed buttons, pointer and keyboard activation, delayed accepted
+selection/disconnected denial, imported ordinary enemy rigs in the authoritative
+forecast formation, the same production unit-bounds ray picker, ordinary unit
+inspection with no army actions, live-membership exclusion and owned forecast
+removal. This minimal Controls/rig component creates no Main, application,
+Tabletop world, multiplayer peer or alternate assets. Pure A cannot prove native
+input/resource/picking behavior. It reuses the existing owner/frame helpers and
+60s bound, rather than adding another journey. Headless cannot certify cool
+rendered presentation, GPU pixels, desktop focus or a complete UI-session
+transition. [Reconstruction coverage](battle-flow-reconstruction-coverage.md)
+owns reconciliation of the historical four-phase economy transcripts and exact
+failed/passed receipts; an intermediate broad failure is not green coverage.
+
 ## Combined Tabletop receiving coverage (2026-10-12)
 
 `test-engine --scenario receiving` is the fifth source Tier B selection, owned by
@@ -972,6 +1000,369 @@ explicitly reconcile the two protocol14 schemas/identities/refusals, and rerun
 actual final no-fourth-spending paid calibration (including ranged defeats and
 cooperative Keep risks). Full-fast/deep/stress/packages/final-head CI and rendered
 art/GPU remain unfinished; no first task done, owning pipeline or publication.
+
+## Preservation-first battle-flow reconstruction coverage (2026-10-13)
+
+Historical PR24 input coverage below is not qualification of this integrated
+shared-squad head. Its individual-combat transcripts map to the coherent paid
+squad replacements above; retired admission/size-budget contracts stay retired.
+
+The obsolete six independent phase/tick/ID goldens in the paid growth transcript
+are replaced by one six-mode same-seed Tier A comparison. It asserts actual
+quote/payment/production receipts, empty-capacity non-equipment, early versus
+late investment, identical player-1 pre-intervention controls, both-city paid
+expansion, equipped strength, damage and survivors. It preserves the single-mine,
+four-paid-unit opening; no product balances or enemy IDs are substituted. The
+removed experimental Research Tower/Market chain maps to named independent
+research/trade/payment/capacity/recovery/production/atomic tests and a new default-
+rule paid joint schedule in the [coverage checkpoint](battle-flow-reconstruction-coverage.md).
+Three new paid schedule cases and four complete-sale boundary cases use direct
+C# rules/commands, not another application journey. The ordinary army opening
+now proves four paid recruits with actual unused physical capacity; separate
+paid six-unit/capacity and three-city transfer guards remain.
+
+The [reconstruction coverage checkpoint](battle-flow-reconstruction-coverage.md)
+owns the paid/occupied witness split, negative-coverage inventory and opt-in
+redistribution consumer migration, including their exact failed/passed receipts
+and unexecuted native qualification. Those historical receipts are not current
+pipeline-head proof. Immutable MAIN resource-ledger bytes/provenance are retained;
+the native C# receiving caller supplies its supported heading field.
+
+## Integrated battle-flow/shared-squad paid reconstruction (2026-10-13)
+
+Protocol15 explicitly supersedes **both** incompatible predecessor14 schemas;
+combat rules7 and battle-flow2 remain explicit. Full compatibility identity now
+includes battle-flow version without reusing it as the base actor decision salt.
+Receiving validates configured forecast profiles and the required forecast array,
+plus the existing strict squad/member/geometry/retired-field negatives. Historical
+protocol14 receipts above are historical checkpoints, not integrated acceptance.
+
+`PaidPreparationScheduleTests` reconstructs the **joint** default-rule paid
+research/veteran/Market/trainer/exclusive-tower/field-capacity state, not a union
+of independent passes. Fixed retained seed14056307608042553509, two actual clears,
+exactly nine END settlements, two owners. Actual quotes/payments/refunds,
+production/upkeep/research and all before/after member IDs/HP/profiles/levels/XP
+are recorded. W3 final Preparation has wounded researched veterans and a genuine
+Market in owner1, paid replacement L2 trainer/equipment and a numbered army
+Rapid tower in owner2, and nine individually paid field members/three non-tower
+capacity3 homes each. Final END immediately enters Combat. This is **entry-state
+conjunction**, not W3 victory, a twenty-wave baseline or native/transport proof.
+
+Preserved first whole schedule: its later W3 six/seven-member field loses owner1
+Keep and **all thirteen fighters**, while owner2 alone clears. That failed
+all-Keeps/veteran-preservation outcome is not relabeled success. The complete
+replacement rearranges actual paid plots/refunds and proves the required
+conjunction before that extra battle, not through grants, seed selection,
+pre-spending final income, extra phase or rule/price/wave compensation. It preserves
+research health/equipment/XP and foreign-owner nonmutation, full-sale forecast
+parity, acquired research after producer sale, actual trainer/tower generations
+and investment, duplicate/exclusive/stock/capacity atomic refusals. A Farm upgrade
+cannot spend final income early, and is still refused in Combat once affordable.
+The independent single-mine specialist control and actual Hall/healing/track
+conjunction remain in the same class; no extra mine was added to the single-mine
+experiment.
+
+Exact source receipts: `logs/shared-arena-task/battle-integration/` holds both
+pre-execution whole-schedule plans, failed source/ledger and successful complete
+ledger. First whole attempt `20261013-134309-8d335067`: one failure, 8s. Replacement
+`20261013-135207-27555451`: all **3 paid schedule tests pass**, 10.71s runner;
+locked build zero warnings/errors, 4.38s. Later expanded affected filter
+`20261013-135653-4f80839e`: **106 core passes / 4 failures of110**, plus **17 runner
+passes**, 47.89s. These overlapping counts are not summed. Remaining failures
+are the separately earned Hall timing, old reserve W5 slot6 deadline, a seed1
+empty-land fixture assuming two surviving squads, and the stored spectator's
+underfunded three-phase support opening ending in Defeat. They remain causal
+failures requiring coherent migration, not waived acceptance. No integrated
+checkpoint, full-fast, native/ENet/protocol15 delivery, final paid matrix, package
+or final-head CI qualification is claimed by these selected passes.
+
+### Earned-state fixture batch 018: partial, unresolved support witness
+
+The failed early Hall purchase and arbitrary reserve-W5 slot6 expectation are
+consolidated into the same **paid** Hall witness: actual second END before
+construction, pre-affordability atomic refusal, wounded service members,
+production-only healing, send/re-store with identical healed HP/equipment/XP,
+base Hall6 overflow refusal, separately paid capacity2 upgrade (healing2
+unchanged) accepting the **same** seventh member into individual slot6. Final
+END funds seven stored individuals and immediately enters W3 Combat; all remain
+off-grid/nonparticipating/without claims through strict receiving. The earlier
+wave's field6/stored2 funding and legal send/retire/recruit negatives remain.
+No W3 battle victory claimed. This replaces the invalid first batch assumption
+that six field members would survive W2; actual survivors were three. It does
+not generate replacement HP or impose an arbitrary campaign deadline.
+
+Exclusive-land test retains both declared seeds, unchanged no-heal/no-member
+land-purchase checks, then **explicitly pays** recruitment for an observed second
+owned squad before the successful first move/rejected conflicting second move.
+Capacity3 supplies the bounded source requirement, not guessed squad IDs or
+removal of exclusivity because only one squad survived.
+
+First batch `20261013-143628-fb239f1c`: **5 pass/2 fail of7**, 38.56s. Land seeds,
+paid-home negative, joint schedule and independent single-mine specialist pass;
+Hall setup and stored-spectator elimination fail. Actual-count Hall correction
+`20261013-145333-9a90c79e`: **1 targeted pass**, 6.31s; locked build0warnings/errors,
+4.28s. Counts overlap and are not a full batch/full-fast result.
+
+Stored receiving input now distinguishes an **earned veteran** from the former
+no-Farm, unfunded XP0 recruit. Whole source-defined schedule before replay:
+owner3 actually funds four W1 field members, earns real first clear/service,
+sells Farm at W2, earns the missing Stone through actual END, buys Hall and
+stores all actual surviving veterans. Supporting owners use six paid L1 at W1,
+then seven mixed L1/L2 members at W2 through paid producer/refund/trainer/home
+commands. Existing paid receipt owner checks quotes/production/equipment against
+real AuthoritySession transitions; no alternative simulator or invented money.
+
+**Precise remaining setup contradiction:** this complete finite two-wave input
+**rescues** the third Keep instead of eliminating it. Actual W3 Building,
+tick1274, six productions, Keeps10000/10000/8600, all cities living. Owner3's
+actual stored IDs13/16 have HP1400/2400, L1/XP1; owner1 retains IDs1/6/29 with
+HP1000/2000/2000, owner2 has no remaining troops. All recorded 66 commands/outcomes
+are paid/legal; the required continuing **eliminated-owner** state never occurs.
+The previous weaker support terminated Defeat; neither is the desired witness.
+This proves a limitation of these fixed inputs/horizon, **not** a general
+impossibility of default paid cooperation. No terminal Defeat or rescued Keep
+is renamed elimination. The full before/after ledger and exact outcome summary
+are retained under `logs/shared-arena-task/battle-integration/earned-018/`.
+No further guessed building/seed/stat/price changes, repeated suffix probes,
+transport launch or final receiving acceptance is reported. Existing active
+fallen-field proof remains separate. Stored-spectator receiving/production/
+future allocation/resume guards remain unsatisfied at these merged inputs;
+C must consume a genuinely qualified earned A input, not launder this failure.
+
+Integration is therefore still uncommitted. Native/ENet/protocol15 delivery,
+final paid matrix/full-fast/deep/stress/package and owning pipeline remain
+unexecuted at the final integrated head.
+
+### Fixed-prefix spectator observation horizon 019: no qualified boundary
+
+One pre-written continuation extends the **same** 66-entry seed1/default-rule
+prefix through exactly W3's three ENDs, **nine Ready commands only**, no new
+purchases/recruitment/stat/profile/phase changes. All 66 prefix entries match the
+preserved ledger in every field except four fresh per-authority `MatchId` values
+in the two existing full before/after combat-outcome snapshots; only those IDs
+were normalized for comparison. Cleanup ends at tick1322. W3 entry has production9,
+Keeps10000/10000/8600 and the actual served stored IDs13/16 at HP2000/3000, XP1.
+That +600HP each comes from the three genuinely funded preparation settlements.
+
+Per-authority-tick observation records **705 states**, tick1322 through2026:
+- Owner1 falls at tick1995 while Combat continues, other Keeps100/1100. Owner1
+  has **no stored member**; this does not satisfy the spectator guard.
+- Owners2 and3 both fall at tick2026, immediately entering **Defeat /
+  AllCitiesFallen**. Owner3's stored IDs13/16 persist at exact HP2000/3000, XP1
+  in every recorded tick, but their owner never falls with another living Keep
+  and a still-Combat match.
+
+Thus extending this fixed input's horizon **does not qualify the conjunction**.
+It is not evidence of general campaign impossibility or a receiving defect.
+No further horizon/recipe/seed trial, manufactured damage or end-state relabeling
+was used. Own-command/retry/codec/pause/resume/future-production/allocation guards
+remain strict but **unreached** in this input; no ENet proof launched or checkpoint
+committed. Existing active-fighter evidence remains separate, not a substitute.
+
+First observation `20261013-151119-5144b0f9`: one failure, 19.92s runner. Diagnosis
+found boxed `ValueTuple` observations serialized to `{}` under production JSON
+options. Explicit named member projections replaced that vacuous observation;
+no numerical/paid input changed. Corrected actual member receipt
+`20261013-151727-591aad18`: same one failure, 20.16s; locked build0warnings/errors,
+4.29s. This repeat corrected relevant evidence input, not a blind retry. Raw
+ordered events, full entry/final states, all explicit per-tick member observations,
+old source and normalized-prefix/source/binary hashes are in
+`logs/shared-arena-task/battle-integration/horizon-019/`. Exact unavailable
+conjunction requires a mapped coverage disposition; it cannot be suppressed
+into a green integration result.
+
+### Historical mapped spectator coverage 020: native boundary then blocked
+
+The authorized mapping is written before consumer retirement in
+`logs/shared-arena-task/battle-integration/mapped-020/coverage-plan.md`.
+The original strict paid consumer, the exact66-prefix/nineReady/705-state
+failure, explicit member/event observations and their corrections remain
+preserved. **At the 020 checkpoint**, the strict consumer was still present
+and failed its unavailable conjunction. It was not renamed into spectator
+acceptance. The 021 supersession below records its later conditional retirement.
+Default-paid combined full-session, campaign balance and twenty-wave acceptance
+remain unqualified.
+
+The existing fixed authority/owned headless loopback receiving seam now admits
+`fallen-stored` and `protected-stored` at W3 Combat only, after actual paid
+service/storage. No resources, members, equipment or experience are granted.
+Keeping one original configured enemy and positioning genuine squads, plus
+Keep health5 versus100, are declared **controlled enemy-roster/pose/Keep inputs**,
+not earned injury/economy/balance evidence. Ordinary combat must perform the
+Keep destruction. The single complete fallen state must contain the same served
+stored veterans, another living Keep and ongoing Combat. Active fallen-field
+actual-impact coverage and simultaneous last-Keep Defeat remain distinct.
+
+Selected numerical qualification covers real destruction, strict codec/member
+identity, stored/nonparticipating/no claims, stopped owner weapons, pause,
+command denial/retry/nonmutation, foreign ownership refusal, original purchase
+receipt, disconnect/rebind/resume, team clear and next-wave living-only
+production/upkeep/allocation. Protected input passed its separate no-fall
+control. These are selective executions, not one complete current-source green
+batch. Fallen input `20261013-155344-9fd81c5f` passed1/1 in12.04s; additional
+mid-prefix config/codec observations around tick991..994 and the same full
+fallen guards passed1/1 in12.57s (`20261013-161256-f86b492d`). Builds had
+zero warnings/errors.
+
+Causal failures are retained: an initial ranged enemy correctly struck an
+in-range Watchpost instead of the intended Keep. Geometry was corrected using
+actual configured range and distance, excluding Watchpost range; no target/hit
+flags, stat change or extended observation window. A raw future foreign command
+sequence poisoned the test-owned sequence counter; the negative now uses the
+ordinary owned sequence with foreign City. The numerical conjunction and later
+guards subsequently passed.
+
+**At 020, actual ENet was not qualified.** The new `eliminated-resume` driver uses the real
+paid prefix and native authority, plus fallen/protected stored cases, exact
+paused receiving, malformed/protocol14 refusal, authentic retries, peer/process
+credential restoration, owner exclusions and host shutdown. It currently fails
+**before controlled W3 input**, waiting for the ally to receive a paid clear:
+
+- `20261013-155520-3d6d5aff`:300.54s phase/305.68s runner, cancelled at the
+  unchanged300s suite budget. Host/owner received W3Building tick1322, while
+  ally's last received state was W2Combat tick991/revision1065.
+- An owned acceleration1 versus4 admission/CPU discriminant first exposed an
+  actual startup fixture race: Lobby and first Building share TurnSerial1.
+  The barrier now requires current MatchId/Phase/Wave/TurnSerial. A launch using
+  the already-loaded old driver remained an old-input failure; preparation
+  inside that process cannot replace its loaded driver assembly. Both receipts
+  remain, and the next launch used an explicitly completed build and hash.
+- `20261013-162448-bcc3ec9f`, completed current driver/owned acceleration1:
+ 300.85s phase/305.90s runner, still cancelled awaiting a paid clear. Host/owner
+  received W2Building tick361; ally stopped at W1Combat tick218/revision265.
+  Therefore a simple acceleration reduction did not establish receiving. This
+  does not diagnose a product defect or prove an identical deterministic tick
+  failure; producer/receiver/native delivery cause remains unresolved.
+
+All three native children in each attempt were awaited and exited0; recorded
+PIDs and owned runtime directories are absent, and engine logs contain no
+reported error. Exact source/binary, receipt, process and boundary evidence is
+in `mapped-020/{driver-receipt,current-source-binary,custody-and-receiving-boundary}.txt`
+and the immutable run directories. No deadline increase, blind replay, new paid
+recipe, old-consumer retirement, integration commit, ENet acceptance or broader
+qualification follows this unresolved native receiving boundary.
+
+### 021 supersession: strict native stored conjunction qualified causally
+
+The old native blocker is resolved, not reclassified as a passing observer.
+A single bounded45s probe through existing timing/event owners correlated host
+publication/send, ENet receive, strict decode/admission/apply and observer emit.
+The existing independent native `checkpoint` falsified a stdout-only-loss theory:
+actual native state and its observer both lagged. Both receivers kept servicing
+and progressing; no admission refusal or trace overflow occurred.
+
+Strict validation repeatedly rebuilt immutable four-owner all-pairs topology
+while recomputing full combat configuration identity, twice/snapshot. Baseline
+`20261013-170039-6432f11f` measured median decode83–84ms and apply74–75ms,
+publish-to-RPC6.55–6.64s, maximum15.90s. Four bounded lazy immutable `HexBoard`
+instances now reuse constant topology by roster width. Owner IDs, footprints,
+DTOs and claims remain private; rules/full fingerprints/forecasts/payload bounds
+and strict validation are unchanged. Four structural regression rows failed red
+before correction; the affected89-row batch passed11.12s. The regression asserts
+same-width immutable graph identity and independent mutable projections/owners,
+not a fragile wall-time threshold.
+
+Matched same45s/input diagnostic `20261013-171410-2eb79ed1` reached both clears
+in19.72s: decode6.65–6.79ms/apply4.20–4.37ms and publish-to-RPC9.81–10.79ms
+median. Its intentional stop is **diagnostic only**, never acceptance. Temporary
+tracing/checkpoints/stops were removed from the driver before strict qualification.
+
+- Actual `eliminated-resume`, `20261013-171834-39998b68`: **PASS**,
+  76.95s scenario/82.09s runner, fallen/protected stored inputs and the complete
+  conjunction plus identity/claims/denial/retry/foreign-owner/legacy14/malformed/
+  credentials/peer restart/future-allocation/host-loss guards. Original300s budget.
+- Separate actual-impact `active-fallen`, `20261013-173432-5c67f17b`: **PASS**,
+  31.82s scenario/37.59s runner. Stored nonparticipants cannot substitute for this.
+- Minimal native `arena`, `20261013-173510-4068a9ec`: **PASS**,2.70s/8.12s.
+- Minimal native `receiving`, `20261013-173518-d93759af`: **PASS**,23.63s/29.13s,
+  current three-stage settlements/Stonecutter/forecast/preview inspection.
+
+All owned commands returned, children were awaited and diagnostic PID/runtime
+absence receipts retained. Source/binary and correlated evidence live in
+`logs/shared-arena-task/battle-integration/diagnosis-021/`. Native results are
+selected controlled/component qualification, not full default-paid networking,
+twenty-wave balance or rendered acceptance.
+
+Only after complete mapped numerical A and actual C qualification was the old
+strict consumer retired. Its original source and exact66-prefix/nineReady/
+705-state failure remain. `PaidStoredVeteranHistoryTests` retains that same earned
+history, payment/service/storage/healing/member identity/codec/nonparticipation/
+claim proof and reports the absent conjunction accurately. Complete spectator
+guards live in the actual controlled authority/ENet tests. Default-paid combined
+eliminated-stored acceptance is still **not** established.
+
+### 022 runner migration and remaining integrated qualification
+
+The old city-local board caused missing shared cell73; obsolete city Destination
+filters hid foreign rescue and old member anchors simulated stacking. The runner
+now inspects shared `Arena.Board`, squad membership and all-owner rendered
+clearance/cue positions. Shared population counts exclude retained deaths; dead
+poses still support local clearance/near-far inspection. Empty living target
+population previously caused `Min()` failure; retained cosmetic poses do not
+become live occupancy. These red controls remain in receipts.
+
+`SharedCombatProjection` is the pure presentation geometry owner used by native
+`CombatLayout` and runner observers: centered connected hexes, formation slots,
+boss zero offset, committed interpolation and frozen corpse movement. It is not
+another simulator. Analytical two-sector geometry separately falsifies wrong
+centering/city offsets/formation arithmetic. Existing constants are unchanged.
+No Godot or full application is needed for these deterministic detector controls.
+
+`MeleeVisualProofTests` consolidates obsolete301/638/973-tick windows into finite
+4000-tick paid W1 controls (seeds0/1/123; one configured ordinary wave), retaining
+real six-member paid openings, linked near/far/shared/simultaneous windup/impact,
+cue/action/weapon/malformed negatives, current-state pause admission, capture
+bounds/order, stale turn/session/terminal refusals and frozen playback. Metadata
+positions/bones/captures are explicitly **not imported rig or PNG proof**. Actual
+miss/death/commitment mechanics remain in core/native coverage; these detector
+fixtures do not fabricate impacts to claim native acceptance.
+
+Targeted runner `20261013-200406-b4cc77dc`: **19/19 PASS**,0.984s binary/2.12s
+runner. First attempt retained4 failures (empty corpse-group geometry and cross-
+owner clearance), corrected through the existing owners. Broader fast
+`20261013-200535-121f2855` remains **FAILED/PARTIAL**: runner645pass/2fail/
+2Windows skips; core cancelled with an obsolete EconomyCatalog Used8-versus-
+four-actual-members assertion. That assertion now verifies two real squads,
+home usage3+1 and individual member accounting; EconomyCatalog9/9 passed.
+
+BurnAdmission's bounded evidence first found W2 Preparation tick2563 with one
+fallen unready owner and one living ready owner. The test driver—not production
+readiness—failed to advance real death cleanup because it counted the fallen
+owner. Correcting its living-ready predicate exposed actual W2 AllCitiesFallen
+at tick3824, before Mage/foundation/Fire, which remains preserved. A whole paid
+opening reconstruction was planned before replay: canonical two-MetalMine
+six-member W1 funding; ordinary second-mine sale in W2; then the existing quote-
+driven research/producer/upgrades/Mage-first policy. No new seed/horizon/rule/
+price/grant/gate or waived burn assertion. Both modes now earn actual W8 Combat
+burn at tick2165/production24 with both Keeps10000; source119 burns members137/
+138 through real impacts.156 accepted before/after command/resource/service
+records per mode are retained. Strict pause/stale-turn/receipt/frozen-status
+negatives passed in the **36/36** BurnAdmission batch,6.48s runner,
+`20261013-202344-5168891c`. This is earned finite research admission, not20wave
+research transport/rendered acceptance.
+
+Next complete fast attempt `20261013-202404-ba4a567c` ran both binaries: runner
+**647PASS/2Windows skips**, core557PASS/1obsolete fourth-spending-window failure.
+That obsolete witness was replaced coherently with real four-member recruitment
+before END3, refusal to prespend future metal, exact production+food accounting,
+unchanged identities and atomic stale/fourth-gate refusals. Subsequent complete
+core `20261013-202840-e512e72a`: **558/558PASS**,46s binary/47.56s runner.
+SHA256 checks confirm Core/DevRunner/DevRunner.Tests binaries unchanged across
+that last test-only build, so the completed647-row runner receipt remains valid.
+Thus current-input fast coverage is complete across two receipts; the earlier
+combined commands remain failures, and the two Windows rows remain unexecuted.
+
+The shared projection extraction justified a focused native arena recheck—not
+an unchanged repeat: `20261013-201925-d17d944f` **PASS**,2.58s/7.65s. No repeat
+of already-passed stored/active ENet or receiving/animation follows automatically.
+
+The current unchanged-policy twenty-wave matrix is **13 verification passes /
+1 failure**, but **10 victories / 4 W1 defeats**. Cooperative seed123 lacks any
+foreign-origin impact; both cooperative policies and both ranged policies lose.
+See [paid baselines](paid-squad-baselines.md#integrated-default-price-matrix-incomplete-balance-qualification).
+Further earned policy/balance investigation, complete fast/deep/stress/package
+qualification, integration checkpoint and publication remain. No paid policy,
+seed, price, stat, spending gate or acceptance assertion was changed to hide it.
 
 ## Remaining risks / deliberately unclaimed guarantees
 

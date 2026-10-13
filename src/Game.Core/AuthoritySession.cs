@@ -58,6 +58,27 @@ public sealed partial class AuthoritySession : IDisposable
     public MatchSnapshot Snapshot() => _endedState ?? _match.Snapshot();
     public void Step() { if (!IsEnded) _match.Step(); }
 
+    private double _stepCredit;
+    // Admit a bounded wall-time slice. Keep simulation ticks, ordering, damage,
+    // movement, projectiles and status durations untouched. No paused debt or
+    // accumulated preparation time can burst into a later battle.
+    public void Advance(double seconds)
+    {
+        if (!double.IsFinite(seconds) || seconds < 0) throw new ArgumentOutOfRangeException(nameof(seconds));
+        if (IsEnded || _match.Paused || !_match.HasPendingSteps) { _stepCredit = 0; return; }
+        Phase before = _match.Phase;
+        double rate = before == Phase.Combat ? CombatSpeedRates.Factor(_match.CombatSpeed) : 1;
+        _stepCredit += Math.Min(seconds, .1) * Match.StepsPerSecond * rate;
+        int steps = Math.Min(6, (int)Math.Floor(_stepCredit + 1e-9));
+        _stepCredit -= steps;
+        if (_stepCredit < 0) _stepCredit = 0;
+        for (int n = 0; n < steps; n++)
+        {
+            _match.Step();
+            if (_match.Phase != before || !_match.HasPendingSteps) { _stepCredit = 0; break; }
+        }
+    }
+
     public bool CanStart(int playerId) => !IsEnded && _match.Phase == Phase.Lobby
         && _match.Players.TryGetValue(playerId, out City? city) && city.Connected
         && (Policy == AuthorityPolicy.Dedicated ? _bindings.ContainsValue(playerId) : playerId == LocalPlayerId);
@@ -142,9 +163,14 @@ public sealed partial class AuthoritySession : IDisposable
         if (command.MatchId != MatchId) return new(command.Sequence, false, "Stale match, phase or turn.");
         return _ledgers[player].Execute(command, () =>
         {
-            if (command.Action == "start" && Policy == AuthorityPolicy.PlayingHost && player != LocalPlayerId)
-                return new(command.Sequence, false, "Only the original host can start the match.");
-            return _match.Apply(player, command);
+            if (Policy == AuthorityPolicy.PlayingHost && player != LocalPlayerId
+                && (command.Action == "start" || CombatSpeedRates.TryAction(command.Action, out _)))
+                return new(command.Sequence, false, "Only the original host can start the match or change combat speed.");
+            // Pausing/resuming discards fractional wall-time debt, even if both
+            // commands arrive between two engine physics callbacks.
+            CommandResult result = _match.Apply(player, command);
+            if (result.Accepted && command.Action is "pause" or "resume") _stepCredit = 0;
+            return result;
         });
     }
 

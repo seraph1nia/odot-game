@@ -25,16 +25,16 @@ public sealed class ProgressionPresentationTests
     [Theory]
     [InlineData(Phase.Building, 1, 0)]
     [InlineData(Phase.Building, 2, 1)]
-    [InlineData(Phase.Building, 3, 2)]
-    [InlineData(Phase.Preparation, 3, 3)]
-    [InlineData(Phase.Combat, 3, 4)]
+    [InlineData(Phase.Building, 3, -1)] // Historical unsupported stage, never highlighted.
+    [InlineData(Phase.Preparation, 3, 2)]
+    [InlineData(Phase.Combat, 3, 3)]
     [InlineData(Phase.Lobby, 0, -1)]
     [InlineData(Phase.Victory, 3, -1)]
     public void PhaseListHighlightsOnlyTheAuthoritativeStage(Phase phase, int turn, int active)
     {
         using var match = new Match(combatSeed: 1);
         string[] rows = ProgressionPresentation.PhaseRows(match.Snapshot() with { Phase = phase, Turn = turn });
-        Assert.Equal(5, rows.Length);
+        Assert.Equal(4, rows.Length);
         Assert.Equal(active < 0 ? 0 : 1, rows.Count(row => row.StartsWith('>')));
         if (active >= 0) Assert.StartsWith(">", rows[active]);
     }
@@ -128,13 +128,13 @@ public sealed class ProgressionPresentationTests
         MatchSnapshot state = match.Snapshot() with { Phase = Phase.Building };
         CityState city = state.Players[0] with { Food = 15, FoodForecast = new(6, 15, 6, [1, 2, 3, 4, 5, 6], []) };
         EconomyView view = ProgressionPresentation.Economy(state, city, true);
-        Assert.Equal("Income/turn", view.IncomeLabel); Assert.Equal("Next battle", view.UpkeepLabel);
+        Assert.Equal("Income/production", view.IncomeLabel); Assert.Equal("Next battle", view.UpkeepLabel);
         Assert.Equal("6 food", view.UpkeepValue); Assert.Equal("Food after payment", view.BalanceLabel); Assert.Equal("9", view.BalanceValue);
         Assert.Equal("+2", ProgressionPresentation.Income(city.ProductionIncome, Resource.Gold));
         Assert.Equal("0", ProgressionPresentation.Income(city.ProductionIncome, Resource.Metal));
         Assert.Equal("Unavailable", ProgressionPresentation.Income(null, Resource.Gold));
         EconomyView shortage = ProgressionPresentation.Economy(state with { Phase = Phase.Preparation }, city with { FoodForecast = new(6, 4, 4, [1, 2, 3, 4], [5, 6]) }, true);
-        Assert.Equal("Next building turn", shortage.IncomeLabel); Assert.Contains("no income", shortage.Context); Assert.Equal("2 soldiers will sit out", shortage.BalanceLabel);
+        Assert.Equal("Income/production", shortage.IncomeLabel); Assert.Contains("one production", shortage.Context); Assert.Equal("2 soldiers will sit out", shortage.BalanceLabel);
         CityState paid = city with { LastUpkeep = new(3, 4, [1, 2, 3, 4], [5, 6]) };
         EconomyView combat = ProgressionPresentation.Economy(state with { Phase = Phase.Combat }, paid, true);
         Assert.Equal("Paid this battle · W3", combat.UpkeepLabel); Assert.Equal("4 food", combat.UpkeepValue); Assert.Equal("2", combat.BalanceValue);
@@ -155,9 +155,19 @@ public sealed class ProgressionPresentationTests
         Assert.Contains("Need 2 more stone · Stonecutter", ProgressionPresentation.CostExplanation(lumbermill.Upgrade, new(Wood: 2)));
         CityState city = match.Snapshot().Players[0] with { Food = 28, Soldiers = Enumerable.Range(1, 6).Select(id => new UnitState(id, 4000) { Type = UnitType.Swordsman }).ToArray() };
         MarketRate rate = match.Economy.MarketRates().Single(r => r.Resource == Resource.Food);
-        Assert.Contains("pay 3 food · 3 soldiers will sit out", ProgressionPresentation.FoodSalePreview(city, rate));
-        Assert.Contains("Need 1 more food", ProgressionPresentation.FoodSalePreview(city with { Food = 24 }, rate));
+        Assert.Contains("pay 3 food · 3 soldiers will sit out", ProgressionPresentation.FoodSalePreview(city, rate, Phase.Building));
+        Assert.Contains("Need 1 more food", ProgressionPresentation.FoodSalePreview(city with { Food = 24 }, rate, Phase.Building));
         Assert.Equal(28, city.Food);
+        CityState final = city with { ProductionIncome = new(Food: 5) };
+        Assert.Contains("pay 6 food · 0 soldiers will sit out · food after payment 2", ProgressionPresentation.FoodSalePreview(final, rate, Phase.Preparation));
+        Assert.Equal(28, final.Food);
+        Assert.Null(BattleFood.Project(final with { Food = int.MaxValue }, true));
+        Assert.Contains("unavailable", ProgressionPresentation.FoodSalePreview(final with { Gold = int.MaxValue, ProductionIncome = new(2, Food: 5) }, rate, Phase.Preparation));
+        Assert.Contains("unavailable", ProgressionPresentation.FoodSalePreview(final with { ProductionIncome = null }, rate, Phase.Preparation));
+        UnitState[] split = city.Soldiers.Select((u, i) => i == 0 ? u with { Assignment = new(1, 1, 0, 1) } : u).ToArray();
+        BattleFoodForecast stored = BattleFood.Project(final with { Soldiers = split, Food = 25 }, true, rate)!;
+        Assert.Equal(5, stored.Available); Assert.Equal(5, stored.Paid);
+        Assert.Equal([2, 3, 4, 5, 6], stored.Participating); Assert.Equal(stored.Participating, stored.Funded); Assert.Equal([1], stored.Unfed);
     }
 
 }

@@ -34,24 +34,30 @@ internal sealed partial class Runner
         await using var owner = StartGame(name + "-owner", false, true, port, null, "--session-file", path);
         GameEvent joined = await owner.WaitFor(e => e.Type == "connected", "identified field owner joined", options.StartupTimeout, token);
         Require(joined.PlayerId == 2, "fixed input has exactly two owners");
+        await using (var legacy = ExpectedFailure(StartGame(name + "-protocol14", false, true, port, null, "--protocol-version", "14")))
+            await legacy.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("Protocol", StringComparison.Ordinal),
+                "both predecessor protocol14 schemas refuse before credentials", options.StartupTimeout, token);
         await Observe(host, s => s.Players.Length == 2, "two-owner fixed roster", token);
         await Action(host, "start", token);
         await Observe(owner, s => s.Phase == Phase.Building, "controlled opening received", token);
-        foreach (Child client in new[] { host, owner })
+        for (int gate = 0; gate < 3; gate++)
         {
-            await Economy(client, token);
-            await Action(client, "build-recovery 3 lumbermill", token);
-        }
-        for (int gate = 0; gate < 4; gate++)
+            foreach (var (player, action) in CampaignStrategy.RedistributionPreparation(Latest(host), host.PlayerId, owner.PlayerId))
+            {
+                Child client = player == host.PlayerId ? host : owner;
+                string request = action.Action == "build"
+                    ? $"{(action.Payment == ConstructionPayment.GoldRecovery ? "build-recovery" : "build")} {action.Slot} {action.Building}"
+                    : $"recruit {action.Slot} {action.Unit}";
+                await Action(client, request, token);
+            }
             foreach (Child client in new[] { host, owner })
             {
-                if (gate > 0) for (int member = 0; member < 2; member++) await Action(client, "recruit 1", token);
-                if (gate == 2) await Action(client, "build 4 stonecutter", token);
-                // Admit the initial field witness at ordinary 60Hz. This is
-                // owned test setup pacing, not a newly authored gameplay pace.
-                if (gate == 3 && client == owner) await SimulationSpeed(host, 1, token);
+                // Owned acceleration1 retains the accepted game's own rate;
+                // it is not an extra phase or a second gameplay clock.
+                if (gate == 2 && client == owner) await SimulationSpeed(host, 1, token);
                 await Action(client, "ready", token);
             }
+        }
         GameEvent configured = await host.WaitFor(e => e.Type == "controlled-encounter" && e.State?.Phase == Phase.Combat,
             "explicit numerical input receipt", options.StartupTimeout, token);
         MatchSnapshot input = State(configured);
@@ -116,7 +122,7 @@ internal sealed partial class Runner
                     Require(Gameplay(State(retry)) == Gameplay(before), "refused retry is nonmutating");
                 }
                 CityState fallen = Latest(receiving).Players[1]; MatchSnapshot? next = null;
-                for (int gate = 0; gate < 4; gate++)
+                for (int gate = 0; gate < 3; gate++)
                 {
                     next = State(await Action(host, "ready", token));
                     CityState current = next.Players[1];

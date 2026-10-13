@@ -8,6 +8,12 @@ public static class SnapshotCompatibility
     public static void RequireSharedArena(MatchSnapshot state)
     {
         ArgumentNullException.ThrowIfNull(state);
+        if (state.BattleFlowVersion != MatchSnapshot.CurrentBattleFlowVersion || !Enum.IsDefined(state.CombatSpeed)
+            || state.Phase == Phase.Building && state.Turn is not (1 or 2)
+            || state.Phase == Phase.Preparation && state.Turn != 3 || state.NextWave is null
+            || state.NextWave.Any(u => u is null || u.Id >= 0 || u.Faction != Faction.Skeletons || u.Health != u.Profile.Health)
+            || state.NextWave.Select(u => u.Id).Distinct().Count() != state.NextWave.Length)
+            throw new ArgumentException("Legacy battle-flow snapshot refused: three preparations and authoritative wave forecasts are required. Rejoin a compatible authority or start a fresh match.", nameof(state));
         if (state.CombatRulesVersion != CurrentSquadRulesVersion || state.Rules?.Combat is null || state.Rules.Arena is null
             || state.Rules.Combat.RulesVersion != state.CombatRulesVersion || state.Rules.Combat.Board is not { Capacity: 1, Id: "shared-watch-arena" }
             || state.Arena is null || state.Arena.Board is not { Capacity: 1 } || state.Squads is null || state.Structures is null)
@@ -20,6 +26,12 @@ public static class SnapshotCompatibility
             || state.Arena.Board.Cells.Any(c => c is null) || state.Arena.Footprints.Any(f => f is null)
             || state.Players.Length == 0 && state.Phase != Phase.Lobby || state.Rules.Arena.SquadCapacity is < 1 or > 12)
             throw new ArgumentException("Malformed shared arena roster.", nameof(state));
+        var configuration = new CombatConfiguration(state.Rules);
+        if (RulesIdentity.Combine(configuration.Fingerprint, new EconomyConfiguration(state.Rules).Fingerprint,
+            new CampaignConfiguration(state.Rules.Campaign, configuration).Fingerprint) != state.ConfigurationFingerprint)
+            throw new ArgumentException("Combat configuration identity refused: received rules do not match the full authoritative fingerprint.", nameof(state));
+        if (state.NextWave.Any(u => u.Profile != configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level).Runtime()))
+            throw new ArgumentException("Authoritative wave forecast profile refused: received actors do not match configured identities.", nameof(state));
         UnitState[] members = state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).ToArray();
         if (members.Select(m => m.Id).Distinct().Count() != members.Length || state.Squads.Select(s => s.Id).Distinct().Count() != state.Squads.Length)
             throw new ArgumentException("Duplicate member or squad identity.", nameof(state));

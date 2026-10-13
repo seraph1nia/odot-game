@@ -10,15 +10,12 @@ internal sealed class CombatLayout(HexBoard board)
     private int _capacity = 3;
     private string? _match;
     private readonly Dictionary<int, Vector3> _formations = []; // Cosmetic offsets only; reset per match/playback layout.
-    internal static Vector3 ArenaOrigin => new(0, 0, 100);
-    private Vector3 Offset => CellCenter(board.Cells[0].Id).Lerp(CellCenter(board.Cells[^1].Id), .5f);
+    internal static Vector3 ArenaOrigin => Convert(SharedCombatProjection.Origin);
+    private static Vector3 Convert(System.Numerics.Vector3 point) => new(point.X, point.Y, point.Z);
+    private Dictionary<int, Vector3> _preview = [];
+    internal void SetPreview(UnitState[] manifest) => _preview = NextWaveFormation.Positions(manifest);
     public static Vector3 Center(int city) => new((city - 1) * 40, 0, 0);
-    private Vector3 CellCenter(int id)
-    {
-        HexCoordinate coordinate = board.Cell(id).Coordinate;
-        return new(coordinate.Column * VillageLayout.HalfWidth * 2 + (Math.Abs(coordinate.R) % 2) * VillageLayout.HalfWidth, 0, coordinate.R * VillageLayout.RowStep);
-    }
-    internal Vector3 CellPosition(int id) => CellCenter(id) - Offset;
+    internal Vector3 CellPosition(int id) => Convert(SharedCombatProjection.CellPosition(board, id));
     internal void Synchronize(MatchSnapshot state)
     {
         if (_match != state.MatchId) { _formations.Clear(); _match = state.MatchId; }
@@ -27,32 +24,14 @@ internal sealed class CombatLayout(HexBoard board)
             .Concat(state.Enemies).Concat(state.Players.SelectMany(c => c.Soldiers)).Concat(state.DyingBodies))
             _formations[member.Id] = Formation(member);
     }
-    private Vector3 Formation(UnitState unit)
-    {
-        if (unit.IsBoss) return Vector3.Zero;
-        int slot = unit.FormationSlot;
-        float angle = -Mathf.Pi / 2 + slot * Mathf.Tau / _capacity;
-        float radius = _capacity <= 3 ? .65f : 1.05f;
-        return new(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius);
-    }
+    private Vector3 Formation(UnitState unit) => Convert(SharedCombatProjection.Formation(unit.FormationSlot, _capacity, unit.IsBoss));
     public Vector3 Position(UnitState unit, double tick)
     {
+        if (unit.Id < 0 && _preview.TryGetValue(unit.Id, out Vector3 preview)) return preview;
         HexUnitState hex = unit.Hex ?? throw new ArgumentException("Combat models require hex state.", nameof(unit));
         return Pose(hex, tick) + Formation(unit);
     }
-    private Vector3 Pose(HexUnitState hex, double tick)
-    {
-        if (hex.Lifecycle is UnitLifecycle.Queued or UnitLifecycle.Reserve or UnitLifecycle.Stored) return ArenaOrigin;
-        Vector3 position = CellPosition(hex.Position.Cell);
-        if (hex.HoldsTransit)
-        {
-            Vector3 destination = CellPosition(hex.Destination.Cell);
-            System.Numerics.Vector3 sampled = CombatVisualTiming.Position(new(position.X, position.Y, position.Z),
-                new(destination.X, destination.Y, destination.Z), hex, tick);
-            position = new(sampled.X, sampled.Y, sampled.Z);
-        }
-        return ArenaOrigin + position;
-    }
+    private Vector3 Pose(HexUnitState hex, double tick) => Convert(SharedCombatProjection.Pose(board, hex, tick));
     internal Vector3 SquadPosition(SquadState squad, double tick) => Pose(squad.Hex, tick);
     internal Vector3 StructurePosition(int owner, SquadTargetKind kind, ArenaState arena)
         => ArenaOrigin + CellPosition(arena.Footprints.Single(f => f.Owner == owner && f.Kind == (kind == SquadTargetKind.Watchpost ? ArenaStructureKind.Watchpost : ArenaStructureKind.Keep)).Cell);

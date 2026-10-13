@@ -7,6 +7,32 @@ namespace Game.Core.Tests;
 // Inputs are immutable, deterministic, engine-free; expected sub-second cost.
 public sealed class SharedArenaTests
 {
+    // 021: full receiving identity used to reconstruct the constant four-owner
+    // all-pairs graph per snapshot (twice). Structural A catches that redundant
+    // work without wall-time thresholds; C measures native receiving causality.
+    // Only immutable topology is shared; owner/tower footprints and DTO arrays
+    // remain private. Different widths are the independent aliasing negative.
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void ConstantTopologyIsReusedButOwnerFootprintsAndMutableProjectionsAreIndependent(int count)
+    {
+        var first = new SharedArena(Enumerable.Range(1, count));
+        var second = new SharedArena(Enumerable.Range(11, count), [(11, ArmyConfiguration.PlotOffset)]);
+        Assert.Same(first.Board, second.Board);
+        Assert.NotSame(first.Board, new SharedArena(Enumerable.Range(1, count == 4 ? 3 : count + 1)).Board);
+        Assert.DoesNotContain(first.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset);
+        Assert.Contains(second.Footprints, f => f.Owner == 11 && f.Slot == ArmyConfiguration.PlotOffset);
+        ArenaState projected = second.Snapshot();
+        projected.Board.Cells[0].Neighbors[0] = -1;
+        projected.Sectors[0].DeploymentCells[0] = -1;
+        Assert.DoesNotContain(-1, first.Board.Cell(projected.Board.Cells[0].Id).Neighbors);
+        Assert.True(second.CanDeploy(11, second.Deployment(11, 1), 2));
+        Assert.False(first.CanDeploy(11, second.Deployment(11, 1), 2));
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

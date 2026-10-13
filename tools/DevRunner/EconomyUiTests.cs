@@ -52,7 +52,8 @@ internal sealed partial class Runner
             if (!city.Resources.TryPay(soldier.Cost, out _) || city.Food < (city.FoodForecast?.Demand ?? 0) + soldier.Upkeep) break;
             city = State(await Action(observer, "recruit 2", token)).Players.Single(p => p.Id == observer.PlayerId);
         }
-        if (state.Wave >= 2 && city.Slots[2].Type == Building.Barracks && city.Resources.TryAdd(city.Slots[2].Refund, out ResourceCost refunded)
+        if (state.Wave >= 2 && state.Phase == Phase.Preparation && city.Soldiers.Length >= 6
+            && city.Slots[2].Type == Building.Barracks && city.Resources.TryAdd(city.Slots[2].Refund, out ResourceCost refunded)
             && refunded.TryPay(state.BuildingCatalog.Single(b => b.Type == Building.CatapultTower).Construction, out _))
         {
             await Action(observer, "sell 2", token); city = State(await Action(observer, "build 2 catapulttower", token)).Players.Single(p => p.Id == observer.PlayerId);
@@ -120,30 +121,19 @@ internal sealed partial class Runner
         // equipment; the packed-home opening loses one more veteran than before.
         await UiReadyPair(client, observer, token); await UiReadyPair(client, observer, token);
         await Action(client, "build 4 stonecutter", token);
-        await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
-        await UiSwords(client, 2, 6, token);
+        await TowerInvestment(observer, token);
+        await UiSwords(client, 2, 4, token);
         CityState equipped = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-        Require(equipped.Soldiers.Length == 6 && equipped.Food == 15 && equipped.Metal == 0, "six first-wave recruits are equipped by actual production with food retained");
+        Require(equipped.Soldiers.Length == 4 && equipped.Food == 10 && equipped.Metal == 0, "four first-wave recruits spend the eight pre-battle metal and retain food");
         await UiReadyPair(client, observer, token);
-        Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).LastUpkeep is { Wave: 1, Paid: 6 }, "battle-start food receipt pays once through actual Ready input");
+        Require(Latest(client).Players.Single(p => p.Id == client.PlayerId).LastUpkeep is { Wave: 1, Paid: 4 }, "battle-start food receipt pays once through actual Ready input");
         await UiClear(client, observer, 1, token);
-        for (int production = 0; production < 3; production++)
+        for (int production = 0; production < 2; production++)
         {
             await UiReadyPair(client, observer, token); await TowerInvestment(observer, token);
-            if (production == 0) { await Pick(client, 1, token); await ClickAck(client, "Upgrade", token); }
         }
-        await Pick(client, 1, token); await ClickAck(client, "Sell", token);
-        await ClickAck(client, "ResearchTower", token);
-
-        await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token); await UiClear(client, observer, 2, token);
-        await UiReadyPair(client, observer, token);
-        await Pick(client, 1, token); await ClickAck(client, "Upgrade", token);
-        await UiReadyPair(client, observer, token);
-        UnitState veteran = Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.First(u => u.Health < u.Profile.Health);
-        await Click(client, "Research", token); await Click(client, "ResearchMelee", token); await ClickAck(client, "TechMeleeFoundation", token); await Click(client, "CloseResearch", token);
-        await Pick(client, 1, token); await ClickAck(client, "Sell", token); await ClickAck(client, "MetalMine", token);
-        CityState rebuilt = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-        Require(rebuilt.Research.Has(TechnologyId.MeleeFoundation) && rebuilt.Soldiers.Single(u => u.Id == veteran.Id).Health == veteran.Health, "selling research tower preserves technology and veteran wounds");
+        // Retain the only equipment mine. Paid land, not replacing that producer,
+        // makes research progress and wave-3 replenishment jointly affordable.
         CityState full = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(full.Slots.Where(s => s.Purchased).All(s => s.Type != Building.Empty), "five purchased plots are full before expansion");
         await Pick(client, 5, token);
@@ -153,7 +143,19 @@ internal sealed partial class Runner
         UiObservation bought = await WaitUi(client, p => !p.LockedMarkers.Contains("Locked5", StringComparer.Ordinal), "accepted purchase removes gold marker", token);
         Require(bought.SelectedSlot == 5, "buy marker does not change plot selection");
         Require(State(expansion).Players.Single(p => p.Id == client.PlayerId).Slots[5].Purchased, "actual plot purchase permanently opens selected land");
+        await ClickAck(client, "ResearchTower", token);
+        await UiSwords(client, 2, 6, token); await UiReadyPair(client, observer, token); await UiClear(client, observer, 2, token);
+        await Action(observer, "buy-plot 5", token); await Action(observer, "build 5 barracks", token);
+        await Pick(client, 1, token); await ClickAck(client, "Upgrade", token);
         await UiReadyPair(client, observer, token);
+        await Action(observer, "upgrade 5", token);
+        await UiReadyPair(client, observer, token);
+        await Pick(client, 5, token); await ClickAck(client, "Upgrade", token);
+        UnitState veteran = Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.First(u => u.Health < u.Profile.Health);
+        await Click(client, "Research", token); await Click(client, "ResearchMelee", token); await ClickAck(client, "TechMeleeFoundation", token); await Click(client, "CloseResearch", token);
+        await Pick(client, 5, token); await ClickAck(client, "Sell", token);
+        CityState rebuilt = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+        Require(rebuilt.Research.Has(TechnologyId.MeleeFoundation) && rebuilt.Soldiers.Single(u => u.Id == veteran.Id).Health == veteran.Health, "selling research tower preserves technology and veteran wounds");
         await Pick(client, 4, token); await ClickAck(client, "Sell", token);
         await Pick(client, 5, token); await ClickAck(client, "Market", token);
         async Task FundGold(int target, int metalReserve, int foodReserve)
@@ -185,7 +187,7 @@ internal sealed partial class Runner
         Require(army.Food == food && army.Soldiers[^1].Level == 2 && army.Soldiers.Any(u => u.Level == 1), "current level-two recruitment preserves mixed-level veterans and food");
         await Pick(client, 5, token); GameEvent foodSale = await ClickAck(client, "TradeFood", token);
         CityState soldFood = State(foodSale).Players.Single(p => p.Id == client.PlayerId);
-        Require(soldFood.Food == food - Latest(client).MarketRates.Single(r => r.Resource == Resource.Food).Units && soldFood.FoodForecast!.Available == soldFood.Food, "food sale refreshes the authoritative next-battle preview");
+        Require(soldFood.Food == food - Latest(client).MarketRates.Single(r => r.Resource == Resource.Food).Units && soldFood.FoodForecast!.Available == soldFood.Food + soldFood.ProductionIncome!.Value.Food, "food sale refreshes the authoritative next-battle preview");
         ResourceCost lumberQuote = Latest(client).BuildingCatalog.Single(b => b.Type == Building.Lumbermill).Construction;
         await FundGold(Math.Max(0, lumberQuote.Gold - soldFood.Slots[3].Refund.Gold), 0, (int)soldFood.FoodForecast!.Demand);
         await Pick(client, 3, token); long generation = Latest(client).Players.Single(p => p.Id == client.PlayerId).Slots[3].Generation;
@@ -202,6 +204,10 @@ internal sealed partial class Runner
         await client.Send("key Enter"); await WaitUi(client, p => p.Width == 1100 && p.Height == 820 && !p.DropdownOpen, "expanded economy at 1100x820", token);
         await Click(client, "CloseSettings", token); await Checkpoint(client, "economy-market-1100", token);
         await EconomyInspector(client, "economy-inspector-1100", token);
+        // The early trainer used the wood otherwise spent on this upgrade.
+        // Its existing Stonecutter refund legally funds the structural witness;
+        // no common second mine or waived affordability is introduced.
+        await Action(observer, "sell 4", token); await Action(observer, "upgrade 2", token);
         await Click(client, "City" + observer.PlayerId, token); await Pick(client, 2, token);
         UiObservation upgraded = await WaitUi(client, p => p.BuildingVariants.Length == 9 && p.BuildingVariants[2] == 2, "actual Catapult structural upgrade", token);
         Require(upgraded.PlotHeights.Length == 9 && upgraded.PlotHeights[0] < upgraded.PlotHeights[3] && upgraded.PlotHeights[3] < upgraded.PlotHeights[6], "three actual terrace heights");
@@ -272,13 +278,18 @@ internal sealed partial class Runner
         for (int sale = 0; sale < bundles; sale++)
         {
             UiObservation preview = await UiProtocol.Probe(client, options.StartupTimeout, token);
+            CityState beforeSale = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+            int available = checked(beforeSale.Food - rate.Units + (Latest(client).Phase == Phase.Preparation ? beforeSale.ProductionIncome!.Value.Food : 0));
+            int living = beforeSale.Soldiers.Count(u => u.Health > 0);
+            Require(beforeSale.Soldiers.All(u => u.Type == UnitType.Swordsman) && beforeSale.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1).Upkeep == 1, "shortage fixture uses one-food Swordsmen");
+            int unfed = Math.Max(0, living - available);
             if (sale == bundles - 1)
-            {
-                CityState beforeSale = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-                BattleFoodForecast forecast = BattleFood.Forecast(beforeSale.Soldiers, beforeSale.Food - rate.Units, beforeSale.RecruitmentQuotes);
-                Require(forecast.Unfed.Length > 0 && preview.Targets["TradeFood"].Tooltip.Contains($"{forecast.Unfed.Length} soldiers will sit out", StringComparison.Ordinal), "exact food-sale shortage is readable before acceptance");
-            }
+                Require(unfed > 0 && preview.Targets["TradeFood"].Tooltip.Contains($"{unfed} soldiers will sit out", StringComparison.Ordinal), "exact food-sale shortage is readable before acceptance");
             await ClickAck(client, "TradeFood", token);
+            CityState afterSale = Latest(client).Players.Single(p => p.Id == client.PlayerId);
+            Require(afterSale.Food == beforeSale.Food - rate.Units && afterSale.Gold == beforeSale.Gold + rate.Gold
+                && afterSale.FoodForecast is { } forecast && forecast.Available == available && forecast.Paid == Math.Min(living, available) && forecast.Unfed.Length == unfed,
+                "complete food sale and next-battle funding match independent stock and one-food-unit accounting");
         }
         city = Latest(client).Players.Single(p => p.Id == client.PlayerId);
         Require(city.FoodForecast!.Unfed.Length > 0, "ordinary food sale produces an authoritative shortage");

@@ -3,7 +3,9 @@
 Steering 015 authorized this bounded integration correction after the
 [B + A boundary diagnosis](native-pump-timing.md). Neither authored exports nor
 render quality, numerical ticks, channels, wire/security identities or event
-retention changed. The dedicated authority still advances independently at 60 Hz.
+retention changed in that correction. Authority stepping remains independent of
+guest polling; [battle-flow integration](battle-flow.md#behavior-and-integration-boundaries)
+owns its current wall-time pace and fixed simulated ticks.
 
 ## One owner, on the engine thread
 

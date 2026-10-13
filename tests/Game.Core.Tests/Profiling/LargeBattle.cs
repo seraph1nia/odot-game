@@ -33,7 +33,7 @@ internal static class LargeBattle
                     for (int member = 0, count = Math.Min(3, remaining); member < count; member++, remaining--)
                         match.Combat.Create(roles[home % roles.Length], city.Id, city.Id, city.Id, assignment: new(-1, 0, home, 1));
             }
-            for (int turn = 0; turn < 4; turn++)
+            for (int turn = 0; turn < 3; turn++)
                 foreach (City city in match.Players.Values) Assert.True(VillageStrategyTests.Act(match, city.Id, "ready").Accepted);
             Assert.Equal(Phase.Combat, match.Phase);
             return match;
