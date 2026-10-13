@@ -175,3 +175,90 @@ full-fast green, all-seed balance guarantee, new transport/package/native aiming
 animation/resource check, graphical process, full pipeline or publication is
 claimed. Pure-ranged viability and cooperative Keep losses need explicit follow-up;
 final economics-sensitive calibration awaits the actually landed prerequisite.
+
+## Recovery ranged schedule (before execution, 2026-10-13)
+
+The initial candidate was shared HP35/X11, preserving range3, cadence60,
+windup18, Y0, structural3 and equipment1metal/2wood/upkeep1. The ordinary
+policy owns this schedule; actual quote checks remain in PaidCampaignFixture.
+
+W1 gate1: Farm0 (2wood), MetalMine1 (2wood), Lumbermills3/4 (1wood each),
+then the explicit zero-wood gold recovery Lumbermill2 (4gold). END1/2 each
+produce3wood/4metal/5food and2basegold. Gate3 starts at6wood/8metal/10food:
+sell Farm0 and MetalMine1 for1wood each and Lumbermill2 for0wood, construct
+ArcheryRange2 for2wood, recruit three L1 Crossbowmen for6wood/3metal. END3
+produces2wood from the retained mills, grants2gold and pays3food. No fourth
+editing stage and no melee/grants are used. A clear adds2gold/1wood/5food.
+
+If all three survive W1, W3 is the first planned paid full-force wave:
+W2 starts at3wood, rebuild Farm0 for2wood; END1/2 add4wood, so five available
+wood buy two recruits (five total). END3 plus clear leave4wood/27food/3metal
+before W3, funding the sixth L1 member at its first editable gate. Extra wood
+funds replacements only as available; trainer/upgrades wait until after W3.
+
+Initial HP35/X11 execution (`logs/20261013-214453-8ca9f539`) lost W1 at both
+seeds: three paid members, all casualties, Keep100HP lost, ticks1093/1274.
+The erroneous W2 six-member expectation was corrected to the ledger above,
+not counted as a win. One remaining bounded candidate, HP40/X12, is selected
+before execution, with all other profiles/costs/timing unchanged.
+
+
+### Owner-approved bounded ranged acceptance
+
+The owner chose to prioritize the refactor, require full-six ranged survival and
+defer the pure-Crossbow paid opening/progression requirement. HP40/X12 is final;
+there is no further tuning. Both normal-profile six-member/two-squad W1 controls
+clear with a living Keep and ranged survivors at seeds1/123. This fixture uses
+explicit arithmetic equipment/food stocks and normal paid commands/upkeep, not
+earned opening economy. Profile/faction/level/full-identity checks plus the
+expanded existing encounter passed46/46 (`logs/20261013-214950-9120fc76`).
+
+Actual paid HP40/X12 diagnostics (`logs/20261013-214629-a99ba82c`) remain:
+seed123 loses all three members and Keep atW1/tick1393. Seed1 clearsW1/tick289
+with three wounded survivors, clearsW2/tick673 but loses all five entrants,
+then fallsW3/tick793 with only three paid replacements. No later full-six paid
+force was earned. These defeats are deferred balance work, never a landing win.
+
+
+## Funded cooperative recovery (2026-10-13)
+
+The existing policy's `support` opening buys Farm0, MetalMines1/4 and explicit
+zero-wood4gold Lumbermill3. END1/2 earn16metal/10food/2wood. Before END3, sell
+temporary Mine4 for1wood, build Barracks2 for2wood and buy six Swordsmen for
+12metal. END3 earns4metal/5food/1wood and charges6food. Wave2 replaces that
+Mine with a Stonecutter; ordinary frontline progression then owns development.
+No enemy count, price, seed, topology or combat routing was changed.
+
+All-investing support at seed1 wins twenty waves at roster widths1/2/3/4, with
+6/12/18/24 paid W1 members. Four rows passed in the bounded selection
+`logs/20261013-215619-5e330302`; its fifth row failed only the test helper's
+incorrect terminal-outcome expectation on a one-wave witness. That helper was
+corrected to permit Building for a short requested horizon and require a defeat
+reason only for actual Defeat; full-horizon terminal/rescue guards remain strict.
+The four-owner witness then passed independently
+(`logs/20261013-215909-44031d0e`).
+
+Retained three-owner rescue seeds1/123 now have19/17 genuine W1 foreign impacts
+and both strict guards passed (`logs/20261013-215350-29f82791`, whose separate
+four-owner row exposed the short-horizon helper error). Seed1 winsW20; seed123
+still loses atW19, an explicit finite-sample limitation, not a universal victory.
+In the four-owner seed1 W1 witness, three supporters recruit18paid members and
+the last owner intentionally invests nothing. It clears normally with15
+attributed rescue impacts. At tick584 P3 members16/17/18 in squad6 physically
+reach cell192 and hit enemy34 threatening P4 while its Keep has55HP. Travel
+records retain every adjacent cell arrival and each landed event/member/victim
+identity. This is earned help, separate from controlled active/stored ENet fixtures.
+Final Keep survival is not substituted for that live impact predicate.
+
+
+### Final funded solo controls
+
+The same ordinary six-member opening now precedes optional infrastructure for
+frontline/mixed/tower/research/reserve families. At seeds1/123 all ten controls
+winW20; both ranged rows retain genuine losses (W3/W1). The twelve accounting
+rows passed (`logs/20261013-220931-174f4cb1`), which means ten victories, not
+twelve. Underfunded intermediate seed123 defeats remain historical diagnostic
+evidence under `logs/shared-arena-recovery/solo-controls/`; a changed full
+profile identity can rerank ties even in encounters without ranged enemies.
+Prices/waves/seeds/routing remain unchanged; payment priority, not another
+stat adjustment, restores funded controls.

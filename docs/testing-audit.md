@@ -1375,3 +1375,225 @@ Windows installer/upgrade, own-AppID cold launch, real Steam invitation/relay an
 native GPU proof remain independent. Synthetic fixture tests were removed, not
 the actual stress harness; `test-scale` is explicit and not run here. No estimate
 is presented as a measured result.
+
+
+## Shared arena recovery: current-source checkpoint (2026-10-13)
+
+Recovery starts at `85ebbcc` with no unresolved merges. Installed SDK10.0.401
+and Godot4.7.2 .NET match the locks. `mise run build` completed its locked
+solution restore/build with zero warnings/errors. These receipts supersede no
+historical failures and do not establish complete-head acceptance.
+
+The selected current-source fast filter covers Shared*, SquadReservation,
+CombatConfiguration, CombatReceiving, BattleFood, PaidPreparation, ArmyRoster,
+ArmyRecovery, ArmyCommand and ArmyProgression: 129/129 passed, no skips
+(`logs/20261013-214226-492074d9`). The trace-enabled retained cooperative method
+ran seeds1/123: one accounting pass and one failed foreign-impact guard
+(`logs/20261013-214201-57c20f07`). Both outcomes are genuine W1 AllCitiesFallen
+defeats, not campaign wins. Raw numerical transcripts are retained under
+`logs/shared-arena-recovery/before/`; all twelve entry enemy IDs are unique,
+event sequences strictly increase with nondecreasing ticks, and independent
+entry-origin attribution agrees with six/zero foreign impacts. There are
+532/519 ordered events. Each investing owner paid/fed only four members; the
+first deaths occur at133/164ticks. No extra history/deadline was introduced.
+
+The first unresolved causal boundary is the paid opening: infrastructure
+preceded adequate combat strength. No current routing defect has yet been
+established. Native styling, full paid ranged progression, earned four-owner
+rescue, broad fast/network/package/graphical acceptance remain unexecuted at
+this checkpoint. Historical 558/647 receipts predate the tracing edit and are
+not substitutes for this qualification.
+
+
+### Recovery coverage admission and outcomes
+
+Strengthened existing full-force `SharedCombatTests` with two Crossbow seeds:
+arithmetic paid equipment/food, default W1/profiles and exact six-member/two-group
+setup. Underfunded paid diagnostics cannot isolate full-force strength; TierA,
+<6000steps, no engine/children, measured in the46-row4.5s selection. Expanded
+existing configuration identity theory with independent ranged HP/X changes;
+full fingerprints and reconstructed received profiles must change together.
+Pure paid opening acceptance was explicitly deferred by the owner after two
+small candidates failed; raw defeats and payment ledger remain in baselines.
+
+Added bounded TierDeep four-width paid support and four-owner rescue assertions
+through existing PaidCampaignFixture, not a simulator or reader. Synthetic
+actor/transport fixtures cannot prove paid progression or physical live-Keep
+rescue. Retained seeds/100000step bounds, exact ordinary quotes/upkeep, adjacent
+travel and event attribution catch empty witness/teleport/post-elimination claims.
+The seven-row selection hit its180s budget and awaited owned hosts; it is failed
+partial coverage (`logs/20261013-215033-0f149680`). Smaller selections, without
+deadline changes, completed the four campaign rows and both retained rescue
+guards; the short-horizon helper defect and corrected one-row rescue pass are
+recorded in the paid baselines. No production routing repair was needed: funding
+six members before infrastructure established the actual cross-sector witness.
+
+Native arena extension (TierB, existing minimal scene, measured4.48s engine)
+loads three pinned terrain meshes/materials, exact flat contacts/picking, bounded
+44-prop maximum, all four widths and supported landscape/portrait/extreme pan,
+static IDs across revisions/toggles, old-node disposal on four-to-solo replacement,
+new/reinforce/regroup/store/return/retire callbacks and delayed acknowledgments.
+`logs/20261013-215524-42288d50` passes. This replaces no arithmetic/network
+coverage and establishes no rendered pixels/physical sound.
+
+
+### Recovery integration defects retained
+
+The first final fast run (`logs/20261013-220931-981c5a73`) passed647runner
+checks/two native-Windows skips, but core passed555/562 with seven failures:
+old Crossbow30HP constant; old four-member policy expectation; fragile single-
+mine specialist clear; three consumers of an empty earned stored prefix; and
+a Hall upkeep total assuming fixed casualties. These are failed evidence.
+Funded solo controls independently passed12accounting rows with tenW20wins and
+two deferred ranged defeats. The restored six-member policy inputs changed the
+old capacity expectation, not physical rules. Hall allocation now asserts its
+actual authoritative forecast/count while preserving exact seven stored members,
+individual slot6, capacity refusal and independent upgrade/recovery guards.
+
+Authorized default graphical combat first failed at native Berserker recruitment
+(`logs/20261013-220019-9559b9b9`). Diagnosis found a retired size-budget helper
+and, after repair, actual production field callers passing obsolete size1 as
+the new Hall-slot argument, disabling valid recruit/new-squad/return controls.
+The native component now checks enabled availability before emitting Pressed,
+as well as accepted/denied mutation and delayed acknowledgment. All remaining
+field callers use field defaults; actual Hall calls preserve named slot/generation.
+The focused melee diagnostic (`logs/20261013-220529-f52ecdfd`) also exposed
+the production layout retaining solo geometry when the same lobby expanded.
+`CombatLayout.Synchronize` now refreshes accepted width and structure footprints;
+the native arena consumer reuses one layout across1..4joins. A build failure
+from initially placing that engine-dependent adapter test in the pure core
+project was corrected by moving it to existing TierB; no Godot test dependency
+was introduced. Mixed failed-build receipts are not current-head acceptance.
+
+Rendered health verification now consumes actual native squad labels plus each
+participant's ID/HP/max and retains per-member comparison, current lifecycle and
+projection guards. No synthetic per-soldier bars are reported. Cosmetic death
+overlap is intentionally allowed; the replaced cheap anchor check retains the
+negative against overlapping settled living actors and distinct transit handling.
+Individual native inspector/bar and imported rig/death/miss checks remain separate.
+
+
+The earned stored-spectator prefix now uses the same paid six-member opening
+for its third owner. W2 buys a Stonecutter before its two genuine production
+gates; only when actual stone/wood plus Farm refund afford the Hall does it
+sell/rebuild/store. This retains actual served IDs and exact food/recovery,
+with no synthetic XP/injuries. Existing current/controlled stored consumers
+passed in the15-row repair selection except the obsolete66-command count.
+That count is replaced by the semantic six-settlement prefix and exactly nine
+subsequent Ready commands; all before/after quote/identity assertions remain.
+The independent single-mine specialist supply chain remains single-mine and
+uses an ordinary paid second-owner defender, matching the cooperative game;
+its true material/production/refund windows and specialist survivors are kept.
+The updated native arena check passed (`logs/20261013-221453-8a0c7e91`),
+including real enabled recruitment/new-group/Hall-return controls and same-lobby
+width refresh. Disabled signal emission alone no longer certifies availability.
+
+
+### Coherent numerical and transport receipts
+
+`logs/20261013-221845-27d6d9f4`: broad fast562/562core and647/649runner,
+two native-Windows argument-reader skips, no failures (57.39s). This supersedes
+the intermediate fast failures above. Subsequent presentation-only fixes still
+require their affected component/graphical/runner verification.
+`logs/20261013-221748-66860a3f`: headless animation component1.79s, imported
+rig/sockets/member summary/health/status/death/miss/stock behavior.
+`logs/20261013-221746-2181c51b`: repaired earned stored-history test passes.
+
+`logs/20261013-221937-7fdc3db8`: all three default network cases passed,
+18.15s scenario time, serial admission. Intentional occupied-bind/expired-peer
+negatives are expected refusals, not ignored engine faults.
+`logs/20261013-222050-b2025919`: selected active-fallen passed29.41s.
+`logs/20261013-222333-3ba6ffee`: selected eliminated-resume passed62.03s
+with the changed paid service/storage prefix. Both retain real original-host
+ENet identity/retry/paused/credential restoration and protocol14 refusal; the
+active and stored controlled conjunctions remain separate from earned rescue.
+All owned children/runtime cleanup remains in their runner receipts.
+
+`logs/20261013-222050-test-scale-670651eb`: explicit Debug seed1 stress,
+2048members,600normal ticks,668landed contributions/100deaths,458deployed and
+1490queued at completion. Synthetic conservation/claim/event/resource-window
+proof, not earned balance, rendered performance or a Release benchmark.
+
+Authorized default combat progressed to actual `combat-catapult.png`
+(`logs/20261013-222159-2bfa7f31`) after fixing paid supply: W2cloth supports
+the Mage and a real W3mine rebuilt before END1 earns specialist metal. Its
+checkpoint still failed because a hidden settlement countryside was evaluated
+as the arena. The checker now observes the visible native arena's real ground
+instances, bounded clear dressing and actual opaque camera footprint. The
+retained frame also exposed a wrapped speed label inflating top chrome; it is
+now a compact unwrapped native strip using existing woodland tokens. Native
+receiving protects the compact height/width, and arena summary glyph size is
+increased without changing cells/camera/timing. This intermediate PNG and the
+headless receipts are not a passing rendered acceptance claim.
+
+
+`logs/20261013-222740-6ce919ef`: receiving component passed23.50s, including
+the compact native speed strip, Settings priority and existing economy/research/
+accepted-only speed controls. `logs/20261013-222948-80156e98`: Linux package
+qualification passed31.94s with already installed matching checksum-marked4.7.2
+.NET templates; source/client/server managed/native/resource identities and
+headless offline roles plus exported Worldtree component were checked. No
+template/tool acquisition, tagged release, installer or graphical package claim.
+Native Windows remains pending the owning PR's CI.
+
+The authorized rendered run (`logs/20261013-222851-3499ac31`) retained actual
+catapult/locomotion/inspection frames after native strip/ground coverage repair;
+it still failed the old hidden Plot0 dismissal step. Arena inspection now uses
+an ordinary outside world click, retaining cosmetic/no-duplicate command and
+drag suppression, while settlement plot behavior stays separate. Active-view
+camera reference observations use arena origin, not a hidden city. Short weapon
+headings retain individual HP/max and reduce crowded overview text. These
+intermediate frames and failures remain distinguishable from final visual proof.
+
+
+The later rendered camera run (`logs/20261013-224244-a67a2b1b`) retained
+resize, camera, pause, casualty and inspection frames, but selected wounded
+enemy47 at its projected center and actually inspected the nearer48. Production
+probe clickability now requires the same ray picker as normal input; the
+consumer selects a truly clickable wounded target, retaining actual identity/HP
+and live-inspection mutation checks rather than claiming an occluded point hits.
+The current runner-only suite passes647 with the two native-Windows skips
+(`logs/20261013-224244-4fad3d4e`).
+
+A discovered inherited-preview regression hid every forecast under the arena-
+only unit mask. Both ordinary update and reframing now use one pure view policy:
+negative forecast IDs are shown only in their observed settlement, positive
+field/death IDs only in the shared arena, and undeployed reserves nowhere. A
+focused TierA test uses actual two-owner forecasts and an ordinarily produced/
+paid member; no engine dependency or grants. Initial synthetic Create was
+undeployed and correctly refused visibility; the test now uses normal commands.
+This is preview identity/view routing, not pixels or paid campaign viability.
+
+
+### Final authorized rendered acceptance and strict campaign controls
+
+`logs/20261013-225736-51c0ad8c`: the selected graphical `combat` scenario
+passed150.25s (owned private display/software OpenGL, normal paid preparation
+and real peers). Actual retained catapult/locomotion/inspection/paused/camera/
+resize/casualty PNGs and observation JSON demonstrate the styled arena, native
+controls, independent member health, live inspector damage, sword/axe/cast/hit
+cues, frozen deaths and cleanup. The scenario passed every pose predicate.
+The owner authorized graphical checks explicitly; no desktop fallback was used.
+These are two-owner all-sector rendered frames. Four-owner geometry/controls
+remain headless native evidence, not four-owner pixel acceptance. Overview
+labels still overlap in dense combat; close inspection remains the precise
+member detail route. This is a bounded software-rendered sample, not universal
+readability, GPU performance, every visual selector or graphical package proof.
+
+`logs/20261013-230019-28c8f59d`: twelve selected deep paid solo rows passed
+31.23s. Ten funded frontline/mixed/tower/research/reserve seed1/123 controls now
+assert actual campaign victory (reserve also asserts served healing); two pure
+Crossbow rows retain their genuine diagnostic losses. Accounting success alone
+can no longer satisfy those victory controls. The final pure preview policy
+selection passed24 rows (`logs/20261013-225510-715f05e6`).
+
+
+Final coherent source checkpoint: `dotnet format Odot.slnx --no-restore`
+completed cleanly; locked fast preparation built with zero warnings/errors.
+`logs/20261013-230414-14aa7300`: broad fast563 core and647 runner passes,
+51.67s; the two native Windows argument-reader tests are skipped on Linux.
+`logs/20261013-230507-356b115f`: refreshed native arena component passed4.17s,
+covering the final label/resource/preview-era source. Strict main/change OpenSpec
+validation and whitespace checks pass. Linux package/stress receipts above are
+boundary evidence; required exact-head Linux/Windows/source PR CI remains the
+delivery gate. No release, installer, Steam pair or graphical package is claimed.

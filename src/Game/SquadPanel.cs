@@ -126,7 +126,7 @@ public partial class Tabletop
         RecruitmentQuote? quote = city is not null && encoded >= 0 ? city.RecruitmentQuotes.Single(q => q.Type == sourceType && q.Level == city.Slots[encoded / 4].Level) : null;
         bool affordable = quote is not null && city!.Resources.TryPay(quote.Cost, out _);
         _reinforceSquad.Disabled = !editable || !affordable || selected is null || selected.Hex.Lifecycle == UnitLifecycle.Stored || selected.Type != sourceType || selected.Members.Length >= state.Rules.Arena.SquadCapacity;
-        _newSquad.Disabled = !editable || !affordable || UiArmy()!.Find(city!.Soldiers, city.Army!.PurchasedHomes, 1,
+        _newSquad.Disabled = !editable || !affordable || UiArmy()!.Find(city!.Soldiers, city.Army!.PurchasedHomes,
             plots: city.Army.Homes.Select(h => h.Plot).ToArray(), type: sourceType, squadId: -1) is null;
         _retireMember.Disabled = !editable || chosen is null;
         _regroupMember.Disabled = !editable || chosen?.Assignment is not { Stored: false } || _regroupDestination.ItemCount == 0;

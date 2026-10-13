@@ -35,7 +35,7 @@ delegates city editing to the internal `SettlementCommands` module and advances
 revision once for an accepted edit. That module owns quote/instance/capacity
 checks and validated city mutations, not admission, retries, production or
 battle progression. `ArmyConfiguration.Find` uses one living assigned-soldier
-view scoped to field or exact hall generation for both size and anchor checks;
+view scoped to field or exact Hall generation for homogeneous member capacity and stable assignment checks;
 authority and previews share it, passing actual army-plot ownership and type so
 arbitrary purchases retain fixed first-fit order and tower plots are excluded.
 Combat remains the only unit health/identity store, with unchanged restoration

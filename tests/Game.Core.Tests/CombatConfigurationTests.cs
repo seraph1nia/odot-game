@@ -92,6 +92,8 @@ public sealed class CombatConfigurationTests
     [InlineData("secondary")]
     [InlineData("range")]
     [InlineData("capacity")]
+    [InlineData("crossbow-health")]
+    [InlineData("crossbow-damage")]
     public void CompleteIdentityAndWireRulesIncludeActualSquadAndWeaponInputs(string change)
     {
         Rules rules = new(); Rules changed = change switch
@@ -100,6 +102,8 @@ public sealed class CombatConfigurationTests
             "rapid" => rules with { Combat = rules.Combat with { RapidArrowTower = new(7, 24) } },
             "secondary" => rules with { Arena = rules.Arena with { CatapultSecondaryDamage = 7 } },
             "range" => rules with { Arena = rules.Arena with { ArrowRange = 5 } },
+            "crossbow-health" => rules with { RangedHealth = rules.RangedHealth + 1 },
+            "crossbow-damage" => rules with { RangedDamage = rules.RangedDamage + 1 },
             _ => rules with { Arena = rules.Arena with { SquadCapacity = 4 } }
         };
         using var baseline = new Match(rules, combatSeed: 1);

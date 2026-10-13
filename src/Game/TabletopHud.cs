@@ -43,8 +43,26 @@ public partial class Tabletop
     {
         _speedPanel = new PanelContainer { Name = "CombatSpeed", Position = new(152, 12), MouseFilter = Control.MouseFilterEnum.Stop };
         root.AddChild(_speedPanel);
+        _speedPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new("181c26"),
+            BorderColor = new("947247"),
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 8,
+            CornerRadiusTopRight = 8,
+            CornerRadiusBottomLeft = 8,
+            CornerRadiusBottomRight = 8,
+            ContentMarginLeft = 8,
+            ContentMarginRight = 8,
+            ContentMarginTop = 6,
+            ContentMarginBottom = 6
+        });
         var speedRow = new HBoxContainer(); _speedPanel.AddChild(speedRow);
-        Text(speedRow, "Combat speed", 14);
+        Label speedLabel = Text(speedRow, "Combat speed", 14);
+        speedLabel.AutowrapMode = TextServer.AutowrapMode.Off;
         foreach (CombatSpeed speed in Enum.GetValues<CombatSpeed>())
         {
             CombatSpeed selected = speed;

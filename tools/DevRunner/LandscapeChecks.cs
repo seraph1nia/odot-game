@@ -196,6 +196,14 @@ internal sealed partial class Runner
     private static void Countryside(UiObservation frame)
     {
         Require(frame.AuthoredProvenanceBundled && frame.InstalledModels.SequenceEqual(Game.AssetCatalog.RequiredPaths.Select(p => Game.AssetCatalog.Root + p)), "actual source/package 3D inventory is exactly the required authored set with owner-permission provenance");
+        if (frame.SharedArenaVisible)
+        {
+            Require(frame.ArenaFrame is { OpaqueCoverage: true, SceneryClear: true, Props: > 0 and <= 44 } arena
+                && arena.Cells == frame.CityIds.Length * Game.Core.SharedArena.SectorWidth * Game.Core.SharedArena.Depth
+                && arena.Ground.SequenceEqual(new[] { Game.DetailedGround.Grass, Game.DetailedGround.Moss, Game.DetailedGround.Dirt }.Order()),
+                "actual connected arena has registered ground, clear bounded dressing and complete opaque camera coverage");
+            return;
+        }
         Require(LandscapeChecks.Covered(frame.Landscape), "observed countryside covers final view with exterior edges offscreen");
         Require(frame.Landscape.Plots == 9 && frame.Landscape.CoreTerrain.Length >= 77 && frame.Landscape.Bridge.Length > 0, "shared plots, central terrain and bridge present");
         Require(frame.Landscape.Static.Length >= 16, "shared starting structures and decorations instantiated");

@@ -83,7 +83,18 @@ The authoritative dedicated server and automated headless roles, including a pla
 - **THEN** the tabletop and normal gameplay controls work without source-project access, a network socket, or an external server
 
 ### Requirement: Medieval landscape and visible battles
-Graphical clients SHALL display each city as a coherent fantasy countryside landscape with nine stable hexagonal building plots arranged in three staggered rows, with purchased and locked plots visibly distinct and surrounding authored terrain continuing beyond the visible world edges. The landscape SHALL include a detailed woodland-ground palette, a continuous river along one settlement edge, a matching authored bridge, deliberately clustered woodland, rocky outcrops and small village props, including when all building plots are empty. Shallow stepped wooded terraces and a lower riverbank SHALL create cosmetic elevation differences using available authored terrain rather than retaining legacy slopes/mountains or generating replacement meshes. The battlefield SHALL be a readable grassy approach with no painted road markings or modern road slab. Unit rendering SHALL meet its visible ground surface without changing authoritative contact or targeting. Decorations and terrain SHALL NOT occupy building slots, obstruct combat/selection/HUD or change movement topology, damage, economy or city capacity. Players SHALL be able to inspect every player's city and battle, identify their own city, and distinguish soldiers from enemies. The visual representation SHALL follow authoritative state, including enemy transfers, casualties, and eliminated cities. The game SHALL NOT require manual unit control, movable terrain, or a board-folding effect.
+
+Each settlement SHALL retain nine stable purchased/locked hex plots, its authored woodland ground/river/bridge/terraces/props and existing economy interactions. Combat SHALL transition to one complete connected battle diorama for all owners, using the same woodland/tabletop palette. Keeps, forward Watchposts, purchased towers, owned squad formations and enemy groups SHALL be physically identifiable with non-color-only ownership/status cues. Arena ground SHALL have restrained authored grass/moss/earth variation and dressed exterior edges, while active hexes/routes remain open. Scenery SHALL never change topology, numerical capacity, damage or economy, obscure deployment/picking or act as an invisible obstacle. Keep/Watchpost state SHALL follow accepted authority updates. Purchased inactive towers SHALL not appear destroyed merely because the owner fell. No manual RTS controls, movable terrain or board folding SHALL be added.
+
+#### Scenario: Enter a four-player battle
+- **WHEN** final preparation starts combat
+- **THEN** every client sees the same connected four-sector arena with distinguishable objectives and all-owner formations
+- **AND** each client may inspect/pan independently without changing combat
+
+#### Scenario: Woodland styling
+- **WHEN** the arena is shown in deployment or combat
+- **THEN** varied grounded surfaces and restrained exterior vegetation/rocks make it belong to the settlement's woodland world
+- **AND** active routes, figures, cues and owned deployment cells remain readable and selectable
 
 #### Scenario: Attractive empty starting village
 - **WHEN** a match starts with all nine plots empty
@@ -91,9 +102,9 @@ Graphical clients SHALL display each city as a coherent fantasy countryside land
 - **AND** five initially usable plots, four locked expansion plots and the battle approach remain distinguishable from scenery
 
 #### Scenario: Watch a redistributed wave
-- **WHEN** another city falls during a wave
-- **THEN** clients show that city's elimination and the transferred enemies fighting at their authoritative destinations
-- **AND** the player can inspect the surviving cities while combat continues
+- **WHEN** a Keep falls during shared combat
+- **THEN** clients show its fallen state and nonteleporting enemy preference redirection from current physical poses
+- **AND** surviving owned squads continue the current wave
 
 #### Scenario: Upgraded buildings are recognizable
 - **WHEN** a building is upgraded from level one to level two or higher
@@ -118,7 +129,12 @@ A player SHALL select a building slot by clicking its visible hexagonal plot or 
 - **THEN** only that control receives the click and the world selection is unchanged
 
 ### Requirement: Lower camera and readable composition
-Graphical clients SHALL use a slightly lower angled orthographic view that reveals building faces and terrain depth. At the default or reset overview at the default 1100x820 window size and at 1280x720, the focused city's nine plots, home/defender, and full battle approach SHALL fit in the world area above the bottom panel and every plot SHALL be selectable. Deliberate zoom or pan SHALL be allowed to place some world objects outside the visible world area, with Reset view restoring the complete composition. Tall scenery SHALL NOT conceal buildable plots or active combat in the overview, and the panel SHALL keep essential actions and feedback accessible without horizontal clipping.
+
+The settlement SHALL retain its lower angled orthographic view and fitted nine-plot overview. Arena default/reset framing SHALL derive from the entire connected playable board and physical objectives, not one city or decorative perimeter extent. At 1100x820 and 1280x720, the complete playable arena SHALL fit above the HUD; larger/portrait changes SHALL preserve bounded navigation and usable controls. Local close zoom/pan SHALL permit inspecting engagements while reset restores complete composition. Tall dressing SHALL stay outside critical sightlines. Owner/health/status/deployment cues SHALL remain readable at overview and close views.
+
+#### Scenario: Complete arena overview
+- **WHEN** a client enters or resets a four-player battle at a supported size
+- **THEN** all sectors and physical objectives fit in the usable world area and the HUD does not conceal required controls
 
 #### Scenario: Inspect a fully built city
 - **WHEN** a city has buildings in all nine plots, including level-two buildings, at either supported verification size and the camera is at its default or reset overview
@@ -126,12 +142,28 @@ Graphical clients SHALL use a slightly lower angled orthographic view that revea
 - **AND** resources, contextual actions, and match controls remain readable and reachable
 
 #### Scenario: Observe four-player combat
-- **WHEN** a four-player match reaches combat and the player switches between cities
-- **THEN** each focused city starts at a consistent overview with its soldiers, attackers, and defender feedback visible
-- **AND** scenery does not conceal the combat or change the displayed authoritative destinations
+- **WHEN** a four-player match enters combat or another owner is inspected
+- **THEN** the one complete arena remains the battle view with all-owner formations/objectives visible
+- **AND** scenery does not conceal fighting or alter authoritative destinations
 
 ### Requirement: Authoritative animated combat presentation
-Graphical clients SHALL show idle, walking, sword attack, ranged shooting, hit and death states appropriate to the unit type and authoritative action. Displayed positions SHALL map authoritative hex identities and fixed positions/footprints to declared anchors, and facing SHALL derive from authoritative targets and moves with restrained presentation-clock-driven transitions. Each accepted adjacent move SHALL travel in a straight line between its declared source and destination anchors using its authoritative start/end ticks and the shared snapshot clock. Transient visual overlap with moving, standing or retained dying models SHALL be permitted during a committed move; it SHALL NOT change numerical capacity, reservations, route decisions, attackable location, arrival deadlines, targets or outcomes. Settled models SHALL remain at distinct declared anchors; presentation SHALL NOT displace stationary neighbors, manufacture combat offsets, extrapolate beyond authoritative time or make queued/blocked units walk. Locomotion and living action transitions SHALL use bounded blends that freeze with battle presentation and preserve the authored impact marker. Adjacent-hex melee SHALL deliberately depict abstract tabletop attacks: the actual rigged sword slice or axe chop and facing at its fixed anchor SHALL be accompanied by a restrained directional windup intent cue, a short local strike accent and target-side impact feedback only on a landed authoritative hit. Intent SHALL identify the locked target without an opaque continuous hand-to-target beam. This SHALL remain readable for near-side and far-side occupants of a shared adjacent hex without claiming physical blade contact. Misses SHALL NOT show landed-target feedback. Unlinked generic sparks or a swing with no readable attacker/target relationship SHALL NOT satisfy the melee contract. Attack presentation SHALL NOT stretch weapons or slide a unit away from its footprint anchor to imply contact. Root motion and animation callbacks SHALL NOT move authoritative units, apply damage or release capacity. Effects SHALL be keyed to match and action identity so repeated or stale snapshots do not replay a strike, shot or hit. A casualty SHALL stop all living presentation immediately and play its death pose from authoritative death start/end ticks and recorded final movement progress. Its non-interactive visual SHALL remain coherent with retained authoritative death reservations and SHALL be removed at the sampled death-end deadline or immediately on session replacement. Current dying bodies SHALL be reconstructed from complete snapshots without requiring historical death events. Missing required assets or clips SHALL be reported as a presentation failure. Attack animations SHALL be aligned to authoritative impact timing, and any short visual projectile SHALL be cosmetic. Death SHALL take visual precedence over hit, hit over an idle pose, and hit playback SHALL NOT cancel a valid authoritative attack. Rendering cadence SHALL remain independent of numerical step ordering; [battle-flow integration](../../../docs/battle-flow.md#behavior-and-integration-boundaries) owns the accepted wall-time rate. Presentation SHALL NOT add delayed replay or serialized combat turns.
+
+Members SHALL animate from their squad's authoritative source, committed transition and shared attack cycle with stable individual formation offsets; bosses SHALL use one larger single-member model. Member cosmetics SHALL never route independently or mutate logical positions. Locomotion SHALL sample the declared committed segment and stop while blocked. Adjacent melee SHALL show imported sword/axe animation, restrained facing/local strike accent and readable attacker-to-target windup/landed feedback; opaque beams, stretched weapons and distant unlinked swings SHALL not substitute. Shots SHALL originate from actual member/weapon sockets and land only on authoritative impact evidence; launch prediction SHALL use only already committed target motion. Individual HP/status/formation and seeded primary observations SHALL remain distinct. A realized primary's death SHALL not visually retarget recovery. Simultaneous actions SHALL use one shared playback clock independent of frame rate.
+
+Casualties SHALL immediately stop living presentation and retain frozen physical position/facing while their imported death clip advances to authoritative expiry. Their logical claims SHALL already be released according to the squad death contract; visual overlap with a subsequently legal mover SHALL not create a numerical blocker or displacement. Reconnect/history gaps SHALL restore current elapsed bodies/actions without historical effects. Pause/transport loss SHALL freeze battle playback while local camera projection remains usable. Missing required rigs/clips SHALL be explicit failures, not dummy replacements. Session replacement SHALL release all old nodes/effects.
+
+#### Scenario: Coordinated group
+- **WHEN** a three-member squad commits a move and attack
+- **THEN** all three animate the same actor cycle at their own formation/socket positions with independently received health
+
+#### Scenario: Frozen body, advancing clip
+- **WHEN** the final member dies during movement
+- **THEN** its body stays at its frozen physical pose while its imported death clip advances until expiry
+- **AND** a legal mover can use the released cell without cosmetic collision changing the authority
+
+#### Scenario: Landed and missed shots
+- **WHEN** a member's committed group attack is observed repeatedly or its target group dies before impact
+- **THEN** each action cue is consumed once and a miss produces no landed victim flash or damage
 
 #### Scenario: Stop and swing at contact
 - **WHEN** moving Swordsmen reach their authoritative positions in adjacent combat hexes
@@ -143,9 +175,9 @@ Graphical clients SHALL show idle, walking, sword attack, ranged shooting, hit a
 - **THEN** its shooting animation and cosmetic shot are triggered once for that action identity and later snapshots update their progress
 
 #### Scenario: Casualty finishes dying
-- **WHEN** a visible soldier or enemy is killed and disappears from the living army snapshot
-- **THEN** its death sequence plays from the recorded final position/progress without participating in targeting or living army counts, while its positions remain reserved until death end
-- **AND** its visual is freed at the authoritative death-end pose or immediately on session replacement
+- **WHEN** a visible member dies and leaves the living population
+- **THEN** its frozen physical pose plays the remaining death clip without active claims or targeting
+- **AND** expiry/session replacement frees the cosmetic body
 
 #### Scenario: Pause freezes a posed battle
 - **WHEN** combat is paused during movement, an attack, a hit, a projectile or a death sequence
@@ -158,14 +190,14 @@ Graphical clients SHALL show idle, walking, sword attack, ranged shooting, hit a
 - **AND** events from the former connection or another match cannot create duplicate visuals
 
 #### Scenario: Shared hex has separate visible positions
-- **WHEN** several allied units occupy one combat hex
-- **THEN** settled models stand at distinct declared anchors matching their legal footprints
-- **AND** a committed mover travels directly to its reserved destination without displacing stationary neighbors, even if its visual crosses another model
+- **WHEN** several living members of one homogeneous squad share its hex
+- **THEN** their stable formation slots provide distinct local poses while the actor has one exclusive claim
+- **AND** the committed group movement does not displace neighbors numerically
 
 #### Scenario: Retained death still needs visual clearance
-- **WHEN** a visible casualty retains its authoritative positions or transit reservations until death end
-- **THEN** settled living models and settled casualties keep distinct declared anchors while a committed mover may cross the frozen death pose visually
-- **AND** graphical settled-clearance assertions include visible settled dying bodies, and neither visual overlap nor animation releases the casualty's complete numerical positions/transit claims before death end
+- **WHEN** an unexpired casualty remains on a logically released cell
+- **THEN** its frozen physical pose remains coherent while a subsequently legal mover may cross it visually
+- **AND** the overlap creates no blocker, position correction or damage
 
 #### Scenario: Frame rate does not order combat
 - **WHEN** compatible attacks and moves begin on the same authority tick
@@ -173,14 +205,14 @@ Graphical clients SHALL show idle, walking, sword attack, ranged shooting, hit a
 - **AND** initiative does not add presentation-only delays that change the declared action timing
 
 #### Scenario: Overview retains readable unit roles
-- **WHEN** a player observes shared combat hexes at the supported overview scale
-- **THEN** input-transparent health bars and Roman level numerals remain readable above models without overhead names or role codes, and clicking a unit exposes its role/name in inspection
-- **AND** restrained directional melee intent identifies its locked target during windup without opaque crossing beams
+- **WHEN** the player views a shared battle at overview
+- **THEN** compact owner/type/count and individual-health squad summaries remain readable with full member details available by inspection
+- **AND** windup intent remains attributable without opaque crossing beams
 
 #### Scenario: Far-side melee target is readable
 - **WHEN** an anchored melee occupant attacks an eligible far-side occupant in an adjacent shared hex
 - **THEN** directional intent identifies the actual locked target and its landed impact at the declared tick
-- **AND** the miniature remains at its footprint anchor and the display reads as an abstract tabletop attack
+- **AND** the miniature remains at its formation anchor and the display reads as an abstract tabletop attack
 
 #### Scenario: Verify neighboring occupied cells before fixing scale
 - **WHEN** the board/action presentation is verified at the owned rendered gate
@@ -209,7 +241,12 @@ Graphical clients SHALL support scroll-wheel zoom in and out over the visible wo
 - **THEN** the world camera remains unchanged and the UI retains its normal scrolling behavior
 
 ### Requirement: Keyboard tabletop panning
-Graphical clients SHALL support continuous camera panning while WASD or arrow keys are held during world interaction. W/up and S/down SHALL move the view toward the top and bottom of the screen across the tabletop ground plane; A/left and D/right SHALL move left and right. Equivalent bindings SHALL have equivalent effects, diagonals SHALL NOT move faster than cardinal directions, and movement SHALL be independent of frame rate. Camera travel SHALL be bounded around the observed city while preserving camera height and orientation.
+
+WASD/arrow navigation SHALL remain equivalent, frame-rate independent and bounded without changing camera orientation/height or speeding diagonal motion. Settlement navigation SHALL use its existing city bounds; arena navigation SHALL use content-derived shared-arena bounds and permit crossing sectors rather than inherit the old city travel clamp. Releasing a key SHALL stop movement.
+
+#### Scenario: Cross-sector camera travel
+- **WHEN** a client zooms and pans across a four-player arena
+- **THEN** it can inspect each sector within the safe boundary and stopping input stops camera motion
 
 #### Scenario: Hold and release a direction
 - **WHEN** the player holds D or right arrow during world interaction and then releases it
@@ -221,7 +258,12 @@ Graphical clients SHALL support continuous camera panning while WASD or arrow ke
 - **THEN** diagonal speed does not exceed cardinal speed and the view stops at the boundary
 
 ### Requirement: Local camera input and lifecycle
-Camera navigation SHALL be local presentation state and SHALL NOT submit gameplay commands or alter authoritative state. Modal dialogs, focused UI controls consuming navigation keys, text entry and an unfocused game window SHALL take priority over camera navigation. Losing focus or opening a modal SHALL stop held camera movement without stale movement resuming when input returns. Camera navigation SHALL remain usable over an available city view during shared pause, transport loss and outcome screens. Projected unit health bars SHALL follow camera changes even when combat playback is frozen.
+
+Navigation SHALL remain local and issue no gameplay commands. Modal dialogs, consuming focused controls, text entry and lost focus SHALL take priority and clear held gestures/keys without stale resumption. Paused, disconnected and outcome arena views SHALL permit navigation with frozen combat state. Health/status/inspection projections SHALL follow camera/layout changes for all currently visible owners.
+
+#### Scenario: Inspect during pause
+- **WHEN** a client pans over another sector during pause
+- **THEN** camera and labels reproject while member health, actions and physical battle state remain frozen
 
 #### Scenario: UI receives navigation keys
 - **WHEN** a text field, dropdown or other focused UI control consumes a camera-bound key
@@ -236,24 +278,29 @@ Camera navigation SHALL be local presentation state and SHALL NOT submit gamepla
 - **THEN** camera navigation and health-bar projection respond while combat poses, health and authoritative gameplay remain frozen
 
 ### Requirement: Recoverable camera overview
-Graphical clients SHALL reset the fitted overview of the observed city on a non-repeating Space press during eligible world interaction and SHALL NOT display a Reset view button. Modal dialogs, text input, focused UI controls consuming Space and an unfocused window SHALL take priority; Space SHALL NOT both activate a focused control and reset the camera. A compact tooltip or help entry SHALL explain the shortcut. Entering a tabletop, switching to a different city or receiving a fresh match SHALL initialize the overview and clear held navigation. Resizing the window or changing HUD height SHALL recompute the fitted base view and preserve the player's relative zoom and city-relative pan within current limits. Reconnecting to the same match and observed city in the same tabletop SHALL retain camera adjustments; camera state SHALL NOT persist across application launches.
+
+A nonrepeating eligible Space press SHALL restore the fitted overview of the currently active settlement or complete arena, with compact help and no redundant Reset button. UI Space handling SHALL not also reset the world. Fresh match/view transition SHALL initialize fitting and clear navigation; resize/HUD changes SHALL recompute content-derived fitting while preserving relative zoom/pan within current bounds. Reconnect within the same match/view SHALL retain local adjustments; they SHALL not persist across launches.
+
+#### Scenario: Reset shared battle
+- **WHEN** Space is pressed after close inspection of a foreign sector
+- **THEN** the complete arena overview returns without changing selection, resources or combat
 
 #### Scenario: Reset a close view
 - **WHEN** the player presses Space during eligible world interaction after zooming and panning
-- **THEN** the observed city's fitted overview is restored with all plots and the battle approach above the HUD
+- **THEN** the observed settlement or shared arena's fitted overview is restored with all plots and the battle approach above the HUD
 - **AND** world selection and resources are unchanged
 
 #### Scenario: Switch city or match
-- **WHEN** the observed city changes or a fresh match replaces the current match
+- **WHEN** the observed settlement or shared arena changes or a fresh match replaces the current match
 - **THEN** the new city's overview is shown without inheriting the previous city's pan or zoom
 
 #### Scenario: Resize an adjusted view
 - **WHEN** the window or HUD size changes while the player has adjusted the view
-- **THEN** the relative zoom and city-relative pan are preserved within limits against the recalculated base framing
+- **THEN** the relative zoom and active-view-relative pan are preserved within limits against the recalculated base framing
 - **AND** Space still restores a fully fitted overview
 
 #### Scenario: Reconnect within the same view
-- **WHEN** the client reconnects to the same match and observed city without replacing its tabletop
+- **WHEN** the client reconnects to the same match and observed settlement or shared arena without replacing its tabletop
 - **THEN** its camera adjustments are retained and rebuilt world targets remain selectable
 
 #### Scenario: Space belongs to a focused control or modal
@@ -262,7 +309,7 @@ Graphical clients SHALL reset the fitted overview of the observed city on a non-
 - **AND** holding Space does not repeatedly reset or trigger a gameplay action
 
 ### Requirement: World interaction after camera navigation
-Hover and selection SHALL resolve the currently visible plot or building to its existing slot after camera navigation. Navigation SHALL NOT spend resources, change world selection or enable editing a foreign city. Screen-space overlays SHALL remain aligned with their world anchors and SHALL NOT intercept world input. Source and exported graphical clients SHALL provide the same camera controls; headless roles SHALL NOT instantiate camera presentation.
+In the shared arena, member/structure inspection and eligible owned deployment picking SHALL use the active arena geometry and retain the same local input guards. Hover and selection SHALL resolve the currently visible plot or building to its existing slot after camera navigation. Navigation SHALL NOT spend resources, change world selection or enable editing a foreign city. Screen-space overlays SHALL remain aligned with their world anchors and SHALL NOT intercept world input. Source and exported graphical clients SHALL provide the same camera controls; headless roles SHALL NOT instantiate camera presentation.
 
 #### Scenario: Select a building after moving
 - **WHEN** the player zooms and pans and then clicks a visible building roof
@@ -292,7 +339,12 @@ Structures, including the home and defender, SHALL be centered by their ground f
 - **AND** they do not cover buildable plots or obstruct the battle approach
 
 ### Requirement: Continuous countryside view coverage
-At 1100x820 and 1280x720 and after supported viewport or HUD changes, the visible battlefield SHALL use compact authored countryside bounded by opaque grey clouds, without exposing cut terrain edges or the flat environment background beyond them. Coverage SHALL include every permitted camera zoom and pan position when navigation is available; navigation SHALL NOT pass the cloud envelope. Fitted overview bounds SHALL derive from playable content rather than exterior scenery; at the default/reset overview all nine plots, home, defender and the battle approach SHALL remain visible above the HUD. [Battlefield framing](../../../docs/view-renderer-worldtree.md#battlefield-framing) owns the implementation details. Authored river edges and terrain transitions SHALL join coherently throughout visible coverage, and tall scenery SHALL remain clear of plot and battle sightlines. Terrain SHALL reuse imported geometry/shared material resources and bounded chunked instancing rather than instantiate a separate full scene per ordinary floor cell.
+
+Settlement coverage SHALL retain compact authored countryside and its opaque boundary at all permitted navigation/viewport/HUD positions. Arena coverage SHALL provide coherent woodland ground and an opaque dressed diorama edge/backstop over every permitted shared camera footprint, without exposing bare cut edges or the flat environment background. Playable content/objectives SHALL determine fitting; outside scenery SHALL not inflate the default overview or travel. Ground/dressing SHALL reuse imported geometry/materials with bounded instancing and shall not rebuild static content on ordinary HP/action snapshots.
+
+#### Scenario: Extreme arena pan
+- **WHEN** the camera reaches a permitted pan/zoom limit or the window changes size
+- **THEN** visible ground and the opaque perimeter still cover the world footprint without revealing unfinished exterior space
 
 #### Scenario: Fill the overview after resizing
 - **WHEN** the client displays or resizes the default city overview at either supported verification size
@@ -322,11 +374,17 @@ The start screen and multiplayer entry backdrop SHALL reuse the starting village
 - **THEN** both views load the shared countryside and fill their visible world areas from bundled assets
 
 ### Requirement: Readable unit progression and wave rewards
-The graphical match view SHALL expose an observed army's unit levels as Roman numerals above the left part of their health bars, with full names, descriptions, faction, boss identification and level in click inspection and army details rather than overhead name/role codes. Displayed health and damage SHALL use authoritative resolved profiles. Army inspection SHALL show authoritative unit size, with normal units at size two and bosses at size six. Mixed-level soldiers SHALL remain distinguishable through Roman level markers or grouped army details without adding individual upgrade controls. The view SHALL show the latest completed wave's actual gold, food, wood and research reward for the observed city, including on the final victory screen. A summary SHALL identify its wave and SHALL NOT imply a second payment on repeated snapshots, city switches or reconnect. A fresh match SHALL clear the prior match's reward summary. Unit levels SHALL NOT require new character assets or modify unit size through visual scaling.
+
+Squad/member inspection SHALL expose each individual's actual equipment level, service experience, current/max HP, X/Y/structural damage, status and participating/reserve/storage state. Normal population and one-member boss identity SHALL replace obsolete size-two/size-six combat capacity descriptions. Mixed-level veterans/recruits SHALL remain distinguishable in details without individual paid-upgrade controls. Compact squad summaries SHALL not imply pooled HP. Actual latest wave material/research rewards SHALL identify wave/owner and restore without another payment on reconnect or repeated updates, including victory. Fresh matches SHALL clear reward state.
+
+#### Scenario: Partial veteran group
+- **WHEN** a wounded level-one veteran and paid level-three recruit share a squad
+- **THEN** details show their separate levels/HP/profiles/service rather than the trainer's level or a shared HP pool
 
 #### Scenario: Observe a boss
-- **WHEN** the observed city receives a boss allocation or a transferred boss
-- **THEN** the overhead bar shows its Roman level and click inspection identifies it as a boss with its level, authoritative current/maximum health, damage per attack and size six
+- **WHEN** a single-member boss squad is visible
+- **THEN** summary/inspection identifies its owner/faction, boss identity, individual level and effective HP/damage
+- **AND** its larger model does not imply size-six numerical capacity
 
 #### Scenario: Restore the reward summary
 - **WHEN** a player reconnects after wave ten clears
@@ -337,7 +395,7 @@ The graphical match view SHALL expose an observed army's unit levels as Roman nu
 - **THEN** army details distinguish their levels and use their own profiles rather than displaying all soldiers at the current building level
 
 ### Requirement: Readable resource progression and contextual economy controls
-City construction choices SHALL be grouped into production, recruitment and advanced/defensive buildings with stable ordering; army-plot actions SHALL follow the [gameplay army/tower controls](../../../docs/gameplay.md#purchased-army-homes-and-town-hall-rotation). Affordable eligible choices SHALL be visually emphasized; unavailable choices SHALL remain visible and greyed, with explicit Need N more resource explanations and producer names or the applicable ownership, readiness, pause or phase reason. Explanation SHALL remain accessible even when the purchase button is disabled and SHALL NOT rely only on color. Buildings SHALL NOT be hidden until a resource is discovered. Selected locked plots SHALL offer only their purchase quote and inspection; purchased empty plots SHALL offer construction appropriate to their city/army role; unit-occupied army plots SHALL NOT offer construction even with unused size. Selecting building-occupied plots SHALL expose their normal actions and an explicit Sell action with the exact refund and retained-army/research explanation. Markets SHALL expose fixed sale bundles, available stock and exact gold proceeds; food-sale previews SHALL update the projected upkeep balance. Producer choices SHALL show their complete text cost alongside their current per-turn output. Producer upgrades SHALL show current to next output with a consistent unit label. The explicit gold-paid Lumbermill recovery choice SHALL be visible only at zero wood, show its complete quoted gold price and follow normal eligibility; normal builds SHALL never silently substitute currency. Affordability, costs, refunds, rates, income and upkeep SHALL derive from authoritative state/catalogs and refresh after accepted actions, production, city switches and reconnects without guessing that a request succeeded. Layout SHALL keep all six resource balances and essential actions readable at 1100x820 and 1280x720 while preserving world selection and the nine-plot overview. Economically unavailable controls SHALL never become enabled solely by a presentation calculation.
+City construction choices SHALL be grouped into production, recruitment and advanced/defensive buildings with stable ordering; army-plot actions SHALL follow the `docs/gameplay.md#purchased-army-homes-and-town-hall-rotation` (gameplay army/tower controls). Affordable eligible choices SHALL be visually emphasized; unavailable choices SHALL remain visible and greyed, with explicit Need N more resource explanations and producer names or the applicable ownership, readiness, pause or phase reason. Explanation SHALL remain accessible even when the purchase button is disabled and SHALL NOT rely only on color. Buildings SHALL NOT be hidden until a resource is discovered. Selected locked plots SHALL offer only their purchase quote and inspection; purchased empty plots SHALL offer construction appropriate to their city/army role; squad-occupied army plots SHALL NOT offer construction even with unused member places. Selecting building-occupied plots SHALL expose their normal actions and an explicit Sell action with the exact refund and retained-army/research explanation. Markets SHALL expose fixed sale bundles, available stock and exact gold proceeds; food-sale previews SHALL update the projected upkeep balance. Producer choices SHALL show their complete text cost alongside their current per-turn output. Producer upgrades SHALL show current to next output with a consistent unit label. The explicit gold-paid Lumbermill recovery choice SHALL be visible only at zero wood, show its complete quoted gold price and follow normal eligibility; normal builds SHALL never silently substitute currency. Affordability, costs, refunds, rates, income and upkeep SHALL derive from authoritative state/catalogs and refresh after accepted actions, production, city switches and reconnects without guessing that a request succeeded. Layout SHALL keep all six resource balances and essential actions readable at 1100x820 and 1280x720 while preserving world selection and the nine-plot overview. Economically unavailable controls SHALL never become enabled solely by a presentation calculation.
 
 #### Scenario: Explain an unavailable Arcanum
 - **WHEN** an owner selects an empty purchased plot with enough gold and wood but insufficient stone
@@ -369,10 +427,10 @@ City construction choices SHALL be grouped into production, recruitment and adva
 - **THEN** construction shows 1 wood and +1 wood/turn, and upgrade shows 2 wood plus 2 stone and output 1 to 2 wood/turn
 - **AND** missing materials and producer sources remain readable even when the action is disabled
 
-The ordered home overview and explicit purchase control SHALL expose the next authoritative gold purchase quote, occupied/available size and stable first-fit destination. A selected Town hall SHALL display occupied/available storage spots and independently quoted capacity/healing upgrades, current percentage and paid-recovery eligibility. Selection SHALL never spend or transfer on its own; full destinations and occupied-hall sale SHALL be explained.
+The ordered home overview and explicit purchase control SHALL expose the next authoritative gold purchase quote, occupied/available squad member places and stable first-fit destination. A selected Town hall SHALL display occupied/available storage spots and independently quoted capacity/healing upgrades, current percentage and paid-recovery eligibility. Selection SHALL never spend or transfer on its own; full destinations and occupied-hall sale SHALL be explained.
 
 ### Requirement: Visible upkeep forecast and reserve participation
-The observed city SHALL have a very small text-only Upkeep table directly below its resource table, without opening City details. During building and preparation, including while ready, its first row SHALL show Next battle food demand. When every soldier can be fed, the second row SHALL show Food after payment using authoritative forecast availability minus projected payment. Forecast availability SHALL follow [gameplay's upkeep projection](../../../docs/gameplay.md#deterministic-hex-combat). On shortage the second row SHALL instead show the exact unfunded count with a textual cue rather than color alone: soldiers that will sit out for a field-only army, or Unfunded soldiers when storage is present, without suggesting funded stored units fight. Empty armies SHALL show zero demand. Current food, projected payment and which soldiers would participate or sit out under the authoritative field-first allocation defined in [army-roster](../army-roster/spec.md) SHALL remain accessible through inspection. Pause and transport loss SHALL identify paused or stale synchronized values without suggesting another payment. Recruitment SHALL show equipment costs separately from per-battle food upkeep. A shortage SHALL be explained before Ready without disabling readiness solely for food. Accepted recruitment or food sales SHALL refresh the forecast. During combat the view SHALL distinguish participating soldiers, fed capacity-queued soldiers and unfed reserves, showing actual paid upkeep for that wave. The compact table SHALL label that receipt Paid this battle with its wave and reserve count; outcome views SHALL identify Last battle, and fresh sessions SHALL clear old receipts. Reserves SHALL remain in army details with retained level and health but SHALL NOT be rendered as deployed combatants, walking capacity queues or casualties. Reconnect SHALL restore the current status without replaying a feeding, death or recruitment effect.
+The observed city SHALL have a very small text-only Upkeep table directly below its resource table, without opening City details. During building and preparation, including while ready, its first row SHALL show Next battle food demand. When every soldier can be fed, the second row SHALL show Food after payment using authoritative forecast availability minus projected payment. Forecast availability SHALL follow `docs/gameplay.md#deterministic-hex-combat` (gameplay's upkeep projection). On shortage the second row SHALL instead show the exact unfunded count with a textual cue rather than color alone: soldiers that will sit out for a field-only army, or Unfunded soldiers when storage is present, without suggesting funded stored units fight. Empty armies SHALL show zero demand. Current food, projected payment and which soldiers would participate or sit out under the authoritative field-first allocation defined in [army-roster](../army-roster/spec.md) SHALL remain accessible through inspection. Pause and transport loss SHALL identify paused or stale synchronized values without suggesting another payment. Recruitment SHALL show equipment costs separately from per-battle food upkeep. A shortage SHALL be explained before Ready without disabling readiness solely for food. Accepted recruitment or food sales SHALL refresh the forecast. During combat the view SHALL distinguish participating soldiers, funded field participants and unfed reserves, showing actual paid upkeep for that wave. The compact table SHALL label that receipt Paid this battle with its wave and reserve count; outcome views SHALL identify Last battle, and fresh sessions SHALL clear old receipts. Reserves SHALL remain in army details with retained level and health but SHALL NOT be rendered as deployed combatants, walking capacity queues or casualties. Reconnect SHALL restore the current status without replaying a feeding, death or recruitment effect.
 
 #### Scenario: Preview a food sale's consequence
 - **WHEN** selling a food bundle would leave insufficient food for the whole army
@@ -401,7 +459,7 @@ The observed city SHALL have a very small text-only Upkeep table directly below 
 Demand SHALL include stored units and identify field/storage food separately. Funded stored units SHALL not be described or rendered as participating combatants. The roster SHALL explain that recovery uses food funded in the last completed battle and occurs only at actual production.
 
 ### Requirement: Mouse drag tabletop panning
-Graphical clients SHALL support left-click-and-drag camera panning starting within the eligible visible world area. The view SHALL follow the dragged ground plane while preserving the angled orthographic projection, zoom and existing city-relative travel bounds. Movement below a small consistent screen-space threshold SHALL remain a normal click selecting the same plot/building; once the threshold is exceeded the gesture SHALL pan without selecting a plot on press or release, submitting commands or spending resources. Dragging SHALL work over plots, buildings and scenery. HUD surfaces including the resource table, Settings and other modal dialogs SHALL block drag initiation. A modal opening, window focus loss, city/session replacement or button release SHALL end the gesture without stale movement resuming. Drag navigation SHALL remain available during pause, transport loss and outcome when a city view exists. Screen-space bars and markers SHALL follow the camera and remain input-transparent. Source and exported graphical clients SHALL behave alike.
+Graphical clients SHALL support left-click-and-drag camera panning starting within the eligible visible world area. The view SHALL follow the dragged ground plane while preserving the angled orthographic projection, zoom and active settlement/shared-arena content-derived travel bounds. Movement below a small consistent screen-space threshold SHALL remain a normal click selecting the same plot/building; once the threshold is exceeded the gesture SHALL pan without selecting a plot on press or release, submitting commands or spending resources. Dragging SHALL work over plots, buildings and scenery. HUD surfaces including the resource table, Settings and other modal dialogs SHALL block drag initiation. A modal opening, window focus loss, city/session replacement or button release SHALL end the gesture without stale movement resuming. Drag navigation SHALL remain available during pause, transport loss and outcome when a city view exists. Screen-space bars and markers SHALL follow the camera and remain input-transparent. Source and exported graphical clients SHALL behave alike.
 
 #### Scenario: Drag across a building
 - **WHEN** the player left-drags from a visible building beyond the drag threshold and releases over another plot
@@ -450,7 +508,7 @@ Graphical match views SHALL show a narrow top-right three-column table with Reso
 - **AND** pointer input inside either table blocks world selection, zoom and drag initiation
 
 ### Requirement: Clean plot and home markers
-Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Locked land text. Selecting a locked plot SHALL expose its exact purchase quote and existing explicit purchase action; hovering or selecting the marker SHALL NOT spend resources. The marker SHALL disappear after authoritative purchase. The visible home SHALL display a compact health bar with X% text instead of P1/You, heart and raw health labels. Its fill SHALL be authoritative current city health divided by authoritative maximum city health, clamped to zero through one; its integer percentage SHALL use that fraction rounded to the nearest whole percent. Full health SHALL display 100% and a fallen city SHALL display 0% with a distinguishable fallen state. Home bars SHALL follow camera/layout changes, freeze their health on transport loss, refresh from synchronization, and remain input-transparent. City ownership SHALL remain identifiable through the compact city selector. Unit health bars SHALL retain their authoritative health and lifecycle behavior while replacing overhead names/codes with Roman level markers and exposing full identity/stats through click inspection.
+Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Locked land text. Selecting a locked plot SHALL expose its exact purchase quote and existing explicit purchase action; hovering or selecting the marker SHALL NOT spend resources. The marker SHALL disappear after authoritative purchase. The visible home SHALL display a compact health bar with X% text instead of P1/You, heart and raw health labels. Its fill SHALL be authoritative current city health divided by authoritative maximum city health, clamped to zero through one; its integer percentage SHALL use that fraction rounded to the nearest whole percent. Full health SHALL display 100% and a fallen city SHALL display 0% with a distinguishable fallen state. Home bars SHALL follow camera/layout changes, freeze their health on transport loss, refresh from synchronization, and remain input-transparent. City ownership SHALL remain identifiable through the compact city selector. Compact arena squad summaries and focused individual health indicators SHALL retain authoritative health/lifecycle behavior and expose full individual level/identity/stats through click inspection.
 
 #### Scenario: Purchase marked land
 - **WHEN** a player selects a gold-marked locked plot and explicitly confirms its affordable purchase action
@@ -463,14 +521,21 @@ Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Loc
 - **AND** the bar remains correctly positioned and does not consume plot input after camera movement
 
 ### Requirement: Clickable unit inspection
-Every visible, deployed, living friendly and enemy unit in the observed city, including bosses, SHALL be selectable by a short left click on its model. Selecting a unit SHALL open one nonmodal centre-right popup with a visual preview of that unit, its readable name, short role description, level, faction and boss status where applicable, current/max health as X/Y plus a health bar, and damage per attack. Size SHALL remain inspectable including boss size six. Displayed numeric stats SHALL use the current authoritative resolved unit profile, including level/research/boss modifiers, with readable health/damage scaling; descriptions SHALL NOT imply unsupported mechanics. The popup SHALL refresh from observed authoritative state without changing combat, readiness, plot selection or spending. Shared pause and transport loss SHALL freeze its last observed values until synchronization updates them. Headless roles SHALL create no inspector or model preview.
 
-The popup SHALL remain inside the usable viewport below the resource panel and above the bottom HUD. Clicking inside it SHALL keep it open and block underlying world input. Clicking elsewhere SHALL dismiss it and preserve the clicked target's ordinary eligible action exactly once. Clicking another unit SHALL replace the contents directly. A completed camera drag SHALL NOT select a unit or open a popup; starting a drag SHALL dismiss an existing popup. Unit hit selection SHALL choose the nearest visible unit at the clicked location rather than a plot behind it, with stable tie-breaking. Death visuals and undeployed/reserve units SHALL NOT be world-click inspection targets. Selection SHALL clear on death/removal from the observed city, city change, session/fresh-match replacement, or opening a blocking modal. Reconnect SHALL refresh the same surviving unit's stats or clear invalid selection. Source and exported graphical clients SHALL offer the same interaction.
+Every visible deployed living member and boss across the shared arena SHALL be short-click inspectable with stable nearest-visible-hit selection and no gameplay command. The existing nonmodal popup SHALL show the actual model/name/role/owner/faction/boss identity, level, current/max HP and resolved damage channels, structure damage and range/timing where relevant; it SHALL not describe retired body-size capacity. It SHALL refresh from accepted state, retain frozen values during pause/loss and fit below resource tables/above HUD. Input inside the popup SHALL block underlying world input; outside click SHALL dismiss and deliver the ordinary target action once. Another member click SHALL replace content directly. Dragging SHALL dismiss/avoid inspection. Death/undeployed/reserve members SHALL not be world targets; rosters SHALL permit their appropriate inspection. Session replacement, removal/death or invalid selection SHALL clear the popup, while same-match surviving reconnect SHALL refresh it. Owned army actions SHALL use phase/ownership/capacity guards; foreign members SHALL remain read-only.
+
+#### Scenario: Foreign member
+- **WHEN** a player clicks another owner's member in the arena
+- **THEN** its current details are shown without enabling deployment, regrouping or spending for that owner
+
+#### Scenario: Corpse releases a cell
+- **WHEN** a cosmetic corpse overlaps a later legally occupying member
+- **THEN** the corpse is not a world-click target and the living member remains selectable
 
 #### Scenario: Inspect a wounded ranked unit
-- **WHEN** the player short-clicks a visible unit with current health 525 and authoritative maximum health 1050 in the integer wire scale
-- **THEN** the centre-right popup shows its model, name, description, level and resolved per-attack damage, with human-readable health 5.25/10.5 and half health fill
-- **AND** the overhead marker shows the unit's Roman level with no unit name/code and no gameplay command is submitted
+- **WHEN** a visible member with current525/max1050HP in hundredths is short-clicked
+- **THEN** the popup shows its actual identity/profile and health5.25/10.5 at half fill
+- **AND** squad context and individual level remain available without submitting a command
 
 #### Scenario: Switch and dismiss inspection
 - **WHEN** the player clicks another living unit and then clicks a plot or HUD control outside the popup
@@ -482,11 +547,9 @@ The popup SHALL remain inside the usable viewport below the resource panel and a
 - **THEN** the camera pans, the inspector stays closed, and neither unit nor plot selection changes
 
 #### Scenario: Refresh and clear inspected state
-- **WHEN** the inspected unit receives synchronized damage, is paused or disconnected, and later dies or leaves the observed city
+- **WHEN** the inspected unit receives synchronized damage, is paused or disconnected, and later dies or leaves the observed settlement or shared arena
 - **THEN** the popup uses the new authoritative health, freezes values during pause/loss, and closes when selection becomes invalid
 - **AND** changing cities or replacing the match does not retain the old popup or preview
-
-Eligible owned field unit inspection SHALL expose Retire and Send to Town hall actions with capacity/phase/ownership reasons. Stored units SHALL be selected from the Town hall roster and offer Send to battlefield and Retire with the same authority guards. No drag infrastructure SHALL be required.
 
 ### Requirement: Readable personal research tree
 The Worldtree research panel SHALL use the native living component and the [fixed visual-to-authority mapping](../../../docs/worldtree.md#fixed-visual--authoritative-mapping). It SHALL show the observed city's whole points, partial production progress, tower contribution, purchased nodes, prerequisites, eligible unit roles or producers, effects and exact costs. Exclusive siblings and descendants SHALL remain visible with a readable permanent-lock explanation; the purchase action SHALL explicitly name the sibling branch it locks without requiring a second confirmation dialog. Unaffordable, prerequisite-locked, foreign-city, ready, paused, disconnected, combat and eliminated purchases SHALL be disabled with non-color-only reasons. Viewing research SHALL not pause or advance the shared match. The panel SHALL block underlying world input, fit supported window sizes using scrolling where needed, dismiss cleanly, refresh from acknowledged authoritative state and show no successful purchase effect before acceptance. Research Towers SHALL be identified by name and distinguishable two-level structures using the bundled palette; contextual output SHALL explain one/two points per full three-production cycle rather than per turn.
@@ -502,9 +565,33 @@ The Worldtree research panel SHALL use the native living component and the [fixe
 - **AND** rejected or retried requests produce no duplicate success cue
 
 ### Requirement: Technology and status inspection
-Unit inspection and army details SHALL describe actual acquired capabilities and current burn, poison and chill with authoritative strengths, poison stack count, remaining simulation duration and effective committed action timings where relevant. Visible living afflicted units SHALL have restrained distinguishable indicators using text/shape as well as color; indicators SHALL follow the shared presentation clock without owning damage scheduling or altering rig materials permanently. Poisoned queued units SHALL remain inspectable through army/enemy state without adding a world body. Death, effect expiry, city switches and fresh sessions SHALL clear or reconstruct indicator state; reconnect/history gaps SHALL reconstruct currently active effects without old sounds or application flashes. Existing Roman level markers, health bars, rigged actions and single-location movement SHALL remain readable. Chill descriptions SHALL promise slower future actions and SHALL NOT imply freeze, stun or interruption.
+Unit inspection and army details SHALL describe actual acquired capabilities and current burn, poison and chill with authoritative strengths, poison stack count, remaining simulation duration and effective committed action timings where relevant. Visible living afflicted units SHALL have restrained distinguishable indicators using text/shape as well as color; indicators SHALL follow the shared presentation clock without owning damage scheduling or altering rig materials permanently. Poisoned queued units SHALL remain inspectable through army/enemy state without adding a world body. Death, effect expiry, city switches and fresh sessions SHALL clear or reconstruct indicator state; reconnect/history gaps SHALL reconstruct currently active effects without old sounds or application flashes. Individual level/HP details, compact squad summaries, rigged actions and single-location squad movement SHALL remain readable. Chill descriptions SHALL promise slower future actions and SHALL NOT imply freeze, stun or interruption.
 
 #### Scenario: Inspect poison and chilled timing
 - **WHEN** a visible unit has two poison stacks and a committed chilled attack
 - **THEN** its inspection shows the actual stacks and fixed action timing and its indicators agree with authoritative state
 - **AND** pausing freezes remaining effect time and reconnect restores it without replaying applications
+
+### Requirement: Native squad preparation controls
+
+The normal native squad panel SHALL offer per-owner roster/member inspection and eligible owned new-squad recruitment, selected compatible paid reinforcement, member regrouping, Town Hall storage/return and retirement. A Deployment control SHALL expose owned purchased tower-free homes, with distinct selected/available/occupied/locked states using shape/text alongside color. Selecting an owned squad and an available home SHALL submit the ordinary authority request; foreign owners SHALL be inspectable only. Accepted snapshots SHALL determine roster/placement and preserve ordinary native focus; rejected/pending actions SHALL not invent members, spend optimistically or move a squad locally. Ready/pause/combat/disconnection/elimination SHALL disable editing with accessible reasons.
+
+#### Scenario: Delayed reinforcement
+- **WHEN** an owner requests an affordable reinforcement before acknowledgment arrives
+- **THEN** the roster retains its old membership until accepted state arrives and a rejection creates no optimistic recruit
+
+#### Scenario: Deployment ownership
+- **WHEN** a player selects a squad and an owned available home
+- **THEN** accepted deployment updates its complete claim, while foreign/locked/tower-occupied destinations refuse without movement or spending
+
+### Requirement: Restrained arena dressing and lifecycle
+
+Arena dressing SHALL use already bundled pinned woodland exports and original native markers without requiring new source assets or editing imported material/mesh bytes. Playable ground SHALL remain planar/coherently grounded at the existing numerical projection. Tall trees/rocks SHALL stay outside active cells/objectives/entry and deployment sightlines; smaller accents SHALL be restrained. Deployment grid/ownership cues SHALL be prominent during placement and subdued during combat. Structure wounds/destruction/inactivity SHALL be readable without obscuring units. Dressing SHALL be deterministic for equivalent arena geometry, independent of combat RNG, bounded across one-to-four-player layouts, reused across revisions and released on fresh-match/view teardown. Headless roles SHALL instantiate none of it.
+
+#### Scenario: Repeated combat updates
+- **WHEN** ordinary HP/action snapshots update a four-player battle
+- **THEN** static ground/dressing is reused with bounded resources and no changes to numerical cells/claims
+
+#### Scenario: New match
+- **WHEN** the client replaces a four-player battle with a solo match
+- **THEN** old dressing/labels/models release and the solo composition uses its own geometry

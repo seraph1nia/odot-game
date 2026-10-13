@@ -2,13 +2,23 @@
 
 ## Purpose
 
-Keep automatic unit battles deterministic and readable through reliable lane contact, timed attacks, stable identities and complete combat lifecycle handling.
+Keep automatic unit battles deterministic and readable through connected squad contact, timed attacks, stable identities and complete combat lifecycle handling.
 
 ## Requirements
 
 ### Requirement: Bounded lane contact and formation spacing
 
-Each living city SHALL have a bounded authoritative hex battlefield with declared adjacency and exactly six size capacity per hex. Every unit SHALL have a frozen integer size from one through six. All ordinary archetypes SHALL use size two, bosses size six, and no current archetype SHALL use size one. Same-team units SHALL share a hex whenever their occupied and reserved sizes total at most six; a geometrical footprint shape or rendered anchor arrangement SHALL NOT reject an otherwise legal fit. Occupancy and reservations in one hex SHALL belong to at most one team, allies or opponents, including dying bodies and move reservations. Units SHALL NOT exceed capacity, enter an opposing occupied/reserved hex, exchange places through one another or leave the board. Distinct graphical anchors SHALL preserve readability without adding a numerical capacity restriction. Initial formation and transferred arrivals SHALL obey the same size rules and permanent faction-specific deployment protection. In automatic enemy and isolated non-roster formation, melee SHALL start forward with rear placement allocated to support; placement SHALL spread across columns before packing a cell. Overflow SHALL queue without taking the other tier's allocated setup capacity. City-roster allied setup SHALL instead occupy persistent purchased first-fit homes under army-roster, independent of class; purchased homes SHALL NOT constrain later movement topology. Queued actors SHALL retain their destination army/enemy membership without duplication, deletion, spatial claims, targeting or attacks. Board adjacency SHALL determine movement and distance; rendered geometry, scenery collision and player orders SHALL NOT determine combat. Blocked units SHALL wait without locomotion. Stationary occupancy and its matching reservation SHALL count the same actor once per cell.
+Combat SHALL use one connected hex arena for the original one-to-four-player roster, with adjacent player sectors, owned preparation homes, enemy entry cells and reserved physical structure footprints. The default geometry SHALL provide seven columns by nine rows per sector. Every living participating squad SHALL occupy exactly one exclusive logical cell, independent of its member count. Separate squads SHALL NOT stack. Only individual members of the same homogeneous squad SHALL share cosmetic formation offsets. Squads SHALL NOT occupy static structure/weapon cells or opposing occupied cells. Preparation ownership SHALL NOT form a movement barrier during combat. Member size budgets and city-isolated battlefields SHALL NOT govern combat. Queued actors SHALL retain membership without claims, attacks or targeting until legal admission.
+
+#### Scenario: Connected four-player battle
+- **WHEN** a four-player wave begins
+- **THEN** all allied and enemy squads share one connected 252-cell arena and can reach neighboring sectors through legal cells
+- **AND** the nine settlement plots per owner remain independent of combat topology
+
+#### Scenario: Partial squad keeps its cell
+- **WHEN** two members of a three-member squad die
+- **THEN** its survivor retains that squad's exclusive cell and contributes only its own attacks
+- **AND** another squad cannot occupy the cell until the last participant dies or the squad moves legally
 
 #### Scenario: Opposing melee units meet
 - **WHEN** a Swordsman and an enemy approach from opposite entrances
@@ -16,48 +26,58 @@ Each living city SHALL have a bounded authoritative hex battlefield with declare
 - **AND** subsequent steps cannot merge their hexes or carry them through each other
 
 #### Scenario: Allies share capacity
-- **WHEN** a six-capacity hex contains configured same-team units of sizes two, two and one
-- **THEN** the occupied size is five and another configured size-one ally can fit regardless of visual anchor layout
-- **AND** a size-two arrival and every opposing arrival are refused while that occupancy remains
+- **WHEN** three funded same-type members belong to one squad
+- **THEN** they share its one exclusive logical cell at distinct cosmetic offsets
+- **AND** a separate friendly or enemy squad cannot stack there
 
 #### Scenario: Tens of units converge
-- **WHEN** an isolated non-roster workload has at least thirty-two soldiers and thirty-two enemies converging on one city battlefield
-- **THEN** deployed size reservations, movement reservations and entry queues remain bounded and conserved
-- **AND** reachable opponents engage and the ordinary default battle completes without a stalled-fight defeat
+- **WHEN** a bounded connected-arena fixture groups at least thirty-two members on each side
+- **THEN** exclusive squad claims, queue membership and identities remain conserved and reachable groups engage
+- **AND** ordinary completion does not depend on BattleStalled
 
 #### Scenario: Blocker dies
-- **WHEN** a front unit dies with allies waiting behind it
-- **THEN** it immediately becomes ineligible for attacks and targeting while its full size remains reserved through its death interval
-- **AND** its positions become available at the authoritative death-end tick, allowing combat to continue
+- **WHEN** the final participating member of a front squad dies with allies waiting
+- **THEN** the squad releases its logical claims immediately while member cosmetics finish their death intervals
 
 #### Scenario: Transfer enters an occupied approach
-- **WHEN** living attackers are reassigned to a city whose entrance positions are occupied
-- **THEN** all transferred identities belong to that destination immediately and use their protected rear deployment fallback when the forward band is unavailable
-- **AND** waiting arrivals remain counted in the active wave and admission occurs within the protected size-release bound rather than relying on a stalled-fight outcome
+- **WHEN** living enemies redirect after Keep loss toward a congested neighboring sector
+- **THEN** they retain current physical cells/actions and seek legal approaches through the connected arena
+- **AND** no transfer deployment or corpse-release bound teleports them into that sector
 
 #### Scenario: Three ordinary units share a hex
-- **WHEN** three ordinary same-team units occupy one hex
-- **THEN** their size-two claims total six and another arrival cannot fit until enough size is released
+- **WHEN** three ordinary members of one homogeneous squad occupy a cell
+- **THEN** they own one squad claim and a different actor cannot fit regardless of cosmetic spacing
 
 #### Scenario: Boss consumes the whole hex
-- **WHEN** a size-six boss occupies or reserves a hex
-- **THEN** no other actor can occupy or reserve that hex until the boss claim is released
+- **WHEN** a single-member boss squad occupies or commits to a cell
+- **THEN** it has the same exclusive claim rule as an ordinary squad without a size-six budget
 
 #### Scenario: Mixed sizes are not fragmented
-- **WHEN** a legal same-team hex contains size two and an actor of size four requests admission
-- **THEN** admission can use the remaining four capacity without requiring a neighboring-position footprint
+- **WHEN** an ordinary squad and single-member boss request one free destination
+- **THEN** one deterministic actor wins the exclusive destination
+- **AND** body-size totals or visual offset shapes do not admit both actors
 
 ### Requirement: Deterministic targets and timed attack resolution
 
-Combat SHALL advance at 60 simulation ticks per second. A ready deployed unit SHALL attack when a living deployed opponent in its destination is in range, selecting the smallest hex distance, then lowest target initiative, then a seeded random tie. Melee attacks SHALL require distance exactly one; ranged and magic attacks SHALL use integer hex ranges of at least one. Units SHALL reselect at the next attack boundary and SHALL NOT retain a farther target solely because it was previously selected. An attack SHALL lock its primary identity and have a unique action identity, start tick, positive windup, impact tick and positive recovery interval. Current chill SHALL be sampled only when committing a new action, and its resulting positive deadlines SHALL remain fixed. The attacker SHALL hold position through windup and recovery. At impact the authority SHALL validate living attacker, living target, destination and range, applying at most one hit per victim per action. All valid unit, defense and already-scheduled periodic status damage due on a tick SHALL accumulate before casualties. New on-hit status applications SHALL then affect surviving victims only, with no immediate recursive damage. An invalid primary SHALL cause a miss with normal recovery and no replacement hit. Hit reactions, projectiles and animation callbacks SHALL NOT alter numerical action timing.
+Combat SHALL advance at 60 simulation ticks per second using one squad-owned movement/target/attack cycle. Ready squads SHALL engage eligible in-range enemy groups before routing. Enemies SHALL also consider physically reachable Watchposts and Keeps while defenders elsewhere remain alive. Selection SHALL use frozen objective priorities, distance/reachability and seeded ties; sector preference SHALL bias structural objectives without excluding foreign opponents. An attack SHALL lock one target group or structure, action identity, start, impact and recovery deadlines. Living participating members SHALL contribute their resolved X/Y or structural profiles against the common pre-impact state. Committed actions SHALL retain deadlines; invalid group/structure/range SHALL produce one miss without a replacement target. Every due unit, weapon and periodic contribution SHALL accumulate before casualties. Animation and projectiles SHALL own no damage.
+
+#### Scenario: Mutual lethal squad exchange
+- **WHEN** two living squads have valid lethal impacts due on the same tick
+- **THEN** all pre-impact living contributors deliver their strikes before both casualties are resolved
+- **AND** traversal order cannot cancel the second squad's attack
+
+#### Scenario: Locked group disappears
+- **WHEN** the last participating member of the locked enemy squad dies before impact
+- **THEN** the attack misses without switching to another group and retains its original recovery
 
 #### Scenario: Closest target precedes initiative
 - **WHEN** a ready ranged unit can attack a high-initiative enemy one hex away and a low-initiative enemy two hexes away
 - **THEN** it selects the enemy one hex away
 
 #### Scenario: Equal distance uses lower initiative
-- **WHEN** two in-range opponents have the same hex distance but different initiative
-- **THEN** the lower-initiative opponent is selected
+- **WHEN** opponent groups are equally distant at a ready targeting boundary
+- **THEN** the frozen squad objective/distance/seeded tie policy selects reproducibly
+- **AND** the former per-member target-initiative rule does not replace that policy; contested movement still uses actor initiative
 
 #### Scenario: Target changes between attacks
 - **WHEN** a closer opponent becomes available while an attack is winding up
@@ -69,41 +89,60 @@ Combat SHALL advance at 60 simulation ticks per second. A ready deployed unit SH
 - **THEN** both hits resolve and both units become dying, regardless of initiative
 
 #### Scenario: Target disappears during windup
-- **WHEN** a locked target dies, transfers or leaves range before impact
-- **THEN** the attack misses without damaging a replacement and retains its scheduled recovery
-- **AND** the attacker can select another target when ready
+- **WHEN** the locked enemy group loses its final living participant or leaves physical range before impact
+- **THEN** the attack misses without damaging another group and retains its scheduled recovery
+- **AND** the next ready boundary may choose a new compatible target
 
 #### Scenario: Different storage traversal
 - **WHEN** identical canonical units, seed, configuration and ordered requests are simulated with different internal insertion or traversal orders
 - **THEN** ordered locations, health, targets, attack identities and outcome agree at each tick
 
 #### Scenario: Splash respects impact identity
-- **WHEN** one splash attack impacts three eligible victims
-- **THEN** each victim receives at most one hit for that action on its impact tick
-- **AND** duplicate snapshots cannot apply additional damage
+- **WHEN** several member contributions from one committed group action hit the same victim
+- **THEN** each contributor resolves its own X/Y once and repeated observations cannot add any contribution
 
 ### Requirement: Stable combat identities and session lifetime
 
-Soldiers and enemies SHALL have match-scoped stable identities that are never reused. Living soldiers SHALL retain identity, type and remaining health between waves. Redistribution SHALL retain a living enemy's identity, type, health, origin, effective profile and remaining attack recovery while cancelling its former destination's pending attack, move and route. Its old movement/position reservations SHALL be released as it is removed from that battlefield, and destination admission SHALL create new reservations only when legal. Dying enemies SHALL NOT transfer or count as living wave enemies; their death reservations SHALL remain with their former battlefield until expiry. Combat units, reservations, decision state, dying bodies and event history SHALL have one authority owner and SHALL be released on session end or application exit. Fresh matches SHALL have independent state; delayed updates SHALL NOT affect another match. Presentation nodes and transport identities SHALL NOT serve as authoritative combat identities.
+Squad and member identities SHALL be separate match-scoped identities that are never reused. Living roster members SHALL retain archetype, equipment level, HP, service experience and ownership across waves. Regrouping SHALL preserve member identity while changing only its legal group/assignment. Redirection after Keep loss SHALL preserve enemy group/member identities, physical source, health, profiles and already committed timing; it SHALL change future objective preference without teleportation or new deployment admission. Dying members SHALL not redirect or count as living wave enemies. Session end SHALL release combat actors, claims, dying bodies and event state. Fresh sessions SHALL be independent; presentation/transport identities SHALL not replace authoritative identities.
+
+#### Scenario: Keep falls during enemy movement
+- **WHEN** an enemy squad is moving as its preferred Keep falls
+- **THEN** its source and committed destination/deadline remain unchanged while future objective preference redirects to a surviving Keep
+- **AND** no member is duplicated, healed or teleported
+
+#### Scenario: Fresh session
+- **WHEN** a match ends with living squads and retained deaths and a fresh match starts
+- **THEN** only the fresh match's identities, actors, claims and effects exist
 
 #### Scenario: Storage reuses an internal slot
 - **WHEN** a completed casualty is removed and a later unit is created
 - **THEN** the new unit has a different identity and cannot inherit its actions, tie choices or reservations
 
 #### Scenario: Moving enemy transfers
-- **WHEN** a city's elimination transfers an enemy that has reserved a source and destination
-- **THEN** both old movement reservations are released, the move is cancelled and the identity appears once in the receiving city's allocation
-- **AND** its health, profile and remaining attack recovery are preserved
+- **WHEN** an enemy squad redirects while moving as its preferred Keep falls
+- **THEN** its source, destination, arrival deadline and member HP stay unchanged
+- **AND** new objective preference is evaluated only at the next eligible decision
 
 #### Scenario: Fresh session after battle
 - **WHEN** a process ends a match with living units, moving units, dying bodies and recent events and starts another match
 - **THEN** the new match contains only its own roster and units and the old match's combat resources are released
 
-City-roster allied survivors SHALL restore their exact persistent home after retained death cleanup under army-roster, including final victory, without healing or reformation. Stored units SHALL retain identity/health while remaining noncombatants.
-
 ### Requirement: Committed movement and single attackable location
 
-A ready unit without any in-range opponent SHALL seek a legal route to an attack position. It SHALL rank currently reachable opponents by the fewest route steps to such a position, then target initiative and a seeded tie. Temporarily blocked objectives SHALL permit bounded waiting. Units SHALL NOT be assigned permanent combat lanes. For equal shortest approach positions, ranged/magic units SHALL prefer a position screened by a living friendly melee hex on a shortest path to the selected opponent; remaining equal goals SHALL prefer lower occupied/reserved capacity, then seeded ties. These preferences SHALL NOT override closest-target selection, a shorter route, in-range holding or committed actions. Accepted moves SHALL traverse one adjacent hex in a positive duration resolved from configured base timing and chill at movement commitment, retaining the actor's full size at the source and reserving its full size at the destination and required transit conflicts atomically. Move arbitration SHALL use lower actor initiative first and seeded ordering for equal initiative. A moving unit SHALL be attackable only at its source hex until arrival; arrival SHALL switch its attackable location to the destination and release source/transit reservations. Units SHALL NOT attack or change route during a committed step. Independent accepted actions SHALL be allowed to begin on the same tick without artificial initiative-based frame delays. A unit with an in-range opponent SHALL hold its position, including while recovering, rather than retreat to a preferred distance.
+Squads SHALL commit one adjacent move at a time with positive configured duration. Arbitration SHALL choose one destination winner using lower actor initiative and seeded ties. Friendly dependency chains, exchanges and cycles SHALL commit together with a common arrival deadline; unrelated moves SHALL retain their independent durations. Opposing exchanges and conflicts with nonmoving occupants/pending destinations SHALL be refused without partial claims. A moving squad SHALL remain attackable at its source until arrival, then switch once to its destination. No attack or route change SHALL interrupt a committed step. Ready squads with eligible in-range targets SHALL hold and attack, including ranged squads reached in melee.
+
+#### Scenario: Friendly exchange
+- **WHEN** friendly squads request each other's cells legally
+- **THEN** both commit a coordinated exchange and arrive together with exclusive final occupancy
+- **AND** an unrelated shorter move completes at its own deadline
+
+#### Scenario: Opposing exchange
+- **WHEN** opposing squads request each other's occupied cells
+- **THEN** both exchanges are refused and their previous claims/actions remain intact
+
+#### Scenario: Impact on arrival
+- **WHEN** a target's move arrives on an attack's impact tick
+- **THEN** that tick's range validation uses the destination, while earlier impacts use only the source
 
 #### Scenario: Competing movement requests
 - **WHEN** two ready allies require the same remaining destination capacity
@@ -124,13 +163,17 @@ A ready unit without any in-range opponent SHALL seek a legal route to an attack
 - **THEN** the ranged unit holds and uses its normal ranged attack profile rather than repeatedly retreating
 
 #### Scenario: Destination capacity is reserved atomically
-- **WHEN** two size-two allies request a cell with only two free size and conflicting admission
-- **THEN** the winning move claims exactly two size there and the rejected move acquires no endpoint or transit claim
-- **AND** the moving actor retains its source size until arrival and is counted once per endpoint
+- **WHEN** two friendly squads request the same free adjacent destination
+- **THEN** one winner acquires a coherent transition while the other preserves its standing action
+- **AND** their source positions remain attackable until their declared arrivals
 
 ### Requirement: Seeded fight reproducibility
 
-The authority SHALL retain and expose a non-secret combat seed and versioned immutable combat configuration. Equivalent canonical setup, seed, board/configuration version and ordered gameplay inputs SHALL produce identical ordered combat states, decisions, events and outcome on supported runtimes, independent of entity storage order, session GUID, rendering cadence and cosmetic effects. All random combat choices SHALL use a specified reproducible algorithm with stable decision identities and canonical candidate ordering. Exact target, scheduling and route ties SHALL use seeded randomness; deterministic identity order SHALL only canonicalize candidates and resolve algorithmic collisions. Re-observing or retrying an unchanged blocked decision SHALL NOT reroll its choice. Reconnect SHALL preserve authoritative decision progress; guests SHALL NOT independently choose combat actions.
+The authority SHALL expose a non-secret combat seed and immutable versioned configuration. Equivalent canonical roster, arena, seed, rules and ordered gameplay inputs SHALL produce identical ordered actor/member states, claims, events and outcomes independent of storage traversal, session GUID and presentation cadence. Seeded target, contribution-primary, movement and route ties SHALL use stable decision identities and canonical candidate ordering. Unchanged blocked observations SHALL not reroll a decision. Reconnect SHALL preserve current decision progress; clients SHALL never choose authoritative actions or consume combat randomness for scenery.
+
+#### Scenario: Equivalent observations
+- **WHEN** equivalent fights use different storage order, session GUIDs or frame rates
+- **THEN** normalized actions, victims, claims and outcomes agree
 
 #### Scenario: Complete combat trace under reversed insertion
 - **WHEN** the same canonical units, seed, rules and requests run with reversed entity insertion order
@@ -147,25 +190,41 @@ The authority SHALL retain and expose a non-secret combat seed and versioned imm
 
 ### Requirement: Authoritative death occupancy and current-state restoration
 
-Lethal damage SHALL immediately cancel a unit's ability to act or be targeted and remove it from living army/enemy counts. Its dying state SHALL retain final position, action progress at death, start/end ticks and position reservations until its configured positive death duration expires. Death during movement SHALL freeze that movement and retain both endpoint and transit reservations until death expiry, preventing its numerical endpoint/transit claims from being reused. Visual clearance is governed separately by the authoritative animated combat presentation requirement in `city-tabletop`. Space release SHALL depend only on the authority's simulation clock. Complete snapshots SHALL include all current moving and dying state needed to reconstruct occupancy and poses without historical events. Pause SHALL freeze action/death deadlines and no-progress clocks. A completed wave SHALL allow bounded authoritative death cleanup after combat actions cease and SHALL NOT reuse its board for the next wave before cleanup completes.
+Lethal member damage SHALL immediately remove that member's contribution and targeting eligibility. The last living participant's death SHALL immediately release the squad's logical source/transit claims and prevent further actions. Cosmetic deaths SHALL retain final member position/facing, frozen movement progress and positive start/end deadlines without blocking any logical cell. A death clip SHALL advance on the shared presentation clock while physical position remains frozen. Complete current state SHALL restore retained deaths without old events, restarting intervals or replaying sounds. Pause SHALL freeze simulation deadlines; wave outcomes SHALL not wait for bodies. Bounded post-wave cosmetic cleanup SHALL complete before the next formation is initialized.
+
+#### Scenario: Last member dies while moving
+- **WHEN** the final participant dies during a committed move
+- **THEN** logical claims are released on that death tick, another legal squad may use the space, and the casualty remains at its frozen cosmetic pose until expiry
+
+#### Scenario: Reconnect during death
+- **WHEN** a peer restores a current unexpired casualty
+- **THEN** it samples the remaining death interval without creating claims, restarting the clip or replaying the death sound
 
 #### Scenario: Death animation finishes on schedule
-- **WHEN** a unit dies at tick 200 with a configured 48-tick death duration
-- **THEN** it cannot attack or be selected from tick 200 and retains its positions through tick 247
-- **AND** tick 248 releases those positions even on a headless authority
+- **WHEN** the last member dies at tick200 with death duration48
+- **THEN** logical claims release at200 and the body remains frozen physically with its sampled clip through247
+- **AND** tick248 removes the body even if the authority is headless
 
 #### Scenario: Death interrupts movement
-- **WHEN** lethal damage occurs midway through an accepted move
-- **THEN** the unit does not arrive, its pose freezes at the recorded move progress and both endpoint/transit reservations remain until death end
+- **WHEN** the last participant takes lethal damage midway through a committed move
+- **THEN** it never arrives and its frozen body creates no endpoint/transit claims
 
 #### Scenario: Reconnect during a death interval
-- **WHEN** a client synchronizes after death start but before death end
-- **THEN** it reconstructs the current dying body at its elapsed pose and observes the same remaining reservations
-- **AND** it does not replay the death sound or restart the death interval
+- **WHEN** a client synchronizes after member death start but before expiry
+- **THEN** current pose and remaining cosmetic timing restore without logical claims
+- **AND** no old sound or restarted interval occurs
 
 ### Requirement: Validated combat configuration and bounded progression
 
-Capacity six, integer sizes one through six, type initiative, integer hex range, move duration, windup, recovery, death duration, bounded retry timing, splash cap/radius and fight limits SHALL come from validated configuration frozen for a fight. Invalid durations, invalid sizes or size claims, unusable protected entrances/frontiers or malformed board connectivity SHALL be rejected before combat. The virtual city-defense distance anchor SHALL be attackable from legal neutral siege positions without entering opposing protected cells and SHALL NOT provide a transit shortcut. Route/target decisions SHALL occur at action boundaries and relevant board-state changes rather than rendering frames. Movement SHALL advance along a committed route toward an attack position; unchanged blocking SHALL cause a bounded wait instead of repeated rerolls or locomotion. Every active city engagement SHALL have a positive configurable no-health-progress limit, and every wave SHALL have a positive maximum combat duration. Only actual unit/city health reduction in the engagement SHALL reset its no-progress deadline; movement, misses, zero-damage hits and redistribution SHALL NOT keep resetting it. A newly active engagement SHALL receive its declared initial allowance. At a limit, if normal health defeat or wave completion has not already resolved that tick, the whole match SHALL enter defeat with a battle-stalled reason and diagnostic city/limit/tick, without artificial damage or casualty creation. Cleanup after a resolved wave SHALL NOT trigger a stalled-fight defeat. Ordinary cleared-board reinforcement admission SHALL pass its protected-entry bound and reach engagement without consuming the stall allowance; conserving an indefinitely queued allocation SHALL NOT satisfy progression acceptance.
+Squad capacity, connected topology, structure footprints, X/Y and structural damage, ranges, initiative, movement/attack/death timings, status settings and positive fight limits SHALL be validated before combat and frozen for the match. Zero X or Y SHALL be valid; negative values, incompatible legacy boards and unsafe arithmetic SHALL be refused. Every active preferred-sector engagement and wave SHALL have bounded no-health-progress/duration handling. Actual member/structure health reduction SHALL count as progress; movement, misses, zero damage and redirection SHALL not fabricate progress. Normal health defeat or wave completion on a deadline tick SHALL precede stalled defeat. Stalled defeat SHALL preserve surviving health and identify its limit/tick without artificial casualties. Queued actors SHALL not falsely clear a wave.
+
+#### Scenario: Invalid configuration
+- **WHEN** configuration contains a nonpositive action duration, negative channel, duplicate footprint or incompatible legacy size-budget board
+- **THEN** the authority refuses before a match starts or resources are spent
+
+#### Scenario: Limit and normal result coincide
+- **WHEN** the last enemy dies on a fight-limit tick
+- **THEN** normal wave clear wins over the limit if a Keep survives, and all-Keeps-fallen defeat wins if none survives
 
 #### Scenario: Walking cannot extend a stalled battle
 - **WHEN** units continue moving or waiting but their city engagement has no actual health reduction for its configured allowance
@@ -182,12 +241,20 @@ Capacity six, integer sizes one through six, type initiative, integer hex range,
 - **AND** if all cities also fall, ordinary health defeat takes precedence over victory
 
 #### Scenario: Invalid timing or capacity
-- **WHEN** configuration specifies a zero-duration move, an attack with no recovery, or a size outside one through six or an unusable protected entry route
-- **THEN** the authority rejects that configuration before starting combat
+- **WHEN** configuration has a nonpositive move/recovery, invalid squad capacity or disconnected/shared-footprint-invalid board
+- **THEN** the authority refuses it before combat instead of applying the retired size/protected-entry schema
 
 ### Requirement: Explicit same-tick combat ordering
 
-At each combat simulation tick the authority SHALL first complete due movement arrivals, recoveries and death-space releases; then gather already-scheduled periodic status damage and validate all due impacts against a common pre-damage state; then apply accumulated damage, expire due effects after any terminal periodic tick, commit canonically ordered new status applications only to surviving victims, and mark casualties; then resolve city elimination and transfers, and admit queued entries; then resolve normal match/wave results and fight limits; then gather ready decisions and arbitrate/start compatible actions. Units killed that tick SHALL NOT start a new action. Units completing movement that tick SHALL use their new location for impacts and later decisions. Initiative SHALL order conflicting action admission without changing simultaneous impact semantics. Event ordering SHALL be canonical and reproducible. After combat actions stop, cleanup ticks SHALL only expire retained deaths and resolve an eligible pending next-wave readiness barrier. Surviving temporary statuses SHALL clear at wave resolution, and cleanup SHALL apply no later status damage. Expired chill SHALL be absent before new action selection; positive health reduction from periodic damage SHALL count as health progress, while status applications without health loss SHALL not.
+The authority SHALL complete due arrivals/recoveries/cosmetic expiry, gather due periodic damage and impacts against common pre-damage state, apply accumulated member/structure damage, commit surviving-victim effects and casualties, resolve Keep losses and nonteleporting redirection/admission, resolve normal outcomes/fight limits, then start compatible ready actions. A unit killed by due periodic damage SHALL still deliver an otherwise valid due impact. Casualties SHALL start no new action. Event order SHALL be canonical. Post-result cleanup SHALL expire bodies without new attacks, status damage, production or rewards.
+
+#### Scenario: Periodic lethal damage and due impact
+- **WHEN** burn kills a member on its valid impact tick
+- **THEN** the due impact and burn both resolve before death and no new attack begins
+
+#### Scenario: Logical release is immediate
+- **WHEN** the last member dies and a compatible mover is waiting
+- **THEN** the later decision phase may use the released cell without waiting for the death animation
 
 #### Scenario: Arrival precedes impact
 - **WHEN** a target arrives in another hex on the same tick as a locked attack's impact
@@ -198,75 +265,57 @@ At each combat simulation tick the authority SHALL first complete due movement a
 - **THEN** it becomes dying without starting a new attack or move
 
 #### Scenario: Released space is usable that tick
-- **WHEN** a corpse's death interval expires while a ready ally waits for its position
-- **THEN** later admission/decision phases on that tick can use the released capacity
+- **WHEN** the last member dies while a ready ally needs its source cell
+- **THEN** that tick's later legal admission/decision phase can use the released logical space before corpse expiry
 
 #### Scenario: Periodic lethal damage does not suppress a due attack
 - **WHEN** an otherwise eligible attacker has a valid impact due on the same tick that burn kills it
 - **THEN** the due impact and burn resolve in the common damage phase before its casualty
 - **AND** no new action starts after its death
 
-### Requirement: Protected deployment and eventual cleared-board admission
-
-Each faction SHALL have permanently protected deployment cells and usable entry-to-engagement routes for every allowed unit size, including size six. Opponents SHALL NOT occupy, reserve or transit those cells, including after the battlefield clears. Protection SHALL restrict occupation only and SHALL grant no attack immunity. Admissions SHALL use owner-protected cells when the forward band is blocked. Surviving defenders SHALL NOT block protected enemy entry on a cleared board. If any queued actor fits the free size in one protected cell, at least one fitting reinforcement SHALL deploy in the current admission phase. Free capacity in different cells SHALL NOT be pooled. If retained deaths are the only obstacle, the first-admission bound SHALL be the earliest existing death-release tick at which cumulative complete actor releases supply enough free size in one legal cell for at least one queued actor. Visual position fragmentation SHALL NOT delay admission. The bound SHALL be no later than the latest relevant retained death deadline and SHALL NOT advance on unchanged retries. This guarantees first admission; subsequent overflow SHALL obey ordinary queues. Queued enemies SHALL remain counted during the delay. Default fixtures SHALL establish actual subsequent attack/health progress and ordinary completion rather than merely conserve identities or reach BattleStalled.
-
-#### Scenario: Defenders hold the enemy forward band
-- **WHEN** a city cleared its enemies and surviving defenders occupy the neutral forward enemy-entry cells when reinforcements transfer in
-- **THEN** defenders have not occupied or reserved protected enemy cells and the first fitting reinforcement deploys there in the transfer tick's admission phase
-- **AND** deployed reinforcements engage normally without requiring defender withdrawal, fabricated damage or BattleStalled
-
-#### Scenario: Protected entry contains only retained deaths
-- **WHEN** transferred enemies await protected entry positions held by unexpired enemy death reservations on a cleared board
-- **THEN** the next compatible release tick provides an explicit first-admission bound
-- **AND** admission occurs by that tick and the allocation cannot falsely complete while queued
-
-#### Scenario: Early corpse expiry does not supply a fitting footprint
-- **WHEN** the first protected-entry death expiry leaves insufficient free size in each cell for every queued actor, but a later expiry supplies enough size in one cell
-- **THEN** the first-admission bound is the later compatible release tick, considering cumulative complete actor size releases
-- **AND** unchanged admission retries retain that bound and at least one reinforcement deploys at that tick
-
-#### Scenario: Protected positions are still attackable
-- **WHEN** a deployed reinforcement stands in its protected hex adjacent to a defending opponent
-- **THEN** each unit can attack the other using its ordinary range-one rule and positive attack timers
-- **AND** the defender cannot move into or reserve the protected hex after the reinforcement dies
-
-#### Scenario: City siege respects protected deployment
-- **WHEN** the defending army is gone and enemy melee approaches the city
-- **THEN** a legal neutral siege position puts the virtual city target within range one
-- **AND** enemy city attacks require no occupation of protected allied deployment cells
-
-#### Scenario: Free size cannot be pooled across cells
-- **WHEN** a queued size-six boss has three free size in each of two protected cells
-- **THEN** it remains queued until one legal cell has all six capacity available
-
 ### Requirement: Specified automatic formation
 
-For automatic enemy and isolated non-roster formation, at wave setup the authority SHALL first allocate rear-band placement to ranged/magic support, then forward-band placement to melee, activating the completed formation together. Within a tier, lower initiative then seeded actor ties SHALL determine placement order. Each placement SHALL choose a compatible cell with the least occupied/reserved capacity, then the declared owner-relative column order; within that cell it SHALL assign a deterministic distinct graphical anchor without requiring a shaped footprint. Support SHALL NOT fill spare frontline cells during setup, and melee overflow SHALL NOT displace allocated support. Excess units SHALL remain queued. During combat queued melee SHALL prefer legal forward-band capacity then its protected rear fallback, while queued support SHALL use protected rear capacity; queue ordering SHALL use melee/support tier, initiative and persistent seeded ties, scanning past currently non-fitting actors for the first actor that fits a legal cell; skipped actors SHALL retain their identities and tie state. Ready deployed units SHALL follow ordinary closest-target/route rules across columns, hold when in range and make no free intra-hex rearrangements.
+Enemy wave entries SHALL become homogeneous squads up to configured ordinary capacity; bosses SHALL each form one single-member squad. Members SHALL retain authored counts, levels and origin allocations. Squads SHALL enter distinct available configured enemy cells in deterministic order, with overflow queued without claims. Ally setup SHALL use persistent purchased squad homes and explicit owned preparation placement, preserving member formation slots. Different archetypes SHALL never be silently combined into one squad. Deployment zones SHALL be setup rules rather than permanent faction-protected combat barriers.
+
+#### Scenario: Authored four-member entry
+- **WHEN** an ordinary four-member entry forms with capacity three
+- **THEN** it creates one three-member squad and one one-member squad with exactly four identities
+
+#### Scenario: Persistent formation
+- **WHEN** an owned squad starts another wave with surviving veterans and funded replacement members
+- **THEN** it retains its chosen purchased home and each member's valid formation slot without class-based repacking or healing
 
 #### Scenario: Spread before filling a frontline hex
-- **WHEN** compatible empty forward cells exist in three declared columns and at least three melee units can deploy
-- **THEN** one melee unit is assigned to each column before another is packed into a used frontline hex
-- **AND** repeated equivalent setup/seed and reversed storage yield the same assigned size reservations
+- **WHEN** multiple enemy squads enter available configured enemy cells
+- **THEN** each deployed group has a separate cell in deterministic order
+- **AND** no two squads pack one cell and members retain their group formation slots
 
 #### Scenario: Keep support behind initial melee
-- **WHEN** a mixed army fits its declared forward and rear bands
-- **THEN** melee occupies the forward band and support occupies the rear band at distinct legal positions
-- **AND** support does not fill an unused forward position and receives no earlier action merely because its placement was allocated first
+- **WHEN** an owner arranges melee and support squads in its purchased preparation homes
+- **THEN** the chosen legal placements persist into combat without silent role-based repacking
+- **AND** range and action profiles remain unchanged
 
 #### Scenario: Mixed formation provides melee access
-- **WHEN** a crowded mixed formation includes queued melee and deployed support while opponents remain
-- **THEN** available legal capacity admits a queued melee unit and it reaches an attack position within the fixture's declared bound
-- **AND** admission does not delete support, move it for free or depend on BattleStalled
+- **WHEN** a mixed reachable encounter contains a queued melee group and deployed support
+- **THEN** a released legal entry cell admits the queued group and it reaches an attack within the declared bound
+- **AND** support is not deleted or moved for free and BattleStalled is not success
 
 #### Scenario: Larger queued actor does not block a fitting arrival
-- **WHEN** a size-six actor precedes a size-two actor in the canonical queue and a legal cell has only two free size
-- **THEN** the size-two actor is admitted and the size-six actor remains queued without lost identity or changed retry ties
-
-Allied city-roster units SHALL instead use persistent purchased first-fit homes under army-roster. Combat movement and later legal admission SHALL retain ordinary capacity/team/protection rules. Existing spread and tier scenarios SHALL remain applicable to automatic enemy and isolated non-roster formation, not override chosen allied homes.
+- **WHEN** ordinary and boss squads await available configured entry cells
+- **THEN** each requires one complete exclusive cell regardless of body size
+- **AND** canonical admission retains waiting identities and admits available actors without pooled size accounting
 
 ### Requirement: Consistent current action and reservation evidence
 
-Each combat unit SHALL expose one consistent current action identity, kind, target where applicable, and authoritative timing interval. Current-state snapshots, events, attack eligibility and reconstructed reservations SHALL agree on that action. A committed move SHALL own one source, destination and transition interval; an attack SHALL own one locked primary, impact deadline and recovery deadline. A miss SHALL resolve the impact once and retain normal recovery. Queued, dying and terminally frozen units SHALL NOT execute a pending action; retained pose and reservation evidence SHALL still reconstruct their declared frozen state. Invalid externally supplied numerical states SHALL be rejected before partially replacing valid unit state or reservations.
+Each squad SHALL expose one consistent current action identity/kind/target/timing interval, and member projections SHALL agree with that shared cycle while retaining individual health/status/formation. Reconstructed claims SHALL use squad identities and current source/transit state, never repeated member cosmetics. Rejected moves SHALL preserve old actions and acquire no partial claim. An impact SHALL resolve once and retain recovery after a miss. Stored/unfunded/queued/dead actors SHALL have no active claims. Invalid received actor/member/geometry projections SHALL be rejected atomically before replacing valid live state.
+
+#### Scenario: Received movement
+- **WHEN** a peer restores a moving three-member squad
+- **THEN** it reconstructs one source and one coherent committed transition, not three independent movers
+
+#### Scenario: Invalid received shape
+- **WHEN** a member references a missing squad or two living squads claim one source
+- **THEN** admission fails before current live state or credentials change
 
 #### Scenario: Rejected movement leaves the standing action intact
 - **WHEN** a standing unit requests a move whose footprint or transit token conflicts with an existing reservation
@@ -279,18 +328,22 @@ Each combat unit SHALL expose one consistent current action identity, kind, targ
 - **AND** later ticks and repeated observations cannot apply the same impact again
 
 #### Scenario: Moving casualty reconstructs from current state
-- **WHEN** a unit dies during movement and a complete current-state snapshot is observed without historical events
-- **THEN** its action identity, frozen progress and both endpoint/transit reservations agree
-- **AND** it cannot arrive or impact while those reservations remain held until death expiry
+- **WHEN** a complete snapshot contains a squad whose last member died during movement
+- **THEN** its current frozen cosmetic progress restores without live source/transit claims
+- **AND** it cannot arrive or impact during retained death presentation
 
 #### Scenario: Transfer preserves recovery without preserving the old attack
-- **WHEN** an enemy transfers during attack recovery
-- **THEN** its old primary and pending action are cancelled while its remaining ready deadline is preserved
-- **AND** receiving-field admission cannot allow it to attack before that deadline
+- **WHEN** an enemy squad redirects during recovery after its preferred Keep falls
+- **THEN** the committed cycle and remaining ready deadline remain unchanged without a fresh shot or teleport
+- **AND** future selection re-evaluates current compatible targets at readiness
 
 ### Requirement: Current movement objective ranking at eligible boundaries
 
-A ready unit without an in-range opponent SHALL reevaluate all eligible opponents at action boundaries and relevant changes to its battlefield's target eligibility, attackable locations or compatible approach capacity. It SHALL prefer a currently reachable attack position requiring fewer steps, then lower target initiative, then a reproducible seeded exact tie. A retained objective or cached route SHALL NOT override a strictly better current target score. Committed movement, attack windup and recovery SHALL retain their declared completion semantics. If the selected objective episode remains unchanged, route repair SHALL preserve its anti-cycling history and bounded waiting; a changed objective episode SHALL NOT inherit exclusions belonging only to the previous objective. An unchanged blocked retry SHALL preserve its decision identity, seeded scheduling rank and choice; reaching a retry deadline or changing presentation cadence alone SHALL NOT create a new choice.
+Ready squads without in-range targets SHALL evaluate currently reachable groups and permitted physical objectives. Shorter legal approaches SHALL precede retained farther routes; ties SHALL follow frozen objective preferences and seeded ordering. Each step SHALL be adjacent, bounded and legal. Committed moves/windup/recovery SHALL finish unchanged before re-evaluation. Unchanged blocking SHALL preserve decision identity and cause bounded waiting, not locomotion or rerolls. Relevant shared-arena changes SHALL be considered even when they occur in another sector. Ordinary reachable encounters SHALL engage without depending on BattleStalled.
+
+#### Scenario: Cross-sector opportunity
+- **WHEN** a ready allied squad can reach a foreign-origin threat through the connected arena
+- **THEN** its owner/destination does not exclude that threat from legal approach selection
 
 #### Scenario: Closer opponent becomes available between committed steps
 - **WHEN** a swordsman at cell 17 completes a move while retaining an objective at cell 2 and an eligible opponent at cell 8 offers a shorter legal approach on the default board
@@ -316,5 +369,6 @@ A ready unit without an in-range opponent SHALL reevaluate all eligible opponent
 - **AND** it waits without locomotion or new reservations
 
 #### Scenario: Another city changes independently
-- **WHEN** another city's units move while this actor's local decision inputs remain unchanged
-- **THEN** that movement alone does not reroll this actor's blocked choice
+- **WHEN** a distant owner changes state that does not change a blocked squad's eligible targets/approaches
+- **THEN** the blocked decision identity and seeded choice remain stable
+- **AND** a relevant reachable shared-arena change is considered regardless of owner

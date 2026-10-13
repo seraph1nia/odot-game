@@ -15,6 +15,16 @@ public sealed class PaidPreparationScheduleTests(ITestOutputHelper output)
         ConstructionPayment payment = ConstructionPayment.Standard, int unit = 0, UnitType type = UnitType.Swordsman)
     {
         PaidCampaignFixture.Apply(match, 1, new(action, slot, building, Unit: type, Payment: payment, UnitId: unit));
+        if (action == "ready")
+            foreach (City city in match.Players.Values.Where(c => c.Id != 1 && !c.Eliminated && !c.Ready))
+            {
+                for (int choices = 0; CampaignStrategy.Next(match.Snapshot(), city.Id, "support") is EconomyAction plan; choices++)
+                {
+                    Assert.True(choices < 100);
+                    PaidCampaignFixture.Apply(match, city.Id, plan);
+                }
+                PaidCampaignFixture.Apply(match, city.Id, new("ready"));
+            }
     }
     private static void Clear(Match match, int wave)
     {
@@ -41,7 +51,7 @@ public sealed class PaidPreparationScheduleTests(ITestOutputHelper output)
     [Fact]
     public void EarlyPaidLumberAndFinalStonecutterFundTheSpecialistSupplyChain()
     {
-        using var match = new Match(combatSeed: 1); match.Join(); Act(match, "start");
+        using var match = new Match(combatSeed: 1); match.Join(); match.Join(); Act(match, "start");
         Act(match, "build", 0, Building.Farm); Act(match, "build", 1, Building.MetalMine); Act(match, "build", 2, Building.Barracks);
         Act(match, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
         Act(match, "ready"); Act(match, "ready"); Act(match, "build", 4, Building.Stonecutter);
@@ -397,7 +407,8 @@ public sealed class PaidPreparationScheduleTests(ITestOutputHelper output)
         Act(match, "ready");
         MatchSnapshot received = SessionFlow.RoundTrip(match.Snapshot());
         Assert.Equal(Phase.Combat, received.Phase); Assert.Equal(3, received.Wave); Assert.Equal(9, received.ProductionCount);
-        Assert.Equal(7, received.Players[0].LastUpkeep!.Paid); Assert.Empty(received.Players[0].LastUpkeep!.Unfed);
+        Assert.Equal(beforeFinal.Players[0].FoodForecast!.Paid, received.Players[0].LastUpkeep!.Paid);
+        Assert.Equal(received.Players[0].Soldiers.Length, received.Players[0].LastUpkeep!.Paid); Assert.Empty(received.Players[0].LastUpkeep!.Unfed);
         foreach (UnitState member in received.Players[0].Soldiers)
         {
             UnitState old = beforeFinal.Players[0].Soldiers.Single(u => u.Id == member.Id);

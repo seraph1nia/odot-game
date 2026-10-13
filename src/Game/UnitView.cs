@@ -183,6 +183,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
             State.Level,
             State.IsBoss,
             State.SquadId,
+            State.Owner,
             State.FormationSlot,
             State.Participating,
             State.Destination,

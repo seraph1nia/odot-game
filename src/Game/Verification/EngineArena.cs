@@ -25,8 +25,36 @@ public partial class EngineTests
                 view.Synchronize(state, layout, true, 1); view.Sample(0);
                 Check(view.FindChildren("ArenaCell*", "MeshInstance3D", true, false).Count == 63 * players, "native arena component contains every connected cell for " + players + " players");
                 Check(view.FindChildren("StructureHealth*", "Label3D", true, false).Count == players * 2, "each owner has a native Keep and Watchpost label");
+                MultiMeshInstance3D[] groundBatches = view.GetChildren().OfType<MultiMeshInstance3D>().ToArray();
+                Check(groundBatches.Length == 3 && groundBatches.Sum(b => b.Multimesh.InstanceCount) == 63 * players,
+                    "three imported woodland surface families cover every playable cell exactly once");
+                foreach (MultiMeshInstance3D batch in groundBatches)
+                {
+                    Check(DetailedGround.Bases.Contains(batch.GetMeta("asset").AsString()) && batch.Multimesh.Mesh is ArrayMesh,
+                        "arena loads actual registered authored ground buffers");
+                    for (int i = 0; i < batch.Multimesh.InstanceCount; i++)
+                    {
+                        Transform3D transform = batch.Multimesh.GetInstanceTransform(i);
+                        float? height = GroundGeometry.Surface(batch.Multimesh.Mesh, transform, transform.Origin);
+                        Check(height is not null && Math.Abs(height.Value) < .001f, "imported arena contact plane stays at the exact logical ground");
+                    }
+                }
+                Node3D dressing = view.GetNode<Node3D>("ArenaWoodland");
+                Rect2 playable = BattlefieldFrame.GroundRect(view.Content);
+                Check(dressing.GetChildCount() <= 44, "one-to-four-owner exterior dressing has a bounded node budget");
+                foreach (Node3D prop in dressing.GetChildren().OfType<Node3D>())
+                    Check(!playable.HasPoint(new(prop.Position.X, prop.Position.Z)), "perimeter props stay outside all playable cells/objectives");
+                ulong[] stableGround = groundBatches.Select(b => b.GetInstanceId()).ToArray();
+                ulong staticDressing = dressing.GetInstanceId();
+                Check(match.Apply(1, Command.FromSnapshot(state, 1, "start", 1)).Accepted, "ordinary source revision starts the component match");
+                state = match.Snapshot(); view.Synchronize(state, layout, false, 1); view.Synchronize(state, layout, true, 1);
+                Check(stableGround.SequenceEqual(view.GetChildren().OfType<MultiMeshInstance3D>().Select(b => b.GetInstanceId()))
+                    && view.GetNode<Node3D>("ArenaWoodland").GetInstanceId() == staticDressing,
+                    "ordinary accepted revisions and deployment toggles reuse static woodland nodes/resources");
+                Check(view.FindChildren("DeploymentHome*", "Label3D", true, false).OfType<Label3D>().Count(l => l.Visible) == 6,
+                    "owned home markers expose shape/text states without showing foreign editable homes");
                 Aabb content = view.Content;
-                Check(state.Arena.Board.Cells.All(c => content.HasPoint(layout.CellPosition(c.Id))), "content-derived arena bounds retain every cell");
+                Check(state.Arena!.Board.Cells.All(c => content.HasPoint(layout.CellPosition(c.Id))), "content-derived arena bounds retain every cell");
                 foreach (ArenaSector sector in state.Arena.Sectors)
                     foreach (int cell in sector.DeploymentCells)
                     {
@@ -47,6 +75,38 @@ public partial class EngineTests
                     Check(navigation.Boundary.Grow(.02f).Encloses(BattlefieldFrame.Footprint(camera, viewport)), "arena extreme pan remains inside content-derived safe bounds");
                     if (players == 4 && dimensions.X == 1920) Check(Math.Abs(navigation.Pan.X) > TabletopCamera.Travel.X, "four-player arena pan is not clamped to old settlement travel");
                 }
+            }
+            // The real lobby grows without a new match/playback identity. Pure
+            // projection tests and a fresh native layout per width miss this
+            // receiving seam; reuse the actual native layout across all joins.
+            using (var lobby = new Match(combatSeed: 9))
+            {
+                lobby.Join(); MatchSnapshot initial = lobby.Snapshot();
+                var growing = new CombatLayout(new(initial.Arena!.Board));
+                for (int players = 1; players <= 4; players++)
+                {
+                    if (players > 1) lobby.Join();
+                    MatchSnapshot state = lobby.Snapshot(); growing.Synchronize(state);
+                    view.Synchronize(state, growing, false, 1);
+                    Check(state.MatchId == initial.MatchId && ReferenceEquals(growing.Arena, state.Arena),
+                        "same-lobby roster growth refreshes native geometry and physical footprints");
+                    var expected = new HexBoard(state.Arena!.Board);
+                    foreach (HexCellDefinition cell in state.Arena.Board.Cells)
+                    {
+                        System.Numerics.Vector3 point = SharedCombatProjection.CellPosition(expected, cell.Id);
+                        Check(growing.CellPosition(cell.Id).IsEqualApprox(new(point.X, point.Y, point.Z)),
+                            "expanded lobby cell projects using current accepted arena width");
+                    }
+                }
+            }
+            using (var solo = new Match(combatSeed: 9))
+            {
+                solo.Join(); MatchSnapshot state = solo.Snapshot();
+                var layout = new CombatLayout(new(state.Arena!.Board)) { Arena = state.Arena }; layout.Synchronize(state);
+                var oldGround = view.GetChildren().OfType<MultiMeshInstance3D>().ToArray();
+                view.Synchronize(state, layout, true, 1); await Frames();
+                Check(oldGround.All(n => !GodotObject.IsInstanceValid(n)) && view.FindChildren("ArenaCell*", "MeshInstance3D", true, false).Count == 63,
+                    "fresh four-player-to-solo replacement releases previous static geometry and markers");
             }
             await ArenaReceiving(view);
         }
@@ -72,6 +132,7 @@ public partial class EngineTests
             Find("Barracks").EmitSignal(BaseButton.SignalName.Pressed);
             Check(session.Results[^1].Accepted && match.Players[1].Slots[0].Type == Building.Barracks, "production build binding crosses numerical authority");
             session.Acknowledge(); Refresh(); await Frames();
+            Check(!Find("Recruit").Disabled, "ordinary native field recruitment is enabled at an empty purchased home, not tested as a Hall slot");
             Find("Recruit").EmitSignal(BaseButton.SignalName.Pressed);
             Check(session.Results[^1].Accepted && match.Players[1].Soldiers.Count == 1, "paid native recruit creates one member and squad");
             session.Acknowledge(); Refresh(); await Frames();
@@ -95,6 +156,46 @@ public partial class EngineTests
             hud.RefreshHud(2, 0); hud.RefreshSquads(); await Frames();
             Check(Find("ReinforceSquad").Disabled && Find("RegroupMember").Disabled, "native ally inspection never grants army editing ownership");
             await ArenaModels(match, arenaView);
+            hud.RefreshHud(1, 0); hud.RefreshSquads(); await Frames();
+            match.Players[1].Metal = 100; // Component supply, each request still pays.
+            Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 500, "build", 1, 1, Building.TownHall)).Accepted,
+                "native storage fixture buys a real Hall with its complete quote");
+            session.Acknowledge(); hud.RefreshSquads(); await Frames();
+            Check(!Find("RecruitNewSquad").Disabled, "native new-squad control recognizes the second free field home");
+            Find("RecruitNewSquad").EmitSignal(BaseButton.SignalName.Pressed);
+            int recruit = match.Players[1].Soldiers[^1].Id;
+            int newSquad = match.Combat.Read(recruit).SquadId;
+            Check(session.Results[^1].Accepted && newSquad != squad && session.State.Players[0].Soldiers.Length == 2,
+                "native new-squad recruitment pays separately and waits for acknowledgment");
+            session.Acknowledge(); hud.RefreshSquads(); await Frames();
+            Find("Squad" + newSquad).EmitSignal(BaseButton.SignalName.Pressed); await Frames();
+            var destination = modalHost.FindChild("RegroupDestination", true, false) as OptionButton
+                ?? throw new InvalidOperationException("Missing native regroup selector");
+            destination.Select(destination.GetItemIndex(squad));
+            Find("RegroupMember").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(session.Results[^1].Accepted && match.Combat.Read(recruit).SquadId == squad,
+                "selected native regroup destination retains the paid member's identity");
+            session.Acknowledge(); hud.RefreshSquads(); await Frames();
+            Find("Squad" + squad).EmitSignal(BaseButton.SignalName.Pressed); await Frames();
+            Find("SquadMember" + recruit).EmitSignal(BaseButton.SignalName.Pressed);
+            Find("SquadStoreMember").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(session.Results[^1].Accepted && match.Combat.Read(recruit).Assignment is { Stored: true },
+                "native Hall storage transfers exactly the selected individual");
+            session.Acknowledge(); hud.RefreshSquads(); await Frames();
+            Find("Squad" + match.Combat.Read(recruit).SquadId).EmitSignal(BaseButton.SignalName.Pressed); await Frames();
+            destination.Select(destination.GetItemIndex(squad));
+            Check(!Find("SquadReleaseMember").Disabled, "native return control recognizes compatible field capacity");
+            Find("SquadReleaseMember").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(session.Results[^1].Accepted && match.Combat.Read(recruit).Assignment is { Stored: false }
+                && match.Combat.Read(recruit).SquadId == squad, "native Hall return uses the selected compatible field squad");
+            session.Acknowledge(); hud.RefreshSquads(); await Frames();
+            Find("Squad" + squad).EmitSignal(BaseButton.SignalName.Pressed); await Frames();
+            Find("SquadMember" + recruit).EmitSignal(BaseButton.SignalName.Pressed);
+            ResourceCost beforeRetirement = match.Players[1].Resources;
+            Find("SquadRetireMember").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(session.Results[^1].Accepted && match.Players[1].Soldiers.Count == 2 && match.Players[1].Resources == beforeRetirement,
+                "native retirement removes only the selected recruit without refund");
+            session.Acknowledge(); hud.RefreshSquads(); await Frames();
             // Explicit numerical fallen-city receiving input; actual ENet and
             // physical elimination ordering are separate C/A owners. Exercise
             // genuine native roster/HUD callbacks after compressed delivery.
@@ -151,6 +252,18 @@ public partial class EngineTests
         }
         MatchSnapshot roster = match.Snapshot(); var formation = new CombatLayout(new(roster.Arena!.Board)) { Arena = roster.Arena }; formation.Synchronize(roster);
         UnitState[] members = roster.Players[0].Soldiers; var byId = members.ToDictionary(u => u.Id);
+        arenaView.Synchronize(roster, formation, false, 1); arenaView.Sample(roster.Tick);
+        var summaries = System.Text.Json.JsonSerializer.SerializeToElement(arenaView.Observe(GetViewport().GetCamera3D(),
+            GetViewport().GetFinalTransform(), GetViewport().GetVisibleRect()), WireJson.Options);
+        Check(summaries.GetArrayLength() == 1 && summaries[0].GetProperty("Members").GetArrayLength() == members.Length,
+            "actual native summary exposes the complete current participating group");
+        foreach (var summary in summaries[0].GetProperty("Members").EnumerateArray())
+        {
+            UnitState member = byId[summary.GetProperty("Id").GetInt32()];
+            Check(summary.GetProperty("Health").GetInt32() == member.Health && summary.GetProperty("Maximum").GetInt32() == member.Profile.Health
+                && summaries[0].GetProperty("Text").GetString()!.Contains($"{HealthPoints.Format(member.Health)}/{HealthPoints.Format(member.Profile.Health)}", StringComparison.Ordinal),
+                "loaded native summary text retains each member's authoritative individual HP/max");
+        }
         Check(members.Select(u => formation.Position(u, roster.Tick)).Distinct().Count() == members.Length, "accepted per-member formation slots remain distinct on a single squad hex");
         foreach (UnitState member in members)
         {

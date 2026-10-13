@@ -45,8 +45,8 @@ public sealed record Rules
     public int SoldierDamage { get; init; } = 10;
     public int DefenderDamage { get; init; } = 2;
     public int AttackTicks { get; init; } = 60;
-    public int RangedHealth { get; init; } = 30;
-    public int RangedDamage { get; init; } = 10;
+    public int RangedHealth { get; init; } = 40;
+    public int RangedDamage { get; init; } = 12;
     public double RangedReach { get; init; } = 3;
     public int MeleeWindupTicks { get; init; } = 12;
     public int RangedWindupTicks { get; init; } = 18;

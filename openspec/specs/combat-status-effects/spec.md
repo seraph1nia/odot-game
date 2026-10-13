@@ -7,12 +7,21 @@ Make researched burn, poison and chill produce readable, bounded and reproducibl
 ## Requirements
 
 ### Requirement: Authoritative status application and bounded state
-Only a valid landed attack against an eligible living deployed opponent SHALL create researched status applications, once per chosen victim and attack identity. Fire Mage splash SHALL use the existing victim cap/radius and apply burn only to actual victims; Venom Crossbowmen SHALL apply poison to their primary; Frost Mages SHALL apply chill to actual victims. Misses, cosmetic collision, city-health hits, snapshots and repeated observation SHALL not apply statuses. Status damage/strength, tick periods, durations and caps SHALL come from validated immutable rules; unsafe arithmetic, invalid duration/period and unbounded caps SHALL reject before a match starts. A target SHALL have at most one burn, three poison stacks and one chill. Equivalent inputs SHALL produce canonically ordered status state and events independent of entity storage or rendering cadence.
+
+Only a landed contribution causing positive direct damage to an eligible living participating member SHALL create that contributor's researched on-hit application once per member/action identity. Fire and Frost SHALL follow actual positive X/Y victims; Venom SHALL follow its actual damaged members. A zero-damage primary SHALL receive no effect from that contribution. Structure damage, misses, cosmetic collisions, repeated observations and snapshots SHALL grant no member statuses. Rules SHALL validate potency/period/duration/caps and safe arithmetic; each member SHALL retain at most one burn, three poison stacks and one chill. Canonical multi-source resolution SHALL be independent of traversal and render cadence.
+
+#### Scenario: Zero-X group attack
+- **WHEN** a researched strike with zero X and positive Y lands on a living group
+- **THEN** only positively damaged secondary members receive its effect and the zero-damage primary does not
+
+#### Scenario: Miss
+- **WHEN** the locked group has no eligible participant at impact
+- **THEN** no direct damage or status is applied to another group
 
 #### Scenario: Status follows actual splash victims
-- **WHEN** a Fire Mage lands a valid capped splash attack inside a larger enemy cluster
-- **THEN** only the chosen damage victims gain burn once
-- **AND** an invalid primary produces no damage or burn on its former neighbors
+- **WHEN** a Fire Mage lands uncapped X/Y contributions on an enemy group
+- **THEN** only positively damaged members receive burn once per contributing identity
+- **AND** zero-damage primaries and neighboring groups receive none
 
 #### Scenario: Bounded multi-source applications
 - **WHEN** many researched units apply effects to one target in the same tick
@@ -44,7 +53,16 @@ Poison SHALL provide a longer periodic damage lifetime than burn and at most thr
 - **THEN** those stacks retain captured potency and scheduled damage until their individual expiry or target death
 
 ### Requirement: Chill affects new actions without hard control
-Chill SHALL reduce movement speed and attack cadence through a bounded positive percentage increase to new action durations. Reapplication SHALL use the greatest existing/incoming slow and later expiry without stacking percentages. At each new move/attack commitment the authority SHALL sample current chill and calculate positive integer durations with declared upward rounding; movement, windup and recovery SHALL use the same duration multiplier. The committed deadlines SHALL then remain unchanged if chill is applied, refreshed or expires. Chill SHALL expire before new action selection on its expiry tick. It SHALL neither interrupt an attack nor immobilize/freeze/stun a unit, alter initiative/range/size, or create new reservations outside the ordinary movement admission rules.
+
+Individual chill SHALL remain inspectable with bounded strength and expiry. Each new squad move/attack SHALL sample the rounded-up arithmetic mean of current chill percentages across living participating members, including healthy members' zero values. The resulting bounded multiplier SHALL use declared upward rounding for positive movement, windup and recovery durations. Committed deadlines SHALL not change when a member dies or chill arrives/expires. Expired chill SHALL be absent before new decisions. Chill SHALL not interrupt, freeze, stun, change range/initiative/capacity or acquire extra claims. Reapplication SHALL retain the greater member strength and later expiry without stacking percentages.
+
+#### Scenario: One chilled member
+- **WHEN** a three-participant squad has one member at 30 percent chill and two at zero
+- **THEN** a new squad action samples 10 percent rather than 30 percent
+
+#### Scenario: Existing action
+- **WHEN** chill changes after a move or attack was committed
+- **THEN** that action retains its arrival/impact/recovery deadlines and only later commitments resample
 
 #### Scenario: Chill arrives during movement or windup
 - **WHEN** chill is applied to a unit with an already committed move or attack
@@ -56,7 +74,16 @@ Chill SHALL reduce movement speed and attack cadence through a bounded positive 
 - **THEN** the committed attack keeps its declared interval and the following eligible attack uses the unchilled timing
 
 ### Requirement: Periodic damage and status lifecycle
-Due periodic damage SHALL join ordinary unit/defense damage against a common pre-damage state before casualties. A unit killed by periodic damage that tick SHALL still deliver an otherwise valid already-due impact, and SHALL start no later action. New statuses SHALL commit only to survivors after accumulated damage, so no application revives a casualty. Only actual health reduction SHALL reset existing engagement progress; refreshes and chill alone SHALL not reset it. Death SHALL remove active status scheduling while retaining sufficient final state for presentation. Enemy redistribution SHALL preserve statuses, captured potency and absolute deadlines without adopting recipient technologies or granting free ticks. Already afflicted transferred queued enemies SHALL continue periodic damage/expiry without becoming attack targets or acquiring spatial claims. Fresh undeployed recruits and unfed reserves SHALL start without effects. Wave resolution SHALL clear surviving temporary effects without healing and cleanup SHALL not deliver post-result status damage.
+
+Due individual periodic damage SHALL accumulate with valid due group/weapon impacts before casualties. An otherwise valid due strike SHALL survive same-tick lethal periodic damage; casualties SHALL start no later action. New effects SHALL apply only to surviving victims. Only actual member/structure HP loss SHALL count as health progress. Member death SHALL stop its scheduling; fresh recruits/unfunded reserves SHALL have no invented effects. Changing an enemy squad's preferred sector SHALL retain member statuses, captured potency and absolute deadlines without teleportation, recipient technology or extra ticks. Wave resolution SHALL clear surviving temporary effects without healing; cleanup SHALL deliver no post-result status damage.
+
+#### Scenario: Poisoned enemy redirects
+- **WHEN** a poisoned enemy squad's preferred Keep falls
+- **THEN** its member's physical pose, poison stacks and next damage deadlines remain unchanged while future objective preference redirects
+
+#### Scenario: Result and cleanup
+- **WHEN** a shared wave ends with afflicted survivors and unexpired bodies
+- **THEN** temporary effects clear without healing and later cosmetic cleanup creates no status damage
 
 #### Scenario: Periodic damage and mutual lethal impacts
 - **WHEN** poison and ordinary impacts are due on a tick with mutually lethal contributions
@@ -64,9 +91,9 @@ Due periodic damage SHALL join ordinary unit/defense damage against a common pre
 - **AND** the normal defeat/victory precedence is retained
 
 #### Scenario: Transfer while poisoned and queued
-- **WHEN** an afflicted enemy transfers and waits for destination deployment space
-- **THEN** its identities, stacks and deadlines persist and due poison can reduce its health in the destination allocation
-- **AND** it remains untargetable and occupies no space while queued, with no duplicate tick on admission
+- **WHEN** an afflicted enemy squad redirects preferred sector or an explicitly queued actor awaits legal entry
+- **THEN** absolute individual stacks/deadlines persist without another tick or recipient technology
+- **AND** redirection never moves the actor; an actually queued actor remains untargetable and claim-free
 
 #### Scenario: Wave end and no-progress clock
 - **WHEN** a shared wave completes with surviving afflicted allies, or chill repeatedly refreshes without health reduction

@@ -97,7 +97,7 @@ public partial class Tabletop
         UnitState? chosen = stored.FirstOrDefault(u => u.Id == _storedUnit);
         foreach (Button button in _hallUnits) button.Modulate = button.Name == "HallUnit" + _storedUnit ? Colors.White : new Color(.85f, .85f, .85f);
         _hallSelection.Text = chosen is null ? "Select a stored unit. Selection changes nothing." : $"Selected #{chosen.Id} · wounds and level are retained when sent.";
-        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, 1, plots: army.Homes.Select(h => h.Plot).ToArray(), type: chosen.Type) is not null;
+        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, plots: army.Homes.Select(h => h.Plot).ToArray(), type: chosen.Type) is not null;
         _hallSend.Disabled = !CanEdit() || chosen is null || !fits; _hallRetire.Disabled = !CanEdit() || chosen is null;
         _hallSend.TooltipText = chosen is null ? "Select a stored unit." : !fits ? "Battlefield homes are full. Buy a space or retire/store a field unit first." : "Rejoin a matching squad or a free purchased home; no healing or recruitment payment.";
     }

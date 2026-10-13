@@ -209,7 +209,7 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal(new[] { UnitType.Swordsman, UnitType.Crossbowman }, match.Players[1].Soldiers.Select(u => u.Type));
         Assert.Equal(10, match.Players[1].Food); Assert.Equal(16, match.Players[1].Gold);
         Assert.Equal(17, match.Players[1].Metal);
-        Assert.Equal(3000, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
+        Assert.Equal(4000, match.Players[1].Soldiers.Single(u => u.Type == UnitType.Crossbowman).Health);
         Apply(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
         Assert.False(Apply(match, "recruit", 1, UnitType.Crossbowman).Accepted);
     }

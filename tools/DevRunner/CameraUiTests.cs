@@ -213,8 +213,8 @@ internal sealed partial class Runner
         UiObservation after = await UiProtocol.Probe(client, options.StartupTimeout, token);
         HealthBars(after);
         Require(before.VisualSeconds == after.VisualSeconds && JsonSerializer.Serialize(before.Units) == JsonSerializer.Serialize(after.Units), "local camera keeps paused world poses and health frozen");
-        Require(after.HealthBars.Any(b => b.Visible && before.HealthBars.Any(old => old.Id == b.Id && old.Visible && (Math.Abs(old.X - b.X) > 1 || Math.Abs(old.Y - b.Y) > 1))), "paused overhead bars follow camera");
-        Require(after.HealthBars.All(b => before.HealthBars.Single(old => old.Id == b.Id).Fraction == b.Fraction), "paused camera preserves health fractions");
+        Require(HealthDisplay(after).Any(b => b.Visible && HealthDisplay(before).Any(old => old.Id == b.Id && old.Visible && (Math.Abs(old.X - b.X) > 1 || Math.Abs(old.Y - b.Y) > 1))), "paused overhead bars follow camera");
+        Require(HealthDisplay(after).All(b => HealthDisplay(before).Single(old => old.Id == b.Id).Fraction == b.Fraction), "paused camera preserves health fractions");
         await Checkpoint(client, "combat-camera-paused", token);
         await Click(client, "ResetView", token);
     }

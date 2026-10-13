@@ -157,7 +157,7 @@ public partial class Tabletop : Node3D
             Vector3 point = view.GlobalPosition + new Vector3(0, .7f, 0);
             Vector2 position = _camera.UnprojectPosition(point);
             Vector2 screen = GetViewport().GetFinalTransform() * position;
-            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position), Enabled = !Application.IsModalOpen };
+            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position) && PickUnit(position) == view, Enabled = !Application.IsModalOpen };
         }
         fields["WorldLabels"] = _boards.GetValueOrDefault(_focus)?.FindChildren("*", "Label3D", true, false).OfType<Label3D>()
             .Where(label => label.IsVisibleInTree() && label.Text.Length > 0).Select(label => label.Text).ToArray() ?? [];
@@ -191,7 +191,7 @@ public partial class Tabletop : Node3D
                 if (n.Name.ToString().StartsWith("Slot", StringComparison.Ordinal) && Focus()?.Slots[int.Parse(n.Name.ToString()[4..], System.Globalization.CultureInfo.InvariantCulture)].Type is Building.ArrowTower or Building.CatapultTower or Building.RapidArrowTower or Building.BombardTower or Building.ResearchTower && placementBoard.GetNodeOrNull<Node3D>("Buildings/Upgrade" + n.Name.ToString()[4..]) is { } basis && basis.GetMeta("asset").AsString() == AssetCatalog.Plinth) support = LandscapeAssets.TowerDeck(basis);
                 return new { Name = n.Name.ToString(), Asset = n.GetMeta("asset").AsString(), X = anchor.X, Y = anchor.Y, Z = anchor.Z, Support = support, Top = LandscapeAssets.Bounds(n).End.Y, Contact = new[] { contact.X, contact.Y, contact.Z } };
             }).ToArray() : [];
-        fields["Camera"] = _navigation.Observe(Center(_focus) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
+        fields["Camera"] = _navigation.Observe((InArena ? CombatLayout.ArenaOrigin : Center(_focus)) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
         fields["Revision"] = _revision;
         fields["MatchId"] = _matchId;
         fields["MatchPhase"] = game.State?.Phase ?? Phase.Lobby;
@@ -220,6 +220,9 @@ public partial class Tabletop : Node3D
         fields["HudHeight"] = _panel.Size.Y;
         fields["HudTop"] = (GetViewport().GetFinalTransform() * _panel.Position).Y;
         fields["HealthBars"] = _healthBars.OrderBy(p => p.Key).Select(p => p.Value.Observe(p.Key, GetViewport().GetFinalTransform())).ToArray();
+        fields["SharedArenaVisible"] = _arenaView?.Visible == true;
+        if (_arenaView is not null) fields["ArenaFrame"] = _arenaView.ObserveFrame(_camera);
+        fields["SquadSummaries"] = _arenaView?.Observe(_camera, GetViewport().GetFinalTransform(), WorldArea()) ?? [];
         fields["FeedbackText"] = _feedback.Text;
         fields["DetailText"] = _detail.Text;
         fields["RosterText"] = _rosterDetails.Text;
@@ -437,9 +440,9 @@ public partial class Tabletop : Node3D
                 button.Text = $"{AssetCatalog.UnitName(type)} L{slot.Level}\n ";
                 button.Visible = definition?.Recruits?.Contains(type) == true;
                 button.Disabled = !edit || !button.Visible || quote is null || !me!.Resources.TryPay(quote.Cost, out _)
-                    || UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, 1, plots: focus.Army.Homes.Select(h => h.Plot).ToArray(), type: type) is null;
+                    || UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, plots: focus.Army.Homes.Select(h => h.Plot).ToArray(), type: type) is null;
                 UiAssets.Cost(button, quote?.Cost ?? default);
-                if (quote is not null) button.TooltipText = (UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, 1, plots: focus.Army.Homes.Select(h => h.Plot).ToArray(), type: type) is null ? "Squad homes full · buy an empty plot, store or retire a member.\n" : "") + $"L{quote.Level} · HP {HealthPoints.Format(quote.Profile.Health)} · X/Y {HealthPoints.Format(quote.Profile.Damage)}/{HealthPoints.Format(quote.Profile.SecondaryDamage)} · food upkeep {quote.Upkeep}/battle\n" + CostExplanation(quote.Cost, focus!.Resources);
+                if (quote is not null) button.TooltipText = (UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, plots: focus.Army.Homes.Select(h => h.Plot).ToArray(), type: type) is null ? "Squad homes full · buy an empty plot, store or retire a member.\n" : "") + $"L{quote.Level} · HP {HealthPoints.Format(quote.Profile.Health)} · X/Y {HealthPoints.Format(quote.Profile.Damage)}/{HealthPoints.Format(quote.Profile.SecondaryDamage)} · food upkeep {quote.Upkeep}/battle\n" + CostExplanation(quote.Cost, focus!.Resources);
             }
             _quoteDetails.Text = _detail.Text + "\n" + string.Join("\n\n", _construction.Values.Concat(_recruitment.Values).Concat(_trades.Values).Append(_upgrade).Append(_rapidTower).Append(_bombardTower).Append(_buyPlot).Append(_recovery).Where(button => button.IsVisibleInTree() && button.TooltipText.Length > 0).Select(button => button.Text.Trim() + "\n" + button.TooltipText));
             foreach (Button button in _construction.Values.Concat(_recruitment.Values).Append(_upgrade).Append(_rapidTower).Append(_bombardTower))
@@ -490,7 +493,7 @@ public partial class Tabletop : Node3D
         if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == (InArena ? -2 : _focus) && content == _frameContent) return;
         foreach ((int id, Node3D board) in _boards) board.Visible = !InArena && id == _focus;
         if (_arenaView is not null) _arenaView.Visible = InArena;
-        foreach (UnitView unit in _units.Values) unit.Visible = InArena && unit.State.Deployed;
+        foreach (UnitView unit in _units.Values) unit.Visible = PresentationLimits.VisibleInTabletop(unit.State, InArena, _focus);
         int frame = InArena ? -2 : _focus;
         if (_frameFocus != frame) _navigation.Reset();
         _frameSize = size; _framePanelHeight = hud; _frameFocus = frame; _frameContent = content;
@@ -600,7 +603,7 @@ public partial class Tabletop : Node3D
         if (game.State is { } accepted)
         {
             _combatLayout.Synchronize(accepted);
-            _arenaView?.Synchronize(accepted, _combatLayout, _showDeployment && accepted.Phase is Phase.Building or Phase.Preparation, game.PlayerId);
+            _arenaView?.Synchronize(accepted, _combatLayout, _showDeployment && accepted.Phase is Phase.Building or Phase.Preparation, game.PlayerId, _selectedSquad);
             _arenaView?.Sample(_playback.Tick);
         }
         UnitState[] preview = game.State?.NextWave ?? [];
@@ -631,7 +634,7 @@ public partial class Tabletop : Node3D
                 view.QueueFree(); _units.Remove(id); continue;
             }
             view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, 0, _combatLayout, current);
-            view.Visible &= InArena;
+            view.Visible &= PresentationLimits.VisibleInTabletop(view.State, InArena, _focus);
         }
         foreach (int id in _strikes.Keys.Where(id => !_units.ContainsKey(id)).ToArray()) { _strikes[id].QueueFree(); _strikes.Remove(id); }
         foreach ((int id, UnitView view) in _units.Where(p => p.Key > 0 && p.Value.State.Class == UnitClass.Melee))

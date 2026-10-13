@@ -10,7 +10,7 @@ namespace Game.Core.Tests;
 // evidence remains019; complete mapped A/C spectator guards qualified021 before
 // retiring that fragile combined consumer. This is not balance/full-session or
 // eliminated-spectator acceptance. Thin actual authority/paid/codec observations,
-// seed1, 66-prefix +nineReady, finite4000-tick W3; no grants/new simulator.
+// seed1, bounded paid prefix +nineReady, finite4000-tick W3; no grants/new simulator.
 public sealed class PaidStoredVeteranHistoryTests(ITestOutputHelper output)
 {
     [Fact]
@@ -40,8 +40,9 @@ public sealed class PaidStoredVeteranHistoryTests(ITestOutputHelper output)
             return command;
         }
         _ = PreparePaidPrefix(flow, Paid, ledger);
-        Assert.Equal(66, ledger.Count);
+        int prefixCommands = ledger.Count;
         MatchSnapshot prefix = Receive(flow.State);
+        Assert.Equal(6, prefix.ProductionCount);
         Assert.Equal(Phase.Building, prefix.Phase); Assert.Equal(3, prefix.Wave);
         UnitState[] earned = prefix.Players[2].Soldiers;
         Assert.NotEmpty(earned);
@@ -51,7 +52,7 @@ public sealed class PaidStoredVeteranHistoryTests(ITestOutputHelper output)
             foreach (int player in prefix.Players.Where(c => !c.Eliminated).Select(c => c.Id)) Paid(player, new("ready"));
         MatchSnapshot entry = Receive(flow.State);
         Assert.Equal(Phase.Combat, entry.Phase); Assert.Equal(9, entry.ProductionCount);
-        Assert.Equal(75, ledger.Count);
+        Assert.Equal(prefixCommands + 9, ledger.Count);
         UnitState[] stored = entry.Players[2].Soldiers;
         Assert.Equal(earned.Select(u => u.Id), stored.Select(u => u.Id));
         foreach (UnitState before in earned)

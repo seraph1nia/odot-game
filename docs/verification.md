@@ -18,9 +18,9 @@ One owner per topic, rather than competing copied policies:
 
 `Verify and build` retains the existing `source`, `linux-package`,
 `windows-package` job identifiers. PRs and main pushes use the same bounded
-headless coverage: formatting/compilation, fast C# (excluding `Tier=Deep`), five
-production Godot component cases (settings, animation, assets, Worldtree and
-Tabletop receiving bindings), three short transport/lifecycle cases, offline
+headless coverage: formatting/compilation, fast C# (excluding `Tier=Deep`), six
+production Godot component cases (settings, animation, assets, Worldtree,
+Tabletop receiving bindings and the shared arena), three short transport/lifecycle cases, offline
 native extension/build identity, and native Linux/Windows export/runtime probes.
 Linux exports mutate sequentially; OS jobs have independent workspaces. Source
 prepares once before overlapping already-built core/runner binaries with bounded
@@ -137,3 +137,17 @@ use one prepared runner invocation, not concurrent `mise` invocations.
 
 See the audit for implementation-time selected receipts and remaining risks;
 final-head verification belongs to the outer validation phases.
+
+
+## Shared arena recovery
+
+[Shared arena](shared-arena.md) owns current actors, objectives, native controls,
+woodland styling and protocol15/rules7/flow2. [Paid baselines](paid-squad-baselines.md)
+distinguish full-six Crossbow arithmetic survival from owner-deferred paid ranged
+openings, ten genuine solo wins and the finite1..4owner cooperative sample.
+The [audit](testing-audit.md#shared-arena-recovery-current-source-checkpoint-2026-10-13)
+records current-source receipts and intermediate failures; old four-edit or
+pre-trace receipts are historical. Compact native squad summaries expose each
+member's HP, while the inspector retains full individual details. Cosmetic
+death overlap grants no logical claim. Component/node correctness remains
+separate from explicitly authorized rendered combat and platform packages.

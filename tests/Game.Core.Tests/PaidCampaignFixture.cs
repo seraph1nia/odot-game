@@ -13,6 +13,8 @@ namespace Game.Core.Tests;
 internal static class PaidCampaignFixture
 {
     internal sealed record Receipt(Command Command, ResourceCost Before, ResourceCost After, ResearchState ResearchBefore, ResearchState ResearchAfter);
+    internal sealed record Travel(long Tick, int Squad, int Owner, int From, int To);
+    internal sealed record Rescue(long Sequence, long Tick, int Attacker, int Squad, int Owner, int Victim, int ThreatenedOwner, int Cell, int KeepHealth);
     internal sealed record Wave(int Number, int Ticks, int KeepDamage, int WatchpostDamage, int Casualties, int Injured, int LostHealth,
         int Unfed, int PaidFood, int ForeignOriginImpacts, CityState[] Entry, CityState[] Exit)
     {
@@ -20,6 +22,8 @@ internal static class PaidCampaignFixture
         // never expands incoming snapshots, protocol history or simulation.
         public UnitState[] EnemyEntry { get; init; } = [];
         public CombatEvent[] Events { get; init; } = [];
+        public Travel[] Travel { get; init; } = [];
+        public Rescue[] Rescues { get; init; } = [];
     }
     internal sealed record Result(string Family, int Players, ulong Seed, int MaximumHomes, int MaximumTier, bool HallUpgrades,
         Phase Outcome, DefeatReason Reason, StallDiagnostic? Stall, int ReachedWave, int ProductionCount, int CombatTicks,
@@ -198,7 +202,7 @@ internal static class PaidCampaignFixture
                     {
                         Assert.True(actions < 100, "Paid strategy did not converge.");
                         MatchSnapshot before = match.Snapshot();
-                        string approach = family == "rescue" && city.Id == players ? "uninvested" : family == "rescue" ? "frontline" : family;
+                        string approach = family == "rescue" && city.Id == players ? "uninvested" : family == "rescue" ? "support" : family;
                         EconomyAction? plan = approach == "uninvested" ? null : CampaignStrategy.Next(before, city.Id, approach, maximumHomes, maximumTier, hallUpgrades);
                         if (plan is null) break;
                         Receipt receipt = Apply(match, city.Id, plan); commands.Add(receipt);
@@ -218,10 +222,24 @@ internal static class PaidCampaignFixture
             MatchSnapshot entry = match.Snapshot(); long start = match.Tick, cursor = match.Combat.EventSequence;
             int casualties = 0, keep = 0, post = 0, foreign = 0;
             var events = new List<CombatEvent>();
+            var travel = new List<Travel>(); var rescues = new List<Rescue>();
+            HexBoard board = match.Combat.Board;
+            var previous = entry.Squads.Where(s => s.Faction == Faction.Adventurers && s.Hex.Lifecycle == UnitLifecycle.Alive)
+                .ToDictionary(s => s.Id, s => s.Hex.Position.Cell);
             while (match.Phase == Phase.Combat)
             {
                 Assert.True(++ticks <= 100000, "Paid campaign exceeded its documented fixed-step bound.");
                 match.Step();
+                if (family == "rescue")
+                    foreach (SquadState squad in match.Combat.SquadSnapshots().Where(s => s.Faction == Faction.Adventurers && s.Hex.Lifecycle == UnitLifecycle.Alive))
+                    {
+                        if (previous.TryGetValue(squad.Id, out int from) && from != squad.Hex.Position.Cell)
+                        {
+                            Assert.Contains(squad.Hex.Position.Cell, board.Cell(from).Neighbors);
+                            travel.Add(new(match.Tick, squad.Id, squad.Owner, from, squad.Hex.Position.Cell));
+                        }
+                        previous[squad.Id] = squad.Hex.Position.Cell;
+                    }
                 foreach (CombatEvent e in match.Combat.Events().Where(e => e.Sequence > cursor))
                 {
                     if (trace) events.Add(e);
@@ -231,7 +249,23 @@ internal static class PaidCampaignFixture
                     // Hit projects the damaged member; Impact projects the
                     // contributing attacker and its actual victim IDs.
                     if (e.Type == CombatEventType.Impact && e.Landed && e.Unit is { Faction: Faction.Adventurers } attacker
-                        && entry.Enemies.Any(u => e.Victims.Contains(u.Id) && u.Origin != attacker.Owner)) foreign++;
+                        && entry.Enemies.Any(u => e.Victims.Contains(u.Id) && u.Origin != attacker.Owner))
+                    {
+                        foreign++;
+                        if (family == "rescue")
+                            foreach (int victim in e.Victims)
+                            {
+                                UnitState? original = entry.Enemies.FirstOrDefault(u => u.Id == victim && u.Origin != attacker.Owner);
+                                if (original is null) continue;
+                                UnitState enemy = match.Combat.Read(victim);
+                                City threat = match.Players[enemy.Destination];
+                                int sector = Array.FindIndex(entry.Arena!.Sectors, s => s.Owner == attacker.Owner);
+                                bool crossed = board.Cell(attacker.Hex!.Position.Cell).Coordinate.Column / SharedArena.SectorWidth != sector;
+                                if (crossed && enemy.Destination != attacker.Owner && !threat.Eliminated)
+                                    rescues.Add(new(e.Sequence, e.Tick, attacker.Id, attacker.SquadId, attacker.Owner, victim,
+                                        threat.Id, attacker.Hex.Position.Cell, threat.Health));
+                            }
+                    }
                 }
                 cursor = match.Combat.EventSequence;
                 if (ticks % 60 == 0) Legal(match.Snapshot());
@@ -249,7 +283,7 @@ internal static class PaidCampaignFixture
                 entry.Players.Sum(c => c.Soldiers.Sum(u => u.Health)) - exit.Players.Sum(c => c.Soldiers.Sum(u => u.Health)),
                 entry.Players.Where(c => c.LastUpkeep?.Wave == entry.Wave).Sum(c => c.LastUpkeep!.Unfed.Length),
                 entry.Players.Where(c => c.LastUpkeep?.Wave == entry.Wave).Sum(c => c.LastUpkeep!.Paid), foreign, entry.Players, exit.Players)
-            { EnemyEntry = trace ? entry.Enemies : [], Events = events.ToArray() });
+            { EnemyEntry = trace ? entry.Enemies : [], Events = events.ToArray(), Travel = travel.ToArray(), Rescues = rescues.ToArray() });
             if (trace)
             {
                 Dictionary<int, int> origins = entry.Enemies.ToDictionary(u => u.Id, u => u.Origin);

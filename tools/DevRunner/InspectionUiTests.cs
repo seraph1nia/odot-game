@@ -48,15 +48,23 @@ internal sealed partial class Runner
             UiObservation switched = await UiProtocol.Probe(client, options.StartupTimeout, token);
             if (switched.InspectedUnit is { } other && other.Id != inspected.Id) { Require(switched.SelectedSlot == before.SelectedSlot, "direct unit replacement retains plot"); break; }
         }
-        await Click(client, "Plot0", token);
-        UiObservation dismissed = await WaitUi(client, p => p.InspectedUnit is null && p.SelectedSlot == 0, "outside plot click dismisses inspector and selects once", token);
+        int expectedSlot;
+        if (interior.SharedArenaVisible)
+        {
+            // Settlement plots are hidden in the connected arena. An ordinary
+            // empty-world click dismisses without issuing a deployment command.
+            expectedSlot = before.SelectedSlot;
+            await FocusWorld(client, token);
+        }
+        else { expectedSlot = 0; await Click(client, "Plot0", token); }
+        UiObservation dismissed = await WaitUi(client, p => p.InspectedUnit is null && p.SelectedSlot == expectedSlot, "outside click dismisses inspector without duplicate world action", token);
         Require(AckSequence(client) == acknowledgements, "inspection and dismissal remain cosmetic");
         UiTarget unitTarget = dismissed.Targets.First(pair => pair.Key.StartsWith("Unit", StringComparison.Ordinal) && pair.Key != "UnitInspector" && pair.Value.Visible).Value;
         await client.Send(FormattableString.Invariant($"mouse-down {unitTarget.X} {unitTarget.Y}"));
         await client.Send(FormattableString.Invariant($"mouse-move {unitTarget.X + 40} {unitTarget.Y + 20}"));
         await client.Send(FormattableString.Invariant($"mouse-up {unitTarget.X + 40} {unitTarget.Y + 20}"));
         UiObservation dragged = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        Require(dragged.InspectedUnit is null && dragged.SelectedSlot == 0, "drag over units suppresses unit and plot selection");
+        Require(dragged.InspectedUnit is null && dragged.SelectedSlot == expectedSlot, "drag over units suppresses unit and plot selection");
         await Click(client, "ResetView", token);
     }
     private static long AckSequence(Child client) => client.History().Where(entry => entry.Type == "ack").Select(entry => entry.Result!.Sequence).DefaultIfEmpty().Max();

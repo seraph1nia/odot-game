@@ -135,27 +135,39 @@ public sealed class SharedCombatTests
         Assert.DoesNotContain(next.Reservations.Positions, p => next.Squads.Single(s => s.Id == p.UnitId).Owner == 2);
     }
 
-    [Fact]
-    public void NormalSoloTwoSquadDefenseAdvancesWithoutOccupancyCollisionsOrStall()
+    // Tier A full-force strength, explicitly arithmetic equipment/food setup.
+    // Paid opening diagnostics cannot isolate a complete ranged army. Default
+    // wave/profiles, retained seeds, <6000 steps; no children or melee screen.
+    [Theory]
+    [InlineData(UnitType.Swordsman, 8UL)]
+    [InlineData(UnitType.Crossbowman, 1UL)]
+    [InlineData(UnitType.Crossbowman, 123UL)]
+    public void NormalSoloTwoSquadDefenseAdvancesWithoutOccupancyCollisionsOrStall(UnitType type, ulong seed)
     {
-        using var match = new Match(new() { StartingGold = 100, StartingWood = 100 }, combatSeed: 8);
+        using var match = new Match(new() { StartingGold = 100, StartingWood = 100 }, combatSeed: seed);
         City city = match.Join()!; city.Metal = 100; city.Food = 100;
         long sequence = 0;
         void Apply(string action, int slot = -1, Building building = Building.Empty)
         {
-            CommandResult result = match.Apply(city.Id, Command.FromSnapshot(match.Snapshot(), ++sequence, action, city.Id, slot, building));
+            CommandResult result = match.Apply(city.Id, Command.FromSnapshot(match.Snapshot(), ++sequence, action, city.Id, slot, building, type));
             Assert.True(result.Accepted, result.Message);
         }
-        Apply("start"); Apply("build", 0, Building.Barracks);
+        Apply("start"); Apply("build", 0, type == UnitType.Crossbowman ? Building.ArcheryRange : Building.Barracks);
         for (int n = 0; n < 6; n++) Apply("recruit", 0);
+        MatchSnapshot roster = match.Snapshot();
+        Assert.Equal(6, city.Soldiers.Count);
+        Assert.All(roster.Squads, squad => Assert.Equal(3, squad.Members.Length));
+        Assert.Equal(2, roster.Squads.Length);
         Apply("ready"); Apply("ready"); Apply("ready");
+        Assert.Equal(6, match.Snapshot().Players[0].LastUpkeep!.Paid);
         for (int tick = 0; tick < 6000 && match.Phase == Phase.Combat; tick++)
         {
             match.Step();
             SquadState[] actors = match.Snapshot().Squads.Where(s => s.Hex.Lifecycle == UnitLifecycle.Alive).ToArray();
             Assert.Equal(actors.Length, actors.Select(s => s.Hex.Position.Cell).Distinct().Count());
         }
-        Assert.NotEqual(Phase.Combat, match.Phase);
+        Assert.Equal(Phase.Building, match.Phase);
+        Assert.True(city.Health > 0);
         Assert.Null(match.Stall);
         Assert.Equal(2, match.Wave);
         Assert.Contains(city.Soldiers, u => u.Health > 0);

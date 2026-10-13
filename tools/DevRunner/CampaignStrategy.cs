@@ -38,7 +38,7 @@ internal static class CampaignStrategy
             return new("build", slot, type, Payment: ConstructionPayment.GoldRecovery);
         return null;
     }
-    private static bool CanField(CityState city, UnitType type)
+    internal static bool CanField(CityState city, UnitType type)
     {
         ArmyState army = city.Army ?? throw new InvalidOperationException("Authority must project army homes.");
         return army.Homes.Any(h => h.Purchased && h.Plot.Type == Building.Empty && (h.Used == 0
@@ -99,6 +99,13 @@ internal static class CampaignStrategy
         if (maximumHomes is < 2 or > 6 || maximumTier is < 1 or > 5) throw new ArgumentOutOfRangeException(nameof(maximumHomes));
         CityState city = state.Players.Single(p => p.Id == player);
         if (city.Eliminated || !city.Connected || city.Ready || state.Phase is not (Phase.Building or Phase.Preparation) || state.Paused) return null;
+        if (family == "support")
+        {
+            if (state.Wave == 1) return SupportOpening(state, city, maximumHomes);
+            family = "frontline";
+        }
+        if (state.Wave == 1 && family != "ranged") return SupportOpening(state, city, maximumHomes);
+        if (family == "ranged" && state.Wave <= 3) return RangedOpening(state, city, maximumHomes);
         bool Affordable(ResourceCost cost) => city.Resources.TryPay(cost, out _);
         EconomyAction? Construction(int slot, Building type)
         {
@@ -165,6 +172,39 @@ internal static class CampaignStrategy
             }
         }
         return null;
+    }
+    // Two genuine settlements earn equipment before the last editable gate.
+    // Sell the temporary producers for their actual half-refunds; no income
+    // from final END is spendable. W2 prioritizes six L1 members over upgrades.
+    private static EconomyAction? RangedOpening(MatchSnapshot state, CityState city, int maximumHomes)
+    {
+        if (state.Wave == 1)
+        {
+            if (state.Turn == 1)
+            {
+                foreach (var (slot, type) in new[] { (0, Building.Farm), (1, Building.MetalMine), (3, Building.Lumbermill), (4, Building.Lumbermill), (2, Building.Lumbermill) })
+                    if (city.Slots[slot].Type == Building.Empty) return Build(city, state, slot, type);
+            }
+            if (state.Turn != 3) return null;
+            foreach (int slot in new[] { 0, 1, 2 })
+                if (city.Slots[slot].Type is Building.Farm or Building.MetalMine or Building.Lumbermill) return new("sell", slot);
+            if (city.Slots[2].Type == Building.Empty) return Build(city, state, 2, Building.ArcheryRange);
+        }
+        else if (city.Slots[0].Type == Building.Empty) return Build(city, state, 0, Building.Farm);
+        int target = state.Wave == 1 ? 3 : 6;
+        RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Crossbowman && q.Level == 1);
+        return city.Soldiers.Length < target ? Recruit(city, 2, quote, maximumHomes) : null;
+    }
+    private static EconomyAction? SupportOpening(MatchSnapshot state, CityState city, int maximumHomes)
+    {
+        if (state.Turn == 1)
+            foreach (var (slot, type) in new[] { (0, Building.Farm), (1, Building.MetalMine), (4, Building.MetalMine), (3, Building.Lumbermill) })
+                if (city.Slots[slot].Type == Building.Empty) return Build(city, state, slot, type);
+        if (state.Turn != 3) return null;
+        if (city.Slots[4].Type == Building.MetalMine) return new("sell", 4);
+        if (city.Slots[2].Type == Building.Empty) return Build(city, state, 2, Building.Barracks);
+        RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1);
+        return city.Soldiers.Length < 6 ? Recruit(city, 2, quote, maximumHomes) : null;
     }
     public static EconomyAction? ResearchWitness(MatchSnapshot state, int player)
     {
@@ -304,21 +344,16 @@ internal static class CampaignStrategy
     internal static EconomyAction? SpectatorReserveOpening(MatchSnapshot state, int player)
     {
         CityState city = state.Players.Single(c => c.Id == player);
-        if (state.Wave == 1)
-        {
-            if (state.Turn == 1)
-                foreach (var (slot, building) in new[] { (0, Building.Farm), (1, Building.MetalMine), (2, Building.Barracks), (3, Building.Lumbermill) })
-                    if (city.Slots[slot].Type == Building.Empty) return Build(city, state, slot, building);
-            if (state.Turn == 3)
-            {
-                if (city.Slots[4].Type == Building.Empty) return Build(city, state, 4, Building.Stonecutter);
-                if (city.Soldiers.Length < 4) return new("recruit", 2);
-            }
-            return null;
-        }
+        if (state.Wave == 1) return SupportOpening(state, city, 6);
         if (state.Wave == 2)
         {
-            if (city.Slots[0].Type == Building.Farm) return new("sell", 0);
+            if (city.Slots[4].Type == Building.Empty) return Build(city, state, 4, Building.Stonecutter);
+            if (city.Slots[0].Type == Building.Farm)
+            {
+                ResourceCost hall = state.BuildingCatalog.Single(b => b.Type == Building.TownHall).Construction;
+                return city.Resources.TryAdd(city.Slots[0].Refund, out ResourceCost refunded) && refunded.TryPay(hall, out _)
+                    ? new("sell", 0) : null;
+            }
             if (city.Slots[0].Type == Building.Empty) return Build(city, state, 0, Building.TownHall);
             UnitState? member = city.Soldiers.FirstOrDefault(u => u.Assignment is { Stored: false });
             return member is null ? null : new("store", 0, UnitId: member.Id);

@@ -170,16 +170,19 @@ window or stored veteran can satisfy this selector's active-field guards.
 
 ## Provisional paid campaign measurements
 
-[Paid squad baselines](paid-squad-baselines.md) record actual legal investments,
-individual attrition/food/healing, Keep/Watchpost pressure and battle lengths for
-finite solo/cooperative seeds. They distinguish fourteen passing verification
-rows from twelve actual victories and two pure-ranged defeats, and retain fallen
-cooperative Keeps rather than equating team victory with complete rescue.
-Economics-sensitive results are **provisional**: the current three Building
-incomes plus fourth income-free Preparation edit are not the approved unlanded
-three-preparation/speed/preview flow. No replacement phase or compensating
-income/damage was implemented. Final timing integration and calibration remain
-required; see the coverage ledger for exact executed scope.
+[Paid squad baselines](paid-squad-baselines.md) retain historical four-edit and
+integrated three-END inputs separately. The current flow is already landed:
+exactly three editable preparations/production settlements, final END immediately
+entering combat, accepted global speed and authoritative next-wave preview.
+Historical ten-win/four-W1-loss diagnostics are not current-source acceptance.
+
+Recovery sets shared Crossbow40HP/12X and requires normal-profile six-member
+strength, not earned pure-ranged openings. Both retained full-six controls pass;
+actual three-member opening and later attrition losses remain deferred balance
+work by owner decision. Funded cooperative policies prioritize six paid early
+members before optional infrastructure. Exact current receipts, rescue attribution,
+late diagnostic losses and unexecuted boundaries remain in the linked baselines
+and testing audit rather than being hidden behind accounting passes.
 
 ## Native presentation
 
@@ -223,3 +226,52 @@ journey, pixel/artistic readability, rendered choreography or GPU proof. Complet
 campaign balance, authority/transport behavior beyond the selected receipts above,
 and packaged boundaries still need their own separately recorded qualification;
 filtered checks remain partial.
+
+
+## Woodland arena styling and native proof
+
+`SharedArenaView` batches the pinned DetailedGround Grass/Moss/Dirt meshes with
+their actual materials at the unchanged logical contact plane. Thin quiet hex
+outlines preserve exact picking; stronger owned home rings and text identify
+selected/available/occupied/locked/tower states during deployment. Far-edge
+spiral trees and bounded low boulder/fern side clusters stay outside playable
+cells/objectives. An opaque green earth backstop covers the safe projected
+camera boundary; imported asset bytes/manifests are unchanged. No terrain
+bonus, collision, new shader/light system or authority randomness is introduced.
+
+Content-derived fitting remains independent of decoration. Static batches and
+dressing survive ordinary revisions and deployment toggles, while fresh layout/
+session replacement releases them. Native arena proof covers1..4players,
+actual flat imported contacts, every home pick, overview/portrait/extreme-pan
+coverage, bounded resource reuse and four-player-to-solo cleanup. Objective
+health/fallen/inactive text and retained owner seals distinguish state; purchased
+towers remain intact after Keep fall.
+
+Expanded native receiving proof exercises new recruitment, reinforcement,
+regrouping, Hall storage/return and retirement through ordinary paid commands
+and delayed acknowledgment, plus foreign/fallen guards and focus retention.
+`logs/20261013-215524-42288d50` passes the arena component. This is genuine
+resource/node/control verification, not rendered appearance, pixel readability,
+physical sound/input or a complete application/network journey. Graphical
+acceptance is requested separately only after this implementation is reviewable.
+
+
+The finishing native pass also corrects field recruitment/new-group/Hall return
+callers that retained a positional size argument after it became a Hall slot.
+Controls now expose actual field capacity, and the component asserts enabled
+availability before pressing them. A same-lobby join refreshes native arena
+width/physical footprints instead of retaining its first solo welcome geometry.
+The compact unwrapped speed strip retains accepted-only global speed semantics;
+it no longer stretches over the arena. Camera observation/picking follows the
+active arena rather than a hidden city. Squad headings use short weapon roles
+and larger glyphs while retaining separate member HP and full inspection.
+
+
+Authorized graphical `combat` acceptance passed on the finishing source
+(`logs/20261013-225736-51c0ad8c`,150.25s). Retained real two-owner all-sector
+frames cover overview, movement/inspection, pause/camera/resize and casualties;
+actual live nodes demonstrate sword/axe/cast/hit, damage and corpse cleanup.
+Dense overview labels can overlap; close inspection provides precise individual
+health/service/equipment. Four-owner resource/layout coverage is headless native,
+not rendered four-owner acceptance. Software OpenGL/private display samples do
+not establish GPU performance or every composition's readability.

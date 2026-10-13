@@ -23,6 +23,7 @@ internal sealed record UnitObservation
     public int Level { get; init; }
     public bool IsBoss { get; init; }
     public int SquadId { get; init; }
+    public int Owner { get; init; }
     public int FormationSlot { get; init; }
     public bool Participating { get; init; }
     public int Destination { get; init; }
@@ -137,6 +138,11 @@ internal sealed record ProbeCostObservation(double FrameWaitMilliseconds, double
     public double ViewportGpuMs { get; init; }
 }
 internal sealed record RenderGroupObservation(string Group, int Nodes, long Surfaces, long Triangles, long Instances, int Materials);
+internal sealed record MemberHealthObservation(int Id, int Health, int Maximum);
+internal sealed record SquadSummaryObservation(int Id, int Owner, Faction Faction, UnitType Type, string Text, bool Visible, float X, float Y, MemberHealthObservation[] Members);
+internal sealed record HealthDisplayObservation(int Id, bool Visible, int Current, int Maximum, double Fraction, float X, float Y);
+internal sealed record ArenaFrameObservation(int Cells, string[] Ground, int Props, bool SceneryClear, bool OpaqueCoverage);
+
 internal sealed record UiObservation
 {
     public GraphicsObservation Graphics { get; init; } = new();
@@ -254,6 +260,9 @@ internal sealed record UiObservation
     public DeathCleanupObservation[] DeathCleanups { get; init; } = [];
     public StrikeObservation[] Strikes { get; init; } = [];
     public HealthBarObservation[] HealthBars { get; init; } = [];
+    public bool SharedArenaVisible { get; init; }
+    public ArenaFrameObservation? ArenaFrame { get; init; }
+    public SquadSummaryObservation[] SquadSummaries { get; init; } = [];
     public Dictionary<string, string> ResourceIcons { get; init; } = [];
     public bool ResourceRowsSingleLine { get; init; }
     public float HudHeight { get; init; }
@@ -450,6 +459,23 @@ internal sealed partial class Runner
     }
     private static void HealthBars(UiObservation frame)
     {
+        if (frame.SharedArenaVisible)
+        {
+            Require(frame.SquadSummaries.Select(s => s.Id).Distinct().Count() == frame.SquadSummaries.Length, "no duplicated native squad summaries");
+            int[] displayed = frame.SquadSummaries.SelectMany(s => s.Members.Select(m => m.Id)).ToArray();
+            Require(displayed.Distinct().Count() == displayed.Length, "individuals belong to one native summary");
+            foreach (SquadSummaryObservation summary in frame.SquadSummaries)
+                foreach (MemberHealthObservation member in summary.Members)
+                {
+                    UnitObservation unit = frame.Units.Single(u => u.Id == member.Id);
+                    Require(!unit.Dead && unit.Deployed && unit.SquadId == summary.Id && unit.Owner == summary.Owner
+                        && unit.Health == member.Health && unit.MaximumHealth == member.Maximum
+                        && summary.Text.Contains($"{HealthPoints.Format(member.Health)}/{HealthPoints.Format(member.Maximum)}", StringComparison.Ordinal),
+                        "actual native summary exposes each participant's independent health and identity");
+                }
+            Require(frame.Units.Where(u => u.Visible && u.Deployed && !u.Dead).All(u => displayed.Contains(u.Id)), "every visible living participant has an individual health summary");
+            return;
+        }
         if (frame.HealthBars.Select(b => b.Id).Distinct().Count() != frame.HealthBars.Length) throw new InvalidOperationException("Duplicate unit health bars.");
         foreach (HealthBarObservation bar in frame.HealthBars)
         {
@@ -464,9 +490,13 @@ internal sealed partial class Runner
             if (bar.Visible && (bar.Width <= 0 || bar.Height <= 0 || bar.X < 0 || bar.Y < 0 || bar.X + bar.Width > frame.Width + 1 || bar.Y + bar.Height > frame.HudTop + 1))
                 throw new InvalidOperationException("Health bar outside visible world area: " + bar.Id);
         }
-        foreach (UnitObservation unit in frame.Units.Where(u => u.Visible && u.Deployed && !u.Dead))
-            if (!frame.HealthBars.Any(b => b.Id == unit.Id)) throw new InvalidOperationException("Missing living unit health bar: " + unit.Id);
+        // Settlement rosters expose individual HP by inspection; there is no
+        // default per-soldier overview-bar requirement in the shared model.
     }
+    private static HealthDisplayObservation[] HealthDisplay(UiObservation frame)
+        => frame.SharedArenaVisible ? frame.SquadSummaries.SelectMany(s => s.Members.Select(m =>
+            new HealthDisplayObservation(m.Id, s.Visible, m.Health, m.Maximum, PresentationLimits.HealthFraction(m.Health, m.Maximum), s.X, s.Y))).ToArray()
+            : frame.HealthBars.Select(b => new HealthDisplayObservation(b.Id, b.Visible, b.Current, b.Maximum, b.Fraction, b.X, b.Y)).ToArray();
     private static void WoodlandPresentation(UiObservation frame)
     {
         Branding(frame);

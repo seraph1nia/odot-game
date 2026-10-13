@@ -110,17 +110,18 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
         };
     }
     [Fact]
-    public void RetainedDeathsAndTransitRemainDistinctRenderedClearanceInputs()
+    public void ReleasedCosmeticDeathsMayOverlapWhileSettledLivingActorsRemainDistinct()
     {
         var living = new UnitObservation { Id = 1, Destination = 1, Visible = true, Deployed = true };
         var dead = new UnitObservation { Id = 2, Destination = 2, Visible = true, Deployed = true, Dead = true, X = .2f };
-        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [living, dead] }));
+        Runner.RenderedContact(new() { Units = [living, dead] });
+        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [living, dead with { Dead = false }] }));
         Runner.RenderedContact(new() { Units = [living, dead with { Visible = false }] });
         Runner.RenderedContact(new() { Units = [living, dead with { X = .5f }] });
         HexUnitState transit = new(1, 1, Faction.Adventurers, UnitLifecycle.Alive, new(14, 1), UnitActionKind.Moving,
             new(13, 1), StartTick: 100, EndTick: 130);
         Runner.RenderedContact(new() { Units = [living with { Hex = transit }, dead] });
-        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [living with { Hex = transit with { Action = UnitActionKind.Waiting } }, dead] }));
+        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(new() { Units = [living with { Hex = transit with { Action = UnitActionKind.Waiting } }, dead with { Dead = false }] }));
     }
     [Theory]
     [InlineData(0UL)]

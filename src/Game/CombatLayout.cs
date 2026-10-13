@@ -19,6 +19,14 @@ internal sealed class CombatLayout(HexBoard board)
     internal void Synchronize(MatchSnapshot state)
     {
         if (_match != state.MatchId) { _formations.Clear(); _match = state.MatchId; }
+        // A lobby can grow before its match identity/playback generation
+        // changes. Geometry and physical footprints belong to the accepted
+        // roster, not the first one-player welcome snapshot.
+        if (state.Arena is { } arena)
+        {
+            if (board.Cells.Count != arena.Board.Cells.Length) board = new HexBoard(arena.Board);
+            Arena = arena;
+        }
         _capacity = state.Rules.Arena.SquadCapacity;
         foreach (UnitState member in state.CombatEvents.Where(e => e.Unit is not null).Select(e => e.Unit!)
             .Concat(state.Enemies).Concat(state.Players.SelectMany(c => c.Soldiers)).Concat(state.DyingBodies))

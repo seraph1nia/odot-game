@@ -7,21 +7,30 @@ Give automatic battles distinct, readable combat roles while sharing numerical p
 ## Requirements
 
 ### Requirement: Shared archetypes and faction identity
-All ordinary archetypes SHALL have size two and bosses SHALL have size six. Size SHALL be an integer from one through six; no current ordinary archetype SHALL use size one. Units SHALL independently identify faction, archetype, melee/ranged/magic class, positive unit level and ordinary/boss identity. Swordsman and Berserker SHALL be melee, Crossbowman ranged, and Mage magic. Equal archetype, unit level, research stat modifiers, technology capabilities, active statuses and explicit boss modifiers SHALL use identical maximum health, damage, unit size, initiative, integer hex range, move duration, windup, recovery, death duration and splash rules across factions. Faction SHALL determine allegiance, entry direction and presentation, not a hidden strength modifier. Swordsman SHALL be the durable baseline, Berserker a more damaging but less durable melee role, Crossbowman reliable single-target support, and Mage fragile slower splash support. Class SHALL NOT introduce a damage-counter multiplier in this change. Identity-based targeting, bounded hex occupancy, simultaneous damage, seeded tie-breaking and queued arrivals SHALL apply to every archetype. Character-type initiative SHALL use lower values first for equal-distance targeting and contested movement. Automatic enemy and isolated non-roster placement SHALL preserve the declared forward melee/rear support policy and legal protected reinforcement fallback. City-roster allied units SHALL instead start at persistent purchased first-fit homes under army-roster, without class-based repacking or a profile change. Class foundations SHALL change only maximum health and direct damage. Specializations SHALL grant the declared direct-damage, damage-reduction or burn/poison/chill capability. Technology and status effects SHALL NOT change capacity, initiative, range or base action durations; active chill SHALL modify only newly committed action durations under the combat-status-effects contract.
+
+Ordinary combat actors SHALL be homogeneous squads up to configured capacity three; bosses SHALL use the same actor architecture with exactly one member. Each member SHALL independently retain faction, archetype, class, positive equipment level, boss modifiers, health and capabilities. Swordsman/Berserker SHALL be melee, Crossbowman ranged and Mage magic. Equal type/level/research/status/boss inputs SHALL yield equal HP, X/Y, structural damage, initiative, range and timing across factions. Faction SHALL define allegiance and presentation, not hidden strength. One actor SHALL claim one hex regardless of population. Foundations SHALL modify individual maximum HP/direct damage; specializations SHALL retain Assault, Guardian, Precision, Fire, Venom and Frost behavior. Type/range/timing and equipment SHALL not change because a home is bought, a member is regrouped or presentation scales a boss.
+
+#### Scenario: Mirrored Crossbowmen
+- **WHEN** allied and enemy Crossbowmen have equal level/capabilities/modifiers
+- **THEN** their complete numerical profiles agree, including any small default buff
+
+#### Scenario: Single-member boss
+- **WHEN** a boss enters combat
+- **THEN** it uses one squad cell and the ordinary movement/attack cycle with one contributing member
 
 #### Scenario: Mirrored combat profiles
 - **WHEN** an allied Mage and enemy skeleton Mage have equal unit level, research stat modifiers, capabilities, active statuses and boss modifiers
 - **THEN** their complete numerical combat profiles agree and only faction/presentation and ownership differ
 
 #### Scenario: Mixed formation
-- **WHEN** either faction automatically deploys an isolated non-roster mixed army, or an enemy mixed army enters a city
-- **THEN** its melee units enter ahead of its ranged and magic units without overlapping
-- **AND** ranged and magic units retain their configured attacks when reached in melee
+- **WHEN** mixed archetypes deploy as separate homogeneous squads
+- **THEN** no group mixes archetypes or overlaps another cell and ranged/magic attacks retain their profile at melee distance
+- **AND** chosen allied preparation homes are preserved
 
 #### Scenario: Mixed capacity and initiative
-- **WHEN** different archetypes share an allied hex and request actions
-- **THEN** their sizes sum to at most six and each actor has a distinct rendered anchor
-- **AND** lower initiative receives contested movement priority while equal initiative uses the fight seed
+- **WHEN** different archetype squads request one destination
+- **THEN** only one actor can claim it and lower actor initiative then seeded ties arbitrate
+- **AND** no body-size stacking permits both to arrive
 
 #### Scenario: Allied homes do not change role statistics
 - **WHEN** a city inserts different roles by first-fit purchased home order
@@ -29,24 +38,48 @@ All ordinary archetypes SHALL have size two and bosses SHALL have size six. Size
 - **AND** each role retains its shared numerical profile, attack and ordinary movement rules
 
 ### Requirement: Bounded deterministic splash
-Mage and Catapult Tower attacks SHALL apply damage only at the authoritative impact tick. Each attack SHALL have one locked primary target and a configured nonnegative integer hex radius and positive maximum victim count. Splash SHALL affect only living deployed opponents in the same destination, with no friendly fire or damage to another city's units. Eligible secondary victims SHALL be selected by hex distance from the primary's authoritative impact hex, then lowest initiative and seeded ties. Opponents sharing the primary hex SHALL have splash distance zero. Default Mage tuning SHALL make effective two-victim splash a useful clustered combat role without requiring every attack to hit its maximum cap; its isolated single-target sustained damage SHALL remain below the Crossbowman's. Moving opponents SHALL use their single authoritative attackable hex, and queued or dying bodies SHALL be ineligible. An invalid primary target SHALL cause a miss without retargeting or secondary damage. Every attack SHALL damage each chosen victim at most once, and all same-tick damage SHALL be accumulated before casualties. An enemy Mage attacking exposed city health SHALL apply one primary hit without secondary splash. Cosmetic projectiles SHALL NOT determine impact or damage.
+
+Every group attack SHALL use two independent configurable nonnegative channels: X to one deterministic primary member and Y to every other pre-impact living participating member of the selected group. Each living participating attacker SHALL contribute once using its individual profile and stable member/action identity; attackers may choose different primaries within the one locked group. Zero X or Y SHALL be permitted. Victim-count caps and cross-hex splash SHALL NOT limit or replace this model. Damage SHALL not affect neighboring squads, allies, stored/unfunded/queued/dying members. Overkill SHALL stay on its original victim. All same-tick contributions SHALL resolve before casualties. Loss of the entire target group SHALL miss without group retargeting; a partial casualty SHALL leave remaining living group members eligible for the impact's seeded primary choice. Structural attacks SHALL use separate per-member damage, not X/Y or a fake member HP pool.
+
+#### Scenario: Zero-primary cleave
+- **WHEN** a strike with X=0 and positive Y hits a five-member enemy group
+- **THEN** its primary receives no direct damage and all four other living participants receive Y once
+- **AND** no adjacent group is damaged
+
+#### Scenario: One attacker survives
+- **WHEN** two attackers die before the next eligible impact of their squad
+- **THEN** only the surviving participating member contributes its own resolved profile
+
+#### Scenario: Overkill
+- **WHEN** primary damage exceeds one member's HP
+- **THEN** surplus damage is not redistributed to another member
 
 #### Scenario: Cluster exceeds the splash cap
-- **WHEN** more eligible opponents than the configured cap stand inside the impact radius
-- **THEN** only the primary and the closest permitted secondary victims take damage
-- **AND** reversed storage order yields the same victims and damage
+- **WHEN** a configured positive-Y strike hits five pre-impact living enemy group members
+- **THEN** the primary receives X and all four other members receive Y without a victim cap
+- **AND** reversed storage yields identical contributions and victims
 
 #### Scenario: Primary transfers before impact
-- **WHEN** a Mage's locked primary target transfers away before impact
-- **THEN** the attack misses, damages no former neighbors and retains its normal recovery
+- **WHEN** a locked enemy group redirects its preferred sector during windup
+- **THEN** redirection alone does not invalidate its physical group target
+- **AND** impact still checks actual living participants and physical range without teleportation
 
 #### Scenario: Shared hex receives bounded splash
-- **WHEN** more living opponents share the primary impact hex than the victim cap permits
-- **THEN** the primary is included once and permitted secondaries use initiative and seeded ties
-- **AND** unused capacity positions, allied units and dying bodies receive no damage
+- **WHEN** a homogeneous target squad shares one cell
+- **THEN** each contributing attacker hits one primary and all other living participants with its X/Y
+- **AND** adjacent groups, allies and dying members are ineligible
 
 ### Requirement: Buildable city defenses
-Tower construction, final upgrade paths and preserved legacy profiles SHALL follow the [gameplay tower contract](../../../docs/gameplay.md#defense-towers-on-army-plots). Each tower SHALL occupy one purchased city plot or one empty owned army plot; army assignment exclusion SHALL follow [army-roster](../army-roster/spec.md#requirement-purchased-physical-battlefield-homes). Each tower and the built-in defender SHALL have its own deterministic action identity and configured positive windup/recovery, with city-wide access to living deployed enemies assigned to its city. They SHALL select at each attack boundary by hex distance from the same declared city-defense anchor, then lowest target initiative and seeded ties; their building-slot position SHALL NOT change that ordering. Their locked attacks SHALL participate in the common same-tick damage accumulator. Slot position SHALL NOT introduce an adjacency or terrain bonus. Towers SHALL NOT occupy combat capacity or transit space or be separate enemy attack targets; enemies attacking an exposed city SHALL damage city health. The weak built-in defender SHALL remain outside the nine slots and independent of buildable towers. Selling a tower SHALL remove its defense state and future attacks; rebuilding on that plot SHALL NOT inherit pending actions or replay old effects. Pause SHALL freeze tower attacks; elimination SHALL stop all that city's towers. An invalid target SHALL miss without granting a replacement shot.
+
+Existing purchased plot quotes, refunds and exclusive Rapid Arrow/Bombard paths SHALL remain. Each purchased tower and built-in defender SHALL have its own action identity, windup/cadence and physical origin/range in the shared arena. The built-in defender SHALL originate at the owner's Watchpost, not add a second free weapon. Static weapon/objective cells SHALL be excluded from squad occupancy; an army-plot tower SHALL also exclude that home's assignments until sold. Weapons SHALL select living enemy groups by physical range/distance and seeded ties regardless of origin sector. Each weapon SHALL contribute one X/Y strike; arrows SHALL remain X-only and Catapult/Bombard SHALL use within-group channels. Purchased towers SHALL remain indestructible in this change and cease after Keep loss without sale/refund or fabricated destruction. Sold/rebuilt weapons SHALL have fresh action state.
+
+#### Scenario: Foreign-origin enemy in tower range
+- **WHEN** a foreign-origin group enters a living owner's tower range
+- **THEN** it is eligible for that tower's ordinary attack without changing its ownership/origin
+
+#### Scenario: Keep loss
+- **WHEN** an owner's Keep falls
+- **THEN** its weapons stop while purchased tower buildings remain retained and no new refund is granted
 
 #### Scenario: Multiple towers and city elimination
 - **WHEN** two towers are built and their city falls during combat
@@ -58,9 +91,9 @@ Tower construction, final upgrade paths and preserved legacy profiles SHALL foll
 - **THEN** its impact and recovery timers remain frozen and resume from their remaining duration
 
 #### Scenario: Defense targeting is consistent
-- **WHEN** two towers in different building slots begin an attack against the same enemy setup
-- **THEN** both use the declared city-defense distance and initiative policy
-- **AND** exact ties use each defense action's reproducible seeded decision rather than storage order
+- **WHEN** weapons in different physical cells inspect the same enemy groups
+- **THEN** each uses its own physical range/distance and reproducible seeded ties
+- **AND** slot position matters geometrically without adding hidden damage bonuses
 
 #### Scenario: Sell and replace a tower
 - **WHEN** a tower is sold between waves and another tower is built on the same plot
@@ -69,7 +102,16 @@ Tower construction, final upgrade paths and preserved legacy profiles SHALL foll
 
 ### Requirement: Measurable frontline and support roles
 
-Default profiles and automatic formation SHALL demonstrate distinct roles in small paired fixtures using normal profiles and placement policy. A nearer living melee screen SHALL protect support through its initial attacks, with an otherwise identical unscreened control taking earlier support damage. A crowded mixed formation SHALL give a queued melee unit actual access to an attack while opponents remain. A normal clustered fixture with at least two actual splash victims SHALL compare one Mage with one Crossbowman on the same other-unit setup and seed; the Mage SHALL deliver greater effective non-overkill support damage over a shared interval when both supports are alive and improve clear time or surviving friendly/city health. An isolated single-target control SHALL retain superior Crossbowman sustained damage. Evidence SHALL include per-role action/victim counts, actual material/gold recruitment costs and separate food upkeep, remaining health and outcome; a winning mixed strategy containing an ineffective Mage SHALL NOT satisfy this requirement. Comparisons SHALL disclose the different recruitment costs and SHALL NOT claim universal equal-cost superiority or rely on manually fabricated clustering, inflated target health or friendly-fire damage.
+Bounded shared-arena encounters SHALL retain meaningful melee, ranged and magic behavior. Melee SHALL hold/intercept at adjacent range; Crossbowman SHALL retain superior sustained primary-only damage to Mage at default cadence; Mage's positive Y SHALL contribute effective damage against multiple living members. Normal single-target and clustered-group comparisons SHALL disclose profiles, participating counts and material/upkeep costs, without artificial victim caps, inflated HP or friendly-fire evidence. A bounded full-force numerical encounter SHALL show six Crossbowmen in two three-member squads surviving the default first-wave composition without melee, with arithmetic setup explicitly separated from earned payments. A small default profile improvement SHALL support this obligation while preserving faction symmetry and other roles. Pure-Crossbow paid opening/progression SHALL remain recorded diagnostic evidence deferred by the owner, not a landing acceptance obligation or a campaign viability claim. This SHALL NOT promise every composition/deployment wins twenty waves.
+
+#### Scenario: Pure ranged opening
+- **WHEN** an ordinary paid Crossbowman-only policy runs with default rules on retained seeds 1 and 123
+- **THEN** its actual paid strength, casualties and defeats remain recorded as deferred balance diagnostics
+- **AND** separately labeled normal-profile six-member encounters at both seeds clear with a living Keep and ranged survivors without melee or BattleStalled
+
+#### Scenario: Distinct damage roles
+- **WHEN** default Mage and Crossbowman profiles are compared against one member and a multi-member group at their actual cadence
+- **THEN** Crossbowman retains its single-target advantage and Mage's actual Y victims demonstrate its group role
 
 #### Scenario: Frontline protects the Crossbowman
 - **WHEN** paired ordinary formations run with a nearer melee screen and with that screen absent
@@ -88,20 +130,28 @@ Default profiles and automatic formation SHALL demonstrate distinct roles in sma
 
 ### Requirement: Complete configured defense behavior
 
-Every built-in defender and buildable tower SHALL apply its resolved damage, windup, recovery, maximum victim count and splash radius from the frozen combat configuration. A built-in defender SHALL retain a distinct action identity and remain outside building-slot capacity. Accepted defender victim/radius settings SHALL NOT be silently replaced with single-target defaults. Default built-in defender profiles SHALL remain single-target. Arrow victim/radius settings SHALL follow the [single-target restriction](../../../docs/gameplay.md#defense-towers-on-army-plots), and every defense SHALL apply the footprint in its published frozen profile. All defenses SHALL use the existing locked-primary, distance/initiative/seeded victim selection and common simultaneous-damage rules: only living deployed enemies in the same city allocation are eligible, each action hits a victim at most once, and an invalid primary causes a miss without secondary damage.
+Published frozen weapon profiles SHALL match damage channels, physical range and positive windup/cadence actually used. Default arrows and Watchpost defender SHALL use X-only; Catapult/Bombard SHALL damage all other eligible living members of the selected group with configured Y. Victims SHALL not be capped or selected across cells. Every weapon SHALL preserve committed target-group validity, simultaneous resolution, pause and miss/recovery semantics. Catalogs, forecasts and inspection SHALL expose the same effective channels/range/timings.
+
+#### Scenario: Bombard versus five members
+- **WHEN** a valid Bombard impact hits a five-member group
+- **THEN** its primary receives X and all four others receive Y, while adjacent groups receive nothing
+
+#### Scenario: Invalid locked group
+- **WHEN** the last target member dies before a weapon impact
+- **THEN** it reports one miss and retains recovery without acquiring a replacement shot
 
 #### Scenario: Configured defender hits an eligible secondary
-- **WHEN** a built-in defender configured with victim cap two and radius one impacts a valid primary with an eligible second enemy one hex away
-- **THEN** both enemies receive the configured damage once on the impact tick
-- **AND** no other victim exceeds the cap or radius
+- **WHEN** a supported weapon profile with positive Y lands on a multi-member group
+- **THEN** all its living secondary members receive the configured Y once
+- **AND** adjacent groups receive no cross-cell splash and default Watchpost/arrow profiles remain X-only
 
 #### Scenario: Default defender remains single-target
 - **WHEN** the default built-in defender impacts a primary inside an enemy cluster
 - **THEN** only the primary receives its ordinary configured damage
 
 #### Scenario: Configured splash cannot survive an invalid primary
-- **WHEN** a splash-configured defender's primary dies or transfers before impact
-- **THEN** the action misses without secondary damage and retains its original recovery deadline
+- **WHEN** the final member of a weapon's locked target group dies before impact
+- **THEN** the shot misses without secondary damage and preserves recovery
 
 #### Scenario: Unit and defense impacts remain simultaneous
 - **WHEN** a unit and a defense have valid lethal contributions due on the same tick
@@ -109,7 +159,12 @@ Every built-in defender and buildable tower SHALL apply its resolved damage, win
 - **AND** changing storage traversal cannot remove a due valid contribution
 
 ### Requirement: Equipment and upkeep costs in role comparisons
-The retained paired frontline/support and Mage/Crossbowman role comparisons SHALL disclose complete material/gold recruitment costs and separate per-battle food upkeep at the compared unit levels. Their ordinary battlefield setup SHALL satisfy the applicable upkeep rule before combat and SHALL identify any shortage effect rather than attributing it to archetype balance. Zero food recruitment SHALL NOT be reported as a food-free army. Existing effective two-victim Mage, Crossbowman single-target, shared-seed, normal-formation and no-universal-equal-cost-superiority guarantees SHALL remain required.
+
+Role and ranged-opening evidence SHALL disclose real per-member materials/gold, separate per-battle food, funded participant counts and actual deployment. Ordinary paid acceptance SHALL obey exactly three END settlements and spend no income before it exists. A one-member ranged opening SHALL not be called a full army. A mechanically valid losing diagnostic SHALL not be reported as strategy viability. Arithmetic profile comparisons SHALL be labeled separately from earned economy/campaign acceptance.
+
+#### Scenario: Underfunded diagnostic
+- **WHEN** a paid policy fields only one Crossbowman and loses
+- **THEN** evidence reports its actual recruitment/payment/population and does not certify or disprove full-force survival
 
 #### Scenario: Compare supports with the new economy
 - **WHEN** the paired Mage and Crossbowman support fixtures compare equal unit levels under normal paid upkeep
@@ -117,12 +172,21 @@ The retained paired frontline/support and Mage/Crossbowman role comparisons SHAL
 - **AND** the Mage still demonstrates its clustered contribution while Crossbowman retains the isolated single-target advantage
 
 ### Requirement: Shared geometric unit progression
-Each archetype SHALL declare level-one maximum health and damage. The initial shared health/damage growth multiplier SHALL be 1.35; an archetype with no explicit override SHALL use that shared multiplier. For each stat, level L SHALL resolve from its original base as round(base times multiplier raised to L minus one), to the nearest whole point with midpoint ties upward. Level one SHALL equal the declared base. Explicit boss multipliers SHALL apply after level scaling, and validated technology-derived stat factors SHALL then apply without rounding away their fractional effect. Legacy authored enemy ranks SHALL remain explicit numerical modifiers and SHALL NOT inherit city technologies; no gold-paid player rank purchase remains. Levels SHALL NOT alter movement, initiative, range, size, attack timing or splash rules. Ordinary faction identity SHALL NOT modify numerical strength. Authored enemy levels SHALL be independent of the recruit-building cap, subject to configuration validation of representable health/damage and safe combat accumulation. Invalid levels, invalid multipliers, unknown archetypes and overflowing profiles SHALL be rejected before a match starts or an economic action spends resources. Equivalent configuration and inputs SHALL resolve identical profiles.
+
+Individual maximum HP and direct X/Y/structural damage SHALL resolve from original archetype bases with shared level multiplier 1.35 unless explicitly overridden, rounding nearest whole point with midpoint ties upward. Explicit boss and research modifiers SHALL apply at their declared stages without losing fractional research effects. Equipment level SHALL not alter squad capacity, movement, initiative, range, cadence or formation slot. Enemy authored levels SHALL remain independent of trainer maximum five and SHALL not acquire city research. Invalid level/multiplier or overflowing profile SHALL reject before gameplay/spending. Reinforcement SHALL create a new member at the selected trainer's level without upgrading/healing veterans.
+
+#### Scenario: Existing Swordsman progression
+- **WHEN** a default Swordsman increases from equipment level one through five
+- **THEN** its HP remains 40/54/73/98/133 and X remains 10/14/18/25/33 with unchanged ordinary action timings
+
+#### Scenario: Reinforcement after trainer upgrade
+- **WHEN** a level-one wounded veteran's squad receives a paid level-three recruit
+- **THEN** the recruit uses level-three scaling and the veteran retains its individual level/HP/experience
 
 #### Scenario: Baseline Swordsman progression
-- **WHEN** the default Swordsman base is 40 health and 10 damage and its level increases from one through five
-- **THEN** the unresearched ordinary health values are 40, 54, 73, 98 and 133 and damage values are 10, 14, 18, 25 and 33
-- **AND** movement, attack cadence and ordinary size two are unchanged
+- **WHEN** the default Swordsman base40HP/10X scales from levels1through5
+- **THEN** HP40/54/73/98/133 and X10/14/18/25/33 retain ordinary timings
+- **AND** each containing squad still has one exclusive cell
 
 #### Scenario: An authored wave mixes arbitrary supported levels
 - **WHEN** one wave contains level-one Crossbowmen and a level-six Swordsman
