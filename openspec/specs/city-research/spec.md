@@ -25,7 +25,7 @@ A Research Tower SHALL occupy one purchased owned plot, have two levels and repl
 #### Scenario: Full cycle and additive towers
 - **WHEN** a city owns one level-one tower and one level-two tower through three production resolutions
 - **THEN** the city gains three research points from towers in total
-- **AND** neither final preparation nor battle entry adds another tower payment
+- **AND** the settlements follow [gameplay timing](../../../docs/gameplay.md#preparation-and-battle-controls) without an additional tower payment at battle entry
 
 #### Scenario: Partial cycle and sale
 - **WHEN** a level-one tower contributes at two productions, is sold, and a replacement later contributes at one production

@@ -12,7 +12,7 @@ One owner per topic, rather than competing copied policies:
 - [Flaky diagnosis](../.agents/skills/diagnose-flaky-tests/SKILL.md): evidence and controlled discriminants.
 - [Audit and coverage ledger](testing-audit.md): test groups, significant removals/replacements and failure history.
 - [Historical receipts](verification-history.md): old measured runs, not current policy.
-- [Battle-flow receipts](battle-flow.md#pre-pipeline-evidence-and-limits-2026-10-12): exact speed/three-phase/forecast behavior, intermediate failures and focused component evidence.
+- [Battle-flow reconstruction coverage](battle-flow-reconstruction-coverage.md): paid/occupied witness mapping, intermediate failures, exact local receipts and unexecuted qualification.
 
 ## CI coverage
 

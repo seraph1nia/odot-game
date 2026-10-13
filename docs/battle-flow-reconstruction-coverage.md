@@ -263,6 +263,10 @@ partial selection is not a full test/lint, native scenario or pipeline approval.
 
 ## Completed local qualification / delivery handoff
 
+The following receipts and delivery status describe the original pre-pipeline
+reconstruction handoff. They are not qualifications of the active pipeline's
+current head; the later review-fix selection is recorded separately above.
+
 - Initial split focused selection passed **39/39**, no skips:
   `logs/20261013-100435-64ca71b4/`.
 - Full fast C# `test-fast --jobs 1` passed **509 Core**, **649 Runner**, zero

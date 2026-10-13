@@ -13,8 +13,8 @@ content-derived framing are retained. Protocol advances beyond landed MAIN's
 negative tests are new reconstruction. Specialist and hall schedules are paid
 from default rules and actual city-owned IDs; focused tests passed. Native
 graphical economy consumers were migrated/compiled but not launched. The
-minimal headless native receiving component subsequently passed. No pipeline is
-active.
+minimal headless native receiving component subsequently passed. This section
+records the pre-pipeline reconstruction checkpoint, not the active run's status.
 
 ## Historical six-mode experiment disposition
 
@@ -84,11 +84,7 @@ contracts, stronger source/identity/capacity/negative protection and the bounded
 same-input spatial counterfactual are implemented and qualified there. Original
 setup failures remain failures, not admission defects or passes.
 
-The full fast C# selection passed 509 Core/649 Runner (two Windows-platform skips).
-The minimal headless native receiving component, including actual imported rigs,
-speed/input/ack, framing/picking/inspector and three settlements, passed. Final
-focused split-witness/occupancy/board requalification passed 39 cases. No price,
-combat, movement, admission or death-lease product rule changed for the fixture
-replacement. The committed batch is ready for delivery handoff; no owning
-no-mistakes run, push, PR or CI has started yet. Live transport, new export/package
-and rendered/GPU acceptance are not claimed.
+[The coverage checkpoint](battle-flow-reconstruction-coverage.md#completed-local-qualification--delivery-handoff)
+owns exact local qualification and unexecuted checks at the original delivery
+handoff. Those historical receipts do not describe the active pipeline's status
+or certify its current head.

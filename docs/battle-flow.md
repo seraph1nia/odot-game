@@ -2,29 +2,12 @@
 
 ## Behavior and integration boundaries
 
-**Preparation 1 → Preparation 2 → Preparation 3 → Combat** replaces the former
-four preparation checks. Serialized `Phase.Building` remains value 1 (turns 1/2)
-and `Phase.Preparation` remains value 2 (turn 3). Actual building names remain.
-Each preparation's Ready settles exactly one ordinary production using current
-buildings, research and eligible stored army. Final Ready settles production 3,
-pays upkeep once and immediately enters combat. Final construction, research and
-healing upgrades participate; there is no fourth spending window, queued recruit,
-batched earlier income or compensating balance change. Resource/research/recovery
-and final upkeep/reward capacity preflight precede mutation.
-
-The ordinary Farm/Metal Mine/Barracks opening spends eight metal from the first
-two productions on **four paid Swordsmen**, retains ten food in final editing,
-and enters combat with eleven food/four metal after final settlement/upkeep.
-Two ordinary homes still fit six size-two units. The lost spending window, not
-price or capacity, prevents this particular opening filling them.
-
-The native top control is **1x / 1.5x / 2x**, default **1x**:
-
-| Selection | Former combat pace | Simulated ticks per wall second |
-| --- | ---: | ---: |
-| 1x | 0.5 | 30 |
-| 1.5x | 0.75 | 45 |
-| 2x | 1.0 | 60 |
+[Gameplay controls](gameplay.md#preparation-and-battle-controls) own the numbered
+preparations, settlement/spending boundary, global speed choices and next-wave
+inspection. Serialized `Phase.Building` retains its enum identity for turns 1/2;
+`Phase.Preparation` denotes final turn 3. The HUD changes stage names, not building
+identities. `Match.ResolveReady` preflights resource/research/recovery and final
+upkeep/reward capacity before mutation.
 
 `Main` feeds physics delta to the existing `AuthoritySession.Advance` owner.
 `Match.Step` is still one deterministic 60-Hz simulated tick: damage, movement,
@@ -32,10 +15,9 @@ projectile ordering, statuses and cadence are unchanged at equivalent simulated
 time. Each admitted wall slice is capped at 100 ms/six steps; idle and paused
 time create no debt. Death cleanup outside combat retains its prior rate.
 Verification acceleration remains a separate, owned harness-only multiplier.
-Playing-host speed changes require the original host; solo uses its owner and
-dedicated uses authenticated connected-player authority. Delivered snapshots own
-selected state; input does not optimistically toggle an unaccepted rate. Guests
-never advance local rules. Playback and presentation share the accepted rate.
+Delivered snapshots own selected state; input does not optimistically toggle an
+unaccepted rate. Guests never advance local rules. Playback and presentation
+share the accepted rate; authority permissions follow [session ownership](sessions.md).
 
 `Match.PlanWave` expands the authoritative campaign once per wave into
 `MatchSnapshot.NextWave`; `BeginWave` consumes that manifest. Type, level, rank,
@@ -43,12 +25,10 @@ boss flag, origin, destination and resolved profile are shared, including fallen
 roster allocations. Lifetime-unique negative forecast IDs cannot collide with
 live positive IDs allocated at combat entry. Forecasts consume no RNG, resources,
 combat ECS/occupancy, targets or attacks. Refresh/reconnect preserve the manifest.
-The existing MAIN unit rigs display idle gold-marked formations with NEXT/level
-badges and a wave heading. The ordinary rig-bounds picker and native inspector
-show their real profiles without army actions. Transition removes stale forecast
-figures/inspection. `BattlefieldFrame` includes actual formation positions in its
-landed content-derived framing owner; modal and army plot/tower controls remain.
-No artwork or provenance bytes change.
+The ordinary rig-bounds picker and inspector consume these forecast profiles.
+`BattlefieldFrame` includes actual formation positions in its content-derived
+framing owner; modal and army plot/tower controls remain. No artwork or provenance
+bytes change.
 
 The authoritative `FoodForecast` and `BattleFood.Project` own final-production
 projection. A food-sale preview applies the complete existing quote (resource
@@ -59,13 +39,8 @@ receipts, rather than manufacturing expected stock by calling the projection.
 
 ## Compatibility and persistence
 
-Wire protocol **14** refuses older peers at admission, including MAIN's former
-protocol 13. Battle-flow snapshot version 2 distinguishes numbered preparation
-semantics from legacy four-check snapshots; missing versions deserialize as 0
-and the codec refuses them, Building turn 3 and invalid speed values. Historical
-snapshots are not silently migrated or authoritative saves. `SessionFile` stores
-private running-session credentials/sequence only, not match state; its schema
-is unchanged. Reconnect to the same matching running host retains pace/forecast.
+[Session compatibility](sessions.md) owns peer/version admission, battle-flow
+snapshot rejection and the credential-only persistence boundary.
 Shared-arena integration can consume these landed phase, snapshot and authority
 interfaces later; no unpublished squads architecture is imported here.
 
@@ -136,13 +111,6 @@ identity; focused numerical admission establishes genuinely nonempty occupied
 source and preserves its positions, capacity, ownership and incoming identity.
 The historical incidental seed-position coupling is not an admission defect.
 
-Local qualification now passes 509 Core/649 Runner fast cases (two explicit
-Windows-platform skips), plus the minimal headless native receiving component
-with real imported rigs/speed input/ack/picking/inspector and actual settlements.
-Final focused split-witness/board/occupancy requalification passes 39 cases. Full
-no-mistakes, push, PR, mandatory CI and live transport/new-package verification
-are not yet claimed.
-No full application/world/UI journey, graphical display, screenshot, GPU,
-desktop focus or live Steam qualification is authorized or claimed. A minimal
-headless native component can prove imported resources, input/picking and geometry,
-not that the formation renders attractively or a full network session works.
+The [completed local qualification checkpoint](battle-flow-reconstruction-coverage.md#completed-local-qualification--delivery-handoff)
+owns exact historical passes, failed receipts, and unexecuted transport/package/
+rendered checks. They are not current pipeline-head or delivery qualification.

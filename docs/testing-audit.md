@@ -204,7 +204,7 @@ its guarded headless dispatch; the retired ui-resources launcher remains exclude
 `BattleFlowTests` is Tier A: seeded same-combat comparisons at 0.5/0.75/1.0
 wall rates, fixed equivalent simulated time, bounded catch-up, paused debt,
 host/dedicated authority, retry/disconnect/resume, three-stage/three-production
-settlement and atomic two-event overflow, stable forecast-to-spawn identity,
+settlement and atomic two-event overflow, stable forecast-to-spawn allocation/profile,
 codec round trip and explicit historical fourth-phase refusal. Inputs are
 numerical authorities, explicit wall slices and no children. Existing cheaper
 arithmetic tests miss the authoritative admission/manifest boundary; expected
@@ -223,9 +223,9 @@ Tabletop world, multiplayer peer or alternate assets. Pure A cannot prove native
 input/resource/picking behavior. It reuses the existing owner/frame helpers and
 60s bound, rather than adding another journey. Headless cannot certify cool
 rendered presentation, GPU pixels, desktop focus or a complete UI-session
-transition. Historical four-phase economy transcripts may need explicit
-reconciliation; an intermediate broad failure is not presented as green coverage.
-See [battle-flow receipts and exact limits](battle-flow.md).
+transition. [Reconstruction coverage](battle-flow-reconstruction-coverage.md)
+owns reconciliation of the historical four-phase economy transcripts and exact
+failed/passed receipts; an intermediate broad failure is not green coverage.
 
 ## Combined Tabletop receiving coverage (2026-10-12)
 
@@ -444,31 +444,12 @@ C# rules/commands, not another application journey. The ordinary army opening
 now proves four paid recruits with actual unused physical capacity; separate
 paid six-unit/capacity and three-city transfer guards remain.
 
-The rebuilt paid selection passed 11 cases; broader fast and occupied-front
-setup diagnostics subsequently failed and remain preserved. Firstmate then
-authorized the split paid progression and focused production admission witnesses,
-not another speculative paid schedule to force incidental seeded occupancy.
-The paid default-rule witness retains resource/funding/allocation/transfer and
-survivor identity. The focused numerical witness deliberately establishes the
-explicit nonempty occupied-source guard across eight role/death cases, preserving
-source positions/health/ownership and legal incoming identity/capacity through
-actual transfer and admission. One bounded same-input spatial counterfactual
-proves occupied source forces rear admission versus legal front admission without
-that occupation. This is numerical setup, not a paid campaign or rendered proof.
-The old assertions and inherited malformed/capacity/foreign/atomic/death-release
-negative coverage are inventoried in the checkpoint; no product admission or
-balance behavior was modified.
-
-Full fast coverage now passes 509 Core/649 Runner (two Windows-platform skips).
-The minimal headless native receiving owner also passes, including landed plot/
-tower/modal/resource controls and new speed/input/ack, imported forecast rigs,
-framing/picking/inspector, actual three settlements and stale preview cleanup.
-Final focused split/board/occupancy requalification passes 39 cases after paid
-receipt strengthening. Historical failures, exact receipts and unexecuted live
-transport/package/pipeline checks are recorded in the checkpoint. No full native
-application/world/UI journey or rendered forecast/GPU qualification is claimed.
-Immutable MAIN resource-ledger bytes/provenance are retained; the native C#
-receiving caller supplies its supported heading field.
+The [reconstruction coverage checkpoint](battle-flow-reconstruction-coverage.md)
+owns the paid/occupied witness split, negative-coverage inventory and opt-in
+redistribution consumer migration, including their exact failed/passed receipts
+and unexecuted native qualification. Those historical receipts are not current
+pipeline-head proof. Immutable MAIN resource-ledger bytes/provenance are retained;
+the native C# receiving caller supplies its supported heading field.
 
 ## Remaining risks / deliberately unclaimed guarantees
 

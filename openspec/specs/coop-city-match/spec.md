@@ -34,7 +34,7 @@ Cooperative play SHALL offer a lobby for up to four players and an explicit star
 - **AND** inspecting or buying that plot retains its stable world identity
 
 ### Requirement: Material production and construction
-Gold, food, wood, stone, metal and cloth SHALL be the six economy resources. Each living city SHALL receive configured base gold once per production turn. Gold Mines SHALL add gold, Farms food, Lumbermills wood, Stonecutters stone, Metal Mines metal and Weavers cloth. Producers SHALL create their output directly without consuming another resource. Gold Mine SHALL be the presentation name of the existing gold-producing Mine, distinct from Metal Mine. Construction SHALL atomically pay all displayed resource costs and occupy exactly one empty purchased owned plot during unpaused building or preparation for a living player who is not ready. Buildings present at production SHALL produce at their current level exactly once; sold producers SHALL contribute nothing and preparation SHALL produce no resources. Research Towers SHALL contribute city-research progress during those same actual production resolutions; research SHALL remain separate from the six material resources.
+Gold, food, wood, stone, metal and cloth SHALL be the six economy resources. Each living city SHALL receive configured base gold once per production turn. Gold Mines SHALL add gold, Farms food, Lumbermills wood, Stonecutters stone, Metal Mines metal and Weavers cloth. Producers SHALL create their output directly without consuming another resource. Gold Mine SHALL be the presentation name of the existing gold-producing Mine, distinct from Metal Mine. Construction SHALL atomically pay all displayed resource costs and occupy exactly one empty purchased owned plot during unpaused building or preparation for a living player who is not ready. Buildings present at production SHALL produce at their current level exactly once; sold producers SHALL contribute nothing. Settlement timing SHALL follow [preparation and battle controls](../../../docs/gameplay.md#preparation-and-battle-controls). Research Towers SHALL contribute city-research progress during those same actual production resolutions; research SHALL remain separate from the six material resources.
 
 Lumbermills SHALL ordinarily cost 1 wood. Farms, Gold Mines, Stonecutters, Metal Mines, Weavers, Barracks and Archery Ranges SHALL cost 2 wood without gold. Arcanums SHALL cost 5 gold, 2 wood and 3 stone; Markets and Research Towers SHALL cost 2 wood and 2 stone without gold. Arrow Towers SHALL cost 4 gold and 3 wood; Catapult Towers SHALL cost 6 gold, 4 wood, 3 stone and 2 metal. These resource requirements SHALL NOT additionally require ownership of their producers, a base level, a talent, a wave milestone or a previous resource discovery. Arcanum construction SHALL NOT require cloth; recruiting a Mage SHALL require cloth. Costs, balances and arithmetic SHALL be nonnegative bounded whole amounts, and invalid or overflowing transactions SHALL fail without partial mutation. Starting grants, production and costs SHALL permit an ordinary opening that recruits and feeds defenders before wave one. Stone, metal and cloth SHALL begin at zero. At exactly zero wood, eligible owners SHALL additionally be able to explicitly select a quoted 4-gold recovery Lumbermill purchase on an empty purchased plot without owning a Market, including after selling a building to free space. A normal construction request SHALL NOT silently change its payment currency. Recovery SHALL be unavailable for other buildings, non-build actions, unknown payment choices or positive wood stock. Actual selected payment SHALL determine refundable investment; all normal ownership, phase, readiness, purchase, generation and retry guards SHALL apply.
 
@@ -68,9 +68,9 @@ The default city SHALL begin with 12 gold and 6 wood and zero other stocks, rece
 - **AND** a disconnected living city follows the same production rule
 
 #### Scenario: Basic opening does not spend gold
-- **WHEN** a default city constructs its Farm, Metal Mine and Barracks and resolves three productions
-- **THEN** construction spends its 6 starting wood and no gold, production supplies 12 metal and 15 food, and six level-one Swordsmen can be equipped for 2 metal each
-- **AND** battle entry pays the existing 6 food once
+- **WHEN** a default city constructs its Farm, Metal Mine and Barracks for the first wave
+- **THEN** construction spends its 6 starting wood and no gold
+- **AND** spendable equipment, final settlement and upkeep follow the ordinary first-defense example in [gameplay](../../../docs/gameplay.md)
 
 #### Scenario: Recovery charges only the selected quote
 - **WHEN** an eligible zero-wood owner explicitly constructs a recovery Lumbermill and retries the accepted request
@@ -165,14 +165,13 @@ Barracks, Archery Range and Arcanum SHALL each have five levels; Gold Mines, Far
 
 Town hall SHALL use the independently quoted capacity and healing tracks in army-roster rather than a shared building-level upgrade.
 
-### Requirement: Ready checks and three-turn wave cadence
-Each wave SHALL be preceded by exactly three building/production turns. Connected living players SHALL explicitly set ready; they SHALL be able to withdraw readiness before resolution. Ready players SHALL NOT construct, upgrade, research, recruit, buy plots, sell buildings or trade resources until they withdraw readiness. Disconnected and eliminated players SHALL NOT block the ready check. A building turn SHALL resolve only when at least one living player is connected and every connected living player is ready. Resolution SHALL apply production exactly once to every living city, including disconnected cities, and reset readiness. After the third production turn, the match SHALL enter an editable preparation stage with readiness cleared. Preparation SHALL permit normal owned economic actions without production. A second ready check following the same connected/living eligibility SHALL start combat once any prior wave's authoritative death cleanup is complete, resolve this wave's food upkeep exactly once before army formation, and SHALL NOT grant income or create a fourth production turn. Insufficient food SHALL use the battle-upkeep reserve rule rather than add a shared readiness blocker. Readiness during cleanup SHALL remain recorded; cleanup completion SHALL resolve the eligible check once without requiring a repeated ready command. Snapshots SHALL distinguish preparation from production stages and commands from prior stages SHALL be stale.
+### Requirement: Ready checks and preparation wave cadence
+Readiness eligibility, numbered stages, settlement, the final spending boundary and death-cleanup deferral SHALL follow [preparation and battle controls](../../../docs/gameplay.md#preparation-and-battle-controls). Snapshots SHALL preserve the serialized phase meanings and commands from prior stages SHALL be stale, under [session compatibility](../../../docs/sessions.md).
 
-#### Scenario: Third turn starts a wave
-- **WHEN** all required players become ready for the third building turn
-- **THEN** production occurs once and final preparation starts
-- **AND** a ready request from the resolved production stage is rejected and cannot produce resources again or start combat
-- **AND** the wave starts only when the subsequent preparation ready check resolves
+#### Scenario: Final readiness starts a wave
+- **WHEN** all required players become ready in final preparation
+- **THEN** settlement and combat entry follow the authoritative gameplay boundary
+- **AND** retrying or delivering a stale ready request cannot repeat settlement or upkeep
 
 #### Scenario: Disconnected city participates
 - **WHEN** one player is disconnected and the remaining connected living players finish a ready check
@@ -182,10 +181,10 @@ Each wave SHALL be preceded by exactly three building/production turns. Connecte
 - **WHEN** a building phase has no connected living player
 - **THEN** it waits without automatically resolving empty ready checks
 
-#### Scenario: Spend the last production before battle
-- **WHEN** the third production of wave three grants food and wood
-- **THEN** the player can recruit, construct, upgrade, research, buy plots, sell buildings or trade with available resources in preparation
-- **AND** completing the preparation ready check starts that wave without further income
+#### Scenario: Final edits precede settlement
+- **WHEN** a player makes eligible economic or army edits during final preparation
+- **THEN** they follow the spending and settlement boundary in [gameplay controls](../../../docs/gameplay.md#preparation-and-battle-controls)
+- **AND** no subsequent income-spending stage is exposed before combat
 
 #### Scenario: Preparation survives pause and reconnect
 - **WHEN** a city reconnects during paused preparation

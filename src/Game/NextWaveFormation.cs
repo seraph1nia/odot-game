@@ -18,8 +18,8 @@ internal static class NextWaveFormation
             int rows = (units.Length + columns - 1) / columns;
             for (int index = 0; index < units.Length; index++)
             {
-                // Compress only exceptionally large custom catalogs; never move
-                // the camera's bounds or hide/guess part of a forecast.
+                // Compress only exceptionally large custom catalogs to bound
+                // display depth; framing still consumes every actual position.
                 float spacing = Math.Min(1.25f, 5f / Math.Max(1, rows - 1));
                 result.Add(units[index].Id, CombatLayout.Center(city.Key)
                     + new Vector3((index % columns - (columns - 1) / 2f) * 1.35f, 0, -8 - index / columns * spacing));
