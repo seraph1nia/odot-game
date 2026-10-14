@@ -1815,3 +1815,53 @@ core/648 runner passes,57.89s; the same two Windows-native rows skip on Linux.
 Strict OpenSpec change validation and whitespace checks pass. This supplements
 the changed seed8 transport receipt; fresh exact-tip platform CI remains required
 before final delivery.
+
+
+### Frozen melee displacement recovery (2026-10-14)
+
+Later review found that `UnitView.Sample` reset its root to the projected cell
+position and applied the cosmetic melee lunge only while alive. A casualty
+therefore jumped backward at death even though the authority retained its action,
+FrozenTick and aim. The earlier native casualty proof compared two already-dead
+samples and missed the transition. The owner authorized cancelling parked run
+`01M4W85RTV5C0P3BG0AE0X7295`, preserving every unpublished commit with
+guarded recovery, repairing this source defect and restarting validation.
+Review removal of unused faction-distance precomputation and both documentation
+fix commits are retained; the cancelled run is not publication readiness.
+Its scoped Test receipt still records real admission/transport evidence at
+`3e7f44f563bf805f6e276d9e8bb01f14fa95a71b`, including43 native admission
+runs, the paid tower-only redistribution, ordinary eliminated-resume and
+same-process hosted teardown; unchanged boundaries need no blanket repetition.
+
+The renderer now samples cosmetic lunge independently from the live attack
+blend, using the retained FrozenTick for casualties. The imported death clip
+continues on the shared playback clock. Rules, logical claims, profiles, wire
+fields and imported assets are unchanged. Tier A tests cover windup/impact/
+recovery freeze, zero dead attack blend and moving/ranged/nonattack exclusions.
+The existing Tier B animation selection adds one adjacent one-member Sword
+encounter through actual CombatSimulation damage and compressed receiving.
+A component-only1HP victim creates a deterministic simultaneous lethal impact;
+it is not an earned-balance witness. The same real UnitView is sampled live at
+impact and then dead, with exact native root preservation, advancing imported
+bone pose and no retained logical squad claims. Owned rig cleanup uses the
+existing component scene; no full application, peers or graphical journey.
+Expected incremental native cost is below one second.
+
+The native test failed before the repair at the live-to-dead position assertion
+(`logs/20261014-061429-fcf23046`), after confirming the actual live lunge.
+After repair,16 selected CombatVisualTiming tests passed
+(`logs/20261014-061529-78711d7a`,1.19s), and the complete selected
+headless animation component passed1.57s (6.66s including preparation,
+`logs/20261014-061538-dbc60c68`). Retained projectile, committed miss,
+health, stockpile and both native melee detector controls pass as well.
+Locked solution restore/build and C# formatting passed with zero warnings/errors.
+These receipts prove resource/node motion, not rendered pixels, four-owner
+readability or final-tip CI; the earlier authorized graphical frames remain
+scoped historical evidence. Fresh owning delivery at the repaired head remains
+required before handoff. No acceptance failure was waived.
+
+Coherent recovery fast coverage passed694 core and651 runner tests in36.43s
+(`logs/20261014-061603-fc212b27`), with the same two Windows-native
+argument-reader tests skipped on Linux. All21 durable specs and the finishing
+change pass strict OpenSpec validation; whitespace checks pass. This closes
+task6.3 on the repaired source; exact published-head platform CI is still pending.

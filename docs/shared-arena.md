@@ -223,13 +223,14 @@ poses are not repeated into bounded event payloads.
 Native cue projection includes the selected member's formation. Launch predicts
 only its already committed transition through the impact deadline—not later
 moves or a guaranteed hit; landed effects use the actual pre-damage primary pose.
-Death freezes physical position/facing while the shared paused/playback clock
-advances the imported death clip until ordinary expiry/cleanup. Coarse stockpile
+Death freezes physical position/facing, including a melee lunge sampled at
+the recorded death tick; the attack blend ends without pulling the cosmetic root
+back to its cell center. The shared paused/playback clock advances the imported death clip until ordinary expiry/cleanup. Coarse stockpile
 props update only across quantity bands; exact resource labels still consume
 accepted snapshots without optimistic spending. The existing `animation` minimal
 component now checks actual AnimationTree/bones/socket/projectile/health/status/
-formation/death/cleanup/stock resources, plus a real numerical committed-miss
-control. These are headless resource/node proofs, not pixels or choreography.
+formation/death/cleanup/stock resources, a real lethal-impact live-to-dead
+melee transition, and a real numerical committed-miss control. These are headless resource/node proofs, not pixels or choreography.
 The opaque native base covers the projected safe camera
 boundary. Keep fall disables defenses without inventing tower destruction.
 

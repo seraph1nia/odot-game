@@ -123,8 +123,7 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
         float desired = layout.Facing(state, tick, units);
         Rotation = new(0, _facingTick is { } previousTick ? CombatVisualTiming.Facing(Rotation.Y, desired, Dead ? 0 : tick - previousTick) : desired, 0);
         _facingTick = tick;
-        if (!Dead && state.Class == UnitClass.Melee && state.Hex?.HoldsTransit != true)
-            Position += new Vector3(Mathf.Sin(desired), 0, Mathf.Cos(desired)) * (float)CombatVisualTiming.Attack(state, tick) * .65f;
+        Position += new Vector3(Mathf.Sin(desired), 0, Mathf.Cos(desired)) * (float)CombatVisualTiming.Lunge(state, tick);
         _walkingBlend = CombatVisualTiming.Walking(state.Hex, tick);
         _attackBlend = CombatVisualTiming.Attack(state, tick);
         _hitBlend = CombatVisualTiming.Hit(seconds, _hitAt, Dead, _attackBlend > 0);

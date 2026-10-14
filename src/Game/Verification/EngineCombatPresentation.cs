@@ -14,6 +14,7 @@ public partial class EngineTests
     {
         await GroupPresentation();
         await MeleeWindupPresentation();
+        await MeleeCasualtyPresentation();
         await CommittedMissPresentation();
         await StockpilePresentation();
     }
@@ -189,6 +190,46 @@ public partial class EngineTests
             foreach (UnitView rig in rigs.Values) { RemoveChild(rig); rig.Free(); }
             RemoveChild(camera); camera.Free();
         }
+    }
+    // Tier B: the earlier casualty check sampled only already-dead rigs. This
+    // reproduces a real simultaneous impact killing a lunging participant.
+    private async Task MeleeCasualtyPresentation()
+    {
+        using var match = new Match(combatSeed: 1); match.Join();
+        CombatSimulation combat = match.Combat;
+        int victimId = PresentationGroup(combat, UnitType.Swordsman, 1, Faction.Adventurers, 17)[0];
+        PresentationGroup(combat, UnitType.Swordsman, 1, Faction.Skeletons, 18);
+        combat.Seed(combat.Inspect(victimId) with { Health = HealthPoints.FromWhole(1) });
+        combat.StartActions([]); MatchSnapshot initial = Received(match);
+        var layout = new CombatLayout(new(initial.Arena!.Board)) { Arena = initial.Arena }; layout.Synchronize(initial);
+        var units = initial.Players[0].Soldiers.Concat(initial.Enemies).ToDictionary(u => u.Id);
+        UnitState live = units[victimId];
+        long impact = live.ImpactTick;
+        var rig = new UnitView(live); AddChild(rig);
+        try
+        {
+            rig.Sample(live, impact, impact / (double)Match.StepsPerSecond, 0, layout, units);
+            await Frames(); Vector3 before = rig.Position;
+            Check(Math.Abs(before.DistanceTo(layout.Position(live, impact)) - .65f) < .00001f,
+                "actual live melee rig reaches its attack lunge before lethal impact");
+            combat.Advance(impact, []); MatchSnapshot killed = Received(match, impact); layout.Synchronize(killed);
+            units = killed.Players[0].Soldiers.Concat(killed.Enemies).Concat(killed.DyingBodies).ToDictionary(u => u.Id);
+            UnitState casualty = killed.DyingBodies.Single(u => u.Id == victimId);
+            rig.Sample(casualty, impact, impact / (double)Match.StepsPerSecond, 0, layout, units);
+            Check(rig.Position.IsEqualApprox(before) && rig.Dead && rig.Clip == "death",
+                "attacking casualty freezes its actual lunged root without a live-to-dead backward jump");
+            double firstPose = rig.PoseSeconds;
+            string firstBone = Observation(rig.Observe()).GetProperty("BoneRotation").GetString()!;
+            double midpoint = (casualty.Hex!.DeathStartTick + casualty.Hex.DeathEndTick) / 2.0;
+            rig.Sample(casualty, midpoint, midpoint / Match.StepsPerSecond, 0, layout, units); await Frames();
+            Check(rig.Position.IsEqualApprox(before) && rig.PoseSeconds > firstPose
+                && Observation(rig.Observe()).GetProperty("BoneRotation").GetString() != firstBone,
+                "lunged casualty remains physically frozen while imported death clip advances");
+            Check(!killed.Reservations.Positions.Any(p => p.UnitId == casualty.SquadId)
+                && !killed.Reservations.Transit.Any(p => p.UnitId == casualty.SquadId),
+                "frozen cosmetic lunge retains no logical squad claim");
+        }
+        finally { RemoveChild(rig); rig.Free(); }
     }
     private async Task CommittedMissPresentation()
     {

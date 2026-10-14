@@ -83,6 +83,28 @@ public sealed class CombatVisualTimingTests
         Assert.InRange(CombatVisualTiming.Hit(1.05, 1, false, true), .299, .3);
         Assert.Equal(0, CombatVisualTiming.Hit(1.15, 1, false, false));
     }
+    // Tier A: death must retain cosmetic root displacement independently of the
+    // attack blend. Existing attack tests correctly zero that blend on death.
+    [Theory]
+    [InlineData(106d)]
+    [InlineData(112d)]
+    [InlineData(158d)]
+    public void DyingMeleeRetainsLungeAtFrozenTickWithoutKeepingAttackBlend(double deathTick)
+    {
+        UnitState alive = Actor;
+        double displacement = CombatVisualTiming.Lunge(alive, deathTick);
+        Assert.InRange(displacement, .00001, .65);
+        UnitState dead = alive with { Health = 0, Hex = alive.Hex! with { Lifecycle = UnitLifecycle.Dying, FrozenTick = (long)deathTick } };
+        foreach (double tick in new[] { deathTick, 200, 1000 })
+        {
+            Assert.Equal(displacement, CombatVisualTiming.Lunge(dead, tick));
+            Assert.Equal(0, CombatVisualTiming.Attack(dead, tick));
+        }
+        Assert.Equal(0, CombatVisualTiming.Lunge(alive with { Type = UnitType.Crossbowman }, deathTick));
+        Assert.Equal(0, CombatVisualTiming.Lunge(alive with { Hex = Move }, deathTick));
+        Assert.Equal(0, CombatVisualTiming.Lunge(alive with { TargetId = 0 }, deathTick));
+        Assert.Equal(0, CombatVisualTiming.Lunge(alive with { AttackSequence = 0 }, deathTick));
+    }
     [Fact]
     public void FacingUsesTheShortArcAndFreezesWithoutCombatAdvancement()
     {

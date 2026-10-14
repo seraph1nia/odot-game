@@ -47,14 +47,22 @@ These are the remaining tasks from saved checkpoint `85ebbcc`, not a request to 
 
 ## 7. Produce one reviewable delivery
 
-- [x] 7.1 Commit coherent implementation/spec/doc checkpoints on the existing branch and run an owning no-mistakes pipeline (one active run at a time, preserving fixes across any required infrastructure retry) with the actual finishing intent; verify it owns all subsequent fixes/review/tests/docs/push/PR/CI and no competing caller edits or waived failed acceptance occur while active.
-- [x] 7.2 Hand back the non-draft integrated PR with its exact head and required green checks, concise behavioral/art changes, retained compatibility decisions and honest deferred balance/visual/platform limits; verify no release or merge is inferred from intermediate local passes, and archive only when implementation obligations are complete.
+- [ ] 7.1 Commit coherent implementation/spec/doc checkpoints on the existing branch and run an owning no-mistakes pipeline (one active run at a time, preserving fixes across any required infrastructure retry) with the actual finishing intent; verify it owns all subsequent fixes/review/tests/docs/push/PR/CI and no competing caller edits or waived failed acceptance occur while active.
+- [ ] 7.2 Hand back the non-draft integrated PR with its exact head and required green checks, concise behavioral/art changes, retained compatibility decisions and honest deferred balance/visual/platform limits; verify no release or merge is inferred from intermediate local passes, and archive only when implementation obligations are complete.
 
 
 Delivery receipts: PR25 was non-draft with source/Linux/Windows/CodeRabbit
 checks green at9b34f38b401e272e312d399da41ec006ebb09faf (owning run
-01M4VZ0HPTR2S73F9N9CKX3BWG, Actions38504242071). This closes the original
-27 implementation/delivery obligations. The late validation-boundary and peer
+01M4VZ0HPTR2S73F9N9CKX3BWG, Actions38504242071). This records the earlier delivery; it does not certify the unresolved
+live-to-dead melee displacement defect discovered during later review. The late validation-boundary and peer
 barrier follow-up is recorded in docs/testing-audit.md and will receive a fresh
 owning pipeline/CI pass before final handoff; no future descendant is certified
 by this parent receipt. No merge, release or archive was performed.
+
+Task5.2 is requalified by the frozen melee-lunge repair and real native
+live-to-dead regression (logs/20261014-061538-dbc60c68); the pre-fix native
+assertion failed as expected. Task6.3 is requalified by locked zero-warning build/format and694core/651runner
+fast passes (two Windows-native skips on Linux; logs/20261014-061603-fc212b27).
+Tasks7.1/7.2 await fresh owning delivery at the repaired head. On2026-10-14 the owner authorized cancellation of parked run
+01M4W85RTV5C0P3BG0AE0X7295, guarded recovery of all unpublished commits,
+caller repair and a fresh validation run; no failed acceptance was waived.
