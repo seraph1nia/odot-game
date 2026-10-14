@@ -148,7 +148,10 @@ paid ranged openings, ten genuine solo wins and the finite1..4owner cooperative
 sample. [Wave power](wave-power.md#headless-encounter-evidence) owns the current
 paired paid measurements. The [audit](testing-audit.md#wave-power-rebalance-2026-10-14)
 records rebalance receipts and unexecuted coverage; earlier recovery, four-edit
-and pre-trace receipts remain historical. Compact native squad summaries expose each
-member's HP, while the inspector retains full individual details. Cosmetic
+and pre-trace receipts remain historical. The
+[health-overlay contract](../openspec/specs/game-feedback/spec.md#requirement-authoritative-overhead-unit-health-bars)
+owns current presentation requirements; the
+[health-only overlay receipt](testing-audit.md#health-only-actor-overlays-2026-10-14)
+records focused headless regressions and unexecuted rendered acceptance. Cosmetic
 death overlap grants no logical claim. Component/node correctness remains
 separate from explicitly authorized rendered combat and platform packages.

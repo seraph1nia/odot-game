@@ -29,7 +29,7 @@ internal sealed partial class ArmyPlotView : Node3D
         {
             int index = home.PlotId - ArmyConfiguration.PlotOffset;
             Vector3 point = PlotPosition(state, home.PlotId);
-            AddChild(new Label3D
+            if (!ArmyConfiguration.IsTower(home.Plot.Type) && home.State != ArmyPlotStatus.UnitOccupied) AddChild(new Label3D
             {
                 Name = "Home" + index,
                 Position = point + new Vector3(0, .12f, .95f),

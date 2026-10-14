@@ -3,14 +3,16 @@ using Godot;
 
 namespace Game;
 
-// Native battlefield component: one arena, physical objectives, compact squad
-// summaries and owned deployment picking. Cosmetics consume accepted snapshots.
+// Native battlefield component: one arena, physical objectives and owned
+// deployment picking. Actor overlays are health-only, sampled on the playback clock.
 internal sealed partial class SharedArenaView : Node3D
 {
     private readonly LandscapeAssets _assets = new();
     private readonly Dictionary<int, MeshInstance3D> _cells = [];
-    private readonly Dictionary<(int Owner, ArenaStructureKind Kind, int Slot), (Node3D Model, Label3D Label, int Level)> _structures = [];
-    private readonly Dictionary<int, Label3D> _squads = [];
+    private readonly Dictionary<(int Owner, ArenaStructureKind Kind, int Slot), (Node3D Model, UnitHealthBar? Bar, int Level)> _structures = [];
+    private readonly Dictionary<int, Node3D> _squads = [];
+    private StructureState[] _sampledStructures = [];
+    private IReadOnlyDictionary<int, long> _rally = new Dictionary<int, long>();
     private Dictionary<int, UnitState[]> _summaryMembers = [];
     private readonly Dictionary<int, Label3D> _homes = [];
     private readonly Dictionary<int, StandardMaterial3D> _ownerMaterials = [];
@@ -35,7 +37,8 @@ internal sealed partial class SharedArenaView : Node3D
         if (_identity != identity)
         {
             foreach (Node child in GetChildren()) { RemoveChild(child); child.QueueFree(); }
-            _cells.Clear(); _structures.Clear(); _squads.Clear(); _summaryMembers.Clear(); _homes.Clear(); _identity = identity;
+            foreach (var view in _structures.Values) RemoveBar(view.Bar);
+            _cells.Clear(); _structures.Clear(); _squads.Clear(); _summaryMembers.Clear(); _homes.Clear(); _sampledStructures = []; _identity = identity;
             Mesh mesh = CellOutline();
             foreach (HexCellDefinition cell in arena.Board.Cells)
             {
@@ -76,17 +79,18 @@ internal sealed partial class SharedArenaView : Node3D
             int home = Array.IndexOf(homes, cell);
             ArmyHomeState? assignment = own?.Army?.Homes.FirstOrDefault(h => h.Cell == home);
             string status = cell == selected ? "selected" : assignment?.Plot.Type != Building.Empty ? "tower" : !purchased.Contains(cell) ? "locked" : occupied.Contains(cell) ? "occupied" : "available";
+            label.Visible = status is "available" or "locked" or "selected" && !occupied.Contains(cell) && assignment?.Plot.Type == Building.Empty;
             label.Text = $"P{localOwner} · {home + 1}\n{status}";
             label.Modulate = cell == selected ? _selected.AlbedoColor : OwnerColor(localOwner);
         }
         var liveStructures = state.Structures.ToDictionary(s => (s.Owner, s.Kind, s.Slot));
         foreach (var key in _structures.Keys.Except(liveStructures.Keys).ToArray())
-        { RemoveStructure(_structures[key].Model, _structures[key].Label); _structures.Remove(key); }
+        { RemoveStructure(_structures[key].Model, _structures[key].Bar); _structures.Remove(key); }
         foreach (StructureState structure in state.Structures)
         {
             var key = (structure.Owner, structure.Kind, structure.Slot);
             if (_structures.TryGetValue(key, out var view) && view.Level != structure.Level)
-            { RemoveStructure(view.Model, view.Label); _structures.Remove(key); }
+            { RemoveStructure(view.Model, view.Bar); _structures.Remove(key); }
             if (!_structures.ContainsKey(key))
             {
                 string path = structure.Kind switch
@@ -103,9 +107,11 @@ internal sealed partial class SharedArenaView : Node3D
                     Node3D plinth = _assets.Place(footprint, AssetCatalog.Plinth, Vector3.Zero, 1.9f);
                     model.Position += new Vector3(0, LandscapeAssets.TowerDeck(plinth), 0);
                 }
-                var label = Label($"StructureHealth_{structure.Owner}_{structure.Kind}_{structure.Slot}");
-                label.Position = layout.CellPosition(structure.Cell) + new Vector3(0, 3, 0); label.Modulate = OwnerColor(structure.Owner);
-                view = (footprint, label, structure.Level); _structures.Add(key, view);
+                // Purchased weapons are invulnerable (snapshot 1/1 is a sentinel,
+                // not HP). Only Keep/Watchpost have meaningful health to display.
+                UnitHealthBar? bar = structure.Kind is ArenaStructureKind.Keep or ArenaStructureKind.Watchpost
+                    ? new() { Name = $"StructureHealth_{structure.Owner}_{structure.Kind}_{structure.Slot}" } : null;
+                view = (footprint, bar, structure.Level); _structures.Add(key, view);
                 footprint.AddChild(new MeshInstance3D
                 {
                     Name = "OwnerSeal",
@@ -114,14 +120,8 @@ internal sealed partial class SharedArenaView : Node3D
                     MaterialOverride = OwnerMaterial(structure.Owner)
                 });
             }
-            // Retain the owner seal and a low ruin marker after an objective
-            // falls. Purchased inactive towers keep their actual building.
-            view.Model.GetChild<Node3D>(0).Visible = !structure.Destroyed;
-            MeshInstance3D seal = view.Model.GetNode<MeshInstance3D>("OwnerSeal");
-            seal.Scale = new(1, structure.Destroyed ? 8 : 1, 1);
-            bool objective = structure.Kind is ArenaStructureKind.Keep or ArenaStructureKind.Watchpost;
-            view.Label.Text = $"P{structure.Owner} {(objective ? structure.Kind.ToString() : AssetCatalog.BuildingName(structure.TowerType))}" + (objective ? $" · {HealthPoints.Format(structure.Health)}/{HealthPoints.Format(structure.MaximumHealth)}" : $" L{structure.Level}")
-                + (structure.Destroyed ? " · fallen" : !structure.Active ? " · inactive" : "");
+            // Damage/death visibility is applied by Sample, never by the newest
+            // accepted frame ahead of the buffered character clock.
         }
     }
     private static ImmediateMesh CellOutline()
@@ -180,8 +180,28 @@ internal sealed partial class SharedArenaView : Node3D
                 _assets.Place(frame, "environment/components/forest_fern.glb", new(x, -.1f, z + .8f), .5f);
             }
     }
-    private void RemoveStructure(Node3D model, Label3D label)
-    { RemoveChild(model); RemoveChild(label); model.QueueFree(); label.QueueFree(); }
+    private static void RemoveBar(UnitHealthBar? bar)
+    {
+        if (bar is null) return;
+        bar.GetParent()?.RemoveChild(bar); bar.QueueFree();
+    }
+    private void RemoveStructure(Node3D model, UnitHealthBar? bar)
+    { RemoveChild(model); model.QueueFree(); RemoveBar(bar); }
+    public override void _ExitTree()
+    {
+        foreach (var view in _structures.Values) RemoveBar(view.Bar);
+    }
+    internal void UpdateHealthBars(Control root, Camera3D camera, Rect2 world)
+    {
+        foreach (StructureState structure in _sampledStructures)
+        {
+            if (!_structures.TryGetValue((structure.Owner, structure.Kind, structure.Slot), out var view) || view.Bar is not { } bar) continue;
+            if (bar.GetParent() is null) root.AddChild(bar);
+            Aabb bounds = view.Model.Transform * LandscapeAssets.Bounds(view.Model.GetChild<Node3D>(0));
+            Vector3 anchor = GlobalPosition + new Vector3(bounds.GetCenter().X, bounds.End.Y + .25f, bounds.GetCenter().Z);
+            bar.Sample(structure.Health, structure.MaximumHealth, anchor, IsVisibleInTree() && !structure.Destroyed && structure.Active, camera, world);
+        }
+    }
     internal void CoverBoundary(Rect2 worldBoundary)
     {
         if (_diorama?.Mesh is not BoxMesh mesh) return;
@@ -214,20 +234,24 @@ internal sealed partial class SharedArenaView : Node3D
     {
         if (_state is null || _layout is null) return;
         double tick = playback.Tick;
-        IReadOnlyDictionary<int, long> rally = playback.RallyDisruptions();
+        _rally = playback.RallyDisruptions();
+        _sampledStructures = playback.Structures();
+        foreach (StructureState structure in _sampledStructures)
+        {
+            if (!_structures.TryGetValue((structure.Owner, structure.Kind, structure.Slot), out var view)) continue;
+            view.Model.GetChild<Node3D>(0).Visible = !structure.Destroyed;
+            view.Model.GetNode<MeshInstance3D>("OwnerSeal").Scale = new(1, structure.Destroyed ? 8 : 1, 1);
+        }
         _summaryMembers = units.Where(u => u.Hex?.Lifecycle == UnitLifecycle.Alive).GroupBy(u => u.SquadId).ToDictionary(g => g.Key, g => g.ToArray());
         foreach (int id in _squads.Keys.Except(_summaryMembers.Keys).ToArray()) { _squads[id].QueueFree(); _squads.Remove(id); }
         foreach ((int id, UnitState[] participating) in _summaryMembers)
         {
             UnitState squad = participating[0];
-            if (!_squads.TryGetValue(id, out Label3D? label)) _squads[id] = label = Label("SquadSummary" + id);
+            if (!_squads.TryGetValue(id, out Node3D? label))
+            { _squads[id] = label = new Node3D { Name = "SquadSummary" + id }; AddChild(label); }
             label.Position = _layout.SquadPosition(squad.Hex!, tick) - Position + new Vector3(0, squad.IsBoss ? 2.5f : 1.6f, 0);
-            label.Modulate = OwnerColor(squad.Owner);
-            string status = string.Join(' ', participating.Select(u => ProgressionPresentation.StatusBadge(u.Statuses, tick)).Where(s => s.Length > 0).Distinct());
-            string role = squad.Type switch { UnitType.Swordsman => "Sword", UnitType.Berserker => "Axe", UnitType.Crossbowman => "Bow", _ => "Mage" };
-            label.Text = $"{(squad.Faction == Faction.Skeletons ? squad.IsBoss ? "BOSS" : "Enemy" : $"P{squad.Owner}")} {role} ×{participating.Length}\n"
-                + string.Join(' ', participating.Select(u => $"{HealthPoints.Format(u.Health)}/{HealthPoints.Format(u.Profile.Health)}"))
-                + (status.Length > 0 ? "\n" + status : "") + (tick < rally.GetValueOrDefault(id) ? "\nRally disrupted" : "");
+            // Nonvisual diagnostic anchor only. Member controls share the
+            // squad anchor in stable slots; no duplicate squad health/text overlay.
         }
     }
     internal object[] Observe(Camera3D camera, Transform2D screen, Rect2 world)
@@ -236,7 +260,7 @@ internal sealed partial class SharedArenaView : Node3D
         return _summaryMembers.Select(group =>
         {
             UnitState s = group.Value[0];
-            Label3D label = _squads[group.Key];
+            Node3D label = _squads[group.Key];
             Vector2 point = screen * camera.UnprojectPosition(label.GlobalPosition);
             return (object)new
             {
@@ -244,7 +268,8 @@ internal sealed partial class SharedArenaView : Node3D
                 s.Owner,
                 s.Faction,
                 s.Type,
-                label.Text,
+                Text = "",
+                RallyDisruptedUntil = _rally.GetValueOrDefault(group.Key),
                 Visible = label.IsVisibleInTree() && !camera.IsPositionBehind(label.GlobalPosition) && world.HasPoint(point),
                 X = point.X,
                 Y = point.Y,

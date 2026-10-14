@@ -25,7 +25,7 @@ public partial class EngineTests
                 var baseline = new CombatPlayback(); baseline.Accept(state);
                 view.Synchronize(state, layout, true, 1); view.Sample(baseline, CombatPlayback.All(state));
                 Check(view.FindChildren("ArenaCell*", "MeshInstance3D", true, false).Count == 63 * players, "native arena component contains every connected cell for " + players + " players");
-                Check(view.FindChildren("StructureHealth*", "Label3D", true, false).Count == players * 2, "each owner has a native Keep and Watchpost label");
+                Check(view.FindChildren("StructureHealth*", "Label3D", true, false).Count == 0, "Keep and Watchpost never create floating health/name text");
                 MultiMeshInstance3D[] groundBatches = view.GetChildren().OfType<MultiMeshInstance3D>().ToArray();
                 Check(groundBatches.Length == 3 && groundBatches.Sum(b => b.Multimesh.InstanceCount) == 63 * players,
                     "three imported woodland surface families cover every playable cell exactly once");
@@ -111,7 +111,7 @@ public partial class EngineTests
             }
             await ArenaReceiving(view);
             await ArenaBufferedSummaries(view, camera);
-            await ArenaBufferedRally(view);
+            await ArenaBufferedRally(view, camera);
         }
         finally { RemoveChild(camera); camera.Free(); RemoveChild(view); view.Free(); }
     }
@@ -277,6 +277,7 @@ public partial class EngineTests
         var layout = new CombatLayout(new(accepted.Arena!.Board)); layout.Synchronize(accepted);
         var rig = new UnitView(accepted.Players[0].Soldiers.Single()); AddChild(rig);
         var entryRig = new UnitView(accepted.Enemies.Single(u => u.Id == entryId)); AddChild(entryRig);
+        var bar = new UnitHealthBar(); AddChild(bar);
         try
         {
             async Task Sample(bool alive)
@@ -286,11 +287,14 @@ public partial class EngineTests
                 arenaView.Sample(playback, units.Values);
                 rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
                 entryRig.Sample(units[entryId], playback.Tick, playback.VisualSeconds, 0, layout, units);
+                bar.Sample(rig, camera, new Rect2(-100000, -100000, 200000, 200000));
+                Check(bar.Current == rig.State.Health && bar.Maximum == rig.State.Profile.Health && (!alive ? !bar.Visible : bar.Fraction > 0),
+                    "actual member bar shares buffered health and disappears at death, not on snapshot receipt");
                 await Frames();
                 Check(entryRig.Visible == (playback.Tick >= 1)
-                    && (arenaView.GetNodeOrNull<Label3D>("SquadSummary" + entrySquad) is not null) == (playback.Tick >= 1),
+                    && (arenaView.GetNodeOrNull<Node3D>("SquadSummary" + entrySquad) is not null) == (playback.Tick >= 1),
                     "native entry model and summary wait for their shared admission tick");
-                Label3D? label = arenaView.GetNodeOrNull<Label3D>("SquadSummary" + squadId);
+                Node3D? label = arenaView.GetNodeOrNull<Node3D>("SquadSummary" + squadId);
                 Check(rig.Visible && rig.Dead != alive && (label is not null) == alive,
                     "native summary membership agrees with the buffered live/dead rig");
                 if (!alive) return;
@@ -303,8 +307,8 @@ public partial class EngineTests
                 var summary = observed.EnumerateArray().Single(s => s.GetProperty("Id").GetInt32() == squadId);
                 Check(summary.GetProperty("Members").GetArrayLength() == 1
                     && summary.GetProperty("Members")[0].GetProperty("Health").GetInt32() == member.Health
-                    && summary.GetProperty("Text").GetString()!.Contains($"{HealthPoints.Format(member.Health)}/{HealthPoints.Format(member.Profile.Health)}", StringComparison.Ordinal),
-                    "native summary text and observation expose buffered member health");
+                    && summary.GetProperty("Text").GetString() == "",
+                    "nonvisual squad diagnostics expose buffered member health without floating text");
             }
             await Sample(true);
             match.Step(); accepted = Receive(); playback.Accept(accepted); await Sample(true);
@@ -346,7 +350,7 @@ public partial class EngineTests
             Check(playback.Accept(gap) && playback.Generation == generation + 1, "event gap discards buffered member state");
             await Sample(false);
         }
-        finally { RemoveChild(rig); rig.Free(); RemoveChild(entryRig); entryRig.Free(); }
+        finally { RemoveChild(bar); bar.Free(); RemoveChild(rig); rig.Free(); RemoveChild(entryRig); entryRig.Free(); }
         await ArenaBufferedBoundaries(arenaView, camera);
     }
     private async Task ArenaBufferedBoundaries(SharedArenaView arenaView, Camera3D camera)
@@ -408,7 +412,7 @@ public partial class EngineTests
                     Check(rig.State.Hex == expected.Hex && rig.State.Health == expected.Health && rig.State.AttackSequence == expected.AttackSequence,
                         "native " + transition + " model retains each accepted boundary at " + playback.Tick);
                     bool alive = expected.Hex!.Lifecycle == UnitLifecycle.Alive;
-                    Label3D? label = arenaView.GetNodeOrNull<Label3D>("SquadSummary" + squadId);
+                    Node3D? label = arenaView.GetNodeOrNull<Node3D>("SquadSummary" + squadId);
                     Check(rig.Visible == expected.Deployed && rig.Dead == (expected.Hex.Lifecycle == UnitLifecycle.Dying) && (label is not null) == alive,
                         "native " + transition + " summary and model share membership at " + playback.Tick);
                     if (!alive) return;
@@ -443,11 +447,15 @@ public partial class EngineTests
             finally { RemoveChild(rig); rig.Free(); }
         }
     }
-    private async Task ArenaBufferedRally(SharedArenaView arenaView)
+    private async Task ArenaBufferedRally(SharedArenaView arenaView, Camera3D camera)
     {
-        using var match = new Match(new Rules { RangedDamage = 0, DefenderDamage = 0, Arena = new() { WatchpostHealth = 1, RallyDurationTicks = 6 } }, combatSeed: 1);
+        using var match = new Match(new Rules { StartingGold = 100, StartingWood = 100, RangedDamage = 0, DefenderDamage = 0, Arena = new() { WatchpostHealth = 1, RallyDurationTicks = 6 } }, combatSeed: 1);
         match.Join();
         Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "start", 1)).Accepted, "Rally component authority starts");
+        match.Players[1].Stone = 100;
+        Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 2, "build", 1, 0, Building.ArrowTower)).Accepted,
+            "objective overlay fixture pays for a real invulnerable purchased tower");
+        camera.Position = CombatLayout.ArenaOrigin + new Vector3(15, 25, 25); camera.LookAt(CombatLayout.ArenaOrigin);
         int memberId = match.Combat.Create(UnitType.Crossbowman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
         match.Combat.RestoreHomes();
         for (int gate = 0; gate < 3; gate++)
@@ -467,6 +475,7 @@ public partial class EngineTests
         MatchSnapshot accepted = Receive(); var playback = new CombatPlayback(); playback.Accept(accepted);
         var layout = new CombatLayout(new(accepted.Arena!.Board));
         var rig = new UnitView(accepted.Players[0].Soldiers.Single()); AddChild(rig);
+        var bars = new Control(); AddChild(bars);
         double secondsPerTick = 1.0 / (Match.StepsPerSecond * CombatSpeedRates.Factor(accepted.CombatSpeed));
         try
         {
@@ -476,10 +485,21 @@ public partial class EngineTests
                 var units = playback.Units().ToDictionary(u => u.Id);
                 arenaView.Sample(playback, units.Values);
                 rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
+                arenaView.UpdateHealthBars(bars, camera, new Rect2(-100000, -100000, 200000, 200000));
+                UnitHealthBar post = bars.GetNode<UnitHealthBar>("StructureHealth_1_Watchpost_-1");
+                Check(post.Current == (playback.Tick < 3 ? HealthPoints.FromWhole(1) : 0) && post.Maximum == HealthPoints.FromWhole(1)
+                    && post.Visible == (playback.Tick < 3), "actual objective bar waits for buffered damage/death and never lingers over the ruin");
+                Check(bars.GetChildCount() == 2 && accepted.Structures.Length == 3,
+                    "only meaningful Keep/Watchpost HP creates bars; the purchased 1/1 sentinel never fabricates health");
+                arenaView.Visible = false; arenaView.UpdateHealthBars(bars, camera, new Rect2(-100000, -100000, 200000, 200000));
+                Check(bars.GetChildren().OfType<UnitHealthBar>().All(b => !b.Visible), "hidden arena cannot leave objective bars visible");
+                arenaView.Visible = true; arenaView.UpdateHealthBars(bars, camera, new Rect2(-100000, -100000, 200000, 200000));
+                Check(arenaView.GetNode<Node3D>("Watchpost_1_-1").GetChild<Node3D>(0).Visible == (playback.Tick < 3),
+                    "objective model and health bar switch to the ruin on the same clock");
                 await Frames();
-                Label3D label = arenaView.GetNode<Label3D>("SquadSummary" + squadId);
-                Check(rig.Visible && !rig.Dead && label.Text.Contains("Rally disrupted", StringComparison.Ordinal) == disrupted,
-                    "native Rally summary follows the shared model clock at " + playback.Tick);
+                Check(rig.Visible && !rig.Dead && (playback.Tick < playback.RallyDisruptions().GetValueOrDefault(squadId)) == disrupted
+                    && arenaView.FindChildren("SquadSummary*", "Label3D", true, false).Count == 0,
+                    "Rally retains its buffered state without restoring floating squad text at " + playback.Tick);
             }
             for (int tick = 0; tick < 3; tick++) match.Step();
             accepted = Receive(); Check(playback.Accept(accepted), "compressed Watchpost loss enters playback");
@@ -498,8 +518,14 @@ public partial class EngineTests
             match.Step(); accepted = Receive(); playback.Accept(accepted); await Sample(true);
             while (playback.Tick < 9) { playback.Advance(secondsPerTick, true); await Sample(playback.Tick < 9); }
             playback.Drain(); await Sample(false);
+            ulong[] oldBars = bars.GetChildren().Select(n => n.GetInstanceId()).ToArray();
+            using var replacement = new Match(); replacement.Join();
+            MatchSnapshot fresh = replacement.Snapshot(); var freshLayout = new CombatLayout(new(fresh.Arena!.Board)); freshLayout.Synchronize(fresh);
+            arenaView.Synchronize(fresh, freshLayout, false, 1); await Frames();
+            Check(oldBars.All(id => !GodotObject.IsInstanceIdValid(id)) && bars.GetChildCount() == 0,
+                "arena replacement detaches and actually frees externally parented objective bars");
         }
-        finally { RemoveChild(rig); rig.Free(); }
+        finally { RemoveChild(rig); rig.Free(); RemoveChild(bars); bars.Free(); }
     }
     private async Task ArenaModels(Match match, SharedArenaView arenaView)
     {
@@ -512,6 +538,8 @@ public partial class EngineTests
         {
             MatchSnapshot state = match.Snapshot(); var layout = new CombatLayout(new(state.Arena!.Board)) { Arena = state.Arena }; layout.Synchronize(state);
             arenaView.Synchronize(state, layout, true, 1); await Frames();
+            Check(arenaView.FindChildren("StructureHealth*", "Label3D", true, false).Count == 0,
+                "purchased tower upgrade never restores floating owner/name/level text");
             TowerState tower = state.Players[0].Towers.Single(t => t.Slot == 4);
             Vector3 origin = arenaView.WeaponOrigin(tower)!.Value;
             Check(origin.DistanceTo(layout.CellPosition(state.Structures.Single(s => s.Kind == ArenaStructureKind.ArrowTower).Cell) + CombatLayout.ArenaOrigin) < 8, "tower cue origin comes from native imported model at its real static cell");
@@ -531,8 +559,8 @@ public partial class EngineTests
         {
             UnitState member = byId[summary.GetProperty("Id").GetInt32()];
             Check(summary.GetProperty("Health").GetInt32() == member.Health && summary.GetProperty("Maximum").GetInt32() == member.Profile.Health
-                && summaries[0].GetProperty("Text").GetString()!.Contains($"{HealthPoints.Format(member.Health)}/{HealthPoints.Format(member.Profile.Health)}", StringComparison.Ordinal),
-                "loaded native summary text retains each member's authoritative individual HP/max");
+                && summaries[0].GetProperty("Text").GetString() == "",
+                "nonvisual squad diagnostics retain each member's authoritative individual HP/max");
         }
         Check(members.Select(u => formation.Position(u, roster.Tick)).Distinct().Count() == members.Length, "accepted per-member formation slots remain distinct on a single squad hex");
         foreach (UnitState member in members)

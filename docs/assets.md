@@ -120,8 +120,10 @@ quotes, economic costs/output and numerical traces retain their existing IDs.
 
 The level-one Woodcutter hut has no world-space title; its name, level and
 production remain in the construction and selected-building controls. Its
-level-two title and other buildings' world-space titles remain visible. The
-model, roof picking, Upgrade and Sell actions are unchanged.
+level-two title and non-defense buildings' world-space titles remain visible.
+Purchased defense-tower overlays follow the
+[health-overlay contract](../openspec/specs/game-feedback/spec.md#requirement-authoritative-overhead-unit-health-bars).
+The model, roof picking, Upgrade and Sell actions are unchanged.
 
 | Visible building | Canonical identity | Existing role retained |
 | --- | --- | --- |
@@ -155,7 +157,7 @@ The canonical enemy faction remains `Skeletons` for compatibility even where the
 source costume is hooded or horned. Friendly ranged units now visibly carry bows;
 this does not alter their existing ranged targeting, damage, windup or upkeep.
 Berserkers use authored dual axes rather than promising a two-handed silhouette.
-Boss status, Roman levels, size, authoritative health/damage and current
+Boss status, individual levels, size, authoritative health/damage and current
 capabilities remain independent of the cosmetic name and mesh.
 
 ## Available substitutes and grounding
