@@ -31,6 +31,13 @@ public sealed class SharedArenaTests
         Assert.DoesNotContain(-1, first.Board.Cell(projected.Board.Cells[0].Id).Neighbors);
         Assert.True(second.CanDeploy(11, second.Deployment(11, 1), 2));
         Assert.False(first.CanDeploy(11, second.Deployment(11, 1), 2));
+        SlotState[] plots = Enumerable.Range(0, 6).Select(i => new SlotState(Building.Empty, 0) { Purchased = i < 2 }).ToArray();
+        Assert.False(second.CanOccupy(second.Deployment(11, 0)));
+        Assert.True(second.CanDeploy(11, second.Deployment(11, 0), plots));
+        Assert.False(second.CanDeploy(11, second.Deployment(11, 2), plots));
+        plots[0] = plots[0] with { Type = Building.ArrowTower, Level = 1 };
+        Assert.False(second.CanDeploy(11, second.Deployment(11, 0), plots));
+        if (count > 1) Assert.False(second.CanDeploy(11, second.Deployment(12, 1), plots));
     }
 
     [Theory]

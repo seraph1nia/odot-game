@@ -101,7 +101,7 @@ public sealed class SharedArena
     public bool CanDeploy(int owner, int cell, IReadOnlyList<SlotState> plots)
     {
         int home = DeploymentHome(owner, cell);
-        return home >= 0 && home < plots.Count && plots[home].Purchased && plots[home].Type == Building.Empty && CanOccupy(cell);
+        return home >= 0 && home < plots.Count && plots[home].Purchased && plots[home].Type == Building.Empty;
     }
     public ArenaState Snapshot() => new(Board.Definition(), _sectors.Select(s => s with
     { DeploymentCells = s.DeploymentCells.ToArray(), EnemyCells = s.EnemyCells.ToArray() }).ToArray(), _footprints.ToArray());

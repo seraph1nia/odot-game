@@ -269,11 +269,14 @@ public partial class EngineTests
             Action = new CombatAction.Windup(1, 1, 30, new(new(CombatTargetKind.Unit, squadId), 0, 6))
         });
         MatchSnapshot Receive() => SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot()));
+        int entryId = match.Combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
+        int entrySquad = match.Combat.Read(entryId).SquadId;
         MatchSnapshot accepted = Receive();
         var playback = new CombatPlayback(); Check(playback.Accept(accepted), "initial compressed buffered arena frame is accepted");
         double secondsPerTick = 1.0 / (Match.StepsPerSecond * CombatSpeedRates.Factor(accepted.CombatSpeed));
         var layout = new CombatLayout(new(accepted.Arena!.Board)); layout.Synchronize(accepted);
         var rig = new UnitView(accepted.Players[0].Soldiers.Single()); AddChild(rig);
+        var entryRig = new UnitView(accepted.Enemies.Single(u => u.Id == entryId)); AddChild(entryRig);
         try
         {
             async Task Sample(bool alive)
@@ -282,7 +285,11 @@ public partial class EngineTests
                 var units = playback.Units().ToDictionary(u => u.Id);
                 arenaView.Sample(playback, units.Values);
                 rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
+                entryRig.Sample(units[entryId], playback.Tick, playback.VisualSeconds, 0, layout, units);
                 await Frames();
+                Check(entryRig.Visible == (playback.Tick >= 1)
+                    && (arenaView.GetNodeOrNull<Label3D>("SquadSummary" + entrySquad) is not null) == (playback.Tick >= 1),
+                    "native entry model and summary wait for their shared admission tick");
                 Label3D? label = arenaView.GetNodeOrNull<Label3D>("SquadSummary" + squadId);
                 Check(rig.Visible && rig.Dead != alive && (label is not null) == alive,
                     "native summary membership agrees with the buffered live/dead rig");
@@ -300,21 +307,46 @@ public partial class EngineTests
                     "native summary text and observation expose buffered member health");
             }
             await Sample(true);
-            for (int tick = 0; tick < 3; tick++) match.Step();
+            match.Step(); accepted = Receive(); playback.Accept(accepted); await Sample(true);
+            match.Step(); accepted = Receive(); playback.Accept(accepted); await Sample(true);
+            Check(playback.Tick == 0 && !entryRig.Visible, "another admitted revision cannot discard the queued native pose");
+            playback.Advance(secondsPerTick, true); await Sample(true);
+            Check(playback.Tick == 1 && entryRig.Visible, "native admission activates exactly at its declared tick");
+            while (match.Tick < 3) match.Step();
             accepted = Receive(); Check(playback.Accept(accepted) && playback.Tick < 3, "movement completion arrives ahead of the unpaused presentation clock");
             Check(accepted.Players[0].Soldiers.Single().Hex!.Position == move.Destination, "authority completes the committed move");
             await Sample(true);
-            for (int tick = 0; tick < 3; tick++) { playback.Advance(secondsPerTick, true); await Sample(true); }
+            match.Step(); accepted = Receive(); Check(playback.Accept(accepted) && playback.Tick < 3, "another accepted arrival revision cannot discard the buffered move");
+            await Sample(true);
+            Check(rig.State.Hex!.Action == UnitActionKind.Moving && rig.State.Hex.Position == move.Source, "native rig retains the committed route across overlapping arrival frames");
+            while (playback.Tick < 3) { playback.Advance(secondsPerTick, true); await Sample(true); }
             Check(playback.Tick == 3 && rig.State.Hex!.Position == move.Destination, "buffered model and summary reach movement completion together");
-            for (int tick = 0; tick < 3; tick++) match.Step();
+            while (match.Tick < 6) match.Step();
             accepted = Receive(); Check(playback.Accept(accepted) && playback.Tick < 6, "final-member death arrives ahead of the unpaused presentation clock");
             Check(accepted.DyingBodies.Single().Id == memberId && accepted.Players[0].Soldiers.Length == 0, "authority publishes a genuine last-member death");
             await Sample(true);
-            for (int tick = 0; tick < 2; tick++) { playback.Advance(secondsPerTick, true); await Sample(true); }
+            match.Step(); accepted = Receive(); Check(playback.Accept(accepted) && playback.Tick < 6, "tick-seven death revision arrives before the shared death boundary");
+            await Sample(true);
+            while (playback.Tick < 5) { playback.Advance(secondsPerTick, true); await Sample(true); }
             playback.Advance(secondsPerTick, true); await Sample(false);
             Check(playback.Tick == 6 && rig.Clip == "death", "native summary disappears only when the buffered rig starts its death clip");
+            Act("pause"); accepted = Receive(); playback.Accept(accepted);
+            double pausedTick = playback.Tick; playback.Advance(1, true); await Sample(false);
+            Check(playback.Tick == pausedTick && rig.Clip == "death", "pause retains the sampled corpse and native summary absence");
+            playback.Accept(accepted, baseline: true); await Sample(false);
+            Check(playback.Tick == accepted.Tick && playback.Drain().Length == 0, "baseline selects the received death without replay");
+            int generation = playback.Generation;
+            MatchSnapshot gap = accepted with
+            {
+                Revision = accepted.Revision + 1,
+                EventSequence = accepted.EventSequence + 2,
+                OldestEventSequence = accepted.EventSequence + 3,
+                CombatEvents = []
+            };
+            Check(playback.Accept(gap) && playback.Generation == generation + 1, "event gap discards buffered member state");
+            await Sample(false);
         }
-        finally { RemoveChild(rig); rig.Free(); }
+        finally { RemoveChild(rig); rig.Free(); RemoveChild(entryRig); entryRig.Free(); }
     }
     private async Task ArenaBufferedRally(SharedArenaView arenaView)
     {

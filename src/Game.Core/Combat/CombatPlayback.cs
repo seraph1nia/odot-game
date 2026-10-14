@@ -10,7 +10,8 @@ public sealed class CombatPlayback
         set { _work = value; value?.Support(WorkMetric.PlaybackIndexBuilds, WorkMetric.PlaybackEventVisits, WorkMetric.Sorts, WorkMetric.SortElements); }
     }
     private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById, Dictionary<int, long> RallyUntil);
-    private AcceptedState? _previous, _current;
+    private AcceptedState? _current;
+    private Dictionary<int, UnitState>? _previous;
     private int[] _ids = [];
     private readonly Dictionary<int, int> _pendingDeaths = [];
     private readonly Queue<CombatEvent> _pending = new();
@@ -33,8 +34,9 @@ public sealed class CombatPlayback
             Generation++;
             return true;
         }
-        _previous = _current; _current = Index(state);
-        _ids = WorkOrdering.Input(_previous!.ById.Keys.Concat(_current.ById.Keys).Distinct(), _work).Order().ToArray();
+        Tick = state.Paused ? state.Tick : Math.Max(Tick, state.Tick - 3);
+        _previous = HexUnits().ToDictionary(u => u.Id); _current = Index(state);
+        _ids = WorkOrdering.Input(_previous.Keys.Concat(_current.ById.Keys).Distinct(), _work).Order().ToArray();
         _work?.Add(WorkMetric.PlaybackEventVisits, state.CombatEvents.Length);
         foreach (CombatEvent entry in WorkOrdering.Input(state.CombatEvents.Where(e => e.Sequence > _acceptedSequence), _work).OrderBy(e => e.Sequence))
         {
@@ -43,8 +45,6 @@ public sealed class CombatPlayback
             if (owned.Type == CombatEventType.Death && owned.Unit is { } dead) _pendingDeaths[dead.Id] = _pendingDeaths.GetValueOrDefault(dead.Id) + 1;
         }
         _acceptedSequence = state.EventSequence;
-        // Corrections have one common fraction for all bodies. No extrapolation.
-        Tick = state.Paused ? state.Tick : Math.Max(Tick, state.Tick - 3);
         return true;
     }
     public void Advance(double seconds, bool connected)
@@ -89,7 +89,7 @@ public sealed class CombatPlayback
         var sampled = new List<UnitState>(_ids.Length);
         foreach (int id in _ids)
         {
-            UnitState? old = _previous?.ById.GetValueOrDefault(id);
+            UnitState? old = _previous?.GetValueOrDefault(id);
             if (!_current!.ById.TryGetValue(id, out UnitState? unit))
             {
                 if (old?.Hex is { Lifecycle: UnitLifecycle.Dying } priorDeath && Tick < priorDeath.DeathEndTick) sampled.Add(CombatProjection.Detach(old));

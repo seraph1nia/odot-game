@@ -58,9 +58,11 @@ public sealed class SnapshotReceivingLifecycleTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void PostClearDeploymentChangesOnlyHomeClaimUntilBodiesExpireAndThirdEndStartsCombat(bool preparationEdits)
+    [InlineData(false, "deploy")]
+    [InlineData(true, "deploy")]
+    [InlineData(true, "send")]
+    [InlineData(true, "release")]
+    public void PostClearDeploymentChangesOnlyHomeClaimUntilBodiesExpireAndThirdEndStartsCombat(bool preparationEdits, string soldHomeAction)
     {
         using Match match = PaidCampaignFixture.Opening(players: 1);
         if (preparationEdits)
@@ -167,10 +169,47 @@ public sealed class SnapshotReceivingLifecycleTests
             MatchSnapshot nextClear = ClearWithRetainedMove(match);
             SquadState[] retainedActors = nextClear.Squads.Where(s => s.Owner == 1 && s.Hex.Lifecycle == UnitLifecycle.Alive).ToArray();
             long nextProductions = nextClear.ProductionCount;
+            void NextEdit(string action, bool accepted, int squad = 0, int unit = 0, int slot = -1, int cell = 0)
+            {
+                MatchSnapshot before = match.Snapshot();
+                CommandResult result = match.Apply(1, Command.FromSnapshot(before, 30, action, 1, slot) with { SquadId = squad, UnitId = unit, Cell = cell });
+                Assert.Equal(accepted, result.Accepted);
+                MatchSnapshot frame = Receive(match);
+                foreach (SquadState actor in retainedActors) Assert.Equal(actor.Hex, frame.Squads.Single(s => s.Id == actor.Id).Hex);
+                Assert.Equal(nextClear.Reservations.Positions, frame.Reservations.Positions);
+                Assert.Equal(nextClear.Reservations.Transit, frame.Reservations.Transit);
+                if (!accepted) Assert.Equal(JsonSerializer.Serialize(before, WireJson.Options), JsonSerializer.Serialize(frame, WireJson.Options));
+            }
+            int soldCell = arena.Deployment(1, 1);
+            NextEdit("deploy-squad", false, squad: mover, cell: soldCell);
+            NextEdit("deploy-squad", false, squad: mover, cell: arena.Deployment(1, 3));
+            NextEdit("deploy-squad", false, squad: mover, cell: 1);
+            if (soldHomeAction != "deploy") NextEdit("recruit", true, squad: mover, slot: 1);
+            NextEdit("send", false, squad: -1, unit: stored, slot: 4);
+            NextEdit("recruit", false, squad: -1, slot: 1);
             Act(match, "sell", ArmyConfiguration.PlotOffset + 1);
             MatchSnapshot sold = Receive(match);
             Assert.Equal(Building.Empty, sold.Players[0].Army!.Homes[1].Plot.Type);
             Assert.Contains(sold.Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset + 1);
+            int soldHomeSquad;
+            if (soldHomeAction == "deploy")
+            {
+                NextEdit("deploy-squad", true, squad: mover, cell: soldCell);
+                NextEdit("recruit", true, squad: mover, slot: 1);
+                soldHomeSquad = mover;
+                Assert.Equal(UnitLifecycle.Reserve, Receive(match).Players[0].Soldiers.Single(u => u.Id == match.Players[1].Soldiers[^1].Id).Hex!.Lifecycle);
+            }
+            else
+            {
+                NextEdit("send", true, squad: soldHomeAction == "send" ? 0 : -1, unit: stored, slot: 4);
+                UnitState returned = Receive(match).Players[0].Soldiers.Single(u => u.Id == stored);
+                Assert.Equal(UnitLifecycle.Queued, returned.Hex!.Lifecycle);
+                soldHomeSquad = returned.SquadId;
+            }
+            MatchSnapshot claimed = Receive(match);
+            Assert.Equal(soldCell, claimed.Squads.Single(s => s.Id == soldHomeSquad).DeploymentCell);
+            Assert.All(claimed.Players[0].Soldiers.Where(u => u.SquadId == soldHomeSquad), u => Assert.Equal(1, u.Assignment!.Tile));
+            NextEdit("deploy-squad", false, squad: attacker, cell: soldCell);
             for (int gate = 0; gate < 3; gate++) { Act(match, "ready"); Receive(match); }
             Assert.Equal(Phase.Preparation, match.Phase);
             for (int tick = 0; tick < 120 && match.Phase != Phase.Combat; tick++)
@@ -184,6 +223,10 @@ public sealed class SnapshotReceivingLifecycleTests
             Assert.Equal(nextProductions + 3, resumed.ProductionCount);
             Assert.DoesNotContain(resumed.Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset + 1);
             Assert.DoesNotContain(resumed.Structures, s => s.Slot == ArmyConfiguration.PlotOffset + 1);
+            Assert.Equal(soldCell, resumed.Squads.Single(s => s.Id == soldHomeSquad).Hex.Position.Cell);
+            MatchSnapshot active = match.Snapshot();
+            Assert.False(match.Apply(1, Command.FromSnapshot(active, 31, "deploy-squad", 1) with { SquadId = attacker, Cell = arena.Deployment(1, 2) }).Accepted);
+            Assert.Equal(JsonSerializer.Serialize(active, WireJson.Options), JsonSerializer.Serialize(Receive(match), WireJson.Options));
         }
     }
 

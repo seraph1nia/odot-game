@@ -106,8 +106,9 @@ public sealed class CombatPlaybackTests
         };
         var playback = new CombatPlayback(); playback.Accept(State(1, 127, 0) with { Enemies = [recovering, neighbor] });
         playback.Accept(State(2, 131, 0) with { Enemies = [attack, neighbor] });
+        playback.Accept(State(3, 132, 0) with { Enemies = [attack, neighbor] });
         Assert.Equal(recovering, playback.Units()[0]); Assert.Equal(neighbor, playback.Units()[1]);
-        playback.Advance(2 / 60.0, true);
+        playback.Advance(1 / 60.0, true);
         Assert.Equal(130, playback.Tick); Assert.Equal(attack, playback.Units()[0]); Assert.Equal(neighbor, playback.Units()[1]);
         Assert.Equal(recovering.Hex.Position, attack.Hex.Position);
     }
@@ -141,6 +142,43 @@ public sealed class CombatPlaybackTests
         playback.Accept(State(4, 10, 0) with { Phase = Phase.Defeat, Enemies = [frozen] }); playback.Advance(.1, true);
         Assert.Equal(3, Assert.Single(playback.Units()).Hex!.FrozenTick);
     }
+    [Theory]
+    [InlineData("advance")]
+    [InlineData("pause")]
+    [InlineData("baseline")]
+    [InlineData("gap")]
+    [InlineData("match")]
+    public void ConsecutiveDeathFramesRetainLivingStateUntilBoundaryOrClockReset(string transition)
+    {
+        UnitState alive = new(1, 800, 0, 1, 1)
+        {
+            Hex = new(1, 1, Faction.Skeletons, UnitLifecycle.Alive, new(11, 1))
+        };
+        UnitState dead = alive with { Health = 0, Hex = alive.Hex! with { Lifecycle = UnitLifecycle.Dying, DeathStartTick = 6, DeathEndTick = 54 } };
+        CombatEvent death = new(1, 6, CombatEventType.Death, dead);
+        var playback = new CombatPlayback(); playback.Accept(State(1, 3, 0) with { Enemies = [alive] });
+        playback.Accept(State(2, 6, 1, [death]) with { DyingBodies = [dead] });
+        playback.Accept(State(3, 7, 1, [death]) with { DyingBodies = [dead] });
+        Assert.Equal(4, playback.Tick); Assert.Equal(alive, Assert.Single(playback.Units()));
+        Assert.Empty(playback.Drain()); Assert.True(playback.AwaitingDeath(1));
+        if (transition == "advance")
+        {
+            playback.Advance(1 / 60.0, false); Assert.Equal(4, playback.Tick);
+            playback.Advance(1 / 60.0, true); Assert.Equal(alive, Assert.Single(playback.Units()));
+            playback.Advance(1 / 60.0, true); Assert.Equal(6, playback.Tick);
+            Assert.Equal(dead, Assert.Single(playback.Units())); Assert.Equal(death.Sequence, Assert.Single(playback.Drain()).Sequence);
+            Assert.False(playback.AwaitingDeath(1));
+            return;
+        }
+        int generation = playback.Generation;
+        MatchSnapshot reset = State(4, 7, 1, [death], paused: transition == "pause", match: transition == "match" ? "b" : "a") with { DyingBodies = [dead] };
+        if (transition == "gap") reset = reset with { EventSequence = 3, OldestEventSequence = 3, CombatEvents = [death with { Sequence = 3 }] };
+        playback.Accept(reset, baseline: transition == "baseline");
+        Assert.Equal(7, playback.Tick); Assert.Equal(dead, Assert.Single(playback.Units()));
+        playback.Advance(.1, true); Assert.Equal(7, playback.Tick);
+        if (transition == "pause") Assert.Single(playback.Drain());
+        else { Assert.Empty(playback.Drain()); Assert.Equal(generation + 1, playback.Generation); }
+    }
     private static UnitState Corpse() => new(1, 0, 0, 1, 1)
     {
         Type = UnitType.Crossbowman,
@@ -159,7 +197,8 @@ public sealed class CombatPlaybackTests
         double frozen = playback.Tick; playback.Advance(1, true); Assert.Equal(frozen, playback.Tick); Assert.Single(playback.Units());
         playback.Accept(State(3, 245, 90) with { DyingBodies = [corpse] }); playback.Advance(.1, true);
         playback.Accept(State(4, 248, 90)); Assert.Single(playback.Units());
-        playback.Advance(.05, true); Assert.Equal(248, playback.Tick); Assert.Empty(playback.Units()); Assert.Empty(playback.Drain());
+        playback.Accept(State(5, 249, 90)); Assert.Single(playback.Units());
+        playback.Advance(2 / 60.0, true); Assert.Equal(248, playback.Tick); Assert.Empty(playback.Units()); Assert.Empty(playback.Drain());
     }
     [Fact]
     public void BufferedArrivalKeepsTheCommittedRouteUntilTheDeclaredBoundary()
@@ -173,8 +212,16 @@ public sealed class CombatPlaybackTests
         var playback = new CombatPlayback(); playback.Accept(State(1, 127, 0) with { Enemies = [moving] });
         playback.Accept(State(2, 131, 0) with { Enemies = [arrived] });
         Assert.Equal(128, playback.Tick); Assert.Equal(UnitActionKind.Moving, Assert.Single(playback.Units()).Hex!.Action);
-        playback.Advance(1 / 60.0, true); Assert.Equal(129, playback.Tick); Assert.Equal(11, Assert.Single(playback.Units()).Hex!.Position.Cell);
-        playback.Advance(1 / 60.0, true); Assert.Equal(130, playback.Tick); Assert.Equal(8, Assert.Single(playback.Units()).Hex!.Position.Cell);
+        playback.Accept(State(3, 132, 0) with { Enemies = [arrived] });
+        Assert.Equal(129, playback.Tick); Assert.Equal(UnitActionKind.Moving, Assert.Single(playback.Units()).Hex!.Action);
+        Assert.Equal(11, Assert.Single(playback.Units()).Hex!.Position.Cell);
+        UnitState dead = arrived with { Health = 0, Hex = arrived.Hex! with { Lifecycle = UnitLifecycle.Dying, DeathStartTick = 132, DeathEndTick = 180 } };
+        CombatEvent death = new(1, 132, CombatEventType.Death, dead);
+        playback.Accept(State(4, 133, 1, [death]) with { DyingBodies = [dead] });
+        Assert.Equal(130, playback.Tick); Assert.Equal(arrived, Assert.Single(playback.Units()));
+        playback.Accept(State(5, 134, 1, [death]) with { DyingBodies = [dead] });
+        Assert.Equal(131, playback.Tick); Assert.Equal(arrived, Assert.Single(playback.Units()));
+        playback.Advance(1 / 60.0, true); Assert.Equal(132, playback.Tick); Assert.Equal(dead, Assert.Single(playback.Units()));
     }
     [Fact]
     public void TypedAdmissionDoesNotAppearBeforeItsAuthoritativeTick()
@@ -188,6 +235,7 @@ public sealed class CombatPlaybackTests
         UnitState admitted = queued with { Deployed = true, Hex = queued.Hex! with { Lifecycle = UnitLifecycle.Alive, Position = new(20, 1), AdmittedTick = 10 } };
         var playback = new CombatPlayback(); playback.Accept(State(1, 8, 0) with { Enemies = [queued] });
         playback.Accept(State(2, 11, 0) with { Enemies = [admitted] }); Assert.False(Assert.Single(playback.Units()).Deployed);
-        playback.Advance(2 / 60.0, true); Assert.Equal(10, playback.Tick); Assert.True(Assert.Single(playback.Units()).Deployed);
+        playback.Accept(State(3, 12, 0) with { Enemies = [admitted] }); Assert.False(Assert.Single(playback.Units()).Deployed);
+        playback.Advance(1 / 60.0, true); Assert.Equal(10, playback.Tick); Assert.True(Assert.Single(playback.Units()).Deployed);
     }
 }
