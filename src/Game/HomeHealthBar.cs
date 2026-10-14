@@ -3,29 +3,23 @@ using Godot;
 
 namespace Game;
 
+// Settlement Keep: same compact, text-free style as arena objectives/members.
 internal sealed partial class HomeHealthBar : Control
 {
-    private readonly ProgressBar _bar = new() { ShowPercentage = false, Step = 0, MouseFilter = MouseFilterEnum.Ignore, Size = new(100, 18) };
-    private readonly Label _text = new() { HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore, Size = new(100, 18), VerticalAlignment = VerticalAlignment.Center };
+    private readonly UnitHealthBar _bar = new();
     private int _current, _maximum, _percent;
     internal HomeHealthBar()
     {
-        MouseFilter = MouseFilterEnum.Ignore; Size = new(100, 18);
-        Theme theme = ApplicationTheme.Create();
-        _bar.AddThemeStyleboxOverride("background", theme.GetStylebox("background", "ProgressBar"));
-        _bar.AddThemeStyleboxOverride("fill", theme.GetStylebox("fill", "ProgressBar"));
-        _text.AddThemeFontSizeOverride("font_size", 12);
-        _text.AddThemeColorOverride("font_color", Colors.White); _text.AddThemeColorOverride("font_outline_color", new("182d36")); _text.AddThemeConstantOverride("outline_size", 3);
-        AddChild(_bar); AddChild(_text);
+        MouseFilter = MouseFilterEnum.Ignore; Size = _bar.Size;
+        AddChild(_bar);
     }
     internal void Sample(CityState? city, int maximum, Vector3 anchor, Camera3D camera, Rect2 world)
     {
         _current = city?.Health ?? 0; _maximum = HealthPoints.FromWhole(maximum);
         _percent = ProgressionPresentation.HealthPercent(_current, _maximum);
-        _bar.Value = PresentationLimits.HealthFraction(_current, _maximum) * 100;
-        _text.Text = $"{_percent}%{(city?.Eliminated == true ? " · Fallen" : "")}";
-        Position = camera.UnprojectPosition(anchor) - new Vector2(50, 18);
-        Visible = city is not null && !camera.IsPositionBehind(anchor) && world.Encloses(new Rect2(Position, Size));
+        _bar.Sample(_current, _maximum, anchor, city is { Eliminated: false }, camera, world);
+        Position = _bar.Position; _bar.Position = Vector2.Zero;
+        Visible = _bar.Visible;
     }
-    internal object Observe(Transform2D screen) => new { Current = _current, Maximum = _maximum, Percent = _percent, Text = _text.Text, PercentageInside = _text.Position == Vector2.Zero, Visible = IsVisibleInTree(), X = (screen * Position).X, Y = (screen * Position).Y, InputIgnored = true };
+    internal object Observe(Transform2D screen) => new { Current = _current, Maximum = _maximum, Percent = _percent, Text = "", PercentageInside = true, Visible = IsVisibleInTree(), X = (screen * Position).X, Y = (screen * Position).Y, InputIgnored = true };
 }

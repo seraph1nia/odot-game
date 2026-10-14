@@ -104,6 +104,7 @@ internal sealed record HealthBarObservation
     public float Width { get; init; }
     public float Height { get; init; }
     public float FillWidth { get; init; }
+    public float CapacityWidth { get; init; }
     public bool InputIgnored { get; init; }
     public string Track { get; init; } = "";
     public string Fill { get; init; } = "";
@@ -468,21 +469,20 @@ internal sealed partial class Runner
                     UnitObservation unit = frame.Units.Single(u => u.Id == member.Id);
                     Require(!unit.Dead && unit.Deployed && unit.SquadId == summary.Id && unit.Owner == summary.Owner
                         && unit.Health == member.Health && unit.MaximumHealth == member.Maximum
-                        && summary.Text.Contains($"{HealthPoints.Format(member.Health)}/{HealthPoints.Format(member.Maximum)}", StringComparison.Ordinal),
+                        && summary.Text.Length == 0,
                         "actual native summary exposes each participant's independent health and identity");
                 }
             Require(frame.Units.Where(u => u.Visible && u.Deployed && !u.Dead).All(u => displayed.Contains(u.Id)), "every visible living participant has an individual health summary");
-            return;
+            Require(frame.HealthBars.Select(b => b.Id).Order().SequenceEqual(frame.Units.Select(u => u.Id).Order()), "one member bar control per sampled rig, without duplicate squad overlays");
         }
         if (frame.HealthBars.Select(b => b.Id).Distinct().Count() != frame.HealthBars.Length) throw new InvalidOperationException("Duplicate unit health bars.");
         foreach (HealthBarObservation bar in frame.HealthBars)
         {
             UnitObservation unit = frame.Units.Single(u => u.Id == bar.Id);
-            string expectedRole = RomanLevel(unit.Level);
-            if (unit.Dead || !unit.Visible || !unit.Deployed || bar.Current != unit.Health || bar.Maximum != unit.MaximumHealth
-                || bar.Role != expectedRole
+            if (bar.Visible && (unit.Dead || !unit.Visible || !unit.Deployed) || bar.Current != unit.Health || bar.Maximum != unit.MaximumHealth
+                || bar.Role.Length != 0
                 || bar.Fraction != PresentationLimits.HealthFraction(unit.Health, unit.MaximumHealth)
-                || Math.Abs(bar.FillWidth - 43 * bar.Fraction) > 0.001 || !bar.InputIgnored
+                || Math.Abs(bar.FillWidth - bar.CapacityWidth * bar.Fraction) > 0.001 || !bar.InputIgnored
                 || !bar.Track.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal) || !bar.Fill.StartsWith("res://UI/theme/ledger.tres::", StringComparison.Ordinal) || bar.Track == bar.Fill)
                 throw new InvalidOperationException("Health bar disagrees with sampled living unit: " + bar.Id);
             if (bar.Visible && (bar.Width <= 0 || bar.Height <= 0 || bar.X < 0 || bar.Y < 0 || bar.X + bar.Width > frame.Width + 1 || bar.Y + bar.Height > frame.HudTop + 1))
@@ -492,9 +492,7 @@ internal sealed partial class Runner
         // default per-soldier overview-bar requirement in the shared model.
     }
     private static HealthDisplayObservation[] HealthDisplay(UiObservation frame)
-        => frame.SharedArenaVisible ? frame.SquadSummaries.SelectMany(s => s.Members.Select(m =>
-            new HealthDisplayObservation(m.Id, s.Visible, m.Health, m.Maximum, PresentationLimits.HealthFraction(m.Health, m.Maximum), s.X, s.Y))).ToArray()
-            : frame.HealthBars.Select(b => new HealthDisplayObservation(b.Id, b.Visible, b.Current, b.Maximum, b.Fraction, b.X, b.Y)).ToArray();
+        => frame.HealthBars.Select(b => new HealthDisplayObservation(b.Id, b.Visible, b.Current, b.Maximum, b.Fraction, b.X, b.Y)).ToArray();
     private static void WoodlandPresentation(UiObservation frame)
     {
         Branding(frame);

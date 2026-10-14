@@ -9,36 +9,39 @@ internal sealed partial class UnitHealthBar : Control
     private readonly Panel _track = new() { MouseFilter = MouseFilterEnum.Ignore };
     private readonly Control _clip = new() { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore };
     private readonly Panel _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
-    private readonly Label _role = new() { MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Left };
     internal int Current { get; private set; }
     internal int Maximum { get; private set; }
     internal double Fraction { get; private set; }
-    internal UnitHealthBar()
+    internal UnitHealthBar(Vector2? size = null)
     {
-        MouseFilter = MouseFilterEnum.Ignore; Size = new(46, 9);
+        MouseFilter = MouseFilterEnum.Ignore; Size = size ?? new Vector2(46, 9);
         Theme theme = ApplicationTheme.Create();
         _track.AddThemeStyleboxOverride("panel", theme.GetStylebox("background", "ProgressBar"));
         _fill.AddThemeStyleboxOverride("panel", theme.GetStylebox("fill", "ProgressBar"));
         AddChild(_track); _track.Size = Size;
         AddChild(_clip); _clip.Position = new(1.5f, 1.5f); _clip.Size = Size - new Vector2(3, 3);
         _clip.AddChild(_fill); _fill.Size = _clip.Size;
-        _role.Position = new(0, -17); _role.Size = new(46, 16);
-        _role.AddThemeFontSizeOverride("font_size", 10);
-        _role.AddThemeConstantOverride("outline_size", 3);
-        _role.AddThemeColorOverride("font_outline_color", new("182d36"));
-        AddChild(_role);
     }
-    internal void Sample(UnitView view, Camera3D camera, Rect2 worldArea)
+    // One fixed slot per member, packed once above the shared squad actor.
+    // Stable slots prevent survivors' bars jumping together after a casualty.
+    internal static Vector2 FormationOffset(int slot, int capacity)
     {
-        _role.Text = ProgressionPresentation.UnitLabel(view.State);
-        _role.AddThemeColorOverride("font_color", new(view.State.Faction == Faction.Skeletons ? "ffb4a4" : "b9dcff"));
-        Current = view.State.Health; Maximum = view.State.Profile.Health;
+        int columns = Math.Min(3, capacity), rows = (capacity + columns - 1) / columns;
+        return new((slot % columns - (columns - 1) / 2f) * 18, -(rows - 1 - slot / columns) * 9);
+    }
+    internal void Sample(UnitView view, Camera3D camera, Rect2 worldArea, Vector3? anchor = null, Vector2 offset = default)
+    {
+        Sample(view.State.Health, view.State.Profile.Health, anchor ?? view.GlobalPosition + new Vector3(0, view.State.IsBoss ? 2.1f : 1.35f, 0),
+            view.IsVisibleInTree() && !view.Dead && view.State.Deployed, camera, worldArea, offset);
+    }
+    internal void Sample(int current, int maximum, Vector3 anchor, bool visible, Camera3D camera, Rect2 worldArea, Vector2 offset = default)
+    {
+        Current = current; Maximum = maximum;
         Fraction = PresentationLimits.HealthFraction(Current, Maximum);
         _clip.Size = new((Size.X - 3) * (float)Fraction, Size.Y - 3);
-        Vector3 anchor = view.GlobalPosition + new Vector3(0, 1.35f, 0);
-        Position = camera.UnprojectPosition(anchor) - new Vector2(Size.X / 2, Size.Y);
-        Visible = view.Visible && !view.Dead && view.State.Deployed && !camera.IsPositionBehind(anchor)
-            && worldArea.Encloses(new Rect2(Position - new Vector2(0, 17), new Vector2(Math.Max(Size.X, _role.GetMinimumSize().X), Size.Y + 17)));
+        Position = camera.UnprojectPosition(anchor) - new Vector2(Size.X / 2, Size.Y) + offset;
+        Visible = visible && current > 0 && maximum > 0 && !camera.IsPositionBehind(anchor)
+            && worldArea.Encloses(new Rect2(Position, Size));
     }
     internal object Observe(int id, Transform2D transform)
     {
@@ -46,7 +49,7 @@ internal sealed partial class UnitHealthBar : Control
         return new
         {
             Id = id,
-            Role = _role.Text,
+            Role = "",
             Current,
             Maximum,
             Fraction,
@@ -56,7 +59,8 @@ internal sealed partial class UnitHealthBar : Control
             Width = Size.X * transform.Scale.X,
             Height = Size.Y * transform.Scale.Y,
             FillWidth = _clip.Size.X,
-            InputIgnored = MouseFilter == MouseFilterEnum.Ignore && _clip.MouseFilter == MouseFilterEnum.Ignore && _fill.MouseFilter == MouseFilterEnum.Ignore && _role.MouseFilter == MouseFilterEnum.Ignore,
+            CapacityWidth = Size.X - 3,
+            InputIgnored = MouseFilter == MouseFilterEnum.Ignore && _clip.MouseFilter == MouseFilterEnum.Ignore && _fill.MouseFilter == MouseFilterEnum.Ignore,
             Track = _track.GetThemeStylebox("panel").ResourcePath,
             Fill = _fill.GetThemeStylebox("panel").ResourcePath
         };

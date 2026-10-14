@@ -62,7 +62,8 @@ internal sealed partial class Runner
             MatchSnapshot paused = State(capture.Receipt);
             await ObserveCurrent(client, s => s.MatchId == paused.MatchId && s.Revision >= paused.Revision && s.Paused && s.Tick == paused.Tick,
                 "current burn pause receipt barrier", feature.Token);
-            UiObservation burning = await WaitUi(client, p => p.StatusBadges.TryGetValue(capture.TargetId, out string? badge) && badge.Contains("Burn", StringComparison.Ordinal), "current captured burn badge", feature.Token);
+            UiObservation burning = await WaitUi(client, p => p.CombatTick == paused.Tick && p.Units.Any(u => u.Id == capture.TargetId && !u.Dead), "current captured burn actor", feature.Token);
+            Require(burning.StatusBadges.Count == 0, "active statuses never restore floating actor text");
             UnitObservation target = burning.Units.Single(u => u.Id == capture.TargetId);
             await ClickPoint(client, burning.Targets["Unit" + target.Id]);
             await WaitUi(client, p => p.InspectedUnit?.StatsText.Contains("Burn", StringComparison.Ordinal) == true, "burn inspection", feature.Token);
@@ -74,11 +75,13 @@ internal sealed partial class Runner
             await client.Send("disconnect");
             await client.WaitFor(e => e.Type == "server-disconnected", "research view loses owned transport", options.StartupTimeout, feature.Token);
             UiObservation disconnected = await UiProtocol.Probe(client, options.StartupTimeout, feature.Token);
-            Require(disconnected.CombatTick == still.CombatTick && disconnected.StatusBadges.OrderBy(p => p.Key).SequenceEqual(still.StatusBadges.OrderBy(p => p.Key)), "transport loss freezes current status indicators");
+            Require(disconnected.CombatTick == still.CombatTick && disconnected.InspectedUnit?.StatsText == still.InspectedUnit?.StatsText,
+                "transport loss freezes useful inspection status without floating labels");
             await Click(client, "Reconnect", feature.Token);
             GameEvent restored = await client.WaitFor(e => e.Type == "connected" && e.PeerId != connection, "research view reconnects through its control", options.StartupTimeout, feature.Token);
             Require(restored.PlayerId == identity && Gameplay(State(restored)) == retained, "graphical recovery retains personal research and active status deadlines");
-            UiObservation baseline = await WaitUi(client, p => p.EventCursor == State(restored).EventSequence && p.StatusBadges.OrderBy(x => x.Key).SequenceEqual(still.StatusBadges.OrderBy(x => x.Key)), "current status baseline after reconnect", feature.Token);
+            UiObservation baseline = await WaitUi(client, p => p.EventCursor == State(restored).EventSequence && p.StatusBadges.Count == 0
+                && p.InspectedUnit?.StatsText == still.InspectedUnit?.StatsText, "current inspected status baseline after reconnect", feature.Token);
             Require(baseline.Units.All(u => u.EffectSequence == 0) && baseline.Effects.Active == 0 && baseline.Effects.Voices == 0, "active status restoration replays no historical flashes or sounds");
             await Action(observer, "resume", feature.Token);
         });

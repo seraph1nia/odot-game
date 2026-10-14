@@ -101,8 +101,8 @@ public partial class EngineTests
                 "native empty army plot construction builds a real base tower");
             session.Acknowledge(); hud.RefreshHud(1, 14); Receive(); Pick(14, roof: true);
             Check(receiver!.Bounds[5] is not null && Detail().Text.Contains("TowerOccupied · whole squad home", StringComparison.Ordinal)
-                && receiver.GetNode<Label3D>("Home5").Text.Contains("whole squad home", StringComparison.Ordinal),
-                "actual imported tower bounds, label and selected inspection expose whole-plot occupation");
+                && receiver.GetNodeOrNull<Label3D>("Home5") is null,
+                "imported tower retains bounds and selected inspection without floating tower text");
             CheckInspection("single target · no splash");
             await CheckUpgradeSpacing(14);
             Check(Button("BombardUpgrade").TooltipText.Contains("one target squad · every other living member", StringComparison.Ordinal),

@@ -209,7 +209,14 @@ select an owned squad, close the panel, then pick an empty highlighted purchased
 home. Combat presents all owners together, with local camera navigation only.
 
 `SharedArenaView` owns physical imported Keeps, Watchposts and purchased towers,
-owned tiles and compact per-member HP/count/status summaries. Its camera derives
+owned tiles and health-only objective overlays. Each character member has one
+small text-free bar; grouped squads pack those bars into stable formation-slot
+rows rather than duplicating a squad summary above individual rigs. Names,
+levels, owners, counts, statuses and Rally details remain in panels/inspection,
+not floating over actors. Keep/Watchpost bars use meaningful authoritative
+health/max; purchased towers remain invulnerable, have no health bar and no
+floating text (their snapshot `1/1` is a sentinel, not damageable HP).
+Its camera derives
 bounds and travel from the complete arena, not old per-city framing. Formation
 slots persist in snapshots, while animation, member offsets and short melee
 lunges remain cosmetic. Melee windup uses the imported attack animation and
@@ -237,8 +244,12 @@ accepted snapshots without optimistic spending. The existing `animation` minimal
 component now checks actual AnimationTree/bones/socket/projectile/health/status/
 formation/death/cleanup/stock resources, a real lethal-impact live-to-dead
 melee transition, terminal windup against a moving primary, and a real numerical
-committed-miss control. Squad summaries consume the [shared playback projection](gameplay.md#deterministic-hex-combat),
-including consecutive pending member boundaries and Rally transitions. These are
+committed-miss control. Member and objective bars consume the
+[shared playback projection](gameplay.md#deterministic-hex-combat), including
+consecutive pending member boundaries and effective damage. Objective ruins and
+bar removal follow the same buffered destruction tick; baseline/gap resets
+replace current health without replay. Rally remains buffered diagnostic and
+inspection state rather than overhead text. These are
 headless resource/node proofs, not pixels or choreography.
 The opaque native base covers the projected safe camera
 boundary. Keep fall disables defenses without inventing tower destruction.

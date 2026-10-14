@@ -18,7 +18,7 @@ public partial class Tabletop : Node3D
     private readonly Dictionary<int, VillageLandscape> _landscapes = [];
     private readonly Dictionary<int, UnitView> _units = [];
     private readonly Queue<(int Id, long DeathEndTick, double CombatTick, double VisualSeconds)> _deathCleanups = new();
-    private readonly Dictionary<int, UnitHealthBar> _healthBars = [];
+    private MemberHealthBars _healthBars = null!;
     private Control _healthRoot = null!;
     private readonly Dictionary<string, Label> _values = [], _incomes = [];
     private Label _incomeHeading = null!, _incomeContext = null!, _upkeepLabel = null!, _upkeepValue = null!, _balanceLabel = null!, _balanceValue = null!;
@@ -219,7 +219,7 @@ public partial class Tabletop : Node3D
         fields["ResourceRowsSingleLine"] = _values.Values.All(label => label.Size.Y <= label.GetThemeFont("font").GetHeight(label.GetThemeFontSize("font_size")) + 1);
         fields["HudHeight"] = _panel.Size.Y;
         fields["HudTop"] = (GetViewport().GetFinalTransform() * _panel.Position).Y;
-        fields["HealthBars"] = _healthBars.OrderBy(p => p.Key).Select(p => p.Value.Observe(p.Key, GetViewport().GetFinalTransform())).ToArray();
+        fields["HealthBars"] = _healthBars.Observe(GetViewport().GetFinalTransform());
         fields["SharedArenaVisible"] = _arenaView?.Visible == true;
         if (_arenaView is not null) fields["ArenaFrame"] = _arenaView.ObserveFrame(_camera);
         fields["SquadSummaries"] = _arenaView?.Observe(_camera, GetViewport().GetFinalTransform(), WorldArea()) ?? [];
@@ -300,7 +300,7 @@ public partial class Tabletop : Node3D
         UpdateHealthBars();
         UpdateInspector();
         _homeHealth.Sample(Focus(), game.State?.Rules.CityHealth ?? 100, Center(_focus) + VillageLandscape.Home + new Vector3(0, 2.7f, 0), _camera, WorldArea());
-        _homeHealth.Visible = !InArena;
+        _homeHealth.Visible &= !InArena;
         mark = ReplayMark("Overlays", mark);
         Vector2 mouse = GetViewport().GetMousePosition();
         int hover = game.Connected && !BlocksWorld(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
@@ -514,10 +514,6 @@ public partial class Tabletop : Node3D
                 _buildingBounds[city.Id] = new Aabb?[ArmyConfiguration.TotalPlots];
 
             }
-            Label3D? previewLabel = board.GetNodeOrNull<Label3D>("NextWaveLabel");
-            if (previewLabel is null) { previewLabel = Label(board, new(0, .5f, -14), "", 28); previewLabel.Name = "NextWaveLabel"; }
-            previewLabel.Visible = state.Phase is Phase.Building or Phase.Preparation;
-            previewLabel.Text = $"NEXT WAVE {state.Wave} • {state.NextWave.Count(u => u.Destination == city.Id)} ENEMIES";
             UpdateStockpiles(board, city);
             UpdateArmyMarkers(board, city, state);
             _landscapes[city.Id].SetPlots(city.Slots);
@@ -553,7 +549,8 @@ public partial class Tabletop : Node3D
                         bounds = bounds.Merge(LandscapeAssets.Bounds(addition));
                     }
                     _buildingBounds[city.Id][i] = bounds;
-                    Label(buildings, new Vector3(SlotPosition(i).X, bounds.End.Y + .28f, SlotPosition(i).Z), slot.Type == Building.Lumbermill && slot.Level == 1 ? "" : slot.Type == Building.TownHall ? "Town hall" : $"{AssetCatalog.BuildingName(slot.Type)} L{slot.Level}", 20);
+                    if (!ArmyConfiguration.IsTower(slot.Type))
+                        Label(buildings, new Vector3(SlotPosition(i).X, bounds.End.Y + .28f, SlotPosition(i).Z), slot.Type == Building.Lumbermill && slot.Level == 1 ? "" : slot.Type == Building.TownHall ? "Town hall" : $"{AssetCatalog.BuildingName(slot.Type)} L{slot.Level}", 20);
                     Node3D flag = Box(buildings, SlotPosition(i) + new Vector3(-0.6f, 1.1f, 0), new(.35f, .2f, .03f), city.Id == game.PlayerId ? "487ecc" : "a67152");
                     _flags.Add(flag);
                 }
@@ -643,15 +640,12 @@ public partial class Tabletop : Node3D
             strike.Sample(view, _units.GetValueOrDefault(view.State.TargetId), _playback.Tick, 0, _combatLayout);
         }
     }
-    private void ClearBars()
-    {
-        foreach (UnitHealthBar bar in _healthBars.Values) { _healthRoot.RemoveChild(bar); bar.QueueFree(); }
-        _healthBars.Clear();
-    }
+    private void ClearBars() => _healthBars.Clear();
     private void UpdateHealthBars()
     {
-        // Squad summaries own default health overlays, including individual HP.
-        ClearBars();
+        if (_combatLayout is not null)
+            _healthBars.Sample(_units, _combatLayout, _playback.Tick, game.State?.Rules.Arena.SquadCapacity ?? 6, _camera, WorldArea());
+        _arenaView?.UpdateHealthBars(_healthRoot, _camera, WorldArea());
         _healthRoot.Size = new(_frameSize.X, Math.Max(0, _frameSize.Y - _panel.Size.Y));
         _healthRoot.MoveChild(_homeHealth, -1);
     }

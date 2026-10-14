@@ -1976,3 +1976,51 @@ acknowledged dense overview label overlap; four-owner pixels, universal
 readability, GPU performance and terminal-freeze pixels are not claimed.
 Pure-Crossbow paid opening/progression stays explicitly deferred. No merge,
 archive or release was performed.
+
+## Health-only actor overlays (2026-10-14)
+
+Character/forecast rigs and Keep/Watchpost/purchased defense towers no longer
+create floating names, owners, levels, counts or statuses. The former squad
+label observations remain nonvisual diagnostics with empty text; graphical
+health detectors now consume real member controls instead of label strings.
+Panels and inspectors retain individual HP/max, equipment, ownership, statuses
+and Rally details. Other building titles and empty/locked plot labels remain.
+
+Each sampled member owns one input-transparent bar, packed into stable compact
+formation slots above its squad (individual forecast bars remain separate).
+Keep/Watchpost use the same woodland track/fill styles and actual authoritative
+health/max. Purchased towers are not damage targets: their `1/1` snapshot fields
+are sentinels, not meaningful HP. They lose their floating text but get no
+fabricated full-health bar or new destructibility. No rules/wire/asset locks or
+mechanics change. Buffered effective hits restore pre-impact health until the
+shared clock reaches damage; objective model/ruin visibility uses that clock too.
+
+Coverage admission/replacement:
+- Tier A extends `CombatPlaybackTests`: nonlethal member/objective damage,
+  overlapping accepted frames, event draining, buffered Keep loss/inactivation,
+  baseline and match replacement. Pure policy catches anticipatory health without
+  an engine; the deterministic fixture adds one sub-second fast case.
+- Existing Tier B `animation`/`arena` replace label assertions with actual native
+  text absence, independent HP/max/fill, input transparency, stable nonoverlapping
+  compact member controls, no duplicates across updates, hidden/dead actors and
+  real native member/objective control cleanup. Actual compressed lethal member
+  and Watchpost hits verify bars and rigs/ruins share admission/death timing,
+  including pause/reset. Pure tests cannot prove actual Control/resource creation
+  or freeing; no new full-game journey or supervisor was added.
+- Existing `receiving` retains paid tower upgrade/artwork/roof picking and useful
+  inspector details while asserting no purchased-tower home label; forecast rigs
+  likewise remain read-only, inspectable and text-free. Dormant graphical status
+  selectors use the inspector rather than requiring removed floating badges.
+
+Local locked tools: .NET 10.0.401 and Godot .NET 4.7.2. Formatting and filtered
+47 core cases passed (`logs/20261014-191128-38798cb7`). Coherent broad fast passed
+729 core + 651 runner with two Windows-only skips in 43.12s
+(`logs/20261014-192028-37f18d50`). Selected headless animation passed 1.88s
+(`logs/20261014-192650-6c14d732`, including native compact style minimums), arena passed 5.20s
+(`logs/20261014-192408-a1ab0ac7`, including hidden-arena and purchased-tower
+sentinel regressions), and receiving passed 23.14s
+(`logs/20261014-192420-d29cb9d0`). These are scoped local receipts, not future-tip
+PR/CI acceptance. Rendered readability/overlap, actual-game graphical journeys,
+GPU/native display, deep campaigns, transport and package qualification are
+**unexecuted for this overlay change**; older rendered squad-label receipts do not
+qualify the new bars. No graphical permission, check waiver, release or merge.
