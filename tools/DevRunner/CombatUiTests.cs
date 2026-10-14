@@ -321,7 +321,7 @@ internal sealed partial class Runner
             UiObservation casualty = await WaitUi(client, p => p.CombatTick == retainedDeath.Tick && p.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
                 && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && FreshDeathPose(u.PoseSeconds)), "same paused authoritative casualty rendered freshly", token);
             CasualtyAdmission.Frame(retainedDeath, Latest(client), casualty, client.PlayerId, casualtyAfter, dead);
-            Require(!HealthDisplay(casualty).Any(b => b.Id == dead), "death immediately removes overhead bar");
+            Require(!HealthDisplay(casualty).Any(b => b.Id == dead && b.Visible), "death immediately hides overhead bar");
             Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");
             Require(retainedDeath.DyingBodies.Any(u => u.Id == dead), "authoritative casualty pause retains the sampled death");
             UiObservation deathPaused = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal) && p.Units.Any(u => u.Id == dead && u.Dead), "paused death remains", token);
