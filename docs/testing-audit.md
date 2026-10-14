@@ -1865,3 +1865,57 @@ Coherent recovery fast coverage passed694 core and651 runner tests in36.43s
 argument-reader tests skipped on Linux. All21 durable specs and the finishing
 change pass strict OpenSpec validation; whitespace checks pass. This closes
 task6.3 on the repaired source; exact published-head platform CI is still pending.
+
+
+### Cleanup, buffered summaries and configuration recovery
+
+Owning run `01M4WGZYZ9MPFKHE1GTX0416TR` preserved three source fix
+commits before its final re-review stopped with the backend error
+“Our servers are currently overloaded. Please try again later.” This is a
+failed infrastructure run, not Review/Test/publication readiness. Guarded
+`sync --recover` retained every commit on the same feature branch.
+
+- `fcefc923`: post-clear deployment changes persistent home claims without
+  replacing a frozen source/transit/action, and summaries sample the exact
+  buffered units used by native models.20 focused C# checks and the native arena
+  component passed (`logs/20261014-064500-66a557ee`,
+  `logs/20261014-064449-9e9a1311`,4.08s native). The initial native fixture
+  incorrectly treated the One speed clock factor as1 instead of.5; its failure
+  is retained at `logs/20261014-064251-4e3827f3`.
+- `09d737f7`: restoration/configuration owns the cleanup invariant for every
+  accepted recruit/regroup/store/send and army-tower build/sale path. Persistent
+  purchases and assignments update immediately; new/reconfigured members and
+  footprints wait without taking occupied physical claims. Cleanup refreshes
+  footprints/restores homes before the waiting third settlement enters combat.
+  Two pre-fix regressions reproduced premature survivor movement/action
+  cancellation;38 focused core checks and native arena passed
+  (`logs/20261014-071559-bcf16a17`,
+  `logs/20261014-071658-0d1f7e35`,3.89s native).
+- `b8b7f8ba`: removal/reassignment share participation reconciliation, releasing
+  logical claims when only reserves remain without moving other survivors or
+  replacing numerical death bodies. Rally activation/expiry/reset uses the
+  existing buffered event timeline, including multiple snapshots before playback
+  catches up. Tower secondary damage joins the existing accumulator bound;
+  defaults and balance are unchanged. Eight expected pre-fix failures reproduced
+  retirement/configuration defects, followed by72 focused core passes and native
+  arena4.30s including actual summary Rally activation/expiry/pause
+  (`logs/20261014-075918-3abbf94b`,
+  `logs/20261014-075939-9223f57f`).
+
+The additions strengthen existing Tier A compressed receiving/configuration
+fixtures and Tier B arena component coverage. Ordinary paid opening/income/Hall
+inputs underpin the post-clear edit fixtures; controlled enemy/pose setup remains
+numerical ownership evidence, not earned rescue, campaign balance, native
+transport or pixels. Runtime labels/models and actual playback are sampled; no
+implementation-text tests or independent supervisor/clock/history were added.
+Per-case incremental cost is estimated below one second; native receipts report
+the entire selected component. Owned scene/process cleanup remains unchanged.
+
+After recovery at `b8b7f8baaf092b5f9a3c9b53f35143c7f904ef22`, locked
+restore/build and C# formatting passed with zero warnings/errors. Coherent broad
+fast passed704 core and651 runner tests in40.09s
+(`logs/20261014-081806-72aeae5e`), with the same two Windows-native
+argument-reader rows skipped on Linux. The earlier unchanged art/campaign/
+transport/package receipts remain scoped; neither these local results nor the
+failed run certify required exact-tip source/Linux/Windows CI. Fresh owning
+validation and final delivery remain required. No failed acceptance was waived.

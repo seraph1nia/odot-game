@@ -201,7 +201,12 @@ The production native squad panel provides member HP/equipment/service/status
 inspection, paid reinforcement/new recruitment, compatible regrouping, individual
 Town Hall storage/return and retirement. All actions use the normal session command
 and accepted snapshot path. Roster focus survives ordinary authoritative updates;
-no optimistic member appears before acknowledgment. Allies can be inspected but
+no optimistic member appears before acknowledgment. During post-clear corpse
+cleanup, accepted home/roster/tower edits update persistent data immediately,
+while physical restoration waits for cleanup; retained survivors keep their
+frozen pose/action and new members/footprints claim no occupied cells. Reserve-only
+squads release logical claims. The existing third END still owns final settlement
+and combat entry. Allies can be inspected but
 not edited. Deployment toggles between the settlement and the connected arena;
 select an owned squad, close the panel, then pick an empty highlighted purchased
 home. Combat presents all owners together, with local camera navigation only.
@@ -230,7 +235,10 @@ props update only across quantity bands; exact resource labels still consume
 accepted snapshots without optimistic spending. The existing `animation` minimal
 component now checks actual AnimationTree/bones/socket/projectile/health/status/
 formation/death/cleanup/stock resources, a real lethal-impact live-to-dead
-melee transition, and a real numerical committed-miss control. These are headless resource/node proofs, not pixels or choreography.
+melee transition, and a real numerical committed-miss control. Squad summaries use the same buffered members/poses as models; Rally activation,
+expiry and reset follow that existing event timeline, including pause and multiple
+accepted snapshots ahead of playback. These are headless resource/node proofs,
+not pixels or choreography.
 The opaque native base covers the projected safe camera
 boundary. Keep fall disables defenses without inventing tower destruction.
 

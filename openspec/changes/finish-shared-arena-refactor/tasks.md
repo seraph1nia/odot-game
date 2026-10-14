@@ -66,3 +66,10 @@ fast passes (two Windows-native skips on Linux; logs/20261014-061603-fc212b27).
 Tasks7.1/7.2 await fresh owning delivery at the repaired head. On2026-10-14 the owner authorized cancellation of parked run
 01M4W85RTV5C0P3BG0AE0X7295, guarded recovery of all unpublished commits,
 caller repair and a fresh validation run; no failed acceptance was waived.
+
+Guarded recovery of failed infrastructure run01M4WGZYZ9MPFKHE1GTX0416TR
+retained fcefc923/09d737f7/b8b7f8ba. The expanded post-clear edit/retirement
+and buffered summary/Rally cases requalify5.1/5.2; zero-warning locked
+build/format and704core/651runner fast passes (two Windows-native skips onLinux,
+logs/20261014-081806-72aeae5e) requalify6.3. The finishing change and all
+durable contracts still need the fresh owning delivery;7.1/7.2 remain open.
