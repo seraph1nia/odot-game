@@ -1919,3 +1919,60 @@ argument-reader rows skipped on Linux. The earlier unchanged art/campaign/
 transport/package receipts remain scoped; neither these local results nor the
 failed run certify required exact-tip source/Linux/Windows CI. Fresh owning
 validation and final delivery remain required. No failed acceptance was waived.
+
+
+### Final shared-arena implementation delivery (2026-10-14)
+
+Owning run `01M4WR52S4MBC4C9SNTTX9HQ1C` completed Review, Test,
+Document/Lint and publication, returning `checks-passed` at
+`36dea87d862eae54c2e693ec7e06bece12c74cfd`. No phase was skipped and
+no failed Test was approved. [PR25](https://github.com/seraph1nia/odot-game/pull/25)
+is non-draft and unmerged. [Actions38553567582](https://github.com/seraph1nia/odot-game/actions/runs/38553567582)
+has successful source, native Linux package and native Windows package jobs at
+that exact head; CodeRabbit passed too. The source job qualifies coherent
+headless formatting, broad fast C#, components and bounded transport after
+all fixes. Guarded sync preserved the complete published history in the clean
+caller workspace. Later tracking-only commits need refreshed publication/CI;
+this is an exact implementation-head receipt, not a future-tip promise.
+
+The final Review rounds repaired three missed boundaries:
+
+- Persistent sold-home eligibility now follows current purchases while frozen
+  physical footprints remain until cleanup. Unsold, foreign and duplicate
+  placements still refuse without mutation.
+- Existing playback retains consecutive pending admission, arrival, action,
+  death and Rally boundaries until the shared clock reaches them, including
+  several accepted snapshots before playback catches up. Summary and model
+  projections use the same sampled population.
+- Terminal freezing captures the selected primary's actual pose before
+  freezing the squad and retains the original stop tick/aim across repeated
+  stops. Native root/facing stays exact while the imported death clip advances.
+
+Initial Test passed270 targeted C# cases (including full-six Crossbow seeds1/123),
+native arena/animation, paid three-owner tower-only redistribution and explicitly
+authorized two-owner private-display combat/melee graphics. The paid live
+post-clear edit journey then reproduced a stale decision objective when the last
+participant was retired with reserves; the real receiving guest disconnected.
+Commit `68b26b7e6b075e3dce815433e73ba7822eff4a91` resets that decision
+when releasing participation/claims. Fifteen selected lifecycle cases passed
+on the repaired source, followed by the real Godot playing host/ENet guest
+journey with byte-equivalent compressed accepted snapshots. Natural objective9
+became0, the remaining member was Reserve without claims, and the guest stayed
+connected. Sold-home placement, regroup/reinforce/store/send/retire, tower
+purchase/sale, other-owner frozen poses and eventual cleanup restoration passed.
+Exactly three ENDs per peer were accepted: final readiness waited in Preparation
+for genuine corpse expiry, then automatically settled production6→9 and entered
+wave3 with the reserve restored at its persistent home. Driver synchronization
+mistakes were corrected without changing production guards or timing.
+
+The detailed scoped receipt is
+`/home/bart/.no-mistakes/evidence/01M4WR52S4MBC4C9SNTTX9HQ1C/test-final-receipt.md`;
+raw logs/screenshots are ignored local evidence. Owned children exited0 and
+were awaited before temporary runtime cleanup. Prior campaign/rescue/stress/art
+receipts retain their original scopes; they were not blanket-repeated after
+this reconciliation-only fix. Native components prove resources/poses, not
+pixels. Actual graphical frames show the woodland arena and melee cues, with
+acknowledged dense overview label overlap; four-owner pixels, universal
+readability, GPU performance and terminal-freeze pixels are not claimed.
+Pure-Crossbow paid opening/progression stays explicitly deferred. No merge,
+archive or release was performed.
