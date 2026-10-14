@@ -80,8 +80,11 @@ internal sealed partial class Runner
             await Click(client, "Reconnect", feature.Token);
             GameEvent restored = await client.WaitFor(e => e.Type == "connected" && e.PeerId != connection, "research view reconnects through its control", options.StartupTimeout, feature.Token);
             Require(restored.PlayerId == identity && Gameplay(State(restored)) == retained, "graphical recovery retains personal research and active status deadlines");
-            UiObservation baseline = await WaitUi(client, p => p.EventCursor == State(restored).EventSequence && p.StatusBadges.Count == 0
-                && p.InspectedUnit?.StatsText == still.InspectedUnit?.StatsText, "current inspected status baseline after reconnect", feature.Token);
+            UiObservation baseline = await WaitUi(client, p => p.EventCursor == State(restored).EventSequence && p.StatusBadges.Count == 0,
+                "current status baseline after reconnect", feature.Token);
+            await Click(client, "Unit" + target.Id, feature.Token);
+            await WaitUi(client, p => p.InspectedUnit?.Id == target.Id && p.InspectedUnit.StatsText == still.InspectedUnit?.StatsText,
+                "current inspected status after reconnect", feature.Token);
             Require(baseline.Units.All(u => u.EffectSequence == 0) && baseline.Effects.Active == 0 && baseline.Effects.Voices == 0, "active status restoration replays no historical flashes or sounds");
             await Action(observer, "resume", feature.Token);
         });
