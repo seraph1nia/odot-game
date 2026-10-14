@@ -1713,3 +1713,52 @@ Final recovered-source broad fast:641 core/647 runner passes with the same
 two native-Windows skips on Linux;57.00s,
 `logs/20261014-010227-5dbde6a3`. This supersedes the pre-pipeline fast count
 for domain/codec coverage; exact published-head CI remains pending.
+
+## Review follow-up: receiving projections and physical melee proof
+
+R11 coverage extends the existing Tier A compressed receiving fixture: paid Hall
+construction and both track upgrades, ordinary Barracks recruitment and food,
+arbitrary nonsequential home purchase, and ordinary combat frames are positive
+controls. Null/missing/duplicate catalogs and quotes, unbounded or mismatched Hall
+tracks/identities/generations/quotes, malformed food/receipt arrays, and injected
+preview target/pose/action data must refuse before receiving assignment. Earlier
+city-shape tests did not exercise these native-consumed values. Tests use bounded
+configured resources and real commands, without sockets, credentials or native
+controls; setup/maintenance cost is estimated below one second per case.
+
+R12 preserves numerical linkage/group/near-far/simultaneous and malformed-cue
+controls, but removes fabricated dashed intent from their projected observations.
+The supported proof now requires the actual attached/aligned weapon, imported
+attack clip/blend/socket-bone observation and authoritative timing during physical
+windup; only landed impacts may show target-side contact. The existing Tier B
+animation selection emits genuine production UnitView/MeleeStrike observations
+from two fixed adjacent two-member groups; DevRunner feeds them through both
+production detectors for windup and impact. This minimal headless component uses
+owned processes/preferences and existing cleanup, not Main, ENet or a display.
+Estimated incremental native cost is below five seconds. It cannot prove pixels,
+visibility under occlusion, camera framing or the graphical melee checkpoint.
+
+R13 corrects both the emitted selector rationale and command guidance: earned
+paid two-wave veteran/storage prefix, controlled W3 fallen/protected-stored
+encounter, actual ENet resume, then allocation W4. Scenario behavior and the
+not-earned-eliminated-stored balance limitation are unchanged.
+
+Focused follow-up evidence: `logs/review-r11-r13/core-final.trx` passed147
+codec/lifecycle rows (12s), including genuine partial-funding deaths and latched
+lost-target windups; `runner-final.trx` passed7 melee detector rows (0.98s).
+The first attempt caught insufficient paid fixture stone and a milestone at the
+zero-blend action-start tick; the fixture now buys additional producers and the
+shared milestone waits for elapsed windup. Those failures remain in the initial
+logs, not waived. Locked restore, changed-file formatting and solution build
+passed with zero warnings/errors. Tools remained .NET10.0.401/Godot4.7.2.NET;
+process-local mise trust was used without changing user configuration.
+
+`logs/20261014-013813-f2c350da`: selected native animation passed1.77s after
+10.96s import. Both production detectors accepted all four actual native windup
+and impact observations, with real changing imported socket bones; the retained
+native committed miss, casualty, projectile and stockpile controls also passed.
+No broad suite, graphical melee checkpoint, transport, package or exact-head CI
+outcome is claimed by this review round. Native state/credential installation
+and rendered pixels remain outer Test/CI/explicit graphical qualification scope;
+the codec regressions prove refusal before assignment, not credential persistence
+or transport delivery. Locks, imported assets/provenance and balance are unchanged.

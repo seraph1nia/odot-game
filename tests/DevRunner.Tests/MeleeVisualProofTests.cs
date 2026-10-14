@@ -73,6 +73,9 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
                 ImpactTick = u.ImpactTick,
                 AttackActive = u.AttackSequence > 0 && state.Tick >= u.ActionStartTick && state.Tick < u.ReadyTick,
                 WeaponAttached = true,
+                EquipmentAligned = true,
+                Clip = u.AttackSequence > 0 && state.Tick >= u.ActionStartTick && state.Tick < u.ReadyTick ? "attack" : "idle",
+                AttackBlend = Game.CombatVisualTiming.Attack(u, state.Tick),
                 BoneRotation = "numerical-projection-not-imported-bone"
             };
         }).ToArray();
@@ -89,10 +92,8 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
                 ImpactTick = u.ImpactTick,
                 AttackLanded = u.AttackLanded,
                 Visible = true,
-                CueStyle = "dashed-intent-local-strike",
+                CueStyle = "physical-windup-local-strike",
                 Phase = Game.CombatVisualTiming.MeleePhase(u, state.Tick),
-                IntentVisible = state.Tick < u.ImpactTick,
-                IntentDashes = 12,
                 StrikeVisible = state.Tick >= u.ImpactTick,
                 StrikeRadius = .34f,
                 ImpactVisible = u.AttackLanded == true && state.Tick >= u.ImpactTick,
@@ -151,7 +152,13 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
             frame with { Strikes = frame.Strikes.Select(s => s with { CueStyle = "opaque-beam" }).ToArray() },
             frame with { Strikes = frame.Strikes.Select(s => s with { AttackSequence = s.AttackSequence + 1 }).ToArray() },
             frame with { Strikes = frame.Strikes.Select(s => s with { StrikeRadius = 3 }).ToArray() },
-            frame with { Units = frame.Units.Select(u => u with { WeaponAttached = false }).ToArray() }
+            frame with { Units = frame.Units.Select(u => u with { WeaponAttached = false }).ToArray() },
+            frame with { Units = frame.Units.Select(u => u with { EquipmentAligned = false }).ToArray() },
+            frame with { Units = frame.Units.Select(u => u with { AttackBlend = 0 }).ToArray() },
+            frame with { Units = frame.Units.Select(u => u with { Clip = "idle" }).ToArray() },
+            frame with { Units = frame.Units.Select(u => u with { BoneRotation = "" }).ToArray() },
+            frame with { Strikes = frame.Strikes.Select(s => s with { StrikeVisible = true }).ToArray() },
+            frame with { Strikes = frame.Strikes.Select(s => s with { ImpactVisible = true }).ToArray() }
         }) Assert.All(MeleeVisualProof.Inspect(broken, Board), w => Assert.Equal(MeleeCoverage.None, w.Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact | MeleeCoverage.Simultaneous)));
         Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(frame with { Strikes = frame.Strikes.Select(s => s with { StrikeRadius = 3 }).ToArray() }));
     }

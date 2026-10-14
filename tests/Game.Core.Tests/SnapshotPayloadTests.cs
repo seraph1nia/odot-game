@@ -271,6 +271,199 @@ public sealed class SnapshotPayloadTests
             JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot())), WireJson.Options));
     }
 
+    private static Match PaidHallAndTrainer()
+    {
+        var match = new Match(new Rules { StartingGold = 100, StartingWood = 100 }, combatSeed: 1);
+        match.Join();
+        void Act(string action, int slot = -1, Building building = Building.Empty)
+        {
+            CommandResult result = match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, action, 1, slot, building));
+            Assert.True(result.Accepted, result.Message);
+        }
+        Act("start"); Act("build", 0, Building.Barracks); Act("build", 2, Building.Stonecutter);
+        Act("build", 3, Building.MetalMine); Act("build", 4, Building.Farm);
+        Act("buy-plot", 5); Act("build", 5, Building.Stonecutter);
+        Act("buy-plot", 6); Act("build", 6, Building.Stonecutter);
+        Act("ready"); Act("ready"); Act("build", 1, Building.TownHall);
+        Act("upgrade-capacity", 1); Act("upgrade-healing", 1); Act("recruit", 0);
+        Act("buy-home", ArmyConfiguration.TotalPlots - 1);
+        return match;
+    }
+
+    [Fact]
+    public void PaidHallTracksTrainerFoodAndArbitraryHomeRoundTripInPreparationAndCombat()
+    {
+        using Match match = PaidHallAndTrainer();
+        MatchSnapshot paid = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot()));
+        TownHallState hall = Assert.Single(paid.Players[0].Army!.Halls);
+        Assert.Equal(12, hall.Capacity); Assert.Equal(10, hall.HealingPercent);
+        Assert.Equal(paid.Players[0].Slots[1].Generation, hall.Generation);
+        Assert.Contains(paid.Players[0].RecruitmentQuotes, q => q.Type == UnitType.Swordsman && q.Level == 1);
+        Assert.NotEmpty(paid.NextWave); Assert.True(paid.Players[0].Army!.Homes[^1].Purchased);
+        Assert.False(paid.Players[0].Army!.Homes[2].Purchased);
+        Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "ready", 1)).Accepted);
+        for (int tick = 0; tick < 90 && match.Phase == Phase.Combat; tick++)
+        {
+            match.Step(); MatchSnapshot frame = match.Snapshot();
+            Assert.Equal(JsonSerializer.Serialize(frame, WireJson.Options),
+                JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(frame)), WireJson.Options));
+        }
+    }
+
+    [Theory]
+    [InlineData("hall-missing")]
+    [InlineData("hall-duplicate")]
+    [InlineData("hall-null")]
+    [InlineData("hall-slot")]
+    [InlineData("hall-generation")]
+    [InlineData("hall-capacity")]
+    [InlineData("hall-healing")]
+    [InlineData("hall-capacity-level")]
+    [InlineData("hall-healing-level")]
+    [InlineData("hall-capacity-quote")]
+    [InlineData("hall-healing-quote")]
+    [InlineData("slot-capacity-level")]
+    [InlineData("slot-healing-level")]
+    [InlineData("trainer-level")]
+    [InlineData("quotes-null")]
+    [InlineData("quotes-empty")]
+    [InlineData("quote-null")]
+    [InlineData("quote-duplicate")]
+    [InlineData("quote-level")]
+    [InlineData("quote-upkeep")]
+    [InlineData("quote-cost")]
+    [InlineData("quote-profile")]
+    [InlineData("technologies-null")]
+    [InlineData("technologies-empty")]
+    [InlineData("food-null")]
+    [InlineData("food-participating")]
+    [InlineData("food-unfed")]
+    [InlineData("food-funded")]
+    [InlineData("food-paid")]
+    [InlineData("food-demand")]
+    [InlineData("production")]
+    [InlineData("forecast-keep")]
+    [InlineData("forecast-watchpost")]
+    [InlineData("forecast-cell")]
+    [InlineData("forecast-aim")]
+    [InlineData("forecast-unit")]
+    [InlineData("forecast-action")]
+    [InlineData("catalog-recruits")]
+    [InlineData("catalog-trainer-cap")]
+    [InlineData("catalog-wave-entries")]
+    [InlineData("upkeep-participating")]
+    [InlineData("upkeep-unfed")]
+    [InlineData("upkeep-funded")]
+    [InlineData("upkeep-duplicate")]
+    [InlineData("upkeep-paid")]
+    public void PaidCityProjectionDefectsRefuseRecoverablyBeforeReceivingAssignment(string defect)
+    {
+        using Match match = PaidHallAndTrainer();
+        if (defect.StartsWith("upkeep-", StringComparison.Ordinal))
+            Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "ready", 1)).Accepted);
+        MatchSnapshot live = match.Snapshot();
+        string before = JsonSerializer.Serialize(live, WireJson.Options);
+        JsonObject wire = JsonSerializer.SerializeToNode(live, WireJson.Options)!.AsObject();
+        JsonNode city = wire["Players"]![0]!, halls = city["Army"]!["Halls"]!, hall = halls[0]!;
+        JsonNode quotes = city["RecruitmentQuotes"]!;
+        switch (defect)
+        {
+            case "hall-missing": halls.AsArray().Clear(); break;
+            case "hall-duplicate": halls.AsArray().Add(hall.DeepClone()); break;
+            case "hall-null": halls[0] = null; break;
+            case "hall-slot": hall["Slot"] = 8; break;
+            case "hall-generation": hall["Generation"] = long.MaxValue; break;
+            case "hall-capacity": hall["Capacity"] = int.MaxValue; break;
+            case "hall-healing": hall["HealingPercent"] = int.MaxValue; break;
+            case "hall-capacity-level": hall["CapacityLevel"] = int.MaxValue; break;
+            case "hall-healing-level": hall["HealingLevel"] = int.MaxValue; break;
+            case "hall-capacity-quote": hall["CapacityQuote"] = null; break;
+            case "hall-healing-quote": hall["HealingQuote"] = null; break;
+            case "slot-capacity-level": city["Slots"]![1]!["CapacityLevel"] = int.MaxValue; break;
+            case "slot-healing-level": city["Slots"]![1]!["HealingLevel"] = int.MaxValue; break;
+            case "trainer-level": city["Slots"]![0]!["Level"] = int.MaxValue; break;
+            case "quotes-null": city["RecruitmentQuotes"] = null; break;
+            case "quotes-empty": quotes.AsArray().Clear(); break;
+            case "quote-null": quotes[0] = null; break;
+            case "quote-duplicate": quotes[1] = quotes[0]!.DeepClone(); break;
+            case "quote-level": quotes[0]!["Level"] = 99; break;
+            case "quote-upkeep": quotes[0]!["Upkeep"] = 0; break;
+            case "quote-cost": quotes[0]!["Cost"]!["Gold"] = int.MaxValue; break;
+            case "quote-profile": quotes[0]!["Profile"]!["Health"] = int.MaxValue; break;
+            case "technologies-null": city["Technologies"] = null; break;
+            case "technologies-empty": city["Technologies"]!.AsArray().Clear(); break;
+            case "food-null": city["FoodForecast"] = null; break;
+            case "food-participating": city["FoodForecast"]!["Participating"] = null; break;
+            case "food-unfed": city["FoodForecast"]!["Unfed"] = null; break;
+            case "food-funded": city["FoodForecast"]!["Funded"] = null; break;
+            case "food-paid": city["FoodForecast"]!["Paid"] = int.MaxValue; break;
+            case "food-demand": city["FoodForecast"]!["Demand"] = long.MaxValue; break;
+            case "production": city["ProductionIncome"] = null; break;
+            case "forecast-keep":
+            case "forecast-watchpost":
+                wire["NextWave"]![0]!["TargetCity"] = true;
+                wire["NextWave"]![0]!["TargetKind"] = defect == "forecast-keep" ? "Keep" : "Watchpost";
+                wire["NextWave"]![0]!["TargetId"] = int.MaxValue;
+                break;
+            case "forecast-cell":
+            case "forecast-aim":
+                HexUnitState pose = live.Players[0].Soldiers[0].Hex! with
+                {
+                    Position = defect == "forecast-cell" ? new(int.MaxValue, 1) : live.Players[0].Soldiers[0].Hex!.Position,
+                    FrozenAim = defect == "forecast-aim" ? new(new(int.MaxValue, 1)) : null
+                };
+                wire["NextWave"]![0]!["Hex"] = JsonSerializer.SerializeToNode(pose, WireJson.Options);
+                break;
+            case "forecast-unit": wire["NextWave"]![0]!["TargetId"] = int.MaxValue; break;
+            case "forecast-action": wire["NextWave"]![0]!["PendingImpact"] = true; break;
+            case "catalog-recruits":
+            case "catalog-trainer-cap":
+                JsonNode trainer = wire["BuildingCatalog"]!.AsArray().Single(b => b!["Type"]!.GetValue<string>() == "Barracks")!;
+                if (defect == "catalog-recruits") trainer["Recruits"] = null;
+                else trainer["MaximumLevel"] = int.MaxValue;
+                break;
+            case "catalog-wave-entries": wire["WaveCatalog"]![0]!["Entries"] = null; break;
+            case "upkeep-participating": city["LastUpkeep"]!["Participating"] = null; break;
+            case "upkeep-unfed": city["LastUpkeep"]!["Unfed"] = null; break;
+            case "upkeep-funded": city["LastUpkeep"]!["Funded"] = null; break;
+            case "upkeep-duplicate": city["LastUpkeep"]!["Funded"]!.AsArray().Add(city["LastUpkeep"]!["Funded"]![0]!.DeepClone()); break;
+            case "upkeep-paid": city["LastUpkeep"]!["Paid"] = -1; break;
+        }
+        Assert.Throws<InvalidDataException>(() => live = SnapshotPayload.DecodeForReceiving(Compress(wire)));
+        Assert.Equal(before, JsonSerializer.Serialize(live, WireJson.Options));
+        Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
+        Assert.Equal(before, JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(live)), WireJson.Options));
+    }
+
+    [Theory]
+    [InlineData("BuildingCatalog")]
+    [InlineData("UnitCatalog")]
+    [InlineData("TowerCatalog")]
+    [InlineData("TechnologyCatalog")]
+    [InlineData("MarketRates")]
+    [InlineData("PlotPrices")]
+    [InlineData("WaveCatalog")]
+    public void NativeConsumedCatalogsRejectNullMissingAndDuplicateEntries(string field)
+    {
+        using Match match = PaidHallAndTrainer();
+        MatchSnapshot valid = match.Snapshot();
+        foreach (string defect in new[] { "null", "missing", "duplicate", "entry-null" })
+        {
+            JsonObject wire = JsonSerializer.SerializeToNode(valid, WireJson.Options)!.AsObject();
+            JsonArray entries = wire[field]!.AsArray();
+            switch (defect)
+            {
+                case "null": wire[field] = null; break;
+                case "missing": entries.Clear(); break;
+                case "duplicate": entries[1] = entries[0]!.DeepClone(); break;
+                case "entry-null": entries[0] = null; break;
+            }
+            Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(Compress(wire)));
+        }
+        Assert.Equal(JsonSerializer.Serialize(valid, WireJson.Options),
+            JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(valid)), WireJson.Options));
+    }
+
     private static string Compress(JsonObject json)
     {
         using var output = new MemoryStream();

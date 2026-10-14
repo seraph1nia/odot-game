@@ -13,6 +13,7 @@ public partial class EngineTests
     private async Task CombatPresentation()
     {
         await GroupPresentation();
+        await MeleeWindupPresentation();
         await CommittedMissPresentation();
         await StockpilePresentation();
     }
@@ -140,6 +141,54 @@ public partial class EngineTests
             Check(board.GetNode("Stockpiles").GetInstanceId() == stable && !tabletop.IsInsideTree() && tabletop.GetChildCount() == 0, "unchanged received resources retain nodes without starting a full world");
         }
         finally { tabletop.Free(); RemoveChild(board); board.Free(); }
+    }
+    private async Task MeleeWindupPresentation()
+    {
+        using var match = new Match(new() { SoldierDamage = 0 }, combatSeed: 1);
+        match.Join(); CombatSimulation combat = match.Combat;
+        PresentationGroup(combat, UnitType.Swordsman, 2, Faction.Adventurers, 17);
+        PresentationGroup(combat, UnitType.Swordsman, 2, Faction.Skeletons, 18);
+        combat.StartActions([]); MatchSnapshot initial = Received(match);
+        var layout = new CombatLayout(new(initial.Arena!.Board)) { Arena = initial.Arena }; layout.Synchronize(initial);
+        var rigs = new Dictionary<int, UnitView>();
+        var strikes = new Dictionary<int, MeleeStrike>();
+        var camera = new Camera3D { Position = CombatLayout.ArenaOrigin + new Vector3(15, 25, 25) }; AddChild(camera); camera.LookAt(CombatLayout.ArenaOrigin);
+        try
+        {
+            var units = initial.Players[0].Soldiers.Concat(initial.Enemies).ToDictionary(u => u.Id);
+            foreach (UnitState unit in units.Values)
+            {
+                var rig = new UnitView(unit); AddChild(rig); rigs.Add(unit.Id, rig);
+                var strike = new MeleeStrike(); AddChild(strike); strikes.Add(unit.Id, strike);
+                rig.Sample(unit, 0, 0, 0, layout, units);
+            }
+            var bones = rigs.ToDictionary(r => r.Key, r => Observation(r.Value.Observe()).GetProperty("BoneRotation").GetString());
+            foreach (long tick in new long[] { 6, 12 })
+            {
+                combat.Advance(tick, []); MatchSnapshot state = Received(match, tick); layout.Synchronize(state);
+                units = state.Players[0].Soldiers.Concat(state.Enemies).ToDictionary(u => u.Id);
+                foreach (UnitState unit in units.Values) rigs[unit.Id].Sample(unit, tick, tick / 60.0, 0, layout, units);
+                await Frames();
+                foreach (UnitState unit in units.Values)
+                {
+                    strikes[unit.Id].Sample(rigs[unit.Id], rigs[unit.TargetId], tick, 0, layout);
+                    Check(Observation(rigs[unit.Id].Observe()).GetProperty("BoneRotation").GetString() != bones[unit.Id], "native melee proof samples changing imported weapon-socket bones");
+                }
+                Main.Emit(new GameEvent(tick == 6 ? "melee-windup" : "melee-impact", State: state,
+                    Message: JsonSerializer.Serialize(new
+                    {
+                        Units = rigs.Values.Select(r => r.Observe()).ToArray(),
+                        Strikes = strikes.Values.Select(s => s.Observe(camera, Transform2D.Identity)).ToArray(),
+                        CombatTick = tick
+                    }, WireJson.Options)));
+            }
+        }
+        finally
+        {
+            foreach (MeleeStrike strike in strikes.Values) { RemoveChild(strike); strike.Free(); }
+            foreach (UnitView rig in rigs.Values) { RemoveChild(rig); rig.Free(); }
+            RemoveChild(camera); camera.Free();
+        }
     }
     private async Task CommittedMissPresentation()
     {

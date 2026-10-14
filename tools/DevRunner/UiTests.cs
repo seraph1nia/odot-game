@@ -71,8 +71,6 @@ internal sealed record StrikeObservation
     public bool ImpactVisible { get; init; }
     public string CueStyle { get; init; } = "";
     public string Phase { get; init; } = "";
-    public bool IntentVisible { get; init; }
-    public int IntentDashes { get; init; }
     public bool StrikeVisible { get; init; }
     public float StrikeRadius { get; init; }
     public float SourceX { get; init; }

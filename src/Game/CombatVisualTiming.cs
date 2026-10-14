@@ -32,7 +32,6 @@ internal static class CombatVisualTiming
         double weight = Math.Min(entrance, exit);
         return weight * weight * (3 - 2 * weight);
     }
-    public const int IntentDashes = 12;
     public const int StrikeTrailTicks = 12;
     public const float LocalStrikeRadius = .34f;
     public static string MeleePhase(UnitState actor, double tick)

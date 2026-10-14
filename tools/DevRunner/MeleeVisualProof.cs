@@ -26,7 +26,7 @@ internal static class MeleeVisualProof
             if (standing.Count(u => u.SquadId == actor.SquadId && u.Hex!.Lifecycle == UnitLifecycle.Alive) < 2
                 || standing.Count(u => u.SquadId == target.SquadId && u.Hex!.Lifecycle == UnitLifecycle.Alive) < 2) continue;
             if (phase == MeleeCoverage.Impact && actor.AttackLanded == true && state.Tick >= actor.ImpactTick && state.Tick < actor.ImpactTick + 12) return true;
-            if (phase == MeleeCoverage.Windup && actor.PendingImpact && actor.ImpactTick - state.Tick >= 6
+            if (phase == MeleeCoverage.Windup && state.Tick > actor.ActionStartTick && actor.PendingImpact && actor.ImpactTick - state.Tick >= 6
                 && standing.Any(u => u.Hex is { Lifecycle: UnitLifecycle.Alive } && u.SquadId == target.SquadId
                     && u.PendingImpact && u.ImpactTick == actor.ImpactTick && u.Hex.Position.Cell == target.Hex.Position.Cell
                     && standing.Any(t => t.Id == u.TargetId && t.Hex!.Position.Cell == actor.Hex.Position.Cell))) return true;
@@ -59,11 +59,13 @@ internal static class MeleeVisualProof
             }
             double tick = actor.Hex.FrozenTick ?? frame.CombatTick;
             bool linked = Math.Abs(strike.TargetX - target.X) < .02 && Math.Abs(strike.TargetZ - target.Z) < .02;
-            if (linked && actor.WeaponAttached && actor.AttackActive && actor.BoneRotation.Length > 0
-                && strike.CueStyle == "dashed-intent-local-strike" && strike.IntentDashes == 12 && strike.StrikeRadius is > 0 and <= .35f)
+            if (linked && actor.WeaponAttached && actor.EquipmentAligned && actor.AttackActive && actor.Clip == "attack"
+                && actor.AttackBlend > 0 && actor.BoneRotation.Length > 0
+                && actor.Hex.Action is UnitActionKind.Windup or UnitActionKind.Recovery
+                && strike.CueStyle == "physical-windup-local-strike" && strike.StrikeRadius is > 0 and <= .35f)
             {
-                if (tick >= actor.ActionStartTick && tick < strike.ImpactTick && strike.Phase == "intent" && strike.IntentVisible && !strike.StrikeVisible) coverage |= MeleeCoverage.Windup;
-                if (tick >= strike.ImpactTick && strike.AttackLanded == true && strike.Phase == "landed" && strike.StrikeVisible && !strike.IntentVisible && strike.ImpactVisible) coverage |= MeleeCoverage.Impact;
+                if (tick >= actor.ActionStartTick && tick < strike.ImpactTick && strike.Phase == "intent" && !strike.StrikeVisible && !strike.ImpactVisible) coverage |= MeleeCoverage.Windup;
+                if (tick >= strike.ImpactTick && tick < strike.ImpactTick + 12 && strike.AttackLanded == true && strike.Phase == "landed" && strike.StrikeVisible && strike.ImpactVisible) coverage |= MeleeCoverage.Impact;
             }
             result.Add(new(actor.Id, target.Id, strike.AttackSequence, strike.ImpactTick, actor.Hex.Position.Cell, target.Hex.Position.Cell,
                 actor.Hex.Position.Anchor, target.Hex.Position.Anchor, distance, coverage));

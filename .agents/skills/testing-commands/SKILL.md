@@ -56,7 +56,7 @@ mise run test-network                      # failure-cases, solo-session, playin
 mise run test-network --scenario failure-cases
 mise run test-network --scenario playing-host-lifecycle
 mise run test-network --scenario redistribution  # explicit deeper paid transfer journey
-mise run test-network --scenario eliminated-resume # paid fallen owner, stored survivor, real spectator reconnect/denial
+mise run test-network --scenario eliminated-resume # earned two-wave veteran/storage prefix; controlled W3 elimination; real ENet resume/denial, next allocation W4 (NOT earned eliminated-stored balance)
 mise run test-network --scenario active-fallen # fixed numerical active fighters, exact ENet resume/impact + Keep-health control; NOT earned balance
 mise run test-network --jobs 1             # same default cases, serial
 ```

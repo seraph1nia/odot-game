@@ -8,25 +8,14 @@ namespace Game;
 internal sealed partial class MeleeStrike : Node3D
 {
     public const int TrailTicks = CombatVisualTiming.StrikeTrailTicks;
-    private readonly MeshInstance3D _guide = new() { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-    private readonly MeshInstance3D _pointer = new() { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
     private readonly MeshInstance3D _slice = new() { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
     private readonly MeshInstance3D _impact = new() { Mesh = new SphereMesh { Radius = .09f, Height = .18f } };
     private readonly StandardMaterial3D _material = new() { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
-    private readonly StandardMaterial3D _intentMaterial = new() { AlbedoColor = new("24414a"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
     private UnitState? _actor;
     private Vector3 _source, _target;
     private string _phase = "none";
     public override void _Ready()
     {
-        var dashes = new List<Vector3>();
-        for (int n = 0; n < CombatVisualTiming.IntentDashes; n++)
-        {
-            float first = (n + .2f) / CombatVisualTiming.IntentDashes, last = (n + .7f) / CombatVisualTiming.IntentDashes;
-            Quad(dashes, new(-.035f, 0, -first), new(.035f, 0, -first), new(.035f, 0, -last), new(-.035f, 0, -last));
-        }
-        _guide.Mesh = Mesh(dashes);
-        _pointer.Mesh = Mesh([new(-.13f, 0, .14f), new(.13f, 0, .14f), new(0, 0, -.14f)]);
         var arc = new List<Vector3>();
         const float radius = CombatVisualTiming.LocalStrikeRadius;
         Vector3 Point(float angle, float r) => new(Mathf.Sin(angle) * r, 0, -Mathf.Cos(angle) * r);
@@ -36,8 +25,7 @@ internal sealed partial class MeleeStrike : Node3D
             Quad(arc, Point(a, radius), Point(b, radius), Point(b, radius - .035f), Point(a, radius - .035f));
         }
         _slice.Mesh = Mesh(arc);
-        AddChild(_guide); AddChild(_pointer); AddChild(_slice); AddChild(_impact);
-        _guide.MaterialOverride = _pointer.MaterialOverride = _intentMaterial;
+        AddChild(_slice); AddChild(_impact);
         _slice.MaterialOverride = _impact.MaterialOverride = _material;
     }
     private static void Quad(List<Vector3> points, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
@@ -60,17 +48,6 @@ internal sealed partial class MeleeStrike : Node3D
         Vector3 destination = sameCity ? target!.GlobalPosition + new Vector3(0, .5f, 0)
             : _actor.Hex?.FrozenAim is { } aim ? layout.AimPosition(_actor, aim) + new Vector3(0, .5f, 0) : source + attacker.GlobalBasis.Z * 1.5f;
         _source = source; _target = destination;
-        Vector3 groundSource = attacker.GlobalPosition + Vector3.Up * .035f;
-        Vector3 groundTarget = new(destination.X, groundSource.Y, destination.Z);
-        _guide.Visible = _pointer.Visible = false; // The physical local engagement replaces long dashed hex explanations.
-        _guide.GlobalPosition = groundSource;
-        if (groundSource.DistanceSquaredTo(groundTarget) > .00001f)
-        {
-            _guide.LookAt(groundTarget, Vector3.Up);
-            _pointer.GlobalPosition = groundTarget;
-            _pointer.LookAt(groundTarget * 2 - groundSource, Vector3.Up);
-        }
-        _guide.Scale = new(1, 1, Math.Max(.01f, groundSource.DistanceTo(groundTarget)));
         _slice.Visible = _phase != "intent";
         _slice.GlobalPosition = source;
         _slice.GlobalBasis = attacker.GlobalBasis;
@@ -88,10 +65,8 @@ internal sealed partial class MeleeStrike : Node3D
             _actor?.ImpactTick,
             _actor?.AttackLanded,
             Visible,
-            CueStyle = "dashed-intent-local-strike",
+            CueStyle = "physical-windup-local-strike",
             Phase = _phase,
-            IntentVisible = _guide.Visible && _pointer.Visible && Visible,
-            IntentDashes = CombatVisualTiming.IntentDashes,
             StrikeVisible = _slice.Visible && Visible,
             StrikeRadius = CombatVisualTiming.LocalStrikeRadius,
             ImpactVisible = _impact.Visible && Visible,

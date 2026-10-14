@@ -46,11 +46,14 @@ internal sealed partial class Runner
             if (target is not null)
                 Require(Math.Abs(strike.TargetX - target.X) < .02 && Math.Abs(strike.TargetZ - target.Z) < .02,
                     "melee connection follows the actual sampled target position");
-            Require(strike.CueStyle == "dashed-intent-local-strike" && strike.IntentDashes == 12 && strike.StrikeRadius <= .35f,
-                "melee uses bounded dashed intent and a local strike rather than a spanning beam");
-            Require(tick < strike.ImpactTick ? strike.Phase == "intent" && strike.IntentVisible && !strike.StrikeVisible
-                : strike.Phase == (strike.AttackLanded == true ? "landed" : "miss") && !strike.IntentVisible && strike.StrikeVisible,
-                "melee intention and local strike are separate current-action phases");
+            Require(strike.CueStyle == "physical-windup-local-strike" && strike.StrikeRadius is > 0 and <= .35f,
+                "melee uses physical windup and a bounded local strike rather than a spanning beam");
+            Require(actor.WeaponAttached && actor.EquipmentAligned && actor.AttackActive && actor.Clip == "attack"
+                && (tick == actor.ActionStartTick || actor.AttackBlend > 0) && actor.BoneRotation.Length > 0,
+                "melee current action samples the attached weapon and imported attack pose");
+            Require(tick < strike.ImpactTick ? strike.Phase == "intent" && !strike.StrikeVisible && !strike.ImpactVisible
+                : strike.Phase == (strike.AttackLanded == true ? "landed" : "miss") && strike.StrikeVisible,
+                "melee physical windup and local strike are separate current-action phases");
             Require(!strike.ImpactVisible || strike.AttackLanded == true && tick >= strike.ImpactTick && target is not null,
                 "target-side impact is shown only for an authoritative landed strike");
         }

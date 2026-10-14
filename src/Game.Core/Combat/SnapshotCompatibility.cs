@@ -37,6 +37,9 @@ public static class SnapshotCompatibility
             throw new ArgumentException("Missing nested authoritative rules.", nameof(state));
         var configuration = new CombatConfiguration(state.Rules);
         var army = new ArmyConfiguration(state.Rules.Army, configuration.Board, configuration.Arena.SquadCapacity);
+        var economy = new EconomyConfiguration(state.Rules);
+        var campaign = new CampaignConfiguration(state.Rules.Campaign, configuration);
+        RequireCatalogs(state, configuration, economy, campaign);
         foreach (CityState city in state.Players)
         {
             if (city.Slots is not { Length: ArmyConfiguration.PlotOffset } || city.Slots.Any(s => s is null)
@@ -50,13 +53,19 @@ public static class SnapshotCompatibility
                     || home.Used < 0
                     || home.Used > roster.SquadCapacity).Any())
                 throw new ArgumentException("Malformed city deployment or construction projection.", nameof(state));
+            RequireCity(city, state.Phase, configuration, economy, army);
         }
-        if (RulesIdentity.Combine(configuration.Fingerprint, new EconomyConfiguration(state.Rules).Fingerprint,
-            new CampaignConfiguration(state.Rules.Campaign, configuration).Fingerprint) != state.ConfigurationFingerprint)
+        if (RulesIdentity.Combine(configuration.Fingerprint, economy.Fingerprint,
+            campaign.Fingerprint) != state.ConfigurationFingerprint)
             throw new ArgumentException("Combat configuration identity refused: received rules do not match the full authoritative fingerprint.", nameof(state));
         if (state.NextWave.Any(u => u.Profile.Health <= 0 || u.Statuses is not { Poison: not null } || u.Statuses.Poison.Any(p => p is null)
             || !state.Players.Any(p => p.Id == u.Origin) || !state.Players.Any(p => p.Id == u.Destination)
-            || u.Profile != configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level).Runtime()))
+            || u.Profile != configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level).Runtime()
+            || u.Hex is not null || u.TargetCity || u.TargetId != 0 || u.TargetKind != SquadTargetKind.None
+            || u.Decision is not null || u.Assignment is not null || u.SquadId != 0 || u.FormationSlot != 0
+            || u.AttackSequence != 0 || u.ActionStartTick != 0 || u.ImpactTick != 0 || u.ReadyTick != 0
+            || u.PendingImpact || u.AttackLanded is not null || u.Capabilities != default || u.Cooldown != 0
+            || u.Statuses.Active))
             throw new ArgumentException("Authoritative wave forecast profile refused: received actors do not match configured identities.", nameof(state));
         var arena = new SharedArena(state.Players.Length == 0 ? [1] : state.Players.Select(p => p.Id),
             state.Arena.Footprints.Where(f => ArmyConfiguration.IsArmyPlot(f.Slot)).Select(f => (f.Owner, f.Slot)));
@@ -139,6 +148,64 @@ public static class SnapshotCompatibility
         }
         if (members.Any(m => !state.Squads.Any(s => s.Id == m.SquadId && s.Members.Contains(m.Id))))
             throw new ArgumentException("A persistent member has no squad identity.", nameof(state));
+    }
+    private static void RequireCatalogs(MatchSnapshot state, CombatConfiguration combat, EconomyConfiguration economy, CampaignConfiguration campaign)
+    {
+        BuildingDefinition[] buildings = economy.Buildings();
+        WaveDefinition[] waves = campaign.Definition().Waves;
+        if (state.BuildingCatalog is null || state.BuildingCatalog.Length != buildings.Length
+            || state.BuildingCatalog.Where((b, i) => b is null || (b with { Recruits = null }) != (buildings[i] with { Recruits = null })
+                || (b.Recruits is null) != (buildings[i].Recruits is null)
+                || b.Recruits is not null && !b.Recruits.SequenceEqual(buildings[i].Recruits!)).Any()
+            || state.UnitCatalog is null || !state.UnitCatalog.SequenceEqual(Catalogs.Units(state.Rules))
+            || state.TowerCatalog is null || !state.TowerCatalog.SequenceEqual(combat.Towers)
+            || state.TechnologyCatalog is null || !state.TechnologyCatalog.SequenceEqual(economy.Research.Definitions())
+            || state.MarketRates is null || !state.MarketRates.SequenceEqual(economy.MarketRates())
+            || state.PlotPrices is null || !state.PlotPrices.SequenceEqual(economy.PlotPrices())
+            || state.TotalWaves != campaign.TotalWaves || state.WaveCatalog is null || state.WaveCatalog.Length != waves.Length
+            || state.WaveCatalog.Where((w, i) => w is null || w.Entries is null
+                || (w with { Entries = waves[i].Entries }) != waves[i] || !w.Entries.SequenceEqual(waves[i].Entries)).Any())
+            throw new ArgumentException("Malformed authoritative catalog projection.", nameof(state));
+    }
+    private static void RequireCity(CityState city, Phase phase, CombatConfiguration combat, EconomyConfiguration economy, ArmyConfiguration army)
+    {
+        economy.Research.ValidateState(city.Research);
+        if (!city.Resources.IsValid || city.Soldiers.Any(u => !Enum.IsDefined(u.Type))
+            || city.RecruitmentQuotes is null || !city.RecruitmentQuotes.SequenceEqual(economy.RecruitmentQuotes(combat, city.Research))
+            || city.Technologies is null || !city.Technologies.SequenceEqual(economy.Research.Definitions().Select(n => economy.Research.Eligibility(city.Research, n.Id))))
+            throw new ArgumentException("Malformed city recruitment or research projection.", nameof(city));
+        BuildingDefinition[] buildings = economy.Buildings();
+        if (city.Army!.Homes.Any(h => h.Plot.Type != Building.Empty && !ArmyConfiguration.IsTower(h.Plot.Type)))
+            throw new ArgumentException("Invalid army plot construction.", nameof(city));
+        foreach (SlotState slot in city.Slots.Concat(city.Army.Homes.Select(h => h.Plot)))
+        {
+            BuildingDefinition? definition = buildings.SingleOrDefault(b => b.Type == slot.Type);
+            int maximum = definition?.MaximumLevel ?? (slot.Type is Building.RapidArrowTower or Building.BombardTower ? 2 : 0);
+            if (!Enum.IsDefined(slot.Type) || slot.Generation < 0 || !slot.Investment.IsValid
+                || slot.Type == Building.Empty && slot.Level != 0 || slot.Type != Building.Empty && (!slot.Purchased || slot.Level < 1 || slot.Level > maximum)
+                || slot.Type == Building.TownHall && (slot.CapacityLevel is < 1 or > 3 || slot.HealingLevel is < 1 or > 3)
+                || slot.Type != Building.TownHall && (slot.CapacityLevel != 0 || slot.HealingLevel != 0)
+                || slot.UpgradeQuote != (economy.TryUpgrade(slot.Type, slot.Level, out ResourceCost quote) ? quote : null))
+                throw new ArgumentException("Malformed construction instance projection.", nameof(city));
+        }
+        TownHallState[] halls = army.Snapshot(city.Soldiers, city.Army!.PurchasedHomes, city.Slots).Halls;
+        if (!city.Army.Halls.SequenceEqual(halls))
+            throw new ArgumentException("Malformed Town Hall projection.", nameof(city));
+        ResourceCost? production = phase is Phase.Victory or Phase.Defeat || city.Eliminated ? default(ResourceCost) : economy.ProjectedProduction(city.Slots, city.Research);
+        if (city.ProductionIncome != production)
+            throw new ArgumentException("Malformed production projection.", nameof(city));
+        BattleFoodForecast? expected = phase is Phase.Victory or Phase.Defeat ? null : BattleFood.Project(city, phase == Phase.Preparation);
+        BattleFoodForecast? food = city.FoodForecast;
+        if ((food is null) != (expected is null) || food is not null && (food.Participating is null || food.Unfed is null || food.Funded is null
+            || (food with { Participating = expected!.Participating, Unfed = expected.Unfed, Funded = expected.Funded }) != expected
+            || !food.Participating.SequenceEqual(expected.Participating) || !food.Unfed.SequenceEqual(expected.Unfed) || !food.Funded.SequenceEqual(expected.Funded)))
+            throw new ArgumentException("Malformed food forecast projection.", nameof(city));
+        if (city.LastUpkeep is { } receipt && (receipt.Participating is null || receipt.Unfed is null || receipt.Funded is null
+            || receipt.Wave <= 0 || receipt.Paid < 0 || receipt.Funded.Any(id => id <= 0)
+            || receipt.Funded.Distinct().Count() != receipt.Funded.Length || receipt.Unfed.Any(id => id <= 0 || receipt.Funded.Contains(id))
+            || receipt.Unfed.Distinct().Count() != receipt.Unfed.Length || receipt.Participating.Any(id => !receipt.Funded.Contains(id))
+            || receipt.Participating.Distinct().Count() != receipt.Participating.Length))
+            throw new ArgumentException("Malformed upkeep receipt projection.", nameof(city));
     }
     private static void RequireProjection(UnitState member, SharedArena arena, CombatConfiguration configuration)
     {
