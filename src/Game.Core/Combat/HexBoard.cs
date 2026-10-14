@@ -44,7 +44,6 @@ public sealed class HexBoard
     private readonly FrozenDictionary<int, HexCell> _cells;
     private readonly FrozenDictionary<int, HexAnchor> _anchors;
     private readonly FrozenDictionary<(int Source, int Destination), int> _distances;
-    private readonly FrozenDictionary<(Faction Faction, int Source, int Destination), int> _movementDistances;
     private readonly FrozenDictionary<(HexPosition Source, HexPosition Destination), HexTransition> _transitions;
     private readonly FrozenDictionary<Faction, (ReadOnlyCollection<int> Rear, ReadOnlyCollection<int> Front)> _entries;
     private readonly FrozenDictionary<int, int> _cityDistances;
@@ -111,14 +110,6 @@ public sealed class HexBoard
             entries.Add(entry.Faction, (Array.AsReadOnly(entry.RearCells.ToArray()), Array.AsReadOnly(entry.FrontCells.ToArray())));
         }
         _entries = entries.ToFrozenDictionary();
-        var movementDistances = new Dictionary<(Faction, int, int), int>();
-        foreach (Faction faction in Enum.GetValues<Faction>())
-            foreach (HexCell source in Cells.Where(c => Allows(faction, c.Id)))
-            {
-                var search = new HexReachability(this, source.Id, cell => Allows(faction, cell));
-                foreach ((int cell, int distance) in search.Distances) movementDistances.Add((faction, source.Id, cell), distance);
-            }
-        _movementDistances = movementDistances.ToFrozenDictionary();
         if (definition.SiegeCells.Length == 0 || definition.SiegeCells.Distinct().Count() != definition.SiegeCells.Length
             || definition.SiegeCells.Any(id => !_cells.ContainsKey(id) || Cell(id).Affinity != DeploymentAffinity.Neutral))
             throw new ArgumentException("City anchor requires neutral siege links.", nameof(definition));
@@ -154,7 +145,6 @@ public sealed class HexBoard
     public HexCell Cell(int id) => _cells[id];
     public HexAnchor Anchor(int id) => _anchors[id];
     public int Distance(int source, int destination) => _distances[(source, destination)];
-    public int MovementDistance(Faction faction, int source, int destination) => _movementDistances.GetValueOrDefault((faction, source, destination), int.MaxValue);
     public int CityDistance(int source) => _cityDistances[source];
     public bool Allows(Faction faction, int cell) => Capacity == 1 || Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
     public ReadOnlyCollection<int> Rear(Faction faction) => _entries[faction].Rear;
