@@ -92,13 +92,13 @@ Alternative rejected: reskin the arena as an unrelated biome, scale the entire b
 
 Use `SquadPanel` and existing HUD/input/inspector owners. Verify new/selected squad recruitment, reinforcement, regrouping, individual storage/return/retirement and placement through ordinary command -> acknowledgment -> compatible snapshot. Preserve focus and delayed acknowledgment behavior. Owner, ready, pause, combat and eliminated-state refusals stay authoritative; foreign inspection does not grant edits. Expose individual wounds/levels/experience and participant counts without suggesting pooled HP. Preserve real primary aiming, sockets, misses, frozen physical death and advancing clip behavior; repair only demonstrated defects.
 
-Post-clear cleanup keeps the runtime battlefield separate from accepted preparation
-edits: persistent roster/home/tower purchases update immediately, while the combat
-owner defers physical restoration and new claims until existing corpses expire.
-Removal and reassignment reconcile participation centrally, so reserve-only squads
-cannot remain Alive or retain source/transit claims. Summaries consume buffered
-member poses and the existing Rally event timeline, rather than newest-snapshot
-status deadlines; no additional clock/history or wire field is needed.
+The implemented [army-home restoration contract](../../../docs/gameplay.md#purchased-army-homes-and-town-hall-rotation)
+owns the cleanup barrier and persistent eligibility for accepted preparation edits.
+The existing [playback owner](../../../docs/gameplay.md#deterministic-hex-combat)
+retains consecutive pending member transitions and the Rally event timeline;
+[primary aim observation](../../../docs/shared-arena.md#native-presentation)
+owns immutable stop-time target poses. These extend the existing owners without
+another clock/history subsystem or wire field.
 
 Alternative rejected: optimistic local member placement, per-soldier targeting or a replacement UI/session framework.
 

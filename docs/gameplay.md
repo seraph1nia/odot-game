@@ -306,9 +306,18 @@ The [documented stockpile substitutes](assets.md#available-substitutes-and-groun
 
 Accepted local construction/recruitment/research commands cue once by match and sequence; retries and rejections do not repeat success puffs. Battle sparks, projectiles and skeleton rattles use the buffered event cursor. Focus changes/reconnect/gaps discard historical effects. Effects cap at 64 and audio at eight voices, dropping cosmetic overload only. All cues route through Master; pause/loss stop voices, and session teardown removes them while the application music continues. Original sounds use 22,050 Hz mono signed 16-bit PCM, 0.12-second cubic decay, sine frequencies 110/220/330/440/660/880 Hz and fixed-seed noise transients. Village ambience is a restrained synthesized cue every 12 unpaused seconds. Silent Dummy-audio verification checks lifecycle/routing/mute state, not listening quality. Headless roles instantiate none of this presentation.
 
-A shared, bounded snapshot clock interpolates all bodies with the same fraction,
-without extrapolating beyond authority. A 120-tick, at-most-4096-record event
-history carries final casualty states. Initial admission, reconnect and detected
+`CombatPlayback` owns one shared snapshot clock, bounded to at most three ticks
+behind the latest accepted state and never extrapolating beyond authority. Its
+accepted-frame buffer retains the sampled baseline and distinct later frames
+until their admission, arrival, action-start and death boundaries mature, even
+when several newer revisions arrive first. Same-tick corrections replace that
+tick's frame; advancing the clock releases older frames. Models and squad
+membership/pose/HP summaries use this same member projection. Rally summaries
+sample the existing pending events at that clock, not the newest deadline.
+Pause snaps to the accepted tick and freezes advancement; admission/resume,
+event gaps and match replacement reset the buffer. `CombatPlaybackTests` and
+the native `arena` component cover consecutive boundaries, expiry and resets.
+A 120-tick, at-most-4096-record event history carries final casualty states. Initial admission, reconnect and detected
 history gaps baseline the event cursor at the current high-water mark: current
 living poses and unexpired dying bodies are reconstructed from complete state,
 without historical effects. Overlapping snapshots deduplicate effects;
@@ -349,10 +358,21 @@ atomically; it remains that squad's preparation home independent of battle pose.
 Home labels/rings distinguish selected/available/occupied/locked/tower states with
 text plus color. Selection alone does not spend, move or enable foreign editing.
 Survivors return to those persistent homes after cosmetic cleanup without healing.
+During post-clear cleanup, accepted deployment, recruitment, regrouping, Hall
+storage/return, retirement and army-tower edits update persistent claims and
+rosters immediately. Home eligibility uses current purchases, tower sales and
+other squads' home claims, independently of retained battlefield footprints or
+a survivor physically passing through that home. Unchanged survivors keep their
+frozen source/transit/action until cleanup; new or reassigned members do not gain
+colliding physical claims. Removing or reassigning the final participant releases
+the squad's source/transit claims even if living reserves remain. Cleanup refreshes
+footprints and restores the current home assignments before a waiting final END
+settles production and starts battle. The compressed receiving cases in
+`SnapshotReceivingLifecycleTests` cover these edits and the three-settlement gate.
 
 ### Defense towers on army plots
 
-Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A squad-occupied plot cannot build a tower, even with unused member capacity. A tower excludes that complete home and its physical arena footprint, and no recruitment or Hall return can assign members there. Selling the tower removes its defense actor, retains purchased land and frees the whole footprint; it refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. See [shared arena topology](shared-arena.md#numerical-ownership) for reserved weapon footprints and battle movement.
+Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A squad-occupied plot cannot build a tower, even with unused member capacity. A tower excludes that complete home and its physical arena footprint, and no recruitment or Hall return can assign members there. Selling the tower removes its defense actor, retains purchased land and immediately frees the persistent home for eligible recruitment, Hall return or deployment; during post-clear corpse cleanup its old physical footprint remains until the cleanup barrier described above. Sale refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. See [shared arena topology](shared-arena.md#numerical-ownership) for reserved weapon footprints and battle movement.
 
 Click a base Arrow tower to inspect its damage/timing and choose exactly one paid upgrade:
 

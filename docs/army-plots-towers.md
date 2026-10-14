@@ -15,9 +15,10 @@ Gameplay controls and concrete values are in
   the legacy wire alias and explicit upgrade action.
 - `ArmyConfiguration` owns placement order, quotes and projections. Production
   recruit/Send paths pass the actual per-plot ownership/type array; arbitrary
-  purchase order never becomes first-fit order. A tower consumes one whole squad
-  home (three ordinary member places by default), not a size budget. Its shared
-  arena weapon occupies that home's physical deployment cell until sold.
+  purchase order never becomes first-fit order. [Gameplay's army-home and tower
+  contract](gameplay.md#defense-towers-on-army-plots) owns whole-home exclusion
+  and the distinction between persistent sale eligibility and cleanup-time
+  physical footprints.
 - `CombatConfiguration`, DefenseActor/CombatSimulation and `SquadDamage` own
   timing, within-target-group X/Y damage, resistance, target filtering and
   attribution. Rapid arrows contribute X only; Catapult/Bombard contribute X/Y

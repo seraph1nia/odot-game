@@ -38,8 +38,9 @@ battle progression. `ArmyConfiguration.Find` uses one living assigned-soldier
 view scoped to field or exact Hall generation for homogeneous member capacity and stable assignment checks;
 authority and previews share it, passing actual army-plot ownership and type so
 arbitrary purchases retain fixed first-fit order and tower plots are excluded.
-Combat remains the only unit health/identity store, with unchanged restoration
-and death-cleanup barriers.
+Combat remains the only unit health/identity store; [army-home restoration](gameplay.md#purchased-army-homes-and-town-hall-rotation)
+owns the separation between accepted persistent edits and cleanup-time physical
+claims.
 
 Only authority admits physics delta through `AuthoritySession.Advance`; its
 bounded wall-time driver owns deterministic steps, as described in
@@ -154,5 +155,5 @@ boundary, not an authority disk-save or restart-recovery API.
 `recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
 is no mixed-version play. Stable unit IDs and event sequences are match-scoped,
 never Arch entity handles. Guest revision/match guards apply to all complete
-states. Presentation baselines history on admission/resume, seeks pending actions
-at the current tick, and resets to living state on a detectable history gap.
+states. [Shared playback](gameplay.md#deterministic-hex-combat) owns admission/resume
+and history-gap baselines for current living poses and unexpired deaths.

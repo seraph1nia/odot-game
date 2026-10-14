@@ -50,8 +50,9 @@ A home holds one homogeneous squad, not a numerical body-size budget. Persistent
 home indexes are 0–5, distinct from physical arena cell IDs. Buy any numbered
 locked army plot at the current purchase-count quote; total ownership never grants
 unbought intervening homes. A paid tower can occupy an empty owned home instead
-of a squad. Its physical arena weapon then blocks that deployment cell, and
-recruitment, return and deployment all skip it until sale. Base arrow upgrades
+of a squad. [Army-home and tower rules](gameplay.md#defense-towers-on-army-plots)
+own placement exclusion, immediate home release on sale and deferred physical
+footprint refresh during cleanup. Base arrow upgrades
 retain the exclusive Rapid Arrow/Bombard paths, prices and individual weapon
 windup/cadence. Arrows use X only; Catapult/Bombard use within-group X/Y, not
 cross-hex radius/victim caps. The catalog, native preview and selected inspection
@@ -201,13 +202,9 @@ The production native squad panel provides member HP/equipment/service/status
 inspection, paid reinforcement/new recruitment, compatible regrouping, individual
 Town Hall storage/return and retirement. All actions use the normal session command
 and accepted snapshot path. Roster focus survives ordinary authoritative updates;
-no optimistic member appears before acknowledgment. During post-clear corpse
-cleanup, accepted home/roster/tower edits update persistent data immediately,
-while physical restoration waits for cleanup; retained survivors keep their
-frozen pose/action and new members/footprints claim no occupied cells. Reserve-only
-squads release logical claims. The existing third END still owns final settlement
-and combat entry. Allies can be inspected but
-not edited. Deployment toggles between the settlement and the connected arena;
+no optimistic member appears before acknowledgment. [Army-home restoration](gameplay.md#purchased-army-homes-and-town-hall-rotation)
+owns accepted cleanup-time edits, persistent eligibility, retained physical claims
+and the final settlement barrier. Allies can be inspected but not edited. Deployment toggles between the settlement and the connected arena;
 select an owned squad, close the panel, then pick an empty highlighted purchased
 home. Combat presents all owners together, with local camera navigation only.
 
@@ -221,9 +218,13 @@ strike accent stays bounded near the attacker; target-side contact requires an
 actual landed impact. `StrikeAim` is detached observation of the squad-owned
 seeded intent/realized primary, not member AI or a damage input. The same existing
 X/Y selection supplies that observation; a primary death cannot silently point
-recovery at another member. Existing TargetId/FrozenAim fields carry it without
-new rules/profile/wire shape or a second simulator. Unneeded live-target frozen
-poses are not repeated into bounded event payloads.
+recovery at another member. At a wave stop, `StopActions` captures each member's
+selected primary or exact Keep/Watchpost pose at that authoritative tick, before
+freezing the squad. That detached aim remains immutable even if a still-live
+primary later moves; stopping does not retarget or change committed cycles.
+Existing TargetId/FrozenAim fields carry it without new rules/profile/wire shape
+or a second simulator. Unneeded live-target frozen poses are not repeated into
+bounded event payloads.
 
 Native cue projection includes the selected member's formation. Launch predicts
 only its already committed transition through the impact deadline—not later
@@ -235,10 +236,10 @@ props update only across quantity bands; exact resource labels still consume
 accepted snapshots without optimistic spending. The existing `animation` minimal
 component now checks actual AnimationTree/bones/socket/projectile/health/status/
 formation/death/cleanup/stock resources, a real lethal-impact live-to-dead
-melee transition, and a real numerical committed-miss control. Squad summaries use the same buffered members/poses as models; Rally activation,
-expiry and reset follow that existing event timeline, including pause and multiple
-accepted snapshots ahead of playback. These are headless resource/node proofs,
-not pixels or choreography.
+melee transition, terminal windup against a moving primary, and a real numerical
+committed-miss control. Squad summaries consume the [shared playback projection](gameplay.md#deterministic-hex-combat),
+including consecutive pending member boundaries and Rally transitions. These are
+headless resource/node proofs, not pixels or choreography.
 The opaque native base covers the projected safe camera
 boundary. Keep fall disables defenses without inventing tower destruction.
 
