@@ -63,7 +63,7 @@ The **Combat speed** control at the top selects one global pace, default **1x**:
 
 The original playing host controls it; guests cannot change it. Solo uses its owner, while any authenticated connected member can select the pace on a dedicated server. The accepted selection is synchronized and can change during preparation, combat or shared pause, independently of readiness or elimination. Disconnected and terminal views cannot change it. Unit timing, damage, movement and status durations remain unchanged in simulated ticks; the control changes wall-time pace, not balance. Reconnect to the same running authority retains the selection.
 
-Throughout preparation, each observed city displays its actual **next-wave enemies** as idle gold-marked formations with NEXT/level badges and a wave heading, including inherited fallen-city pressure. Click a figure to open the ordinary unit inspector with its real type, level, health, damage and boss profile. Forecast figures are read-only: no owned army actions, live targets or combat occupancy. Combat entry replaces them with the allocated live attackers and clears stale forecast inspection.
+Throughout preparation, each observed city displays its actual **next-wave enemies** as idle gold-marked formations with text-free member lifebars, including inherited fallen-city pressure. Click a figure to open the ordinary unit inspector with its real type, level, health, damage and boss profile. Forecast figures are read-only: no owned army actions, live targets or combat occupancy. Combat entry replaces them with the allocated live attackers and clears stale forecast inspection.
 
 The top-right text table shows **Resource**, **Stock** and **Income/production**, in Gold/Food/Wood/Stone/Metal/Cloth order. Income is synchronized base gold plus current researched producer output; it changes after construction, upgrade, sale or production research without paying production. Positive income uses `+`, zero uses `0`; custom overflow is `Unavailable`. All three preparations explain that Ready settles one production. In Combat the heading is **Next production**; the last production was already settled before upkeep. Fallen and terminal cities have zero future income. Paused/stale labels retain synchronized values; reconnect and city switching refresh from the authority.
 
@@ -355,8 +355,10 @@ fallen owners remain read-only; full/foreign/stale destinations refuse atomicall
 **Deployment** shows the connected arena. Select an owned squad, close the panel,
 then click an available owned purchased home. Its complete home claim moves
 atomically; it remains that squad's preparation home independent of battle pose.
-Home labels/rings distinguish selected/available/occupied/locked/tower states with
-text plus color. Selection alone does not spend, move or enable foreign editing.
+Home rings distinguish selected/available/occupied/locked/tower states by color;
+only empty homes have world text. Occupied squads and purchased towers are
+identified through panels/inspection, not floating labels. Selection alone does
+not spend, move or enable foreign editing.
 Survivors return to those persistent homes after cosmetic cleanup without healing.
 During post-clear cleanup, accepted deployment, recruitment, regrouping, Hall
 storage/return, retirement and army-tower edits update persistent claims and
@@ -437,4 +439,4 @@ The first periodic tick is one full period after application; a tick exactly at 
 
 Transfers preserve potency, stack identities and absolute deadlines. Afflicted queued enemies continue ticking while untargetable and nonspatial, and can die before admission. Death removes active scheduling; retained hit/death events carry periodic contribution evidence. Wave resolution clears surviving effects without healing; cleanup does not deliver later damage. Fresh recruits/reserves start clean. Pause freezes simulation deadlines without wall-clock catch-up.
 
-Inspection shows actual capabilities, poison stacks and strengths, remaining simulated time, and committed impact/ready deadlines. Restrained ▲ Burn, ● Poison and ◆ Chill badges combine shape/text with color, using the shared playback clock. Queued effects appear in enemy allocation details without world bodies. Reconnect/history gaps reconstruct current state without historical flashes or sounds. Freeze, stun, interruption, general field/city healing, reactions, defense technologies, economy technologies beyond the Worldtree production offshoots, and account progression remain deferred; [Town hall recovery](#purchased-army-homes-and-town-hall-rotation) is the stored-unit exception.
+Inspection shows actual capabilities, poison stacks and strengths, remaining simulated time, and committed impact/ready deadlines. Status details use the shared playback clock and remain in panels/inspection, not floating badges; world lifebars follow the [health-overlay contract](../openspec/specs/game-feedback/spec.md#requirement-authoritative-overhead-unit-health-bars). Queued effects appear in enemy allocation details without world bodies. Reconnect/history gaps reconstruct current state without historical flashes or sounds. Freeze, stun, interruption, general field/city healing, reactions, defense technologies, economy technologies beyond the Worldtree production offshoots, and account progression remain deferred; [Town hall recovery](#purchased-army-homes-and-town-hall-rotation) is the stored-unit exception.
