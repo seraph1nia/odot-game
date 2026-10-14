@@ -110,18 +110,22 @@ serialization, deployment home-claim transfer and explicit legacy refusal.
 ## Eliminated-owner receiving and resume
 
 The selected `test-network --scenario eliminated-resume` uses genuine headless
-ENet peers and accepted paid commands on the original playing host. Two early
-waves expose a damaged third Keep, retain its paid stored individual after the
-Keep falls, and verify exact paused roster/HP/injury/action/claim/event/rule
-agreement. Same-process peer reconnect and credential-file process restart retain
-that city and its accepted recruitment ledger without a fresh city or second
-payment. Building-phase readiness, construction, recruitment, retirement and
-research commands from the fallen owner refuse without mutation, including retries.
-Only living owners advance production/research and the next fifteen-member wave;
-fallen-owner origins are allocated among surviving destinations, without new
-upkeep/participation/claims for its stored survivor. Spectators intentionally retain
-shared pause/resume. Host end disables requests and leaves a headless return event;
-that is not graphical menu/focus acceptance.
+ENet peers on the original playing host. Its ordinary paid prefix completes two
+waves with all Keeps alive and stores a served veteran. During W3 the
+`fallen-stored`/`protected-stored` fixture removes all but one enemy, relocates
+squads and sets the third Keep to 5 versus 100 HP. This is controlled elimination,
+not a default-paid eliminated-stored campaign witness. The next allocation is W4.
+
+The selector verifies accepted command accounting, exact paused roster/HP/injury/
+action/claim/event/rule agreement, same-process reconnect and credential-file
+restart. The stored city and recruitment ledger persist without a fresh city or
+second payment. Fallen-owner ready/build/recruit/retire/research requests refuse,
+including retries. Only living owners advance production/research; future enemies
+from fallen origins choose surviving destinations. Spectators retain shared pause/
+resume. Host end disables requests and emits a headless return event, which is
+not graphical menu/focus acceptance. The earned prefix, controlled elimination
+and real transport/resume evidence are separate; default-paid combined
+eliminated-stored acceptance remains unestablished.
 
 **The ENet survivor is stored, not an actively fighting fallen-owner unit.** Active
 survivor continuation is separately covered by a controlled production

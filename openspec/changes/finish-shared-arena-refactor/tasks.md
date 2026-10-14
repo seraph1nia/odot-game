@@ -47,5 +47,5 @@ These are the remaining tasks from saved checkpoint `85ebbcc`, not a request to 
 
 ## 7. Produce one reviewable delivery
 
-- [ ] 7.1 Commit coherent implementation/spec/doc checkpoints on the existing branch and run one owning no-mistakes pipeline with the actual finishing intent; verify it owns all subsequent fixes/review/tests/docs/push/PR/CI and no competing caller edits or waived failed acceptance occur while active.
+- [ ] 7.1 Commit coherent implementation/spec/doc checkpoints on the existing branch and run an owning no-mistakes pipeline (one active run at a time, preserving fixes across any required infrastructure retry) with the actual finishing intent; verify it owns all subsequent fixes/review/tests/docs/push/PR/CI and no competing caller edits or waived failed acceptance occur while active.
 - [ ] 7.2 Hand back the non-draft integrated PR with its exact head and required green checks, concise behavioral/art changes, retained compatibility decisions and honest deferred balance/visual/platform limits; verify no release or merge is inferred from intermediate local passes, and archive only when implementation obligations are complete.

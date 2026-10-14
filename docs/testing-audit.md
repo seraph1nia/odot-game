@@ -1683,3 +1683,33 @@ covering the final label/resource/preview-era source. Strict main/change OpenSpe
 validation and whitespace checks pass. Linux package/stress receipts above are
 boundary evidence; required exact-head Linux/Windows/source PR CI remains the
 delivery gate. No release, installer, Steam pair or graphical package is claimed.
+
+
+The owning no-mistakes run `01M4VR8BMAW9YK60SQY3RSSCGT` ended before
+publication after three final review-report schema failures (invalid risk/test
+metadata). Its two fix commits were recovered through guarded custody recovery,
+not discarded: selector rejection, corpse-safe actor lifetime, production routing
+coverage, valid partial-funding admission, nested-rule/claim/pose validation and
+shared-wave deadline ownership. This is a failed pipeline, not delivery evidence.
+Remaining compressed home/city-shape negatives are added at the same receiving
+boundary; the current stored-spectator description now distinguishes the earned
+veteran prefix from controlled elimination and actual ENet resume. A subsequent
+owning run must still complete review/Test/docs/lint/publication and exact-head
+required source/Linux/Windows CI. No test exception or release is authorized.
+
+
+Guarded recovery follow-up: the first selected local run passed115/116
+(`logs/20261014-010044-083a44ed`) and caught an overly strict assumption that
+purchased homes form a prefix. The check now compares purchased totals, retaining
+legal arbitrary purchases; an explicit paid nonsequential purchase codec regression
+joins the existing deployment test. Final selected receiving/lifecycle/shared-state/
+Crossbow/deadline suite passed117/117 in11.25s
+(`logs/20261014-010135-babaa351`). The twelve new malformed city/home compressed
+inputs refuse recoverably. Locked solution build has zero warnings/errors; changed
+C# formatting, strict change validation and whitespace checks pass. These remain
+local codec/domain receipts, not final PR CI or native credential/pixel proof.
+
+Final recovered-source broad fast:641 core/647 runner passes with the same
+two native-Windows skips on Linux;57.00s,
+`logs/20261014-010227-5dbde6a3`. This supersedes the pre-pipeline fast count
+for domain/codec coverage; exact published-head CI remains pending.

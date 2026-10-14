@@ -214,6 +214,63 @@ public sealed class SnapshotPayloadTests
         Assert.Equal(before, JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(valid)), WireJson.Options));
     }
 
+    [Fact]
+    public void PaidNonSequentialHomePurchaseRemainsCompatible()
+    {
+        using var match = new Match(new Rules { StartingGold = 100 }, combatSeed: 1);
+        match.Join();
+        Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "start", 1)).Accepted);
+        Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 2, "buy-home", 1,
+            ArmyConfiguration.TotalPlots - 1)).Accepted);
+        MatchSnapshot paid = match.Snapshot();
+        Assert.True(paid.Players[0].Army!.Homes[^1].Purchased);
+        Assert.False(paid.Players[0].Army!.Homes[2].Purchased);
+        Assert.Equal(JsonSerializer.Serialize(paid, WireJson.Options),
+            JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(paid)), WireJson.Options));
+    }
+
+    // Tier A: malformed city/home data must refuse before native indexing; existing
+    // combat negatives omit these roster shapes. One ordinary snapshot, no engine.
+    [Theory]
+    [InlineData("army")]
+    [InlineData("homes")]
+    [InlineData("home")]
+    [InlineData("plot")]
+    [InlineData("slots")]
+    [InlineData("short-slots")]
+    [InlineData("slot")]
+    [InlineData("cell")]
+    [InlineData("plot-id")]
+    [InlineData("duplicate-home")]
+    [InlineData("halls")]
+    [InlineData("prices")]
+    public void MalformedCityDeploymentRefusesBeforeNativeConsumers(string defect)
+    {
+        using var match = new Match(combatSeed: 1); match.Join();
+        MatchSnapshot valid = match.Snapshot();
+        JsonObject wire = JsonSerializer.SerializeToNode(valid, WireJson.Options)!.AsObject();
+        JsonNode city = wire["Players"]![0]!;
+        JsonNode roster = city["Army"]!;
+        switch (defect)
+        {
+            case "army": city["Army"] = null; break;
+            case "homes": roster["Homes"] = null; break;
+            case "home": roster["Homes"]![0] = null; break;
+            case "plot": roster["Homes"]![0]!["Plot"] = null; break;
+            case "slots": city["Slots"] = null; break;
+            case "short-slots": city["Slots"]!.AsArray().RemoveAt(8); break;
+            case "slot": city["Slots"]![0] = null; break;
+            case "cell": roster["Homes"]![0]!["Cell"] = int.MaxValue; break;
+            case "plot-id": roster["Homes"]![0]!["PlotId"] = int.MaxValue; break;
+            case "duplicate-home": roster["Homes"]![1] = roster["Homes"]![0]!.DeepClone(); break;
+            case "halls": roster["Halls"] = null; break;
+            case "prices": roster["HomePrices"] = null; break;
+        }
+        Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(Compress(wire)));
+        Assert.Equal(JsonSerializer.Serialize(valid, WireJson.Options),
+            JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot())), WireJson.Options));
+    }
+
     private static string Compress(JsonObject json)
     {
         using var output = new MemoryStream();

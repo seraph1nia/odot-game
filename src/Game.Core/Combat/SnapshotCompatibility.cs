@@ -36,7 +36,21 @@ public static class SnapshotCompatibility
             || combat.Statuses is null || state.Rules.Army?.HomePrices is null || state.Rules.Research is null || state.Rules.Campaign is null)
             throw new ArgumentException("Missing nested authoritative rules.", nameof(state));
         var configuration = new CombatConfiguration(state.Rules);
-        _ = new ArmyConfiguration(state.Rules.Army, configuration.Board, configuration.Arena.SquadCapacity);
+        var army = new ArmyConfiguration(state.Rules.Army, configuration.Board, configuration.Arena.SquadCapacity);
+        foreach (CityState city in state.Players)
+        {
+            if (city.Slots is not { Length: ArmyConfiguration.PlotOffset } || city.Slots.Any(s => s is null)
+                || city.Army is not { Homes: not null, HomePrices: not null, Halls: not null } roster
+                || roster.Homes.Length != army.HomeCells.Count || roster.Homes.Any(h => h is null || h.Plot is null)
+                || roster.Halls.Any(h => h is null) || roster.PurchasedHomes is < 2 or > ArmyConfiguration.PlotCount
+                || roster.Homes.Count(home => home.Purchased) != roster.PurchasedHomes
+                || roster.SquadCapacity != configuration.Arena.SquadCapacity || !roster.HomePrices.SequenceEqual(army.Prices())
+                || roster.Homes.Where((home, index) => home.Cell != army.HomeCells[index]
+                    || home.PlotId != ArmyConfiguration.PlotOffset + index || home.Purchased != home.Plot.Purchased
+                    || home.Used < 0
+                    || home.Used > roster.SquadCapacity).Any())
+                throw new ArgumentException("Malformed city deployment or construction projection.", nameof(state));
+        }
         if (RulesIdentity.Combine(configuration.Fingerprint, new EconomyConfiguration(state.Rules).Fingerprint,
             new CampaignConfiguration(state.Rules.Campaign, configuration).Fingerprint) != state.ConfigurationFingerprint)
             throw new ArgumentException("Combat configuration identity refused: received rules do not match the full authoritative fingerprint.", nameof(state));
