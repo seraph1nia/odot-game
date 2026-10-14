@@ -265,7 +265,11 @@ internal sealed partial class CombatSimulation : IDisposable
         int tile = home;
         foreach (CombatUnit member in roster.Where(u => u.SquadId == squadId && u.Assignment is { Stored: false }))
             Unit(member.Id) = member with { Assignment = member.Assignment! with { Tile = tile } };
-        _squads[squadId] = squad with { DeploymentCell = cell, Location = squad.Location with { Position = new(cell, 1) } }; return true;
+        _squads[squadId] = squad with
+        {
+            DeploymentCell = cell,
+            Location = squad.Location.FrozenTick is not null ? squad.Location : squad.Location with { Position = new(cell, 1) }
+        }; return true;
     }
     internal void AuthorizeRecovery(IEnumerable<int> funded)
     {

@@ -604,7 +604,7 @@ public partial class Tabletop : Node3D
         {
             _combatLayout.Synchronize(accepted);
             _arenaView?.Synchronize(accepted, _combatLayout, _showDeployment && accepted.Phase is Phase.Building or Phase.Preparation, game.PlayerId, _selectedSquad);
-            _arenaView?.Sample(_playback.Tick);
+            _arenaView?.Sample(_playback.Tick, current.Values);
         }
         UnitState[] preview = game.State?.NextWave ?? [];
         _combatLayout.SetPreview(preview);

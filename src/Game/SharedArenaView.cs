@@ -11,6 +11,7 @@ internal sealed partial class SharedArenaView : Node3D
     private readonly Dictionary<int, MeshInstance3D> _cells = [];
     private readonly Dictionary<(int Owner, ArenaStructureKind Kind, int Slot), (Node3D Model, Label3D Label, int Level)> _structures = [];
     private readonly Dictionary<int, Label3D> _squads = [];
+    private Dictionary<int, UnitState[]> _summaryMembers = [];
     private readonly Dictionary<int, Label3D> _homes = [];
     private readonly Dictionary<int, StandardMaterial3D> _ownerMaterials = [];
     private readonly StandardMaterial3D _ground = new() { AlbedoColor = new("455741"), Roughness = 1 };
@@ -34,7 +35,7 @@ internal sealed partial class SharedArenaView : Node3D
         if (_identity != identity)
         {
             foreach (Node child in GetChildren()) { RemoveChild(child); child.QueueFree(); }
-            _cells.Clear(); _structures.Clear(); _squads.Clear(); _homes.Clear(); _identity = identity;
+            _cells.Clear(); _structures.Clear(); _squads.Clear(); _summaryMembers.Clear(); _homes.Clear(); _identity = identity;
             Mesh mesh = CellOutline();
             foreach (HexCellDefinition cell in arena.Board.Cells)
             {
@@ -209,36 +210,35 @@ internal sealed partial class SharedArenaView : Node3D
             NoDepthTest = false
         }; AddChild(label); return label;
     }
-    internal void Sample(double tick)
+    internal void Sample(double tick, IEnumerable<UnitState> units)
     {
         if (_state is null || _layout is null) return;
-        var members = _state.Players.SelectMany(p => p.Soldiers).Concat(_state.Enemies).ToDictionary(u => u.Id);
-        SquadState[] alive = _state.Squads.Where(s => s.Hex.Lifecycle == UnitLifecycle.Alive && s.ParticipatingMembers.Length > 0).ToArray();
-        foreach (int id in _squads.Keys.Except(alive.Select(s => s.Id)).ToArray()) { _squads[id].QueueFree(); _squads.Remove(id); }
-        foreach (SquadState squad in alive)
+        _summaryMembers = units.Where(u => u.Hex?.Lifecycle == UnitLifecycle.Alive).GroupBy(u => u.SquadId).ToDictionary(g => g.Key, g => g.ToArray());
+        foreach (int id in _squads.Keys.Except(_summaryMembers.Keys).ToArray()) { _squads[id].QueueFree(); _squads.Remove(id); }
+        foreach ((int id, UnitState[] participating) in _summaryMembers)
         {
-            if (!_squads.TryGetValue(squad.Id, out Label3D? label)) _squads[squad.Id] = label = Label("SquadSummary" + squad.Id);
-            UnitState[] participating = squad.ParticipatingMembers.Where(members.ContainsKey).Select(id => members[id]).ToArray();
-            label.Position = _layout.SquadPosition(squad, tick) - Position + new Vector3(0, squad.IsBoss ? 2.5f : 1.6f, 0);
+            UnitState squad = participating[0];
+            if (!_squads.TryGetValue(id, out Label3D? label)) _squads[id] = label = Label("SquadSummary" + id);
+            label.Position = _layout.SquadPosition(squad.Hex!, tick) - Position + new Vector3(0, squad.IsBoss ? 2.5f : 1.6f, 0);
             label.Modulate = OwnerColor(squad.Owner);
             string status = string.Join(' ', participating.Select(u => ProgressionPresentation.StatusBadge(u.Statuses, tick)).Where(s => s.Length > 0).Distinct());
             string role = squad.Type switch { UnitType.Swordsman => "Sword", UnitType.Berserker => "Axe", UnitType.Crossbowman => "Bow", _ => "Mage" };
             label.Text = $"{(squad.Faction == Faction.Skeletons ? squad.IsBoss ? "BOSS" : "Enemy" : $"P{squad.Owner}")} {role} ×{participating.Length}\n"
                 + string.Join(' ', participating.Select(u => $"{HealthPoints.Format(u.Health)}/{HealthPoints.Format(u.Profile.Health)}"))
-                + (status.Length > 0 ? "\n" + status : "") + (tick < squad.RallyDisruptedUntil ? "\nRally disrupted" : "");
+                + (status.Length > 0 ? "\n" + status : "") + (tick < (_state.Squads.FirstOrDefault(s => s.Id == id)?.RallyDisruptedUntil ?? 0) ? "\nRally disrupted" : "");
         }
     }
     internal object[] Observe(Camera3D camera, Transform2D screen, Rect2 world)
     {
         if (_state is null) return [];
-        var members = _state.Players.SelectMany(p => p.Soldiers).Concat(_state.Enemies).ToDictionary(u => u.Id);
-        return _state.Squads.Where(s => _squads.ContainsKey(s.Id)).Select(s =>
+        return _summaryMembers.Select(group =>
         {
-            Label3D label = _squads[s.Id];
+            UnitState s = group.Value[0];
+            Label3D label = _squads[group.Key];
             Vector2 point = screen * camera.UnprojectPosition(label.GlobalPosition);
             return (object)new
             {
-                s.Id,
+                Id = group.Key,
                 s.Owner,
                 s.Faction,
                 s.Type,
@@ -246,7 +246,7 @@ internal sealed partial class SharedArenaView : Node3D
                 Visible = label.IsVisibleInTree() && !camera.IsPositionBehind(label.GlobalPosition) && world.HasPoint(point),
                 X = point.X,
                 Y = point.Y,
-                Members = s.ParticipatingMembers.Where(members.ContainsKey).Select(id => new { Id = id, members[id].Health, Maximum = members[id].Profile.Health }).ToArray()
+                Members = group.Value.Select(member => new { member.Id, member.Health, Maximum = member.Profile.Health }).ToArray()
             };
         }).ToArray();
     }

@@ -22,7 +22,7 @@ public partial class EngineTests
                 for (int index = 0; index < players; index++) match.Join();
                 MatchSnapshot state = match.Snapshot();
                 var layout = new CombatLayout(new(state.Arena!.Board)) { Arena = state.Arena }; layout.Synchronize(state);
-                view.Synchronize(state, layout, true, 1); view.Sample(0);
+                view.Synchronize(state, layout, true, 1); view.Sample(0, CombatPlayback.All(state));
                 Check(view.FindChildren("ArenaCell*", "MeshInstance3D", true, false).Count == 63 * players, "native arena component contains every connected cell for " + players + " players");
                 Check(view.FindChildren("StructureHealth*", "Label3D", true, false).Count == players * 2, "each owner has a native Keep and Watchpost label");
                 MultiMeshInstance3D[] groundBatches = view.GetChildren().OfType<MultiMeshInstance3D>().ToArray();
@@ -109,6 +109,7 @@ public partial class EngineTests
                     "fresh four-player-to-solo replacement releases previous static geometry and markers");
             }
             await ArenaReceiving(view);
+            await ArenaBufferedSummaries(view, camera);
         }
         finally { RemoveChild(camera); camera.Free(); RemoveChild(view); view.Free(); }
     }
@@ -232,6 +233,87 @@ public partial class EngineTests
             hud.Free(); RemoveChild(host); host.Free(); RemoveChild(modalHost); modalHost.Free();
         }
     }
+    private async Task ArenaBufferedSummaries(SharedArenaView arenaView, Camera3D camera)
+    {
+        using var match = new Match(new Rules
+        {
+            StartingGold = 100,
+            StartingWood = 100,
+            RangedHealth = 1,
+            RangedDamage = 0,
+            DefenderDamage = 0,
+            Campaign = new([new(1, false, [new(UnitType.Swordsman, 1)], default), new(2, false, [new(UnitType.Swordsman, 1)], default)])
+        }, combatSeed: 1);
+        match.Join(); match.Players[1].Metal = 100; match.Players[1].Food = 100;
+        long sequence = 0;
+        void Act(string action, int slot = -1, Building building = Building.Empty) => Check(match.Apply(1,
+            Command.FromSnapshot(match.Snapshot(), ++sequence, action, 1, slot, building, UnitType.Crossbowman)).Accepted, "buffered native fixture accepts " + action);
+        Act("start"); Act("build", 0, Building.ArcheryRange); Act("recruit", 0);
+        for (int gate = 0; gate < 3; gate++) Act("ready");
+        var arena = new SharedArena([1]);
+        int memberId = match.Players[1].Soldiers.Single().Id;
+        HexTransition move = arena.Board.Transition(new(17, 1), new(18, 1));
+        match.Combat.Seed(match.Combat.Inspect(memberId) with
+        {
+            Location = new(UnitLifecycle.Alive, move.Source),
+            Action = new CombatAction.Moving(1, move.Destination, move.Id, 0, 3)
+        });
+        int squadId = match.Combat.Read(memberId).SquadId;
+        int enemyId = match.Combat.Enemies().Single().Id;
+        int neighbor = arena.Board.Cell(18).Neighbors.First(c => c != 17 && arena.CanOccupy(c));
+        match.Combat.Seed(match.Combat.Inspect(enemyId) with
+        {
+            Location = new(UnitLifecycle.Alive, new(neighbor, 1)),
+            Action = new CombatAction.Windup(1, 1, 30, new(new(CombatTargetKind.Unit, squadId), 0, 6))
+        });
+        MatchSnapshot Receive() => SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot()));
+        MatchSnapshot accepted = Receive();
+        var playback = new CombatPlayback(); Check(playback.Accept(accepted), "initial compressed buffered arena frame is accepted");
+        double secondsPerTick = 1.0 / (Match.StepsPerSecond * CombatSpeedRates.Factor(accepted.CombatSpeed));
+        var layout = new CombatLayout(new(accepted.Arena!.Board)); layout.Synchronize(accepted);
+        var rig = new UnitView(accepted.Players[0].Soldiers.Single()); AddChild(rig);
+        try
+        {
+            async Task Sample(bool alive)
+            {
+                layout.Synchronize(accepted); arenaView.Synchronize(accepted, layout, false, 1);
+                var units = playback.Units().ToDictionary(u => u.Id);
+                arenaView.Sample(playback.Tick, units.Values);
+                rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
+                await Frames();
+                Label3D? label = arenaView.GetNodeOrNull<Label3D>("SquadSummary" + squadId);
+                Check(rig.Visible && rig.Dead != alive && (label is not null) == alive,
+                    "native summary membership agrees with the buffered live/dead rig");
+                if (!alive) return;
+                UnitState member = units[memberId];
+                System.Numerics.Vector3 formation = SharedCombatProjection.Formation(member.FormationSlot, accepted.Rules.Arena.SquadCapacity, member.IsBoss);
+                Check(label!.GlobalPosition.IsEqualApprox(rig.Position - new Vector3(formation.X, formation.Y, formation.Z) + Vector3.Up * 1.6f),
+                    "native summary and model share the same buffered actor anchor");
+                var observed = System.Text.Json.JsonSerializer.SerializeToElement(arenaView.Observe(camera,
+                    GetViewport().GetFinalTransform(), GetViewport().GetVisibleRect()), WireJson.Options);
+                var summary = observed.EnumerateArray().Single(s => s.GetProperty("Id").GetInt32() == squadId);
+                Check(summary.GetProperty("Members").GetArrayLength() == 1
+                    && summary.GetProperty("Members")[0].GetProperty("Health").GetInt32() == member.Health
+                    && summary.GetProperty("Text").GetString()!.Contains($"{HealthPoints.Format(member.Health)}/{HealthPoints.Format(member.Profile.Health)}", StringComparison.Ordinal),
+                    "native summary text and observation expose buffered member health");
+            }
+            await Sample(true);
+            for (int tick = 0; tick < 3; tick++) match.Step();
+            accepted = Receive(); Check(playback.Accept(accepted) && playback.Tick < 3, "movement completion arrives ahead of the unpaused presentation clock");
+            Check(accepted.Players[0].Soldiers.Single().Hex!.Position == move.Destination, "authority completes the committed move");
+            await Sample(true);
+            for (int tick = 0; tick < 3; tick++) { playback.Advance(secondsPerTick, true); await Sample(true); }
+            Check(playback.Tick == 3 && rig.State.Hex!.Position == move.Destination, "buffered model and summary reach movement completion together");
+            for (int tick = 0; tick < 3; tick++) match.Step();
+            accepted = Receive(); Check(playback.Accept(accepted) && playback.Tick < 6, "final-member death arrives ahead of the unpaused presentation clock");
+            Check(accepted.DyingBodies.Single().Id == memberId && accepted.Players[0].Soldiers.Length == 0, "authority publishes a genuine last-member death");
+            await Sample(true);
+            for (int tick = 0; tick < 2; tick++) { playback.Advance(secondsPerTick, true); await Sample(true); }
+            playback.Advance(secondsPerTick, true); await Sample(false);
+            Check(playback.Tick == 6 && rig.Clip == "death", "native summary disappears only when the buffered rig starts its death clip");
+        }
+        finally { RemoveChild(rig); rig.Free(); }
+    }
     private async Task ArenaModels(Match match, SharedArenaView arenaView)
     {
         match.Players[1].Stone = 100; // Explicit component tower materials, not a campaign earning proof.
@@ -252,7 +334,7 @@ public partial class EngineTests
         }
         MatchSnapshot roster = match.Snapshot(); var formation = new CombatLayout(new(roster.Arena!.Board)) { Arena = roster.Arena }; formation.Synchronize(roster);
         UnitState[] members = roster.Players[0].Soldiers; var byId = members.ToDictionary(u => u.Id);
-        arenaView.Synchronize(roster, formation, false, 1); arenaView.Sample(roster.Tick);
+        arenaView.Synchronize(roster, formation, false, 1); arenaView.Sample(roster.Tick, members);
         var summaries = System.Text.Json.JsonSerializer.SerializeToElement(arenaView.Observe(GetViewport().GetCamera3D(),
             GetViewport().GetFinalTransform(), GetViewport().GetVisibleRect()), WireJson.Options);
         Check(summaries.GetArrayLength() == 1 && summaries[0].GetProperty("Members").GetArrayLength() == members.Length,

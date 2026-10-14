@@ -24,6 +24,67 @@ public sealed class SnapshotReceivingLifecycleTests
     }
 
     [Fact]
+    public void PostClearDeploymentChangesOnlyHomeClaimUntilBodiesExpireAndThirdEndStartsCombat()
+    {
+        using Match match = PaidCampaignFixture.Opening(players: 1);
+        var arena = new SharedArena([1]);
+        SquadState[] squads = match.Snapshot().Squads.Where(s => s.Owner == 1).ToArray();
+        Assert.Equal(2, squads.Length);
+        int mover = squads[0].Id, attacker = squads[1].Id;
+        int requested = arena.Deployment(1, 2);
+        HexTransition transition = arena.Board.Transition(new(17, 1), new(18, 1));
+        foreach (int id in squads[0].Members)
+            match.Combat.Seed(match.Combat.Inspect(id) with
+            {
+                Location = new(UnitLifecycle.Alive, transition.Source),
+                Action = new CombatAction.Moving(1, transition.Destination, transition.Id, 0, 30)
+            });
+        int enemy = match.Combat.Enemies()[0].Id;
+        foreach (UnitState extra in match.Combat.Enemies().Where(u => u.Id != enemy)) match.Combat.Remove(extra.Id);
+        int neighbor = arena.Board.Cell(requested).Neighbors.First(c => arena.CanOccupy(c) && c is not (17 or 18));
+        match.Combat.Seed(match.Combat.Inspect(enemy) with { Health = 1, Location = new(UnitLifecycle.Alive, new(neighbor, 1)) });
+        int enemySquad = match.Combat.Read(enemy).SquadId;
+        foreach (int id in squads[1].Members)
+            match.Combat.Seed(match.Combat.Inspect(id) with
+            {
+                Location = new(UnitLifecycle.Alive, new(requested, 1)),
+                Action = new CombatAction.Windup(1, 1, 25, new(new(CombatTargetKind.Unit, enemySquad), 0, 1))
+            });
+        Receive(match);
+        match.Step();
+        MatchSnapshot cleared = Receive(match);
+        Assert.Equal(Phase.Building, cleared.Phase); Assert.Equal(2, cleared.Wave);
+        Assert.True(match.Combat.HasDeaths);
+        SquadState retained = cleared.Squads.Single(s => s.Id == mover);
+        Assert.Equal(UnitActionKind.Moving, retained.Hex.Action); Assert.NotNull(retained.Hex.FrozenTick);
+        Assert.Equal(requested, cleared.Squads.Single(s => s.Id == attacker).Hex.Position.Cell);
+        Act(match, "buy-home", ArmyConfiguration.PlotOffset + 2);
+        CommandResult deployment = match.Apply(1, Command.FromSnapshot(match.Snapshot(), 2, "deploy-squad", 1) with { SquadId = mover, Cell = requested });
+        Assert.True(deployment.Accepted, deployment.Message);
+        MatchSnapshot deployed = Receive(match);
+        Assert.Equal(requested, deployed.Squads.Single(s => s.Id == mover).DeploymentCell);
+        Assert.Equal(retained.Hex, deployed.Squads.Single(s => s.Id == mover).Hex);
+        Assert.Equal(cleared.Reservations.Positions, deployed.Reservations.Positions);
+        Assert.Equal(cleared.Reservations.Transit, deployed.Reservations.Transit);
+        Assert.All(deployed.Players[0].Soldiers.Where(u => u.SquadId == mover), u => Assert.Equal(2, u.Assignment!.Tile));
+        Assert.False(match.Apply(1, Command.FromSnapshot(deployed, 3, "deploy-squad", 1) with { SquadId = attacker, Cell = requested }).Accepted);
+        long productions = deployed.ProductionCount;
+        for (int gate = 0; gate < 3; gate++) { Act(match, "ready"); Receive(match); }
+        Assert.Equal(Phase.Preparation, match.Phase);
+        Assert.Equal(productions + 2, match.Snapshot().ProductionCount);
+        for (int tick = 0; tick < 120 && match.Phase != Phase.Combat; tick++)
+        {
+            match.Step(); MatchSnapshot frame = Receive(match);
+            if (match.Combat.HasDeaths) Assert.Equal(retained.Hex, frame.Squads.Single(s => s.Id == mover).Hex);
+        }
+        MatchSnapshot entered = Receive(match);
+        Assert.False(match.Combat.HasDeaths); Assert.Equal(Phase.Combat, entered.Phase);
+        Assert.Equal(productions + 3, entered.ProductionCount);
+        Assert.Equal(requested, entered.Squads.Single(s => s.Id == mover).Hex.Position.Cell);
+        Assert.Equal(arena.Deployment(1, 1), entered.Squads.Single(s => s.Id == attacker).Hex.Position.Cell);
+    }
+
+    [Fact]
     public void PaidPartialSquadRetainsReservesWhenItsLastParticipantDiesAndBodyExpires()
     {
         using var match = new Match(new Rules

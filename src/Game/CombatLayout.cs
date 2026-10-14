@@ -40,7 +40,7 @@ internal sealed class CombatLayout(HexBoard board)
         return Pose(hex, tick) + Formation(unit);
     }
     private Vector3 Pose(HexUnitState hex, double tick) => Convert(SharedCombatProjection.Pose(board, hex, tick));
-    internal Vector3 SquadPosition(SquadState squad, double tick) => Pose(squad.Hex, tick);
+    internal Vector3 SquadPosition(HexUnitState hex, double tick) => Pose(hex, tick);
     internal Vector3 StructurePosition(int owner, SquadTargetKind kind, ArenaState arena)
         => ArenaOrigin + CellPosition(arena.Footprints.Single(f => f.Owner == owner && f.Kind == (kind == SquadTargetKind.Watchpost ? ArenaStructureKind.Watchpost : ArenaStructureKind.Keep)).Cell);
     internal ArenaState? Arena { get; set; }
