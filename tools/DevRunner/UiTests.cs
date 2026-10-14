@@ -488,8 +488,6 @@ internal sealed partial class Runner
             if (bar.Visible && (bar.Width <= 0 || bar.Height <= 0 || bar.X < 0 || bar.Y < 0 || bar.X + bar.Width > frame.Width + 1 || bar.Y + bar.Height > frame.HudTop + 1))
                 throw new InvalidOperationException("Health bar outside visible world area: " + bar.Id);
         }
-        // Settlement rosters expose individual HP by inspection; there is no
-        // default per-soldier overview-bar requirement in the shared model.
     }
     private static HealthDisplayObservation[] HealthDisplay(UiObservation frame)
         => frame.HealthBars.Select(b => new HealthDisplayObservation(b.Id, b.Visible, b.Current, b.Maximum, b.Fraction, b.X, b.Y)).ToArray();
