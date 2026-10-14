@@ -60,7 +60,10 @@ internal sealed partial class CombatSimulation : IDisposable
     private CombatDecisionState NewDecision(int id, int city, long sequence)
         => new(sequence, 0, SeededDecision.Rank(Key(id, city, sequence, 0, CombatPurpose.MovementRank)));
     internal void ConfigureArena(IEnumerable<int> owners, IEnumerable<City>? cities = null)
-    { _arena = new(owners, ArmyWeapons(cities ?? [])); RestoreHomes(); }
+    {
+        if (!HasDeaths) _arena = new(owners, ArmyWeapons(cities ?? []));
+        RestoreHomes();
+    }
     private static IEnumerable<(int Owner, int Slot)> ArmyWeapons(IEnumerable<City> cities)
         => cities.SelectMany(city => city.Towers.Keys.Where(ArmyConfiguration.IsArmyPlot).Select(slot => (city.Id, slot)));
     private static int HomeIndex(ArmyAssignment assignment)
@@ -187,9 +190,10 @@ internal sealed partial class CombatSimulation : IDisposable
         var structures = new List<StructureState> { new(city.Id, ArenaStructureKind.Keep, -1, _arena.Keep(city.Id), city.Health, HealthPoints.FromWhole(_cityHealth)) { Active = !city.Eliminated } };
         if (_watchposts.TryGetValue(city.Id, out StructureState? watchpost)) structures.Add(watchpost with { Active = !city.Eliminated });
         else structures.Add(new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth)) { Active = !city.Eliminated });
-        structures.AddRange(city.Towers.Values.OrderBy(t => t.Slot).Select(t => new StructureState(city.Id,
+        structures.AddRange(city.Towers.Values.Where(t => !ArmyConfiguration.IsArmyPlot(t.Slot)
+            || _arena.Footprints.Any(f => f.Owner == city.Id && f.Slot == t.Slot)).OrderBy(t => t.Slot).Select(t => new StructureState(city.Id,
             t.Type is Building.CatapultTower or Building.BombardTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower, t.Slot, _arena.Tower(city.Id, t.Slot), 1, 1, t.Level)
-        { Active = !city.Eliminated, TowerType = t.Type }));
+            { Active = !city.Eliminated, TowerType = t.Type }));
         return structures;
     }).ToArray();
     private int _cityHealth = 100;
@@ -224,6 +228,7 @@ internal sealed partial class CombatSimulation : IDisposable
     internal void Assign(int id, ArmyAssignment assignment)
     {
         CombatUnit member = Unit(id); int old = member.SquadId;
+        if (member.Assignment == assignment) return;
         member = member with { Assignment = assignment, Location = new(assignment.Stored ? UnitLifecycle.Stored : UnitLifecycle.Queued, default), Statuses = StatusState.Empty, StrikeAim = null };
         // Hide the member's old claim while finding its destination group.
         Unit(id) = member with { SquadId = 0 };
@@ -234,19 +239,31 @@ internal sealed partial class CombatSimulation : IDisposable
     }
     internal void RestoreHomes()
     {
-        foreach (CombatUnit member in Living())
-            Unit(member.Id) = member with { Location = new(member.Assignment is { Stored: true } ? UnitLifecycle.Stored : UnitLifecycle.Alive, default), Statuses = StatusState.Empty, StrikeAim = null };
+        bool cleanup = HasDeaths;
+        CombatUnit[] living = Living();
         foreach (CombatSquad squad in _squads.Values.ToArray())
         {
-            CombatUnit? first = Living().FirstOrDefault(u => u.SquadId == squad.Id);
-            if (first is null) continue;
+            CombatUnit[] members = living.Where(u => u.SquadId == squad.Id).ToArray();
+            if (members.Length == 0) continue;
+            if (cleanup && squad.Location.FrozenTick is not null)
+            {
+                foreach (CombatUnit member in members.Where(u => u.Location.Lifecycle == UnitLifecycle.Queued))
+                    Unit(member.Id) = member with { Location = member.Location with { Lifecycle = UnitLifecycle.Reserve } };
+                if (squad.Alive && members.All(u => u.Location.Lifecycle != UnitLifecycle.Alive))
+                    _squads[squad.Id] = squad with { Location = squad.Location with { Lifecycle = UnitLifecycle.Reserve }, Action = CombatActions.Cancel(squad.Action, _tick) };
+                continue;
+            }
+            CombatUnit first = members[0];
             // Hall slots count individuals and can exceed the six field-home
             // indexes. Stored actors have no deployment pose or occupancy.
             bool stored = first.Assignment is { Stored: true };
             int deployment = stored ? 0 : squad.DeploymentCell > 0 ? squad.DeploymentCell : _arena.Deployment(first.Owner > 0 ? first.Owner : 1, first.Assignment is null ? 0 : HomeIndex(first.Assignment));
+            UnitLifecycle lifecycle = stored ? UnitLifecycle.Stored : cleanup ? UnitLifecycle.Queued : UnitLifecycle.Alive;
+            foreach (CombatUnit member in members)
+                Unit(member.Id) = member with { Location = new(lifecycle, default), Statuses = StatusState.Empty, StrikeAim = null };
             _squads[squad.Id] = squad with
             {
-                Location = new(stored ? UnitLifecycle.Stored : UnitLifecycle.Alive, stored ? default : new(deployment, 1)),
+                Location = new(lifecycle, stored ? default : new(deployment, 1)),
                 Action = CombatActions.Cancel(squad.Action, _tick),
                 Decision = NewDecision(squad.Id, squad.Destination, squad.Decision.Sequence),
                 RallyDisruptedUntil = 0,

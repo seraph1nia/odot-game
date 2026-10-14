@@ -414,7 +414,7 @@ public sealed class Match : IDisposable
         }
         return result;
     }
-    private void RestoreHomes() => _combat.RestoreHomes();
+    private void RestoreHomes() => _combat.ConfigureArena(Players.Keys, Players.Values);
     private bool ResolveReady()
     {
         if (Paused || Phase is not (Phase.Building or Phase.Preparation)) return true;

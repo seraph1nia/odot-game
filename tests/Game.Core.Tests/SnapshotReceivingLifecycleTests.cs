@@ -23,37 +23,61 @@ public sealed class SnapshotReceivingLifecycleTests
         return received;
     }
 
-    [Fact]
-    public void PostClearDeploymentChangesOnlyHomeClaimUntilBodiesExpireAndThirdEndStartsCombat()
+    private static MatchSnapshot ClearWithRetainedMove(Match match, bool atHomes = false)
     {
-        using Match match = PaidCampaignFixture.Opening(players: 1);
-        var arena = new SharedArena([1]);
-        SquadState[] squads = match.Snapshot().Squads.Where(s => s.Owner == 1).ToArray();
+        var arena = new SharedArena([1], match.Players[1].Towers.Keys.Where(ArmyConfiguration.IsArmyPlot).Select(slot => (1, slot)));
+        SquadState[] squads = match.Snapshot().Squads.Where(s => s.Owner == 1 && s.Hex.Lifecycle == UnitLifecycle.Alive).ToArray();
         Assert.Equal(2, squads.Length);
-        int mover = squads[0].Id, attacker = squads[1].Id;
         int requested = arena.Deployment(1, 2);
-        HexTransition transition = arena.Board.Transition(new(17, 1), new(18, 1));
+        long tick = match.Tick;
+        HexTransition transition = atHomes
+            ? arena.Board.Transition(new(arena.Deployment(1, 0), 1), new(arena.Deployment(1, 1), 1))
+            : arena.Board.Transition(new(17, 1), new(18, 1));
         foreach (int id in squads[0].Members)
             match.Combat.Seed(match.Combat.Inspect(id) with
             {
                 Location = new(UnitLifecycle.Alive, transition.Source),
-                Action = new CombatAction.Moving(1, transition.Destination, transition.Id, 0, 30)
+                Action = new CombatAction.Moving(1, transition.Destination, transition.Id, tick, tick + 30)
             });
         int enemy = match.Combat.Enemies()[0].Id;
         foreach (UnitState extra in match.Combat.Enemies().Where(u => u.Id != enemy)) match.Combat.Remove(extra.Id);
-        int neighbor = arena.Board.Cell(requested).Neighbors.First(c => arena.CanOccupy(c) && c is not (17 or 18));
+        int neighbor = arena.Board.Cell(requested).Neighbors.First(c => arena.CanOccupy(c) && c != transition.Source.Cell && c != transition.Destination.Cell);
         match.Combat.Seed(match.Combat.Inspect(enemy) with { Health = 1, Location = new(UnitLifecycle.Alive, new(neighbor, 1)) });
         int enemySquad = match.Combat.Read(enemy).SquadId;
         foreach (int id in squads[1].Members)
             match.Combat.Seed(match.Combat.Inspect(id) with
             {
                 Location = new(UnitLifecycle.Alive, new(requested, 1)),
-                Action = new CombatAction.Windup(1, 1, 25, new(new(CombatTargetKind.Unit, enemySquad), 0, 1))
+                Action = new CombatAction.Windup(1, 1, tick + 25, new(new(CombatTargetKind.Unit, enemySquad), tick, tick + 1))
             });
         Receive(match);
         match.Step();
         MatchSnapshot cleared = Receive(match);
-        Assert.Equal(Phase.Building, cleared.Phase); Assert.Equal(2, cleared.Wave);
+        Assert.Equal(Phase.Building, cleared.Phase);
+        return cleared;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PostClearDeploymentChangesOnlyHomeClaimUntilBodiesExpireAndThirdEndStartsCombat(bool preparationEdits)
+    {
+        using Match match = PaidCampaignFixture.Opening(players: 1);
+        if (preparationEdits)
+        {
+            ClearWithRetainedMove(match);
+            while (match.Combat.HasDeaths) { match.Step(); Receive(match); }
+            Act(match, "build", 4, Building.Stonecutter);
+            Act(match, "ready"); Act(match, "ready");
+            Act(match, "sell", 4); Act(match, "build", 4, Building.TownHall);
+            Act(match, "ready");
+        }
+        var arena = new SharedArena([1]);
+        MatchSnapshot cleared = ClearWithRetainedMove(match, atHomes: preparationEdits);
+        SquadState[] squads = cleared.Squads.Where(s => s.Owner == 1).ToArray();
+        int mover = squads[0].Id, attacker = squads[1].Id;
+        int requested = arena.Deployment(1, 2);
+        Assert.Equal(preparationEdits ? 3 : 2, cleared.Wave);
         Assert.True(match.Combat.HasDeaths);
         SquadState retained = cleared.Squads.Single(s => s.Id == mover);
         Assert.Equal(UnitActionKind.Moving, retained.Hex.Action); Assert.NotNull(retained.Hex.FrozenTick);
@@ -69,19 +93,136 @@ public sealed class SnapshotReceivingLifecycleTests
         Assert.All(deployed.Players[0].Soldiers.Where(u => u.SquadId == mover), u => Assert.Equal(2, u.Assignment!.Tile));
         Assert.False(match.Apply(1, Command.FromSnapshot(deployed, 3, "deploy-squad", 1) with { SquadId = attacker, Cell = requested }).Accepted);
         long productions = deployed.ProductionCount;
-        for (int gate = 0; gate < 3; gate++) { Act(match, "ready"); Receive(match); }
+        void Retained(MatchSnapshot frame)
+        {
+            foreach (SquadState original in squads)
+            {
+                SquadState current = frame.Squads.Single(s => s.Id == original.Id);
+                Assert.Equal(original.Hex, current.Hex);
+                Assert.Equal((original.AttackSequence, original.ImpactTick, original.ReadyTick), (current.AttackSequence, current.ImpactTick, current.ReadyTick));
+            }
+            foreach (UnitState original in cleared.Players[0].Soldiers)
+                if (frame.Players[0].Soldiers.FirstOrDefault(u => u.Id == original.Id) is { } current && current.SquadId == original.SquadId)
+                    Assert.Equal(original.Hex, current.Hex);
+            Assert.Equal(cleared.Reservations.Positions, frame.Reservations.Positions);
+            Assert.Equal(cleared.Reservations.Transit, frame.Reservations.Transit);
+        }
+        void Edit(string action, int slot = -1, int unit = 0, int squad = 0, int cell = 0, Building building = Building.Empty)
+        {
+            CommandResult result = match.Apply(1, Command.FromSnapshot(match.Snapshot(), 10, action, 1, slot, building) with { UnitId = unit, SquadId = squad, Cell = cell });
+            Assert.True(result.Accepted, result.Message);
+            Retained(Receive(match));
+        }
+        int stored = 0;
+        if (preparationEdits)
+        {
+            Edit("regroup-member", unit: squads[0].Members[0], squad: mover);
+            Edit("retire", unit: squads[0].Members[^1]); Edit("retire", unit: squads[1].Members[^1]);
+            Edit("recruit", 1, squad: mover);
+            int reinforcement = match.Players[1].Soldiers[^1].Id;
+            Assert.Equal(UnitLifecycle.Reserve, match.Combat.Read(reinforcement).Hex!.Lifecycle);
+            Edit("recruit", 1, squad: -1);
+            int recruit = match.Players[1].Soldiers[^1].Id;
+            Assert.Equal(UnitLifecycle.Queued, match.Combat.Read(recruit).Hex!.Lifecycle);
+            Edit("regroup-member", unit: recruit, squad: attacker);
+            Assert.Equal(UnitLifecycle.Reserve, match.Combat.Read(recruit).Hex!.Lifecycle);
+            Edit("store", 4, unit: recruit);
+            Assert.Equal(UnitLifecycle.Stored, match.Combat.Read(recruit).Hex!.Lifecycle);
+            Edit("send", 4, unit: recruit, squad: attacker);
+            Assert.Equal(attacker, match.Combat.Read(recruit).SquadId);
+            Assert.Equal(UnitLifecycle.Reserve, match.Combat.Read(recruit).Hex!.Lifecycle);
+            Edit("regroup-member", unit: reinforcement, squad: -1);
+            Assert.Equal(UnitLifecycle.Queued, match.Combat.Read(reinforcement).Hex!.Lifecycle);
+            Edit("store", 4, unit: reinforcement); stored = reinforcement;
+            Edit("build", ArmyConfiguration.PlotOffset, building: Building.ArrowTower);
+            MatchSnapshot purchased = Receive(match);
+            Assert.Equal(Building.ArrowTower, purchased.Players[0].Army!.Homes[0].Plot.Type);
+            Assert.Contains(purchased.Players[0].Towers, t => t.Slot == ArmyConfiguration.PlotOffset);
+            Assert.DoesNotContain(purchased.Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset);
+            Assert.DoesNotContain(purchased.Structures, s => s.Slot == ArmyConfiguration.PlotOffset);
+            Edit("sell", ArmyConfiguration.PlotOffset);
+            Act(match, "ready"); Retained(Receive(match));
+            Edit("deploy-squad", squad: attacker, cell: arena.Deployment(1, 0));
+            Edit("build", ArmyConfiguration.PlotOffset + 1, building: Building.ArrowTower);
+            Assert.DoesNotContain(Receive(match).Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset + 1);
+        }
+        for (int gate = preparationEdits ? 1 : 0; gate < 3; gate++) { Act(match, "ready"); Retained(Receive(match)); }
         Assert.Equal(Phase.Preparation, match.Phase);
         Assert.Equal(productions + 2, match.Snapshot().ProductionCount);
         for (int tick = 0; tick < 120 && match.Phase != Phase.Combat; tick++)
         {
             match.Step(); MatchSnapshot frame = Receive(match);
-            if (match.Combat.HasDeaths) Assert.Equal(retained.Hex, frame.Squads.Single(s => s.Id == mover).Hex);
+            if (match.Combat.HasDeaths) Retained(frame);
         }
         MatchSnapshot entered = Receive(match);
         Assert.False(match.Combat.HasDeaths); Assert.Equal(Phase.Combat, entered.Phase);
         Assert.Equal(productions + 3, entered.ProductionCount);
         Assert.Equal(requested, entered.Squads.Single(s => s.Id == mover).Hex.Position.Cell);
-        Assert.Equal(arena.Deployment(1, 1), entered.Squads.Single(s => s.Id == attacker).Hex.Position.Cell);
+        Assert.Equal(arena.Deployment(1, preparationEdits ? 0 : 1), entered.Squads.Single(s => s.Id == attacker).Hex.Position.Cell);
+        if (preparationEdits)
+        {
+            Assert.Equal(UnitLifecycle.Stored, entered.Players[0].Soldiers.Single(u => u.Id == stored).Hex!.Lifecycle);
+            Assert.Contains(entered.Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset + 1);
+            Assert.Contains(entered.Structures, s => s.Slot == ArmyConfiguration.PlotOffset + 1 && s.Active);
+            MatchSnapshot nextClear = ClearWithRetainedMove(match);
+            SquadState[] retainedActors = nextClear.Squads.Where(s => s.Owner == 1 && s.Hex.Lifecycle == UnitLifecycle.Alive).ToArray();
+            long nextProductions = nextClear.ProductionCount;
+            Act(match, "sell", ArmyConfiguration.PlotOffset + 1);
+            MatchSnapshot sold = Receive(match);
+            Assert.Equal(Building.Empty, sold.Players[0].Army!.Homes[1].Plot.Type);
+            Assert.Contains(sold.Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset + 1);
+            for (int gate = 0; gate < 3; gate++) { Act(match, "ready"); Receive(match); }
+            Assert.Equal(Phase.Preparation, match.Phase);
+            for (int tick = 0; tick < 120 && match.Phase != Phase.Combat; tick++)
+            {
+                MatchSnapshot frame = Receive(match);
+                foreach (SquadState actor in retainedActors) Assert.Equal(actor.Hex, frame.Squads.Single(s => s.Id == actor.Id).Hex);
+                match.Step();
+            }
+            MatchSnapshot resumed = Receive(match);
+            Assert.Equal(Phase.Combat, resumed.Phase); Assert.Equal(4, resumed.Wave);
+            Assert.Equal(nextProductions + 3, resumed.ProductionCount);
+            Assert.DoesNotContain(resumed.Arena!.Footprints, f => f.Slot == ArmyConfiguration.PlotOffset + 1);
+            Assert.DoesNotContain(resumed.Structures, s => s.Slot == ArmyConfiguration.PlotOffset + 1);
+        }
+    }
+
+    [Fact]
+    public void RegroupingLastFrozenParticipantReleasesClaimsWithoutDeployingItsNewGroup()
+    {
+        using Match match = PaidCampaignFixture.Opening(players: 1);
+        MatchSnapshot cleared = ClearWithRetainedMove(match, atHomes: true);
+        SquadState mover = cleared.Squads.Single(s => s.Owner == 1 && s.Hex.Action == UnitActionKind.Moving);
+        SquadState other = cleared.Squads.Single(s => s.Owner == 1 && s.Id != mover.Id);
+        var arena = new SharedArena([1]);
+        Act(match, "buy-home", ArmyConfiguration.PlotOffset + 2);
+        void Edit(string action, int unit = 0, int squad = 0, int cell = 0, int slot = -1)
+        {
+            CommandResult result = match.Apply(1, Command.FromSnapshot(match.Snapshot(), 20, action, 1, slot) with { UnitId = unit, SquadId = squad, Cell = cell });
+            Assert.True(result.Accepted, result.Message);
+            Assert.Equal(other.Hex, Receive(match).Squads.Single(s => s.Id == other.Id).Hex);
+        }
+        Edit("deploy-squad", squad: mover.Id, cell: arena.Deployment(1, 2));
+        foreach (int id in mover.Members.Skip(1)) Edit("retire", unit: id);
+        Edit("recruit", squad: mover.Id, slot: 1);
+        int recruit = match.Players[1].Soldiers[^1].Id;
+        Edit("regroup-member", unit: mover.Members[0], squad: -1);
+        MatchSnapshot edited = Receive(match);
+        SquadState reserve = edited.Squads.Single(s => s.Id == mover.Id);
+        Assert.Equal(UnitLifecycle.Reserve, reserve.Hex.Lifecycle);
+        Assert.False(reserve.Hex.HoldsTransit);
+        Assert.Equal(UnitLifecycle.Reserve, edited.Players[0].Soldiers.Single(u => u.Id == recruit).Hex!.Lifecycle);
+        Assert.Equal(UnitLifecycle.Queued, edited.Players[0].Soldiers.Single(u => u.Id == mover.Members[0]).Hex!.Lifecycle);
+        Assert.DoesNotContain(edited.Reservations.Positions, p => p.UnitId == mover.Id);
+        Assert.DoesNotContain(edited.Reservations.Transit, p => p.UnitId == mover.Id);
+        long productions = edited.ProductionCount;
+        for (int gate = 0; gate < 3; gate++) Act(match, "ready");
+        for (int tick = 0; tick < 120 && match.Phase != Phase.Combat; tick++) { match.Step(); Receive(match); }
+        MatchSnapshot entered = Receive(match);
+        Assert.Equal(Phase.Combat, entered.Phase);
+        Assert.Equal(productions + 3, entered.ProductionCount);
+        Assert.Equal(3, entered.Squads.Count(s => s.Owner == 1 && s.Hex.Lifecycle == UnitLifecycle.Alive));
+        Assert.Equal(arena.Deployment(1, 2), entered.Squads.Single(s => s.Id == mover.Id).Hex.Position.Cell);
     }
 
     [Fact]
