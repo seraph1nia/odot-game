@@ -98,7 +98,7 @@ mise run test-network --scenario playing-host-lifecycle
 # Explicit headless deep qualification, not the default development loop:
 mise run test-campaign
 mise run test-network --scenario redistribution
-mise run test-network --scenario eliminated-resume # paid stored spectator/ledger receiving
+mise run test-network --scenario eliminated-resume # controlled stored-spectator case; scope in docs/shared-arena.md
 mise run test-network --scenario active-fallen # controlled active-field ENet resume/impact; NOT balance/full-session acceptance
 mise run test-deep
 mise run test-network --jobs 1
@@ -109,7 +109,7 @@ mise run ci-linux-package
 
 `dev` builds/imports once and opens two playable desktop windows: one playing host and one guest, using ENet without Steam. `--guests 1..3` changes the guest count; the host owns the first city. Wait for the roster, then click **Start match** in the host window. Each process has isolated temporary preferences and credentials. Closing a window or Ctrl+C stops only supervised peers. `play` opens the normal start screen. Individual roles prepare themselves and keep endpoint arguments. Default bind/host is loopback and default port is 7000. Bind a LAN interface explicitly for ENet play on another machine, allowing its UDP port.
 
-In the tabletop, scroll up/down over the world to zoom in/out toward the ground point under the cursor (overview to 3×). Hold **WASD or arrow keys** to pan around the observed settlement or complete shared arena. Click the world to release HUD keyboard focus when using arrows. The angle stays fixed and travel is bounded. **Space** restores the complete overview. Left-click and drag the world to pan; a short click selects a plot or unit. Switching cities or starting a fresh match resets the view; resizing and reconnecting to the same city/match retain relative adjustments. Camera state is local and is not saved across launches. The top-right table shows the observed city’s six resource stocks and income, with compact upkeep underneath; use the small city arrows and Details for cooperative inspection and army allocation. Click a living unit for its model preview, name, description, level, health and damage; click elsewhere to dismiss it. Squad summaries show living count and individual member health/statuses; physical Keeps and Watchposts show their actual health. Return to menu is in Settings and asks for confirmation. You can inspect while paused or disconnected. HUD scrolling, dialogs, text entry and focused UI navigation take priority; window focus loss or a dialog stops held movement until you release and press again.
+In the tabletop, scroll up/down over the world to zoom in/out toward the ground point under the cursor (overview to 3×). Hold **WASD or arrow keys** to pan around the observed settlement or complete shared arena. Click the world to release HUD keyboard focus when using arrows. The angle stays fixed and travel is bounded. **Space** restores the complete overview. Left-click and drag the world to pan; a short click selects a plot or unit. Switching settlements, entering/leaving the arena or starting a fresh match resets the view; changing the observed city while remaining in the shared arena does not. Resizing and reconnecting to the same match/view retain relative adjustments. Camera state is local and is not saved across launches. The top-right table shows the observed city’s six resource stocks and income, with compact upkeep underneath; use the small city arrows and Details for cooperative inspection and army allocation. Click a living unit for its model preview, name, description, level, health and damage; click elsewhere to dismiss it. Squad summaries show living count and individual member health/statuses; physical Keeps and Watchposts show their actual health. Return to menu is in Settings and asks for confirmation. You can inspect while paused or disconnected. HUD scrolling, dialogs, text entry and focused UI navigation take priority; window focus loss or a dialog stops held movement until you release and press again.
 
 Click a numbered **army plot** and use its **Buy plot** quote, **Squads**, the individual inspector and **Town hall roster** to manage your army. The native squad panel provides paid reinforcement/new squads, member transfers, storage/return and retirement; **Deployment** opens owned arena-home picking. An empty owned army plot can hold a defense tower instead of a squad; click a base arrow tower to choose **Rapid arrow tower** or **Bombard tower**. See [shared arena controls](docs/shared-arena.md#native-presentation) and [army plots, retirement, storage and recovery](docs/gameplay.md#purchased-army-homes-and-town-hall-rotation) for controls, capacity, costs and production cadence.
 
@@ -273,9 +273,10 @@ Research is a separate checkpoint, not appended to combat's remaining deadline.
 See [verification](docs/verification.md) for executed scope and limitations.
 
 The early hex-melee proof is selected with `mise run test-ui --scenario combat
---checkpoint melee` with explicit graphical authorization. See [historical combat presentation verification](docs/verification-history.md#clarified-combat-presentation-verification)
-for its paid setup, bounded normal-speed progression and paused captures, linked
-near/far cues, settled-anchor clearance and intentional transit overlap.
+--checkpoint melee` with explicit graphical authorization. See [shared-arena presentation](docs/shared-arena.md#native-presentation) for current
+physical windup/local-strike cues and the [testing command reference](.agents/skills/testing-commands/SKILL.md)
+for selection and ownership. [Historical combat presentation receipts](docs/verification-history.md#clarified-combat-presentation-verification)
+retain the earlier individual-actor setup and cues, not current squad acceptance.
 Authority application arguments accept `--combat-seed <unsigned-64-bit>` for
 repeatable diagnostics; guests cannot select the seed. Without it, a match
 generates its seed once. No seed editor is added to the interface.
@@ -308,7 +309,7 @@ Add `--work-counters` for a separate counting run. Profiles use serial owned
 executions with a separate warm-up and retain raw evidence in ignored `logs/`.
 Engine-free profiles default to Release; presentation uses the existing locked
 Debug Godot build and an owned software-rendered display. `test-scale` runs the
-synthetic 2,048-actor, 600-tick correctness window once, without warm-up. It is
+synthetic 2,048-member, 600-tick correctness window once, without warm-up. It is
 explicit stress qualification, separate from routine `test`/CI and graphical coverage. See [verification guidance](docs/verification.md)
 for phase boundaries, counter meanings, scope and comparison limitations.
 

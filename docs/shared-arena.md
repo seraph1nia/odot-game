@@ -85,7 +85,14 @@ Receiving explicitly refuses old/unversioned combat settings, retired authoring
 fields, legacy size-budget boards, missing arena data and inconsistent member/actor
 projections. The integrated full rules fingerprint includes battle-flow identity;
 the required forecast array, distinct negative forecast IDs and actual configured
-profiles are validated alongside shared geometry and member/squad identity. Welcome, acknowledgment and snapshot delivery use the same codec plus
+profiles are validated alongside shared geometry and member/squad identity.
+Native-consumed catalogs, trainer quotes, city construction, Hall tracks/slots/
+generations, production and food forecasts are checked against reconstructed
+rules-derived projections at that same boundary. Genuine partial funding remains
+valid when the last participant dies but unfunded reserves remain; reserves
+project the squad cycle without becoming independent attackers. Pending windups
+and latched primary aim survive target loss without requiring a live target.
+Welcome, acknowledgment and snapshot delivery use the same codec plus
 compatibility boundary before live state or reconnect credentials change. Failure
 explains how to rejoin a compatible authority or start a fresh match; it does not
 invent squads or silently reinterpret old fields. Session files are credentials
@@ -203,7 +210,10 @@ home. Combat presents all owners together, with local camera navigation only.
 owned tiles and compact per-member HP/count/status summaries. Its camera derives
 bounds and travel from the complete arena, not old per-city framing. Formation
 slots persist in snapshots, while animation, member offsets and short melee
-lunges remain cosmetic. `StrikeAim` is detached observation of the squad-owned
+lunges remain cosmetic. Melee windup uses the imported attack animation and
+attached, aligned weapon/socket motion, not a dashed target guide. The local
+strike accent stays bounded near the attacker; target-side contact requires an
+actual landed impact. `StrikeAim` is detached observation of the squad-owned
 seeded intent/realized primary, not member AI or a damage input. The same existing
 X/Y selection supplies that observation; a primary death cannot silently point
 recovery at another member. Existing TargetId/FrozenAim fields carry it without

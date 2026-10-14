@@ -16,7 +16,7 @@ mise run test-fast                         # same default coverage as mise run t
 mise run test-core
 mise run test-runner
 mise run test-core --filter 'FullyQualifiedName~HexRoutingTests'
-mise run test-core --filter 'FullyQualifiedName~HexRoutingTests.OccupiedDirectApproach'
+mise run test-core --filter 'FullyQualifiedName~HexRoutingTests.BlockedRouteCannotEnterOccupiedGoalAndBecomesAvailableWhenBlockersLeave'
 mise run test-core --filter 'FullyQualifiedName~Research'
 mise run test-runner --filter 'FullyQualifiedName~PortLeaseTests'
 mise run test-fast --jobs 1                # serial binaries; same coverage
@@ -51,6 +51,7 @@ mise run test-engine --scenario animation
 mise run test-engine --scenario assets
 mise run test-engine --scenario worldtree
 mise run test-engine --scenario receiving # actual HUD/session actions + Worldtree sender bridge
+mise run test-engine --scenario arena     # native shared arena, deployment/squad controls and receiving adapter
 mise run test-engine --scenario worldtree --exported # existing native client; no source preparation/export
 mise run test-network                      # failure-cases, solo-session, playing-host-lifecycle
 mise run test-network --scenario failure-cases
@@ -131,6 +132,7 @@ These commands are supported selections, NOT verified graphical receipts:
 ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario launcher --checkpoint smoke
 ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario economy --checkpoint deep
 ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario combat --checkpoint research
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario combat --checkpoint melee
 ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-ui --scenario exported-package --checkpoint smoke
 ```
 

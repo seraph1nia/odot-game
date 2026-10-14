@@ -1,5 +1,12 @@
 # Reconstruction qualification checkpoint
 
+This is historical pre-squad reconstruction evidence. Its city-transfer admission,
+protected-rear/size-budget assertions and protocol-14 receipts are not current
+contracts. See [shared-arena receiving and resume](shared-arena.md#eliminated-owner-receiving-and-resume)
+for current boundaries and [the coverage replacement ledger](testing-audit.md#coherent-admission-profile-and-compatibility-replacement-2026-10-13)
+for the retained purposes and their squad-era replacements. Measured failures and
+receipts below retain their original inputs.
+
 The growth disposition is resolved: firstmate authorized option 1 on
 2026-10-13, retaining the single-mine/four-paid-unit early/late control but
 rebuilding its causal experiment. This is new implementation, not recovered

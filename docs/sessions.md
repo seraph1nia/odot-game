@@ -117,9 +117,14 @@ version, Building turns other than 1/2, Preparation turns other than 3, and inva
 combat-speed values. Historical snapshots are not silently migrated or treated
 as game saves. `SessionFile`'s credential/sequence schema is unchanged; reconnect
 to the same matching running authority retains the selected pace and forecast.
-`Command.UnitId` targets retire/store/send; `ExpectedHomeCount` binds the army
-purchase-count quote, `ExpectedTrackLevel` binds the selected hall track or base
-tower level, and `ExpectedGeneration` binds the building instance.
+`Command.UnitId` targets retire/store/send and `regroup-member`.
+`SquadId` selects reinforcement/regrouping/return: zero uses first fit, -1 requests
+a new squad at a free home, and a positive ID selects an existing compatible
+squad. Selectors below -1 reject before placement lookup or mutation.
+`deploy-squad` uses `SquadId` and the physical arena `Cell` to move the complete
+home claim. `ExpectedHomeCount` binds the army purchase-count quote,
+`ExpectedTrackLevel` binds the selected hall track or base tower level, and
+`ExpectedGeneration` binds the building instance.
 `buy-plot` targets a chosen locked army ID as well as city land; legacy
 `buy-home` remains an alias for actual army land acquisition (the first locked
 plot when no ID is supplied), not a separate capacity purchase.
@@ -133,17 +138,17 @@ replays production, food payment or healing.
 
 Full compatibility identity includes all six resolved tower profiles, the current
 combat rules declared in [`CombatSettings`](../src/Game.Core/Combat/CombatConfiguration.cs)
-and the actor decision fingerprint. Seeded actor tie-breaking retains the original
-rules-v5 serialization of all actual legacy settings, including authored Arrow
-victim/radius values even though its resolved damage profile is always single-target.
-Those legacy inputs can change decisions and therefore must also change full
-compatibility identity. Unused new variant metadata cannot reroll unchanged
-soldiers, defenders or base towers; ineffective Rapid Arrow victim/radius authoring
-changes neither fingerprint. `CombatConfigurationTests` covers identity round-trips
-and retained legacy decision transcripts; `ArmyPlotTowerTests` pairs variant-only
-authoring with unchanged legacy decisions and a full-identity counterfactual. Snapshot
-codec/load and credential resume against the same live authority remain the
-persistence boundary, not an authority disk-save or restart-recovery API.
+and the actor decision fingerprint. Both combat fingerprints contain actual
+rules-v7 inputs; retired size, victim-cap and radius authoring fields are refused,
+not retained as hidden decision inputs. The base-actor namespace excludes the
+optional Rapid Arrow/Bombard profiles, so changing only their timing changes full
+compatibility identity without rerolling unchanged squads, defenders or base
+weapons. `CombatConfigurationTests` covers complete identity round-trips and
+observation-invariant reconstructed squad decisions;
+`ArmyPlotTowerTests.BaseTowerSelectionIgnoresOptionalUpgradeTimingWithOneSaltCounterfactual`
+checks that isolation against a full-identity counterfactual. Snapshot codec/load
+and credential resume against the same live authority remain the persistence
+boundary, not an authority disk-save or restart-recovery API.
 
 `recruit <slot>` still means Swordsman; automation also accepts
 `recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
