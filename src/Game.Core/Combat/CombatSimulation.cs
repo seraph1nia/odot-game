@@ -418,21 +418,21 @@ internal sealed partial class CombatSimulation : IDisposable
         foreach ((int id, int amount) in damage)
         {
             CombatUnit member = Unit(id); int effective = Math.Min(member.Health, amount); Unit(id) = member with { Health = member.Health - effective };
-            if (effective > 0) { MarkProgress(member.Destination, owners); Emit(CombatEventType.Hit, ProjectMember(Unit(id)), damage: effective, landed: true); }
+            if (effective > 0) { _healthProgress.Add(member.Destination); Emit(CombatEventType.Hit, ProjectMember(Unit(id)), damage: effective, landed: true); }
         }
         foreach (City city in owners)
         {
             int amount = Math.Min(city.Health, cityDamage.GetValueOrDefault(city.Id));
             if (amount > 0)
             {
-                city.Health -= amount; MarkProgress(city.Id, owners);
+                city.Health -= amount; _healthProgress.Add(city.Id);
                 var keep = new StructureState(city.Id, ArenaStructureKind.Keep, -1, _arena.Keep(city.Id), city.Health, HealthPoints.FromWhole(_cityHealth), DestroyedTick: city.Eliminated ? tick : 0);
                 EmitExtra(city.Eliminated ? CombatEventType.StructureDestroyed : CombatEventType.StructureHit, structure: keep, damage: amount);
             }
             if (!_watchposts.TryGetValue(city.Id, out StructureState? post) || post.Destroyed) continue;
             int postHit = Math.Min(post.Health, postDamage.GetValueOrDefault(city.Id));
             if (postHit <= 0) continue;
-            post = post with { Health = post.Health - postHit, DestroyedTick = postHit == post.Health ? tick : 0 }; _watchposts[city.Id] = post; MarkProgress(city.Id, owners);
+            post = post with { Health = post.Health - postHit, DestroyedTick = postHit == post.Health ? tick : 0 }; _watchposts[city.Id] = post; _healthProgress.Add(city.Id);
             EmitExtra(post.Destroyed ? CombatEventType.StructureDestroyed : CombatEventType.StructureHit, structure: post, damage: postHit);
             if (post.Destroyed)
                 foreach (CombatSquad squad in _squads.Values.Where(s => s.Alive && s.Owner == city.Id).ToArray())
@@ -443,8 +443,6 @@ internal sealed partial class CombatSimulation : IDisposable
         TrimHistory();
     }
     private int Rally(int damage) => checked((int)((long)damage * (100 - _configuration.Arena.RallyDamageReductionPercent) / 100));
-    private void MarkProgress(int destination, IEnumerable<City> cities)
-    { _healthProgress.Add(destination); foreach (City city in cities.Where(c => !c.Eliminated)) _healthProgress.Add(city.Id); }
     private bool InRange(CombatSquad squad, int cell) => Board.Distance(squad.Location.Position.Cell, cell) <= Members(squad).Select(m => m.Profile.HexRange).DefaultIfEmpty(1).Min();
     private IEnumerable<DefenseActor> Defenses(City city)
     {

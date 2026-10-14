@@ -94,6 +94,20 @@ public sealed class SnapshotPayloadTests
     [InlineData("null-event")]
     [InlineData("event-cell")]
     [InlineData("event-pose")]
+    [InlineData("event-actor")]
+    [InlineData("structure-duplicate")]
+    [InlineData("member-keep")]
+    [InlineData("member-watchpost")]
+    [InlineData("member-owned-target")]
+    [InlineData("body-keep")]
+    [InlineData("event-keep")]
+    [InlineData("actor-keep")]
+    [InlineData("actor-watchpost")]
+    [InlineData("forecast-origin")]
+    [InlineData("forecast-destination")]
+    [InlineData("forecast-statuses")]
+    [InlineData("member-profile")]
+    [InlineData("member-pending")]
     public void MalformedSharedIdentitiesAreRefusedAfterRealCodecDelivery(string defect)
     {
         using var match = new Match(combatSeed: 1); match.Join();
@@ -107,6 +121,20 @@ public sealed class SnapshotPayloadTests
         MatchSnapshot invalid = defect switch
         {
             "member-duplicate" => valid with { Players = [valid.Players[0] with { Soldiers = [soldiers[0], soldiers[0]] }] },
+            "member-keep" => WithMember(soldiers[0] with { TargetCity = true, TargetKind = SquadTargetKind.Keep, TargetId = 999 }),
+            "member-watchpost" => WithMember(soldiers[0] with { TargetCity = true, TargetKind = SquadTargetKind.Watchpost, TargetId = 999 }),
+            "member-owned-target" => WithMember(soldiers[0] with { TargetCity = true, TargetKind = SquadTargetKind.Keep, TargetId = 1 }),
+            "body-keep" => valid with { DyingBodies = [body with { TargetCity = true, TargetKind = SquadTargetKind.Keep, TargetId = 999 }] },
+            "event-keep" => valid with { CombatEvents = [new(1, 0, CombatEventType.AttackStarted, soldiers[0], 999, true)] },
+            "actor-keep" => valid with { Squads = [valid.Squads[0] with { TargetKind = SquadTargetKind.Keep, TargetId = 999 }] },
+            "actor-watchpost" => valid with { Squads = [valid.Squads[0] with { TargetKind = SquadTargetKind.Watchpost, TargetId = 999 }] },
+            "event-actor" => valid with { CombatEvents = [new(1, 0, CombatEventType.AttackStarted, null) { ImpactPose = new(soldiers[0].Hex!.Position) }] },
+            "structure-duplicate" => valid with { Structures = valid.Structures.Append(valid.Structures[0]).ToArray() },
+            "forecast-origin" => valid with { NextWave = [new(-1, soldiers[0].Profile.Health, Origin: 999, Destination: 1) { Faction = Faction.Skeletons, Profile = soldiers[0].Profile }] },
+            "forecast-destination" => valid with { NextWave = [new(-1, soldiers[0].Profile.Health, Origin: 1, Destination: 999) { Faction = Faction.Skeletons, Profile = soldiers[0].Profile }] },
+            "forecast-statuses" => valid with { NextWave = [new(-1, soldiers[0].Profile.Health, Origin: 1, Destination: 1) { Faction = Faction.Skeletons, Profile = soldiers[0].Profile }] },
+            "member-profile" => WithMember(soldiers[0] with { Profile = soldiers[0].Profile with { Damage = soldiers[0].Profile.Damage + 1 } }),
+            "member-pending" => WithMember(soldiers[0] with { PendingImpact = true }),
             "member-cell" => WithMember(soldiers[0] with { Hex = soldiers[0].Hex! with { Position = new(int.MaxValue, 1) } }),
             "member-anchor" => WithMember(soldiers[0] with { Hex = soldiers[0].Hex! with { Position = new(soldiers[0].Hex!.Position.Cell, 2) } }),
             "member-hex" => WithMember(soldiers[0] with { Hex = null }),
@@ -140,11 +168,52 @@ public sealed class SnapshotPayloadTests
         JsonObject wire = JsonSerializer.SerializeToNode(invalid, WireJson.Options)!.AsObject();
         if (defect == "member-statuses") wire["Players"]![0]!["Soldiers"]![0]!["Statuses"] = null;
         if (defect == "member-decision") wire["Players"]![0]!["Soldiers"]![0]!["Decision"]!["Route"] = null;
+        if (defect == "forecast-statuses") wire["NextWave"]![0]!["Statuses"] = null;
         Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(Compress(wire)));
         Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
         MatchSnapshot received = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(valid));
         Assert.Equal(JsonSerializer.Serialize(valid, WireJson.Options), JsonSerializer.Serialize(received, WireJson.Options));
     }
+    [Theory]
+    [InlineData("Rules")]
+    [InlineData("Combat")]
+    [InlineData("Arena")]
+    [InlineData("Combat.Swordsman")]
+    [InlineData("Combat.Berserker")]
+    [InlineData("Combat.Crossbowman")]
+    [InlineData("Combat.Mage")]
+    [InlineData("Combat.Defender")]
+    [InlineData("Combat.ArrowTower")]
+    [InlineData("Combat.RapidArrowTower")]
+    [InlineData("Combat.CatapultTower")]
+    [InlineData("Combat.BombardTower")]
+    [InlineData("Combat.Statuses")]
+    [InlineData("Combat.Board")]
+    [InlineData("Combat.Board.Cells")]
+    [InlineData("Combat.Board.Anchors")]
+    [InlineData("Combat.Board.Entries")]
+    [InlineData("Combat.Board.SiegeCells")]
+    [InlineData("Army")]
+    [InlineData("Army.HomePrices")]
+    [InlineData("Research")]
+    [InlineData("Campaign")]
+    [InlineData("Campaign.Waves")]
+    public void NullNestedRulesAreRecoverablyRefusedThroughCompressedReceiving(string field)
+    {
+        using var match = new Match(combatSeed: 1); match.Join();
+        MatchSnapshot valid = match.Snapshot();
+        string before = JsonSerializer.Serialize(valid, WireJson.Options);
+        JsonObject wire = JsonSerializer.SerializeToNode(valid, WireJson.Options)!.AsObject();
+        string[] path = field.Split('.');
+        JsonNode parent = field == "Rules" ? wire : wire["Rules"]!;
+        foreach (string part in path[..^1]) parent = parent[part]!;
+        parent[path[^1]] = null;
+        InvalidDataException refused = Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(Compress(wire)));
+        Assert.IsAssignableFrom<ArgumentException>(refused.InnerException);
+        Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
+        Assert.Equal(before, JsonSerializer.Serialize(SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(valid)), WireJson.Options));
+    }
+
     private static string Compress(JsonObject json)
     {
         using var output = new MemoryStream();

@@ -30,11 +30,18 @@ public static class SnapshotCompatibility
             || state.Players.Any(p => p.Id <= 0) || state.Players.Select(p => p.Id).Distinct().Count() != state.Players.Length
             || state.Players.Length == 0 && state.Phase != Phase.Lobby || state.Rules.Arena.SquadCapacity is < 1 or > 12)
             throw new ArgumentException("Malformed shared arena roster.", nameof(state));
+        CombatSettings combat = state.Rules.Combat;
+        if (new[] { combat.Swordsman, combat.Berserker, combat.Crossbowman, combat.Mage }.Any(t => t is null)
+            || new[] { combat.Defender, combat.ArrowTower, combat.RapidArrowTower, combat.CatapultTower, combat.BombardTower }.Any(t => t is null)
+            || combat.Statuses is null || state.Rules.Army?.HomePrices is null || state.Rules.Research is null || state.Rules.Campaign is null)
+            throw new ArgumentException("Missing nested authoritative rules.", nameof(state));
         var configuration = new CombatConfiguration(state.Rules);
+        _ = new ArmyConfiguration(state.Rules.Army, configuration.Board, configuration.Arena.SquadCapacity);
         if (RulesIdentity.Combine(configuration.Fingerprint, new EconomyConfiguration(state.Rules).Fingerprint,
             new CampaignConfiguration(state.Rules.Campaign, configuration).Fingerprint) != state.ConfigurationFingerprint)
             throw new ArgumentException("Combat configuration identity refused: received rules do not match the full authoritative fingerprint.", nameof(state));
         if (state.NextWave.Any(u => u.Profile.Health <= 0 || u.Statuses is not { Poison: not null } || u.Statuses.Poison.Any(p => p is null)
+            || !state.Players.Any(p => p.Id == u.Origin) || !state.Players.Any(p => p.Id == u.Destination)
             || u.Profile != configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level).Runtime()))
             throw new ArgumentException("Authoritative wave forecast profile refused: received actors do not match configured identities.", nameof(state));
         var arena = new SharedArena(state.Players.Length == 0 ? [1] : state.Players.Select(p => p.Id),
@@ -61,17 +68,22 @@ public static class SnapshotCompatibility
             throw new ArgumentException("Shared arena reservation projection mismatch.", nameof(state));
         UnitState[] members = state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).ToArray();
         foreach (UnitState member in members.Concat(state.DyingBodies).Concat(state.CombatEvents.Where(e => e.Unit is not null).Select(e => e.Unit!)))
-            RequireProjection(member, arena.Board, configuration);
+            RequireProjection(member, arena, configuration);
         foreach (UnitState body in state.DyingBodies)
             if (body.Health != 0 || body.Hex!.Lifecycle != UnitLifecycle.Dying)
                 throw new ArgumentException("Invalid retained casualty.", nameof(state));
         foreach (CombatEvent entry in state.CombatEvents)
         {
+            if (!Enum.IsDefined(entry.Type) || entry.Type == CombatEventType.AttackStarted && entry.Unit is null && entry.Tower is null)
+                throw new ArgumentException("Invalid combat event actor.", nameof(state));
             if (entry.ImpactPose is { } pose) RequirePose(pose, arena.Board);
+            if (entry.TargetCity) RequireStructureTarget(entry.TargetId, entry.Unit?.TargetKind ?? SquadTargetKind.None, arena);
             if (entry.Structure is { } structure && !arena.Board.Cells.Any(c => c.Id == structure.Cell))
                 throw new ArgumentException("Invalid historical structure pose.", nameof(state));
         }
-        if (state.Structures.Any(s => !arena.Footprints.Any(f => f.Owner == s.Owner && f.Slot == s.Slot && f.Cell == s.Cell
+        if (state.Structures.Select(s => (s.Owner, s.Kind, s.Slot)).Distinct().Count() != state.Structures.Length
+            || state.Structures.Select(s => s.Cell).Distinct().Count() != state.Structures.Length
+            || state.Structures.Any(s => !arena.Footprints.Any(f => f.Owner == s.Owner && f.Slot == s.Slot && f.Cell == s.Cell
             && (f.Kind == s.Kind || f.Kind == ArenaStructureKind.ArrowTower && s.Kind == ArenaStructureKind.CatapultTower))))
             throw new ArgumentException("Invalid structure footprint.", nameof(state));
         if (members.Concat(state.DyingBodies).Select(m => m.Id).Distinct().Count() != members.Length + state.DyingBodies.Length
@@ -90,6 +102,8 @@ public static class SnapshotCompatibility
                     || squad.AttackSequence <= 0 || squad.Hex.StartTick < 0 || squad.ImpactTick <= squad.Hex.StartTick
                     || squad.ReadyTick <= squad.ImpactTick || squad.Hex.EndTick != squad.ReadyTick))
                 throw new ArgumentException("Invalid squad population or actor identity.", nameof(state));
+            if (squad.TargetKind is SquadTargetKind.Keep or SquadTargetKind.Watchpost)
+                RequireStructureTarget(squad.TargetId, squad.TargetKind, arena);
             foreach (int id in squad.Members)
                 if (!byId.TryGetValue(id, out UnitState? member) || member.SquadId != squad.Id || member.Type != squad.Type || member.Faction != squad.Faction
                     || member.Owner != squad.Owner || member.IsBoss != squad.IsBoss || member.Experience < 0 || member.Health <= 0 || member.Health > member.Profile.Health
@@ -98,9 +112,13 @@ public static class SnapshotCompatibility
                 else if ((member.Hex! with { Id = squad.Id, City = 1, Lifecycle = squad.Hex.Lifecycle, FrozenAim = squad.Hex.FrozenAim }) != squad.Hex
                     || member.AttackSequence != squad.AttackSequence || member.ImpactTick != squad.ImpactTick || member.ReadyTick != squad.ReadyTick
                     || member.Hex.Lifecycle == UnitLifecycle.Dying
-                    || member.Hex.Lifecycle == UnitLifecycle.Reserve && squad.Hex.Lifecycle is not (UnitLifecycle.Reserve or UnitLifecycle.Alive)
+                    || member.Hex.Lifecycle == UnitLifecycle.Reserve && squad.Hex.Lifecycle is not (UnitLifecycle.Reserve or UnitLifecycle.Alive or UnitLifecycle.Dying)
                     || member.Hex.Lifecycle != UnitLifecycle.Reserve && member.Hex.Lifecycle != squad.Hex.Lifecycle
-                    || squad.ParticipatingMembers.Contains(id) != (member.Hex.Lifecycle == UnitLifecycle.Alive))
+                    || squad.ParticipatingMembers.Contains(id) != (member.Hex.Lifecycle == UnitLifecycle.Alive)
+                    || member.TargetKind != squad.TargetKind || member.TargetCity != (squad.TargetKind is SquadTargetKind.Keep or SquadTargetKind.Watchpost
+                        || squad.TargetKind == SquadTargetKind.None && squad.Decision.ObjectiveCity)
+                    || squad.TargetKind is SquadTargetKind.Keep or SquadTargetKind.Watchpost && member.TargetId != squad.TargetId
+                    || squad.TargetKind == SquadTargetKind.None && member.TargetId != squad.Decision.ObjectiveId)
                     throw new ArgumentException("Member projection disagrees with its squad actor.", nameof(state));
             if (squad.Members.Select(id => byId[id].FormationSlot).Distinct().Count() != squad.Members.Length)
                 throw new ArgumentException("Squad members have overlapping formation slots.", nameof(state));
@@ -108,23 +126,41 @@ public static class SnapshotCompatibility
         if (members.Any(m => !state.Squads.Any(s => s.Id == m.SquadId && s.Members.Contains(m.Id))))
             throw new ArgumentException("A persistent member has no squad identity.", nameof(state));
     }
-    private static void RequireProjection(UnitState member, HexBoard board, CombatConfiguration configuration)
+    private static void RequireProjection(UnitState member, SharedArena arena, CombatConfiguration configuration)
     {
+        HexBoard board = arena.Board;
         if (member.Id <= 0 || !Enum.IsDefined(member.Type) || !Enum.IsDefined(member.Faction) || !Enum.IsDefined(member.TargetKind)
             || member.Hex is not { } hex || !Enum.IsDefined(hex.Lifecycle) || !Enum.IsDefined(hex.Action)
             || member.Health < 0 || member.Health > member.Profile.Health || member.Profile.Health <= 0
             || member.Experience < 0 || member.FormationSlot < 0 || member.FormationSlot >= (member.IsBoss ? 1 : configuration.Arena.SquadCapacity)
             || member.Deployed != (hex.Lifecycle is UnitLifecycle.Alive or UnitLifecycle.Dying)
             || member.Decision is not { Route: not null, Visited: not null } || member.Statuses is not { Poison: not null }
-            || member.Statuses.Poison.Any(p => p is null))
+            || member.Statuses.Poison.Any(p => p is null)
+            || hex.Id != member.Id || hex.City != member.Destination || hex.Faction != member.Faction || hex.Size != 1
+            || hex.ActionSequence < 0 || member.AttackSequence < 0 || member.ReadyTick < 0 || member.Cooldown < 0
+            || member.PendingImpact != (hex.Action == UnitActionKind.Windup && hex.Lifecycle == UnitLifecycle.Alive && hex.FrozenTick is null)
+            || hex.Action == UnitActionKind.Windup && (hex.ActionSequence <= 0 || member.AttackSequence <= 0
+                || member.ActionStartTick != hex.StartTick || hex.StartTick < 0 || member.ImpactTick <= hex.StartTick
+                || member.ReadyTick <= member.ImpactTick || hex.EndTick != member.ReadyTick || member.AttackLanded is not null)
+            || hex.HoldsTransit && (hex.ActionSequence <= 0 || hex.StartTick < 0 || hex.EndTick <= hex.StartTick
+                || member.ReadyTick > hex.StartTick || hex.Transition <= 0)
+            || !member.TargetCity && member.TargetKind is SquadTargetKind.Keep or SquadTargetKind.Watchpost)
             throw new ArgumentException("Malformed combat member projection.", nameof(member));
         member.Capabilities.Validate();
         StatusPolicy.Validate(member.Statuses, configuration.Statuses);
-        _ = CombatProjection.Restore(member, member.Profile, member.Decision, 0);
-        if (member.Deployed) RequirePose(new(hex.Position, hex.HoldsTransit ? hex.Destination : default,
+        if (member.Profile != configuration.Unit(member.Type, member.Rank, member.IsBoss, member.Level, member.Capabilities).Runtime())
+            throw new ArgumentException("Invalid authoritative member profile.", nameof(member));
+        if (member.TargetCity) RequireStructureTarget(member.TargetId, member.TargetKind, arena);
+        if (member.Deployed || hex.HoldsTransit) RequirePose(new(hex.Position, hex.HoldsTransit ? hex.Destination : default,
             hex.HoldsTransit ? hex.Transition : 0, hex.Lifecycle == UnitLifecycle.Dying ? hex.FrozenMoveTicks : 0,
             hex.HoldsTransit ? checked((int)(hex.EndTick - hex.StartTick)) : 0), board);
         if (hex.FrozenAim is { } aim) RequirePose(aim, board);
+    }
+    private static void RequireStructureTarget(int id, SquadTargetKind kind, SharedArena arena)
+    {
+        if (kind is not (SquadTargetKind.None or SquadTargetKind.Keep or SquadTargetKind.Watchpost)
+            || !arena.Footprints.Any(f => f.Owner == id && f.Kind == (kind == SquadTargetKind.Watchpost ? ArenaStructureKind.Watchpost : ArenaStructureKind.Keep)))
+            throw new ArgumentException("Invalid structure target reference.");
     }
     private static void RequirePose(HexPosePoint pose, HexBoard board)
     {

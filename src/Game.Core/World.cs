@@ -574,7 +574,7 @@ public sealed class Match : IDisposable
         foreach (int city in active)
         {
             if (!_engagements.TryGetValue(city, out EngagementProgress? progress)) progress = new(city, Tick, Tick, checked(Tick + Configuration.NoHealthProgressTicks));
-            if (healthProgress.Contains(city)) progress = progress with { LastHealthProgressTick = Tick, Deadline = checked(Tick + Configuration.NoHealthProgressTicks) };
+            if (healthProgress.Length > 0) progress = progress with { LastHealthProgressTick = Tick, Deadline = checked(Tick + Configuration.NoHealthProgressTicks) };
             _engagements[city] = progress;
         }
     }

@@ -360,9 +360,9 @@ Click a base Arrow tower to inspect its damage/timing and choose exactly one pai
 | --- | --- | --- | --- | --- |
 | Base Arrow tower (L1) | Existing 4 gold + 3 wood construction | 5 HP | 12 / 60 | Single target, no splash |
 | Rapid arrow tower (L2) | 4 gold + 2 wood + 2 stone upgrade | 7 HP | 6 / 30 | Single target, no splash |
-| Bombard tower (L2 from base Arrow tower) | 4 gold + 2 wood + 2 stone + 1 metal upgrade | 8 HP | 30 / 120 | 8X to one primary and 8Y to every other living member of the selected squad |
+| Bombard tower (L2 from base Arrow tower) | 4 gold + 2 wood + 2 stone + 1 metal upgrade | 8 HP | 30 / 120 | 8X to one primary and 6Y to every other living member of the selected squad |
 
-The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its L1/L2 profiles retain6/8X and6/8Y,30/120timing, with every eligible secondary
+The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its L1/L2 profiles retain 6/8X and 6Y at both levels, with 30/120 timing and every eligible secondary
 member of its selected group hit once. The ordinary L2 upgrade uses the bombard
 payment in the table. Legacy scripted ArrowTower L2 retains7X,12/60timing, X-only;
 native RapidArrowTower/BombardTower have their own frozen profiles and identities.

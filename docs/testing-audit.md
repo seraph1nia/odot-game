@@ -74,6 +74,57 @@ suite, engine, transport, graphical, package and delivery CI remain outer-phase
 work. Initial shim trust refusal occurred before restore; process-scoped
 `MISE_TRUSTED_CONFIG_PATHS` allowed execution without changing global trust.
 
+## Receiving follow-up: partial funding and malformed siblings
+
+`SnapshotReceivingLifecycleTests` adds two Tier A paid-command/ordinary-step
+regressions with seed 1. One verifies reserve identities and released claims
+through the last participant's real death and body expiry. The other uses declared
+long Mage timing to witness another actor killing its committed target, unchanged
+latched aim, nonattacking reserves, and the real missed impact/recovery. Both
+round-trip actual frames through the compressed receiving codec, without seeding
+poses, damage, windups or validation-only casualties. Their custom configuration
+and funded recruitment are not default balance or paid campaign acceptance.
+Existing partial-funding checks stopped at wave entry, and aim tests had no
+reserve members, so they missed these receiving failures. Estimated cost is a
+few seconds of bounded deterministic steps, with no engine or child resources.
+
+`SnapshotPayloadTests` extends the same compressed boundary with every required
+unit/defense timing null, nested rules/board/army/research/campaign nulls, duplicate
+structures, member/body/squad/event structure-target references, event actors,
+forecast ownership/status shape, and inconsistent member profiles/pending flags.
+Expected refusal is recoverable `InvalidDataException` before admission, with
+unchanged authoritative state and a subsequent valid decode still succeeding.
+This does not independently exercise native Welcome or credential persistence;
+Main's existing refusal path retains state/credentials, and decoding still occurs
+before Welcome installs either. No blanket exception suppression or new admission
+framework was added. Broader fast, native, transport and CI gates remain outside
+this focused review phase. Shipped X/Y rules and paid/ranged acceptance are
+unchanged; both current combat specs now describe shared-wave progress,
+not obsolete per-city isolation. `CombatLimitTests` extends its existing numerical
+progress check through fallen-owner redirection: the dead preference's engagement
+is removed, and the remaining active deadlines still refresh globally. Match now
+owns this shared-wave decision directly on any actual health-progress report,
+instead of combat manufacturing a living-owner broadcast for its caller. Movement,
+misses and zero damage still cannot refresh them, and maximum duration is unchanged.
+
+Follow-up local receipt: locked solution restore and changed-file
+`dotnet format Odot.slnx --no-restore --include ...` completed with process-scoped
+mise trust. The focused non-deep core filter selected `SnapshotPayloadTests`,
+`SnapshotReceivingLifecycleTests`, `SharedStateTests`, `SharedCombatTests`,
+`AuthorityCombatTests`, `SessionFlowTests`, `CombatReceivingEncounterTests`,
+`PaidStoredVeteranHistoryTests`, `CombatLimitTests`, `CombatLifecycleTests` and
+`ArmyCommandTests`: 126 passed and two new fixture assumptions failed. The fallen
+preference had already been redirected and removed; the one-owner target-death
+case had reached victory and correctly frozen its windup. After following the
+redirected engagement and using a second ordinary owner/allocation to keep combat
+active, the lifecycle/deadline-only rerun passed all 10 cases (no skips). Evidence:
+`logs/shared-arena-review-followup/receiving-followup.trx` and
+`logs/shared-arena-review-followup/receiving-followup-corrected.trx`. The other
+selected cases passed before these test-only corrections; this is combined
+focused evidence, not a clean whole-suite run. Broader fast, engine, real transport,
+native credentials, graphical, packages and exact-head delivery CI were not run
+in this review phase. Prior failed receipts and paid balance limitations remain.
+
 ## Core groups
 
 Names below are relative to `tests/Game.Core.Tests`; `Tests.cs` suffix is omitted

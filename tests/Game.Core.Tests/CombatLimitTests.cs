@@ -56,13 +56,17 @@ public sealed class CombatLimitTests
         Assert.Equal(cityHealth, match.Players[1].Health); Assert.Equal(unitHealth, match.Enemies.Sum(e => e.Health));
         Assert.False(match.Players[1].Eliminated); Assert.All(match.Enemies, u => Assert.False(u.PendingImpact));
     }
-    [Fact]
-    public void SharedHealthProgressExtendsAllCurrentSectorPressureDeadlines()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedHealthProgressExtendsAllCurrentSectorPressureDeadlines(bool fallenSector)
     {
-        using Match match = Start(2, progress: true);
+        using Match match = Start(fallenSector ? 3 : 2, progress: true);
+        if (fallenSector) match.Players[2].Health = 0;
         CombatFixture.Steps(match, 499);
         Assert.Equal(Phase.Combat, match.Phase);
-        EngagementProgress other = match.Snapshot().Engagements.Single(e => e.City == 2);
+        EngagementProgress other = match.Snapshot().Engagements.Single(e => e.City == (fallenSector ? 1 : 2));
+        if (fallenSector) Assert.DoesNotContain(match.Snapshot().Engagements, e => e.City == 2);
         Assert.True(other.LastHealthProgressTick > 0); Assert.True(other.Deadline > 500);
         match.Step(); Assert.Equal(Phase.Combat, match.Phase); Assert.Null(match.Stall); Assert.Equal(500, match.Tick);
         Assert.All(match.Snapshot().Engagements, e => Assert.True(e.Deadline > 500));

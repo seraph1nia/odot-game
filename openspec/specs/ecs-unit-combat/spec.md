@@ -216,7 +216,7 @@ Lethal member damage SHALL immediately remove that member's contribution and tar
 
 ### Requirement: Validated combat configuration and bounded progression
 
-Squad capacity, connected topology, structure footprints, X/Y and structural damage, ranges, initiative, movement/attack/death timings, status settings and positive fight limits SHALL be validated before combat and frozen for the match. Zero X or Y SHALL be valid; negative values, incompatible legacy boards and unsafe arithmetic SHALL be refused. Every active preferred-sector engagement and wave SHALL have bounded no-health-progress/duration handling. Actual member/structure health reduction SHALL count as progress; movement, misses, zero damage and redirection SHALL not fabricate progress. Normal health defeat or wave completion on a deadline tick SHALL precede stalled defeat. Stalled defeat SHALL preserve surviving health and identify its limit/tick without artificial casualties. Queued actors SHALL not falsely clear a wave.
+Squad capacity, connected topology, structure footprints, X/Y and structural damage, ranges, initiative, movement/attack/death timings, status settings and positive fight limits SHALL be validated before combat and frozen for the match. Zero X or Y SHALL be valid; negative values, incompatible legacy boards and unsafe arithmetic SHALL be refused. The shared wave SHALL have bounded no-health-progress/duration handling. Actual member/structure health reduction anywhere in the arena SHALL refresh every active preferred-sector engagement's progress deadline; movement, misses, zero damage and redirection SHALL not fabricate progress. Normal health defeat or wave completion on a deadline tick SHALL precede stalled defeat. Stalled defeat SHALL preserve surviving health and identify its limit/tick without artificial casualties. Queued actors SHALL not falsely clear a wave.
 
 #### Scenario: Invalid configuration
 - **WHEN** configuration contains a nonpositive action duration, negative channel, duplicate footprint or incompatible legacy size-budget board
@@ -227,13 +227,14 @@ Squad capacity, connected topology, structure footprints, X/Y and structural dam
 - **THEN** normal wave clear wins over the limit if a Keep survives, and all-Keeps-fallen defeat wins if none survives
 
 #### Scenario: Walking cannot extend a stalled battle
-- **WHEN** units continue moving or waiting but their city engagement has no actual health reduction for its configured allowance
+- **WHEN** units continue moving or waiting but the shared arena has no actual health reduction for its configured allowance
 - **THEN** the entire match ends as defeat with a battle-stalled reason at the deterministic deadline
 - **AND** surviving city and unit health are preserved
 
-#### Scenario: Progress elsewhere cannot hide a stuck city
-- **WHEN** one active city makes health progress while another reaches its own no-progress deadline
-- **THEN** the match ends with a battle-stalled reason identifying the stuck city
+#### Scenario: Cross-sector health progress keeps the shared battle active
+- **WHEN** actual member or structure health decreases in one sector while another active preferred-sector engagement has no local impacts
+- **THEN** every active engagement's no-progress deadline refreshes without inventing damage in the other sector
+- **AND** the maximum wave-duration limit remains unchanged
 
 #### Scenario: Final result on a limit tick
 - **WHEN** the last living enemy dies on the same tick that a fight limit would expire and at least one city remains
