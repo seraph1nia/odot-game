@@ -43,9 +43,18 @@ These are the remaining tasks from saved checkpoint `85ebbcc`, not a request to 
 - [x] 6.2 Reconcile `docs/shared-arena.md`, gameplay/sessions/verification and the coverage ledger with the integrated preparation/speed/preview and final profile/art state; verify broken/stale references are corrected, unlanded/fourth-window prose is superseded and measured campaign wins are distinguished from accounting passes.
 - [x] 6.3 Run the coherent changed-source broad fast checks, locked solution build and changed-C# formatting with `dotnet format Odot.slnx --no-restore`; verify all relevant fast rows pass, exact platform skips are disclosed and whitespace/source consistency is clean without repeating already-qualified unchanged inputs.
 - [x] 6.4 Qualify the default bounded headless network cases and relevant fallen-owner active/stored selectors if changed profiles/state invalidate their receipts; verify ordinary paid delivery/retry/resume, protocol15/legacy14/malformed refusal, same-host identity/claims and owned process/runtime cleanup, retaining controlled versus earned distinctions.
-- [ ] 6.5 Run one relevant existing large-battle stress window only if combat/routing changed, and Linux client/server package probes with already installed matching export templates; verify bounded actor/claim/event/resource behavior, exported managed/native/resource identities and headless role independence. Record native Windows results through CI and missing prerequisites/unexecuted platform checks explicitly rather than acquiring tools.
+- [x] 6.5 Run one relevant existing large-battle stress window only if combat/routing changed, and Linux client/server package probes with already installed matching export templates; verify bounded actor/claim/event/resource behavior, exported managed/native/resource identities and headless role independence. Record native Windows results through CI and missing prerequisites/unexecuted platform checks explicitly rather than acquiring tools.
 
 ## 7. Produce one reviewable delivery
 
-- [ ] 7.1 Commit coherent implementation/spec/doc checkpoints on the existing branch and run an owning no-mistakes pipeline (one active run at a time, preserving fixes across any required infrastructure retry) with the actual finishing intent; verify it owns all subsequent fixes/review/tests/docs/push/PR/CI and no competing caller edits or waived failed acceptance occur while active.
-- [ ] 7.2 Hand back the non-draft integrated PR with its exact head and required green checks, concise behavioral/art changes, retained compatibility decisions and honest deferred balance/visual/platform limits; verify no release or merge is inferred from intermediate local passes, and archive only when implementation obligations are complete.
+- [x] 7.1 Commit coherent implementation/spec/doc checkpoints on the existing branch and run an owning no-mistakes pipeline (one active run at a time, preserving fixes across any required infrastructure retry) with the actual finishing intent; verify it owns all subsequent fixes/review/tests/docs/push/PR/CI and no competing caller edits or waived failed acceptance occur while active.
+- [x] 7.2 Hand back the non-draft integrated PR with its exact head and required green checks, concise behavioral/art changes, retained compatibility decisions and honest deferred balance/visual/platform limits; verify no release or merge is inferred from intermediate local passes, and archive only when implementation obligations are complete.
+
+
+Delivery receipts: PR25 was non-draft with source/Linux/Windows/CodeRabbit
+checks green at9b34f38b401e272e312d399da41ec006ebb09faf (owning run
+01M4VZ0HPTR2S73F9N9CKX3BWG, Actions38504242071). This closes the original
+27 implementation/delivery obligations. The late validation-boundary and peer
+barrier follow-up is recorded in docs/testing-audit.md and will receive a fresh
+owning pipeline/CI pass before final handoff; no future descendant is certified
+by this parent receipt. No merge, release or archive was performed.

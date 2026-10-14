@@ -227,7 +227,10 @@ internal sealed partial class Runner
     }
     private async Task Redistribution(int port, CancellationToken token)
     {
-        // Paid shared-arena rescue + exact wire agreement/resume. Old teleport
+        // Paid shared-arena support + exact wire agreement/resume. The third
+        // sector funds an ordinary tower, with no field army or seeded strength.
+        // Uninvested-sector rescue is qualified separately by the four-owner
+        // paid witness, rather than imposed on every transport setup. Old teleport
         // admission and duplicated second-fall choreography are consolidated in
         // deterministic core redirection/spectator tests, not predicted here.
         await using var a = StartGameRole("transfer-a", "playing-host", true, port, null, "--combat-seed", "8");
@@ -281,6 +284,8 @@ internal sealed partial class Runner
         async Task Prepare(Child[] clients, bool firstWave)
         {
             MatchSnapshot before = Latest(a);
+            if (firstWave && before.Turn == 1)
+                await Paid(c, new("build", ArmyConfiguration.PlotOffset, Building.ArrowTower));
             foreach ((int player, EconomyAction action) in CampaignStrategy.RedistributionPreparation(before, a.PlayerId, b.PlayerId))
                 await Paid(player == a.PlayerId ? a : b, action);
             if (!firstWave)
@@ -304,6 +309,8 @@ internal sealed partial class Runner
             && p.LastUpkeep.Funded.Order().SequenceEqual(p.Soldiers.Select(u => u.Id).Order())), "six actually funded opening identities per equipped city");
         CombatContact(initial);
         Require(initial.Players.Single(p => p.Id == thirdId).Soldiers.Length == 0, "third sector has no privately seeded army");
+        Require(initial.Structures.Any(s => s.Owner == thirdId && s.Kind == ArenaStructureKind.ArrowTower),
+            "third sector retains its ordinarily paid defense");
         // Combat publication can skip transient revisions. An ordinary accepted
         // pause gives every peer the same stable receipt before exact comparison.
         MatchSnapshot paused = State(await Action(a, "pause", token));
@@ -315,7 +322,7 @@ internal sealed partial class Runner
         }
         await Action(a, "resume", token);
         MatchSnapshot clear = await Observe(a, s => s.Wave == 2 && s.Phase == Phase.Building, "paid cooperative rescue clear", token);
-        Require(clear.Players.All(p => !p.Eliminated), "paid team protects all three Keeps including uninvested sector");
+        Require(clear.Players.All(p => !p.Eliminated), "paid team protects all three Keeps including the tower-only sector");
         Require(clear.Players.All(city => JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options)
             == JsonSerializer.Serialize(initial.Players.Single(old => old.Id == city.Id).LastUpkeep, WireJson.Options)), "clear retains actual paid battle receipts");
         foreach (Child child in new[] { b, c }) await Observe(child, s => s.Wave == 2 && s.Phase == Phase.Building, "all peers observe rescue clear", token);
@@ -340,7 +347,9 @@ internal sealed partial class Runner
             foreach (Child child in new[] { a, b, observer }) ready = await Action(child, "ready", token);
             MatchSnapshot advanced = State(ready!);
             if (preparation == 2) next = advanced;
-            await Observe(a, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase, "shared preparation synchronized", token);
+            foreach (Child child in new[] { a, b, observer })
+                await Observe(child, s => s.Revision >= advanced.Revision && s.Phase == advanced.Phase
+                    && s.TurnSerial >= advanced.TurnSerial, "shared preparation synchronized", token);
         }
         // Initial allocation belongs to the accepted final Ready receipt. A
         // later bounded-ring snapshot can legitimately contain fewer members.

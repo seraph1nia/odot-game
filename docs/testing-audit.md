@@ -1762,3 +1762,56 @@ outcome is claimed by this review round. Native state/credential installation
 and rendered pixels remain outer Test/CI/explicit graphical qualification scope;
 the codec regressions prove refusal before assignment, not credential persistence
 or transport delivery. Locks, imported assets/provenance and balance are unchanged.
+
+
+### Validated delivery and late reviewer follow-up
+
+No-mistakes run `01M4VZ0HPTR2S73F9N9CKX3BWG` returned `checks-passed`
+for PR25 at `9b34f38b401e272e312d399da41ec006ebb09faf`. All four checks
+passed: source, linux-package, windows-package and CodeRabbit. Required native
+Linux/Windows qualification is in [Actions run38504242071](https://github.com/seraph1nia/odot-game/actions/runs/38504242071).
+The PR is non-draft and unmerged; this is delivery readiness, not a release or
+merge. Pipeline review/Test repaired malformed-selector refusal, empty logical
+actors retained by cosmetic bodies, receiving projection/config/city/forecast
+admission, production route coverage, shared-wave deadlines, truthful contracts,
+real attached-weapon melee proof and ENet departure relay during hosted drain.
+Final ordinary eliminated-resume and same-process host restart passed with engine
+error checking intact; the selected graphical melee checkpoint passed68.87s
+under its unchanged70s bound. Fourteen malformed kinds through actual native
+Welcome and subsequent Snapshot refused before credentials/live state changed.
+Details remain in the owning run's `retry-test-receipt.md`; these are scoped
+receipts, not every journey or four-owner pixels. No Test exception was used.
+
+Late review identified duplicate full validation on locally produced/already
+decoded states and a W2 preparation barrier observing only the first peer.
+`Main.SetState` now consumes trusted local or previously validated remote state;
+`DecodeForReceiving` remains the sole remote admission boundary before Welcome
+credentials or state assignment. Every current remote delivery caller uses it.
+The redistribution helper now awaits each peer's advanced revision/phase/turn
+serial with the original cancellation ownership and deadlines.
+
+The first explicit seed8 redistribution run on the follow-up source failed
+42.68s (`logs/20261014-032835-21c7c8a8`): its two ordinarily funded six-Sword
+armies clearedW1 but the zero-investment third Keep fell before the changed W2
+barrier was exercised. This is not a passing rescue or a synchronization fault.
+This transport fixture now funds one Arrow Tower in that third sector through
+its real published quote, retaining zero field soldiers, seed8, three production
+settlements, stock/payment/identity assertions, all three living Keeps, pause/
+exact wire equality, credential restart and accepted-Ready W2 allocation4/4/4.
+The ordinarily paid, uninvested-sector four-owner rescue and width1..4 campaign
+requirements remain unchanged and separately qualified. No numerical balance,
+grants, extra edit window or seed substitution was introduced. Historical claims
+about this old zero-investment three-owner fixture are superseded for the final
+shared profile, not relabeled as current passes.
+
+`logs/20261014-033705-8aa65f15`: corrected redistribution passed42.95s
+(49.55s with preparation). Changed C# formatting and locked build passed; owned
+children/readers were awaited with engine-error checking retained. New final-tip
+CI must be refreshed after this committed follow-up; the parent delivery evidence
+above does not certify an unpublished descendant.
+
+Final local follow-up fast coverage: `logs/20261014-034029-b57d3339`,694
+core/648 runner passes,57.89s; the same two Windows-native rows skip on Linux.
+Strict OpenSpec change validation and whitespace checks pass. This supplements
+the changed seed8 transport receipt; fresh exact-tip platform CI remains required
+before final delivery.

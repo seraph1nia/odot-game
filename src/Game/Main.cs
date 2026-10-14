@@ -558,7 +558,8 @@ public partial class Main : Node, IGameSession
     }
     private void SetState(MatchSnapshot? state)
     {
-        if (state is not null) SnapshotCompatibility.RequireSharedArena(state);
+        // Authority snapshots are trusted; remote delivery is validated once in
+        // DecodeForReceiving before credentials or presentation state can change.
         if (State?.MatchId != state?.MatchId) _actionCues.Clear(state?.MatchId ?? "");
         State = state;
         Timing?.Record("state-applied", state);

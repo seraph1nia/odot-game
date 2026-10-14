@@ -289,3 +289,14 @@ Dense overview labels can overlap; close inspection provides precise individual
 health/service/equipment. Four-owner resource/layout coverage is headless native,
 not rendered four-owner acceptance. Software OpenGL/private display samples do
 not establish GPU performance or every composition's readability.
+
+
+The explicit seed8 redistribution transport fixture now uses two paid six-Sword
+armies and a third sector with one ordinarily funded Arrow Tower and no field
+soldiers. The old zero-investment third sector lost its Keep under the final
+profile; that failure is retained in the audit. This fixture qualifies paid wire
+agreement/resume and next allocation, while uninvested-sector earned rescue is
+established by the separate four-owner witness. Full compatibility validation
+occurs once at remote decoding, before credential/state installation; trusted
+authority publication uses the same presentation setter without rebuilding
+configuration and claims on every publish.
