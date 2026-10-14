@@ -344,7 +344,7 @@ internal sealed partial class Runner
         "combat-playback" => "Selected fixed-input runtime measurement of normal playback/views; owned 600-frame replay, no default-suite or large graphical fight",
         "combat" => "Explicit rendered combat acceptance: pose, contact, camera/bar projection, inspection and casualty cleanup. Pure core tests protect numerical combat; headless animation tests protect imported rigs. Research is a separate --checkpoint research, never appended to combat's remaining deadline.",
         "economy" => "Default single-application build/recruit smoke, no battles. --checkpoint deep explicitly retains the legacy paid economy journey; calculations, upgrades, sale, recruitment and research are already asserted in core tests.",
-        "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or badges.",
+        "reconnect" => "Local camera retention/disconnected inspection and restored world picking; no extra setup. Overhead bar reconstruction/fractions without duplicates, current baseline without historical cues, visible recovery control and retained presentation/identity. Active research/status restoration through the same control is also asserted by the selectable combat/research checkpoint; headless resume cannot exercise the button or inspection.",
         "settings" => "Camera HUD/modal/consumed-key priority and interrupted holds/window focus; owned input/probe waits in existing setup. Kit tabs/dialog/dropdown/slider styling and focus; modal input leakage and preference isolation/persistence; numerical rules tests cannot observe the UI.",
         "launcher" => "Default one owned offline menu/solo/build/recruit/return/Exit smoke with one PNG. --checkpoint deep retains the legacy multi-feature native menu journey, including woodland native panel/button resources, text controls and modal/focus/scrolling bindings. Headless settings covers actual persisted volume/graphics and signal wiring without application startup.",
         "exported-package" => "Explicit existing-package graphical menu/solo/build/recruit/return/Exit smoke; source component tests cannot establish final rendered package behavior or woodland resource inclusion. --checkpoint deep retains the legacy packed journey.",
@@ -650,7 +650,7 @@ internal sealed partial class Runner
                 HealthBars(restored);
                 foreach (HealthBarObservation bar in restored.HealthBars)
                 {
-                    UnitState expected = CombatPlayback.All(State(resumed)).Single(u => u.Id == bar.Id);
+                    UnitState expected = CombatPlayback.All(State(resumed)).Concat(State(resumed).DyingBodies).Single(u => u.Id == bar.Id);
                     Require(bar.Current == expected.Health && bar.Maximum == expected.Profile.Health && bar.Fraction == PresentationLimits.HealthFraction(expected.Health, expected.Profile.Health), "reconnect reconstructs current authoritative health fraction");
                 }
                 Require(restored.Units.All(u => u.EffectSequence == 0) && restored.Effects.Active == 0 && restored.Effects.Voices == 0, "reconnect baselines current poses without historical effects");
