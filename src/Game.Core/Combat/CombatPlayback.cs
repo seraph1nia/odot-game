@@ -9,7 +9,7 @@ public sealed class CombatPlayback
         get => _work;
         set { _work = value; value?.Support(WorkMetric.PlaybackIndexBuilds, WorkMetric.PlaybackEventVisits, WorkMetric.Sorts, WorkMetric.SortElements); }
     }
-    private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById, Dictionary<int, long> RallyUntil);
+    private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById, Dictionary<int, long> RallyUntil, StructureState[] Structures);
     private AcceptedState? _current;
     private readonly List<AcceptedState> _frames = [];
     private int[] _ids = [];
@@ -96,9 +96,30 @@ public sealed class CombatPlayback
             }
         return sampled;
     }
+    public StructureState[] Structures()
+    {
+        if (_current is null) return [];
+        return _current.Structures.Select(structure =>
+        {
+            int health = structure.Health;
+            long destroyed = structure.DestroyedTick;
+            foreach (CombatEvent entry in _pending.Reverse())
+                if (entry.Tick > Tick && entry.Structure is { } hit && hit.Owner == structure.Owner && hit.Kind == structure.Kind && hit.Slot == structure.Slot
+                    && entry.Type is CombatEventType.StructureHit or CombatEventType.StructureDestroyed)
+                { health += entry.Damage; destroyed = 0; }
+            bool awaitingElimination = _pending.Any(e => e.Tick > Tick && e.Type == CombatEventType.StructureDestroyed
+                && e.Structure is { Kind: ArenaStructureKind.Keep } keep && keep.Owner == structure.Owner);
+            bool active = awaitingElimination ? _frames[0].Structures.FirstOrDefault(s => s.Owner == structure.Owner && s.Kind == structure.Kind && s.Slot == structure.Slot)?.Active ?? structure.Active : structure.Active;
+            return structure with { Health = health, DestroyedTick = destroyed, Active = active };
+        }).ToArray();
+    }
     private UnitState[] HexUnits()
     {
         var sampled = new List<UnitState>(_ids.Length);
+        var futureDamage = new Dictionary<int, int>();
+        foreach (CombatEvent entry in _pending)
+            if (entry.Tick > Tick && entry.Type == CombatEventType.Hit && entry.Unit is { } hit)
+                futureDamage[hit.Id] = futureDamage.GetValueOrDefault(hit.Id) + entry.Damage;
         foreach (int id in _ids)
         {
             UnitState? selected = null;
@@ -118,7 +139,16 @@ public sealed class CombatPlayback
                 selected = unit;
             }
             if (selected is not null && (selected.Hex is not { Lifecycle: UnitLifecycle.Dying } death || Tick < death.DeathEndTick))
-                sampled.Add(CombatProjection.Detach(selected));
+            {
+                // Snapshots can arrive ahead of presentation. Undo only future
+                // authoritative hits, using their effective damage, so a bar
+                // and its rig agree even before a lethal boundary is sampled.
+                UnitState? latest = _current!.ById.GetValueOrDefault(id);
+                int damage = futureDamage.GetValueOrDefault(id);
+                int health = latest is null || damage == 0 && latest.Hex?.Lifecycle == UnitLifecycle.Dying && selected.Hex?.Lifecycle != UnitLifecycle.Dying
+                    ? selected.Health : latest.Health + damage;
+                sampled.Add(CombatProjection.Detach(selected with { Health = health }));
+            }
         }
         return sampled.ToArray();
     }
@@ -129,7 +159,7 @@ public sealed class CombatPlayback
             .OrderBy(u => u.Id).Select(u => CombatProjection.Detach(u)).ToArray();
         return new(state.MatchId, state.Revision, state.Tick, state.Paused,
             state.Phase == Phase.Combat ? CombatSpeedRates.Factor(state.CombatSpeed) : 1, ordered, ordered.ToDictionary(u => u.Id),
-            state.Squads.ToDictionary(s => s.Id, s => s.RallyDisruptedUntil));
+            state.Squads.ToDictionary(s => s.Id, s => s.RallyDisruptedUntil), state.Structures.ToArray());
     }
     public bool AwaitingDeath(int id) => _pendingDeaths.ContainsKey(id);
     public static double DeathPose(UnitState unit, double tick, double clipLength)

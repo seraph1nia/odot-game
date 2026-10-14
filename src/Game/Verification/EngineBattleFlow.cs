@@ -81,7 +81,7 @@ public partial class EngineTests
                 view.Sample(unit, 0, 0, 1, layout, states);
             }
             await Frames();
-            Check(views.All(v => v.Visible && v.Clip == "idle" && v.StatusBadge.Contains("NEXT", StringComparison.Ordinal))
+            Check(views.All(v => v.Visible && v.Clip == "idle" && v.StatusBadge.Length == 0 && v.FindChildren("*", "Label3D", true, false).Count == 0)
                 && views.Select(v => v.Position).Distinct().Count() == views.Count,
                 "actual imported enemy rigs form distinct idle read-only next-wave figures");
             UnitView first = views[0];

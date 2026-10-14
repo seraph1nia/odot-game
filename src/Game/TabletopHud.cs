@@ -127,6 +127,7 @@ public partial class Tabletop
         _upkeepValue.SizeFlagsHorizontal = _balanceValue.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
         foreach (Label label in new[] { _upkeepLabel, _upkeepValue, _balanceLabel, _balanceValue }) label.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspector = new UnitInspector(game, CanEdit); root.AddChild(_inspector);
+        _healthBars = new MemberHealthBars(_healthRoot);
         _homeHealth = new HomeHealthBar(); _healthRoot.AddChild(_homeHealth);
         _panel = new PanelContainer { Name = "BottomPanel", CustomMinimumSize = new(0, 180), MouseFilter = Control.MouseFilterEnum.Stop, GrowVertical = Control.GrowDirection.Begin };
         root.AddChild(_panel); _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide); _panel.OffsetTop = -180;

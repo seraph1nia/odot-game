@@ -259,6 +259,43 @@ public sealed class CombatPlaybackTests
         Assert.Equal(corrected, Assert.Single(playback.Units()));
         playback.Accept(State(1006, 56, 0)); playback.Advance(.05, true); Assert.Empty(playback.Units());
     }
+    // Tier A: bars must not anticipate nonlethal/lethal health changes. Real
+    // effective Hit/StructureHit payloads, overlapping revisions, drains and
+    // reset boundaries exercise playback policy without an engine journey.
+    [Fact]
+    public void HealthWaitsForBufferedImpactsAndResetsWithBaseline()
+    {
+        UnitState member = new(1, 1300, 0, 1, 1)
+        { Hex = new(1, 1, Faction.Skeletons, UnitLifecycle.Alive, new(11, 1)) };
+        StructureState post = new(1, ArenaStructureKind.Watchpost, -1, 20, 1000, 1000);
+        StructureState keep = new(1, ArenaStructureKind.Keep, -1, 21, 2000, 2000);
+        var playback = new CombatPlayback();
+        playback.Accept(State(1, 0, 0) with { Enemies = [member], Structures = [post, keep] });
+        UnitState wounded = member with { Health = 900 };
+        StructureState damaged = post with { Health = 600 };
+        CombatEvent[] hits = [new(1, 2, CombatEventType.Hit, wounded) { Damage = 400 },
+            new(2, 2, CombatEventType.StructureHit, null) { Structure = damaged, Damage = 400 }];
+        playback.Accept(State(2, 3, 2, hits) with { Enemies = [wounded], Structures = [damaged, keep] });
+        Assert.Equal(1300, Assert.Single(playback.Units()).Health);
+        Assert.Equal(1000, playback.Structures()[0].Health);
+        playback.Advance(1 / 60.0, true);
+        Assert.Equal(1, playback.Tick); Assert.Equal(1300, Assert.Single(playback.Units()).Health);
+        playback.Advance(1 / 60.0, true);
+        Assert.Equal(2, playback.Tick); Assert.Equal(900, Assert.Single(playback.Units()).Health);
+        Assert.Equal(600, playback.Structures()[0].Health); Assert.Equal(2, playback.Drain().Length);
+        Assert.Equal(900, Assert.Single(playback.Units()).Health); Assert.Equal(600, playback.Structures()[0].Health);
+        StructureState fallen = keep with { Health = 0, DestroyedTick = 4, Active = false };
+        CombatEvent[] all = [.. hits, new(3, 4, CombatEventType.StructureDestroyed, null) { Structure = fallen, Damage = 2000 }];
+        playback.Accept(State(3, 5, 3, all) with { Enemies = [wounded], Structures = [damaged with { Active = false }, fallen] });
+        Assert.True(playback.Structures()[0].Active); Assert.True(playback.Structures()[1].Active);
+        Assert.Equal(2000, playback.Structures()[1].Health);
+        playback.Advance(2 / 60.0, true);
+        Assert.Equal(4, playback.Tick); Assert.True(playback.Structures()[1].Destroyed); Assert.False(playback.Structures()[0].Active);
+        playback.Accept(State(4, 5, 3, all, paused: true) with { Enemies = [wounded], Structures = [damaged, fallen] }, baseline: true);
+        Assert.Equal(900, Assert.Single(playback.Units()).Health); Assert.True(playback.Structures()[1].Destroyed); Assert.Empty(playback.Drain());
+        playback.Accept(State(1, 0, 0, match: "replacement"));
+        Assert.Empty(playback.Structures()); Assert.Empty(playback.Units());
+    }
     private static UnitState Corpse() => new(1, 0, 0, 1, 1)
     {
         Type = UnitType.Crossbowman,
