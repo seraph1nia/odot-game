@@ -5,6 +5,40 @@ namespace Game.Core.Tests;
 
 public sealed class ArmyCommandTests
 {
+    [Theory]
+    [InlineData("recruit")]
+    [InlineData("regroup-member")]
+    [InlineData("send")]
+    [InlineData("store")]
+    public void MalformedSquadSelectorsRejectLocalAndRemoteRequestsWithoutMutationOrLostRetries(string action)
+    {
+        foreach (bool remote in new[] { false, true })
+        {
+            using var authority = new AuthoritySession(remote ? AuthorityPolicy.Dedicated : AuthorityPolicy.Solo,
+                new Rules { StartingGold = 100, StartingWood = 100 });
+            int player = remote ? authority.Admit(2, WireJson.ProtocolVersion, "", 0).PlayerId : authority.LocalPlayerId;
+            long sequence = 0; ulong time = 0;
+            Command Request(string name, int slot = -1, Building building = Building.Empty, int unit = 0, int squad = 0)
+                => Command.FromSnapshot(authority.Snapshot(), ++sequence, name, player, slot, building, unitId: unit, squadId: squad);
+            CommandResult Send(Command command) => remote
+                ? authority.Request(2, JsonSerializer.Serialize(command, WireJson.Options), time += 1000)!
+                : authority.RequestLocal(JsonSerializer.Serialize(command, WireJson.Options));
+            void Act(string name, int slot = -1, Building building = Building.Empty, int unit = 0)
+                => Assert.True(Send(Request(name, slot, building, unit)).Accepted);
+            Act("start"); Act("build", 0, Building.Barracks); Act("build", 2, Building.MetalMine); Act("build", 3, Building.Stonecutter);
+            Act("ready"); Act("ready"); Act("build", 1, Building.TownHall); Act("recruit", 0);
+            int unit = authority.Snapshot().Players[0].Soldiers.Single().Id;
+            if (action == "send") Act("store", 1, unit: unit);
+            Command malformed = Request(action, action is "send" or "store" ? 1 : 0, unit: unit, squad: -2);
+            string before = JsonSerializer.Serialize(authority.Snapshot(), WireJson.Options);
+            CommandResult rejected = Send(malformed);
+            Assert.False(rejected.Accepted);
+            Assert.Equal(rejected, Send(malformed));
+            Assert.Equal(before, JsonSerializer.Serialize(authority.Snapshot(), WireJson.Options));
+            Assert.True(Send(malformed with { Sequence = ++sequence, SquadId = 0 }).Accepted);
+        }
+    }
+
     [Fact]
     public void CompletedPaidStoredVeteranSurvivesWireResumeAndReadyRetriesWithoutExtraRecovery()
     {

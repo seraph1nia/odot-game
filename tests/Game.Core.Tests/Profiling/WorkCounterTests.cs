@@ -24,8 +24,9 @@ public sealed class WorkCounterTests
         match.Combat.Create(UnitType.Mage, 0, 1, 1, Faction.Skeletons);
         work.Reset(); Assert.Equal(2, match.Combat.Snapshot().Length);
         Assert.Equal(1, work.Snapshot()[WorkMetric.WorldViews]); Assert.Equal(2, work.Snapshot()[WorkMetric.UnitVisits]);
-        Assert.Equal(2, work.Snapshot()[WorkMetric.UnitProjections]); Assert.Equal(1, work.Snapshot()[WorkMetric.Sorts]);
-        Assert.Equal(0, work.Snapshot()[WorkMetric.RangeCandidates]);
+        Assert.Equal(2, work.Snapshot()[WorkMetric.UnitProjections]);
+        // Retired individual-ranking counters are unavailable, not fictional zero.
+        Assert.Null(work.Snapshot()[WorkMetric.Sorts]); Assert.Null(work.Snapshot()[WorkMetric.RangeCandidates]);
     }
     [Fact]
     public void KnownTwoCellSearchAndCodecSitesHaveCheckableCounts()
@@ -35,7 +36,7 @@ public sealed class WorkCounterTests
         var board = new HexBoard(HexBoardDefinition.Default());
         var search = new HexReachability(board, 1, cell => cell == 2, work);
         Assert.Equal(2, search.Distances.Count); Assert.Equal(1, search.Distances[2]);
-        Assert.Equal(1, work.Snapshot()[WorkMetric.BfsSearches]); Assert.Equal(2, work.Snapshot()[WorkMetric.BfsDequeues]); Assert.Equal(7, work.Snapshot()[WorkMetric.BfsEdges]);
+        Assert.Equal(1, work.Snapshot()[WorkMetric.BfsSearches]); Assert.Equal(2, work.Snapshot()[WorkMetric.BfsDequeues]); Assert.Equal(board.Cell(1).Neighbors.Count + board.Cell(2).Neighbors.Count, work.Snapshot()[WorkMetric.BfsEdges]);
         using var match = new Match(combatSeed: 1);
         MatchSnapshot snapshot = match.Snapshot();
         string payload = Game.SnapshotPayload.Encode(snapshot, work);

@@ -2,14 +2,15 @@
 
 ## Battlefield framing
 
-`BattlefieldFrame` derives presentation content from every authority combat cell
-and formation anchor, all nine buildable plots, home/defender silhouettes and
-actual building bounds. It retains upgraded-roof allowance and does not alter
-Game.Core topology, army/enemy allocation, routes, selection or economy. The
-former padded X/Z box is replaced by this narrower content box. Camera fitting
-still reserves the right-side HUD/inspection lane and bottom HUD.
+Settlement framing uses `BattlefieldFrame` to fit the nine buildable plots,
+army homes, next-wave preview, home/defender silhouettes and actual building
+bounds, retaining upgraded-roof allowance. This content box replaces the former
+padded X/Z box without altering Game.Core topology, allocation, routes, selection
+or economy. The connected combat/deployment view has a separate content owner;
+see [shared-arena framing and presentation](shared-arena.md#native-presentation).
+Camera fitting reserves the right-side HUD/inspection lane and bottom HUD.
 
-The battlefield's passive terrain now covers a fixed content-derived region,
+The settlement's passive terrain covers a fixed content-derived region,
 not a growing camera-footprint plus double-travel envelope. A separate opaque,
 unshaded grey perimeter uses continuous exterior slabs and overlapping cloud
 lobes, independently of renderer, weather and atmospheric-effects preferences.
@@ -17,7 +18,7 @@ Outside decorative scatter is excluded; the four magical accents remain inside
 real compact terrain and the existing accent rig refreshes their moved sites.
 No artwork was imported or edited; the pinned assets and provenance remain intact.
 
-All navigation paths share a clamp: full native projection at ground/roof heights
+All settlement navigation paths share a clamp: full native projection at ground/roof heights
 must stay within the perimeter envelope, the view-center ground point must stay
 inside the cloud bank, and local travel stays bounded. Resize/HUD/content refits
 rebuild that envelope. Zoom-out stops at the fitted overview, rather than exposing

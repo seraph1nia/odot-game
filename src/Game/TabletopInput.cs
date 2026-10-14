@@ -66,6 +66,7 @@ public partial class Tabletop
     }
     private void SelectAt(Vector2 point)
     {
+        if (InArena) { SelectArena(point); return; }
         UnitView? unit = PickUnit(point);
         if (unit is not null) { _inspector.Select(unit.State); return; }
         SelectPlot(Pick(point));

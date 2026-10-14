@@ -56,6 +56,7 @@ public partial class Main : Node, IGameSession
     private string _host = "127.0.0.1";
     private string _bind = "127.0.0.1";
     private ulong? _combatSeed;
+    private string? _receivingEncounter;
     private long _localSequence = 1;
     private ulong _lastBroadcast;
     private VerificationPacing _pacing = new(null, null, null);
@@ -167,6 +168,7 @@ public partial class Main : Node, IGameSession
                 case "--protocol-version": _version = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--connect-timeout-ms": _connectionTimeout = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--combat-seed": _combatSeed = ulong.Parse(Value(), NumberStyles.None, CultureInfo.InvariantCulture); break;
+                case "--controlled-receiving-encounter": _receivingEncounter = Value(); break;
                 case "--automated": _automated = true; break;
                 case "--simulation-speed": simulationSpeed = int.Parse(Value(), CultureInfo.InvariantCulture); break;
                 case "--supervised": _supervised = true; break;
@@ -181,6 +183,10 @@ public partial class Main : Node, IGameSession
                 default: throw new ArgumentException($"Unknown game argument: {args[i]}");
             }
         }
+        if (_receivingEncounter is not null && (!_supervised || !_pacing.Owned || DisplayServer.GetName() != "headless"
+            || role != SessionRole.PlayingHost || _bind != "127.0.0.1" || _combatSeed != 1
+            || _receivingEncounter is not ("fallen-field" or "protected-field" or "fallen-stored" or "protected-stored")))
+            throw new ArgumentException("Controlled receiving encounter requires an owned supervised headless loopback playing host, seed 1 and a named fixed case.");
         if (simulationSpeed != 1 && !_pacing.Configure(simulationSpeed, role != SessionRole.Guest))
             throw new ArgumentException("Simulation pacing requires an owned verification authority.");
         if (_port is < 1 or > 65535 || _connectionTimeout <= 0) throw new ArgumentException("Invalid port or timeout.");
@@ -467,7 +473,7 @@ public partial class Main : Node, IGameSession
     private void Welcome(int player, string token, string json, bool mayStart, int hostPlayerId, string attempt)
     {
         if (_role != SessionRole.Guest || _finished || attempt != _attempt || !FromAuthority()) return;
-        MatchSnapshot state = SnapshotPayload.Decode(json)!;
+        if (!TryReceiveState(json, out MatchSnapshot? state)) return;
         if (_expectedNativeMatch is not null && state.MatchId != _expectedNativeMatch)
         { FailConnection("connection-failed", "The invited match has ended or changed. Request a new invitation."); return; }
         if (_session?.Value is { } previous && previous.MatchId != state.MatchId)
@@ -483,6 +489,7 @@ public partial class Main : Node, IGameSession
         int peer = Multiplayer.GetRemoteSenderId();
         CommandResult? result = _authority.Request(peer, json, Time.GetTicksMsec());
         if (result is null) return;
+        ConfigureReceivingEncounter();
         MatchSnapshot state = _authority.Snapshot(); SetState(state);
         RpcId(peer, MethodName.Acknowledged, JsonSerializer.Serialize(result, WireJson.Options), SnapshotPayload.Encode(state));
         PublishState(force: true);
@@ -492,7 +499,7 @@ public partial class Main : Node, IGameSession
     {
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
         Timing?.Record("ack-rpc-receive", State, OwnedTimingTrace.Digest(state));
-        MatchSnapshot? received = SnapshotPayload.Decode(state);
+        if (!TryReceiveState(state, out MatchSnapshot? received)) return;
         Timing?.Record("ack-decode-complete", received, OwnedTimingTrace.Digest(state));
         if (received is null || State is null || received.MatchId != State.MatchId) return;
         // Snapshots on channel 1 may overtake a channel 0 acknowledgment. Keep the
@@ -506,9 +513,15 @@ public partial class Main : Node, IGameSession
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable, TransferChannel = 1)]
     private void Snapshot(string json)
     {
+        Timing?.Record("snapshot-rpc-admission", State, info: new { Role = _role, Connected, Sender = Multiplayer.GetRemoteSenderId(), Authority = FromAuthority(), Characters = json.Length });
         if (_role != SessionRole.Guest || !Connected || !FromAuthority()) return;
         Timing?.Record("snapshot-rpc-receive", State, OwnedTimingTrace.Digest(json));
-        if (AcceptState(json) && (_automated || _supervised)) Emit(new("snapshot", Multiplayer.GetUniqueId(), State, PlayerId: PlayerId));
+        if (AcceptState(json) && (_automated || _supervised))
+        {
+            Timing?.Record("snapshot-observer-emit-begin", State);
+            Emit(new("snapshot", Multiplayer.GetUniqueId(), State, PlayerId: PlayerId));
+            Timing?.Record("snapshot-observer-emit-end", State);
+        }
     }
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void SessionEnded(string matchId, string message)
@@ -517,28 +530,49 @@ public partial class Main : Node, IGameSession
         FailConnection("session-ended", message);
         if (Application is not null) ReturnToMenu(message);
     }
+    private bool TryReceiveState(string payload, out MatchSnapshot state)
+    {
+        try { state = SnapshotPayload.DecodeForReceiving(payload); return true; }
+        catch (System.IO.InvalidDataException error)
+        {
+            state = null!;
+            FailConnection("connection-failed", error.Message);
+            return false;
+        }
+    }
     private bool AcceptState(string json)
     {
-        MatchSnapshot? state = SnapshotPayload.Decode(json);
+        if (!TryReceiveState(json, out MatchSnapshot? state)) return false;
         Timing?.Record("snapshot-decode-complete", state, OwnedTimingTrace.Digest(json));
-        if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision))) return false;
-        SetState(state); return true;
+        if (state is null || (State is not null && (state.MatchId != State.MatchId || state.Revision < State.Revision)))
+        {
+            Timing?.Record("snapshot-state-refused", state, info: new { CurrentMatch = State?.MatchId, CurrentRevision = State?.Revision });
+            return false;
+        }
+        try { SetState(state); return true; }
+        catch (ArgumentException error)
+        {
+            Timing?.Record("snapshot-apply-refused", state, info: new { Error = error.GetType().Name, error.Message });
+            Feedback = error.Message; return false;
+        }
     }
     private void SetState(MatchSnapshot? state)
     {
+        // Authority snapshots are trusted; remote delivery is validated once in
+        // DecodeForReceiving before credentials or presentation state can change.
         if (State?.MatchId != state?.MatchId) _actionCues.Clear(state?.MatchId ?? "");
         State = state;
         Timing?.Record("state-applied", state);
         if (state is not null) StateChanged?.Invoke(state);
     }
     private long ReserveSequence() => _authority is not null ? _localSequence++ : _session!.Reserve();
-    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0)
+    public long SendAction(string action, int slot = -1, Building building = Building.Empty, int city = 0, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, Game.Core.Resource resource = Game.Core.Resource.Wood, int bundles = 0, ConstructionPayment payment = ConstructionPayment.Standard, int unitId = 0, int squadId = 0, int cell = 0)
     {
         if (!Connected || State is null) return 0;
         long sequence = ReserveSequence();
         int owner = city == 0 ? PlayerId : city;
         Command request = Command.FromSnapshot(State, sequence, action, owner, slot, building, soldierType,
-            technology, resource, bundles, payment, unitId);
+            technology, resource, bundles, payment, unitId, squadId, cell);
         _sent[sequence] = request;
         SendRequest(request); return sequence;
     }
@@ -549,6 +583,7 @@ public partial class Main : Node, IGameSession
     }
     private void AcknowledgeLocal(CommandResult result)
     {
+        ConfigureReceivingEncounter();
         Feedback = result.Message; SetState(_authority!.Snapshot()); QueueCue(result);
         Emit(new("ack", 1, State, result.Message, PlayerId, result));
         PublishState(force: true);
@@ -571,6 +606,7 @@ public partial class Main : Node, IGameSession
             _pacing.Run(() =>
             {
                 Phase before = _authority.Phase;
+                ConfigureReceivingEncounter();
                 _authority.Advance(delta);
                 if (_authority.Phase != before) PublishState(force: true);
             }, () => _authority.Paused);
@@ -578,6 +614,15 @@ public partial class Main : Node, IGameSession
         }
         else if (_role == SessionRole.Guest && !Connected && Status == "Connecting" && Time.GetTicksMsec() - _started > (ulong)_connectionTimeout)
             FailConnection("connection-failed", "Connection deadline expired.");
+    }
+
+    private void ConfigureReceivingEncounter()
+    {
+        if (_receivingEncounter is not null && _authority!.ConfigureReceivingEncounter(_receivingEncounter))
+            Emit(new("controlled-encounter", State: _authority.Snapshot(), Message: _receivingEncounter +
+                (_receivingEncounter.EndsWith("stored", StringComparison.Ordinal)
+                    ? ": paid service/Hall members retained; controlled original enemy roster / physical poses / Keep threshold; NOT default paid campaign outcome."
+                    : ": explicit synthetic tower materials / member wound / physical poses / Keep health; numerical transport only.")));
     }
 
     private void PublishState(bool force)
@@ -591,8 +636,9 @@ public partial class Main : Node, IGameSession
         {
             Timing?.Record("authority-encode-begin", state);
             string payload = SnapshotPayload.Encode(state);
-            Timing?.Record("authority-publish", state, OwnedTimingTrace.Digest(payload));
-            Rpc(MethodName.Snapshot, payload);
+            Timing?.Record("authority-publish", state, OwnedTimingTrace.Digest(payload), new { Characters = payload.Length, Peers = Multiplayer.GetPeers() });
+            Error result = Rpc(MethodName.Snapshot, payload);
+            Timing?.Record("authority-send-result", state, info: new { Result = result });
         }
         if (Connected && (_automated || _supervised)) Emit(new("snapshot", 1, State, PlayerId: PlayerId));
     }
@@ -680,14 +726,16 @@ public partial class Main : Node, IGameSession
                 case "upgrade":
                 case "upgrade-capacity":
                 case "upgrade-healing": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
+                case "deploy-squad": SendAction(parts[0], squadId: int.Parse(parts[1], CultureInfo.InvariantCulture), cell: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
+                case "regroup-member": SendAction(parts[0], unitId: int.Parse(parts[1], CultureInfo.InvariantCulture), squadId: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
                 case "retire": SendAction(parts[0], unitId: int.Parse(parts[1], CultureInfo.InvariantCulture)); break;
                 case "store":
-                case "send": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), unitId: int.Parse(parts[2], CultureInfo.InvariantCulture)); break;
+                case "send": SendAction(parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), unitId: int.Parse(parts[2], CultureInfo.InvariantCulture), squadId: parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 case "trade": SendAction("trade", int.Parse(parts[1], CultureInfo.InvariantCulture), resource: Enum.Parse<Game.Core.Resource>(parts[2], true), bundles: int.Parse(parts[3], CultureInfo.InvariantCulture)); break;
                 case "research-tech":
                     if (!TechnologyIds.TryParse(parts[1], out TechnologyId technology)) throw new ArgumentException("Unknown technology.");
                     SendAction("research-tech", technology: technology); break;
-                case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman); break;
+                case "recruit": SendAction("recruit", int.Parse(parts[1], CultureInfo.InvariantCulture), soldierType: parts.Length > 2 ? Enum.Parse<UnitType>(parts[2], true) : UnitType.Swordsman, squadId: parts.Length > 3 ? int.Parse(parts[3], CultureInfo.InvariantCulture) : 0); break;
                 default: SendAction(parts[0]); break;
             }
         }
@@ -828,6 +876,12 @@ public partial class Main : Node, IGameSession
 
     private async Task DrainHostedPeer(MultiplayerPeer peer)
     {
+        // Guests only need the queued SessionEnded, not each other's departure.
+        // ENet can reset several peers before emitting the first disconnect;
+        // SceneMultiplayer's relay would then send to a zero-channel zombie.
+        SceneMultiplayer? scene = Multiplayer as SceneMultiplayer;
+        bool relay = scene?.ServerRelay == true;
+        if (scene is not null) scene.ServerRelay = false;
         ulong deadline = Time.GetTicksMsec() + (ulong)_connectionTimeout;
         do
         {
@@ -837,6 +891,7 @@ public partial class Main : Node, IGameSession
             && Multiplayer.GetPeers().Length != 0 && Time.GetTicksMsec() < deadline);
         ResetRpcNode();
         Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); peer.Close(); peer.Dispose();
+        if (scene is not null) scene.ServerRelay = relay;
         _drainingPeer = null;
         Action? next = _afterDrain; _afterDrain = null;
         if (_exiting) FinishExit(); else next?.Invoke();

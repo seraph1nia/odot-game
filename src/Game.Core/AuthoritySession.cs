@@ -18,7 +18,7 @@ public sealed class AdmissionResult(bool accepted, bool ignored, int playerId, s
 }
 
 // Used only by an authority on its application thread; guests consume snapshots.
-public sealed class AuthoritySession : IDisposable
+public sealed partial class AuthoritySession : IDisposable
 {
     private readonly Match _match;
     private readonly Dictionary<int, int> _bindings = [];

@@ -15,11 +15,15 @@ Gameplay controls and concrete values are in
   the legacy wire alias and explicit upgrade action.
 - `ArmyConfiguration` owns placement order, quotes and projections. Production
   recruit/Send paths pass the actual per-plot ownership/type array; arbitrary
-  purchase order never becomes first-fit order. A tower consumes the whole six
-  persistent roster spots. This is not a new combat-terrain reservation rule.
-- `CombatConfiguration`, existing DefenseActor/CombatSimulation and victim
-  selection own timing, actual radius damage, resistance, target filtering and
-  attribution. No cosmetic projectile applies numerical damage.
+  purchase order never becomes first-fit order. [Gameplay's army-home and tower
+  contract](gameplay.md#defense-towers-on-army-plots) owns whole-home exclusion
+  and the distinction between persistent sale eligibility and cleanup-time
+  physical footprints.
+- `CombatConfiguration`, DefenseActor/CombatSimulation and `SquadDamage` own
+  timing, within-target-group X/Y damage, resistance, target filtering and
+  attribution. Rapid arrows contribute X only; Catapult/Bombard contribute X/Y
+  to one selected squad, without cross-hex splash or victim caps. No cosmetic
+  projectile applies numerical damage.
 - Production `ArmyPlotView`, Tabletop selection/picking/inspection/action
   bindings and snapshots expose the changes. Artwork is the existing main
   arrow/bombard/plinth palette; no source asset bytes, dependencies or locks
@@ -33,7 +37,22 @@ paid-capacity, tower-path, legacy-profile and refund rules and concrete values.
 legacy aliases and configuration/decision identity. This batch receipt records
 causal evidence and executed scope rather than a second current rule table.
 
-## Causal diagnosis — retained failures, not refreshed goldens
+Current shared-squad rules are **combat 7 / protocol 15**. `UnitTiming`,
+`DefenseTiming`, runtime member profiles and tower catalog entries contain no
+size/cap/radius authoring fields. Full compatibility covers all six actual X/Y,
+range and cycle profiles. The landed independent base-actor decision namespace
+still prevents optional Rapid/Bombard timing edits from rerolling unchanged
+squads/base weapons; its current inputs contain no legacy size/cap/radius metadata.
+Old snapshots/replays are recoverably refused, not silently normalized. Historical
+versions and numerical receipts below do not describe current wire compatibility.
+
+## Historical pre-squad causal diagnosis — retained failures, not refreshed goldens
+
+The following receipts qualified the landed tower batch against the former
+individual-actor game. Their size/radius/capped-victim transcripts are historical,
+not the current [shared-arena combat contract](shared-arena.md). Paid numbered
+plot purchase/ownership, exclusive upgrade paths, refunds and native modal/input
+ownership remain; numerical actor/target/damage semantics are deliberately migrated.
 
 The first implementation unintentionally accelerated legacy Arrow L2 and gave
 legacy Catapult a one-hex radius. Its changed full combat fingerprint was also

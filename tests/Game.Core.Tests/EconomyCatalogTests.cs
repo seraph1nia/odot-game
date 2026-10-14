@@ -196,7 +196,12 @@ public sealed class EconomyCatalogTests
         for (int recruit = 0; recruit < 4; recruit++) Assert.True(Act(match, 1, "recruit", 2).Accepted);
         Assert.Equal(4, city.Soldiers.Count); Assert.Equal(0, city.Metal);
         Assert.Equal(2, city.Snapshot().Army!.PurchasedHomes);
-        Assert.Equal(8, city.Snapshot().Army!.Homes.Where(h => h.Purchased).Sum(h => h.Used));
+        ArmyState army = city.Snapshot().Army!;
+        Assert.Equal(3, army.SquadCapacity);
+        Assert.Collection(army.Homes.Where(h => h.Purchased),
+            first => Assert.Equal(3, first.Used), second => Assert.Equal(1, second.Used));
+        Assert.Equal(city.Soldiers.Count, army.Homes.Sum(h => h.Used));
+        Assert.Equal(2, city.Soldiers.Select(u => u.SquadId).Distinct().Count());
         Assert.False(Act(match, 1, "recruit", 2).Accepted);
         Assert.True(Act(match, 1, "ready").Accepted);
         Assert.Equal(18, city.Gold); Assert.Equal(11, city.Food); Assert.Equal(4, city.Metal); Assert.Equal(4, city.LastUpkeep!.Paid);

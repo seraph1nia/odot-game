@@ -25,11 +25,11 @@ internal sealed partial class Runner
 
     internal static void RenderedContact(UiObservation observation)
     {
-        // Numerical transit claims still hold. Only committed visual crossings
-        // are exempt; settled living/death anchors must never collapse.
-        UnitObservation[] units = observation.Units.Where(u => u.Visible && u.Deployed && u.Hex?.HoldsTransit != true).ToArray();
+        // Dead cosmetic bodies hold no logical claim and may overlap a legal
+        // later mover. Only settled living formations require distinct anchors.
+        UnitObservation[] units = observation.Units.Where(u => u.Visible && u.Deployed && !u.Dead && u.Hex?.HoldsTransit != true).ToArray();
         foreach (UnitObservation unit in units)
-            foreach (UnitObservation other in units.Where(u => u.Id > unit.Id && u.Destination == unit.Destination))
+            foreach (UnitObservation other in units.Where(u => u.Id > unit.Id))
                 if (Math.Sqrt(Math.Pow(unit.X - other.X, 2) + Math.Pow(unit.Z - other.Z, 2)) < 0.4 - 1e-4)
                     throw new InvalidOperationException("Settled rendered anchors collapsed: " + unit.Id + "/" + other.Id);
         foreach (StrikeObservation strike in observation.Strikes.Where(s => s.Visible))
@@ -43,14 +43,21 @@ internal sealed partial class Runner
             double tick = actor.Hex?.FrozenTick ?? observation.CombatTick;
             Require(tick >= actor.ActionStartTick && tick < strike.ImpactTick + 12,
                 "melee connection stays inside its shared action window");
-            if (target is not null && target.Destination == actor.Destination)
+            if (target is not null)
                 Require(Math.Abs(strike.TargetX - target.X) < .02 && Math.Abs(strike.TargetZ - target.Z) < .02,
                     "melee connection follows the actual sampled target position");
-            Require(strike.CueStyle == "dashed-intent-local-strike" && strike.IntentDashes == 12 && strike.StrikeRadius <= .35f,
-                "melee uses bounded dashed intent and a local strike rather than a spanning beam");
-            Require(tick < strike.ImpactTick ? strike.Phase == "intent" && strike.IntentVisible && !strike.StrikeVisible
-                : strike.Phase == (strike.AttackLanded == true ? "landed" : "miss") && !strike.IntentVisible && strike.StrikeVisible,
-                "melee intention and local strike are separate current-action phases");
+            Require(strike.CueStyle == "physical-windup-local-strike" && strike.StrikeRadius is > 0 and <= .35f,
+                "melee uses physical windup and a bounded local strike rather than a spanning beam");
+            // UnitView retains a brief hit observation while a committed attack
+            // still owns the attack blend. Accept that legal overlap globally;
+            // MeleeVisualProof still requires Clip=attack for earned coverage.
+            Require(actor.WeaponAttached && actor.EquipmentAligned && actor.AttackActive
+                && (actor.Clip == "attack" || actor.Clip == "hit" && actor.HitActive)
+                && (tick == actor.ActionStartTick || actor.AttackBlend > 0) && actor.BoneRotation.Length > 0,
+                "melee current action samples the attached weapon and imported attack pose or its current hit overlap");
+            Require(tick < strike.ImpactTick ? strike.Phase == "intent" && !strike.StrikeVisible && !strike.ImpactVisible
+                : strike.Phase == (strike.AttackLanded == true ? "landed" : "miss") && strike.StrikeVisible,
+                "melee physical windup and local strike are separate current-action phases");
             Require(!strike.ImpactVisible || strike.AttackLanded == true && tick >= strike.ImpactTick && target is not null,
                 "target-side impact is shown only for an authoritative landed strike");
         }
@@ -80,7 +87,7 @@ internal sealed partial class Runner
         await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
         await UiReadyPair(client, observer, token); if (towers) await TowerInvestment(observer, token);
         await Pick(client, 4, token); int food = Latest(client).Players.Single(p => p.Id == client.PlayerId).Food;
-        await EnsureFieldRoom(client, token);
+        await EnsureFieldRoom(client, token, type: UnitType.Crossbowman);
         GameEvent ranged = await ClickAck(client, "RecruitRanged", token); CityState army = State(ranged).Players.Single(p => p.Id == client.PlayerId);
         Require(army.Soldiers.Any(u => u.Type == UnitType.Swordsman) && army.Soldiers.Any(u => u.Type == UnitType.Crossbowman) && army.Food == food,
             "ordinary building-specific UI recruitment pays equipment and retains food");
@@ -107,14 +114,18 @@ internal sealed partial class Runner
         for (int production = 0; production < 2; production++) { await UiReadyPair(client, observer, token, actualInput: false); await TowerInvestment(observer, token); }
         await Action(client, "sell 1", token); await Action(client, "build 1 weaver", token);
         await Action(client, "sell 4", token); await Action(client, "build 4 arcanum", token);
-        await Pick(client, 2, token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitBerserker", token);
+        await Pick(client, 2, token); await EnsureFieldRoom(client, token, type: UnitType.Berserker); await ClickAck(client, "RecruitBerserker", token);
         await UiSwords(client, 2, 6, token, actualInput: false); await UiReadyPair(client, observer, token, actualInput: false); await UiClear(client, observer, 2, token);
+        // W2 earned enough cloth for one Mage. Reconfigure the now-idle
+        // producer before W3 END1 so actual metal income, not a grant or a
+        // fourth edit, funds the Crossbow and replacement Berserkers.
+        await Action(client, "sell 1", token); await Action(client, "build 1 metalmine", token);
         await UiReadyPair(client, observer, token, actualInput: false);
-        await Pick(client, 4, token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitMage", token);
+        await Pick(client, 4, token); await EnsureFieldRoom(client, token, type: UnitType.Mage); await ClickAck(client, "RecruitMage", token);
         await Pick(client, 2, token);
         if (!Latest(client).Players.Single(p => p.Id == client.PlayerId).Soldiers.Any(u => u.Type == UnitType.Berserker))
-        { await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitBerserker", token); }
-        await ClickAck(client, "Sell", token); await ClickAck(client, "ArcheryRange", token); await EnsureFieldRoom(client, token); await ClickAck(client, "RecruitRanged", token);
+        { await EnsureFieldRoom(client, token, type: UnitType.Berserker); await ClickAck(client, "RecruitBerserker", token); }
+        await ClickAck(client, "Sell", token); await ClickAck(client, "ArcheryRange", token); await EnsureFieldRoom(client, token, type: UnitType.Crossbowman); await ClickAck(client, "RecruitRanged", token);
         await UiReadyPair(client, observer, token, actualInput: false);
         UiObservation piles = await UiProtocol.Probe(client, options.StartupTimeout, token); CityState city = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(piles.Stockpiles == new StockpileObservation(PresentationLimits.StockpileCount(city.Gold), PresentationLimits.StockpileCount(city.Food), PresentationLimits.StockpileCount(city.Wood)), "specialist equipment updates exact current stockpile tiers");
@@ -123,8 +134,8 @@ internal sealed partial class Runner
         // and Catapult while restoring ordinary frontline supply for research's
         // later opening; replacement and recruitment pay the existing quotes.
         await Action(client, "sell 1", token); await Action(client, "build 1 barracks", token);
-        await EnsureFieldRoom(client, token, actualInput: false); await Action(client, "recruit 1 berserker", token);
-        await EnsureFieldRoom(client, token, actualInput: false); await Action(client, "recruit 1 berserker", token);
+        await EnsureFieldRoom(client, token, actualInput: false, type: UnitType.Berserker); await Action(client, "recruit 1 berserker", token);
+        await EnsureFieldRoom(client, token, actualInput: false, type: UnitType.Berserker); await Action(client, "recruit 1 berserker", token);
         await Action(observer, "sell 4", token); await Action(observer, "build 4 barracks", token);
         await UiSwords(observer, 4, 12, token, actualInput: false);
         await Click(client, "City" + observer.PlayerId, token);
@@ -165,7 +176,7 @@ internal sealed partial class Runner
             // route before resuming; pacing/probe round trips must not consume it.
             UiObservation moving = await WaitUi(client, p => p.Units.Any(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk" && u.WalkingBlend > 0), "actual walking pose", token);
             HealthBars(moving);
-            Require(moving.HealthBars.Any(b => b.Visible && b.Fraction == 1) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && moving.HealthBars.Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
+            Require(HealthDisplay(moving).Any(b => b.Visible && b.Fraction == 1) && HealthDisplay(moving).Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Adventurers) && HealthDisplay(moving).Any(b => b.Visible && moving.Units.Single(u => u.Id == b.Id).Faction == Faction.Skeletons), "full overhead bars on both friendly and enemy models");
             UnitObservation first = moving.Units.First(u => u.Visible && u.Type == UnitType.Swordsman && u.Clip == "walk" && u.WalkingBlend > 0);
             Require(first.Hex is { Action: UnitActionKind.Moving, HoldsTransit: true } && first.Hex.EndTick > first.Hex.StartTick, "walking model follows a declared direct timed step with endpoint reservations");
             if (!shortCheck)
@@ -231,7 +242,7 @@ internal sealed partial class Runner
             await Action(observer, "unknown", token, false);
             UiObservation still = await UiProtocol.Probe(client, options.StartupTimeout, token);
             Require(frozen.VisualSeconds == still.VisualSeconds && frozen.CombatTick == still.CombatTick &&
-                JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(still.Units) && JsonSerializer.Serialize(frozen.Strikes) == JsonSerializer.Serialize(still.Strikes) && JsonSerializer.Serialize(frozen.HealthBars) == JsonSerializer.Serialize(still.HealthBars) && frozen.Effects.Voices == 0 && still.Effects.Voices == 0 && frozen.Effects.Positions.SequenceEqual(still.Effects.Positions) && frozen.AmbientAngles.SequenceEqual(still.AmbientAngles), "pause freezes positions, skeleton poses, shots, strike connections and death clocks");
+                JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(still.Units) && JsonSerializer.Serialize(frozen.Strikes) == JsonSerializer.Serialize(still.Strikes) && JsonSerializer.Serialize(HealthDisplay(frozen)) == JsonSerializer.Serialize(HealthDisplay(still)) && frozen.Effects.Voices == 0 && still.Effects.Voices == 0 && frozen.Effects.Positions.SequenceEqual(still.Effects.Positions) && frozen.AmbientAngles.SequenceEqual(still.AmbientAngles), "pause freezes positions, skeleton poses, shots, strike connections and death clocks");
             await Checkpoint(client, "combat-paused", token);
             // Two input actions in the existing paused battle catch stale hidden rig
             // poses and historical cue replay without another expensive battle.
@@ -254,7 +265,7 @@ internal sealed partial class Runner
             UiObservation resized = await ResizeTo1280(client, token);
             HealthBars(resized);
             Require(resized.VisualSeconds == frozen.VisualSeconds && JsonSerializer.Serialize(resized.Units) == JsonSerializer.Serialize(frozen.Units)
-                && resized.HealthBars.Any(b => b.Visible && b.X != frozen.HealthBars.Single(old => old.Id == b.Id).X), "resizing reprojects health bars while authoritative health and paused unit poses stay frozen");
+                && HealthDisplay(resized).Any(b => b.Visible && b.X != HealthDisplay(frozen).Single(old => old.Id == b.Id).X), "resizing reprojects health bars while authoritative health and paused unit poses stay frozen");
             await Click(client, "CloseSettings", token);
             await WaitUi(client, p => !p.SettingsOpen, "return to paused battle after resizing", token);
             await UnitInspection(client, "combat-unit-inspection-resized", token);
@@ -310,20 +321,22 @@ internal sealed partial class Runner
             UiObservation casualty = await WaitUi(client, p => p.CombatTick == retainedDeath.Tick && p.PhaseText.Contains("PAUSED", StringComparison.Ordinal)
                 && p.Units.Any(u => u.Id == dead && u.Dead && u.Visible && FreshDeathPose(u.PoseSeconds)), "same paused authoritative casualty rendered freshly", token);
             CasualtyAdmission.Frame(retainedDeath, Latest(client), casualty, client.PlayerId, casualtyAfter, dead);
-            Require(!casualty.HealthBars.Any(b => b.Id == dead), "death immediately removes overhead bar");
+            Require(!HealthDisplay(casualty).Any(b => b.Id == dead), "death immediately removes overhead bar");
             Require(!CombatPlayback.All(Latest(client)).Any(u => u.Id == dead), "death visual is absent from living combat state");
             Require(retainedDeath.DyingBodies.Any(u => u.Id == dead), "authoritative casualty pause retains the sampled death");
             UiObservation deathPaused = await WaitUi(client, p => p.PhaseText.Contains("PAUSED", StringComparison.Ordinal) && p.Units.Any(u => u.Id == dead && u.Dead), "paused death remains", token);
             await Action(observer, "unknown", token, false);
             UiObservation deathStill = await UiProtocol.Probe(client, options.StartupTimeout, token);
-            Require(deathStill.VisualSeconds == deathPaused.VisualSeconds && JsonSerializer.Serialize(deathPaused.Units) == JsonSerializer.Serialize(deathStill.Units) && JsonSerializer.Serialize(deathPaused.HealthBars) == JsonSerializer.Serialize(deathStill.HealthBars), "death pose and cleanup freeze on shared pause");
+            Require(deathStill.VisualSeconds == deathPaused.VisualSeconds && JsonSerializer.Serialize(deathPaused.Units) == JsonSerializer.Serialize(deathStill.Units) && JsonSerializer.Serialize(HealthDisplay(deathPaused)) == JsonSerializer.Serialize(HealthDisplay(deathStill)), "death pose and cleanup freeze on shared pause");
             await Checkpoint(client, "combat-casualty", token, validate: frame =>
                 CasualtyAdmission.Frame(retainedDeath, Latest(client), frame, client.PlayerId, casualtyAfter, dead));
             // Select from the frozen current battle, not a low-health target that can
             // die between the live probe and native click. Resume through the ordinary
             // observer command so the already-tested outside Pause click does not dismiss it.
-            UiObservation liveTarget = await WaitUi(client, p => p.Units.Any(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth), "currently damaged opponent for live inspection", token);
-            UnitObservation damagedUnit = liveTarget.Units.Where(u => u.Visible && !u.Dead && u.Faction == Faction.Skeletons && u.Health < u.MaximumHealth).OrderBy(u => u.Health).ThenBy(u => u.Id).First();
+            bool Inspectable(UiObservation frame, UnitObservation unit) => unit.Visible && !unit.Dead && unit.Faction == Faction.Skeletons
+                && unit.Health < unit.MaximumHealth && frame.Targets.TryGetValue("Unit" + unit.Id, out UiTarget? target) && target.Visible;
+            UiObservation liveTarget = await WaitUi(client, p => p.Units.Any(u => Inspectable(p, u)), "currently damaged clickable opponent for live inspection", token);
+            UnitObservation damagedUnit = liveTarget.Units.Where(u => Inspectable(liveTarget, u)).OrderBy(u => u.Health).ThenBy(u => u.Id).First();
             await ClickPoint(client, liveTarget.Targets["Unit" + damagedUnit.Id]);
             UiObservation liveInspection = await WaitUi(client, p => p.InspectedUnit?.Id == damagedUnit.Id, "live damaged-unit inspector opens", token);
             InspectorObservation liveUnit = liveInspection.InspectedUnit!;
@@ -359,7 +372,7 @@ internal sealed partial class Runner
             bool shot = witnessed.Any(u => AuthoredAttack(u, UnitType.Mage));
             bool hit = witnessed.Any(u => u.Clip == "hit" && u.HitActive);
             bool axe = witnessed.Any(u => AuthoredAttack(u, UnitType.Berserker));
-            bool damagedBar = frozen.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = recoveryObservation.Proven;
+            bool damagedBar = HealthDisplay(frozen).Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1), recovery = recoveryObservation.Proven;
             CombatPoseFlags Flags() => new(sword, shot, axe, hit, damagedBar, recovery, inspectionChanged);
             diagnosticFlags = Flags;
             void AttackWitness(string flag, UiObservation frame, UnitType type, string source, MatchSnapshot? received = null)
@@ -373,7 +386,7 @@ internal sealed partial class Runner
                 if (frame.Units.FirstOrDefault(u => u.Visible && u.Clip == "hit" && u.HitActive) is { } unit)
                     poseDiagnostic.First("hit", CombatPoseDiagnostic.Witness(frame, unit, "retained-entry-frame"));
             }
-            if (frozen.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } entryBar)
+            if (HealthDisplay(frozen).FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } entryBar)
                 poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(frozen,
                     frozen.Units.FirstOrDefault(u => u.Id == entryBar.Id), "retained-entry-frame"));
             poseDiagnostic.Begin(Flags());
@@ -393,8 +406,8 @@ internal sealed partial class Runner
                     if (inspectionChanged)
                         poseDiagnostic.First("inspectionChanged", CombatPoseDiagnostic.Witness(p,
                             p.Units.FirstOrDefault(u => u.Id == liveUnit.Id), "current-poll:inspection-target-" + liveUnit.Id, received));
-                    damagedBar |= p.HealthBars.Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
-                    if (p.HealthBars.FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } bar)
+                    damagedBar |= HealthDisplay(p).Any(b => b.Visible && b.Fraction > 0 && b.Fraction < 1);
+                    if (HealthDisplay(p).FirstOrDefault(b => b.Visible && b.Fraction > 0 && b.Fraction < 1) is { } bar)
                         poseDiagnostic.First("damagedBar", CombatPoseDiagnostic.Witness(p,
                             p.Units.FirstOrDefault(u => u.Id == bar.Id), "current-poll", received));
                     recovery = recoveryObservation.Observe(p, received, "current-poll");

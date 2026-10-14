@@ -1,6 +1,6 @@
 namespace Game.Core;
 
-internal sealed record DefenseProfile(int Damage, int WindupTicks, int RecoveryTicks, int VictimCap, int SplashHexRadius);
+internal sealed record DefenseProfile(int Damage, int WindupTicks, int RecoveryTicks);
 
 internal readonly record struct DefenseIdentity
 {

@@ -42,10 +42,20 @@ public sealed class ResearchLifecycleTests
     [Fact]
     public void NewAuthoritativeActionsSampleChillAndLaterRefreshCannotChangeTheirCommitments()
     {
-        using var combat = new CombatSimulation(new()); int a = combat.Create(UnitType.Swordsman, 1, 1, 1), b = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        foreach (var (id, cell) in new[] { (a, 11), (b, 8) }) { UnitState unit = combat.Read(id); combat.Seed(unit with { Hex = CombatFixture.At(unit, cell, 1) }); }
+        // One afflicted member contributes a mean 14% slow to a three-member
+        // actor, not a 40% penalty on each healthy veteran. Existing action-owner
+        // test now exercises actual aggregation and immutable committed intervals.
+        using var combat = new CombatSimulation(new());
+        int[] allies = Enumerable.Range(0, 3).Select(_ => combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1))).ToArray();
+        int a = allies[0], b = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
+        foreach (int id in allies.Append(b))
+        {
+            UnitState unit = combat.Read(id);
+            combat.Seed(unit with { Hex = CombatFixture.At(unit, id == b ? 18 : 17, 1) });
+        }
         CombatUnit actor = combat.Inspect(a); combat.Seed(actor with { Statuses = StatusPolicy.Apply(new(), new(a, StatusKind.Chill, b, 1, 0, 40), new()) });
-        combat.StartActions([]); UnitState slowed = combat.Read(a); Assert.Equal(17, slowed.ImpactTick); Assert.Equal(85, slowed.ReadyTick);
+        combat.StartActions([]); UnitState slowed = combat.Read(a); Assert.Equal(14, slowed.ImpactTick); Assert.Equal(69, slowed.ReadyTick);
+        Assert.All(allies, id => { Assert.Equal(slowed.ImpactTick, combat.Read(id).ImpactTick); Assert.Equal(slowed.ReadyTick, combat.Read(id).ReadyTick); });
         CombatUnit current = combat.Inspect(a); combat.Seed(current with { Statuses = StatusPolicy.Apply(current.Statuses, new(a, StatusKind.Chill, b, 2, 5, 20), new()) });
         Assert.Equal(slowed.ImpactTick, combat.Read(a).ImpactTick); Assert.Equal(slowed.ReadyTick, combat.Read(a).ReadyTick);
     }

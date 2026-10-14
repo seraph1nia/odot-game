@@ -100,7 +100,7 @@ public static class ProgressionPresentation
         return labels.Select((label, index) => (index == active ? "> " : "  ") + label).ToArray();
     }
     public static int HealthPercent(int current, int maximum) => (int)Math.Round(PresentationLimits.HealthFraction(current, maximum) * 100, MidpointRounding.AwayFromZero);
-    public static string UnitStats(UnitState unit, double tick = 0) => $"Health {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)}\nLevel {unit.Level} · {unit.Faction}\nDamage per attack {HealthPoints.Format(unit.Profile.Damage)}\nSize {unit.Size}\n{CapabilityText(unit.Capabilities)}\n{StatusText(unit.Statuses, tick)}\nCommitted: impact {unit.ImpactTick}, ready {unit.ReadyTick}";
+    public static string UnitStats(UnitState unit, double tick = 0) => $"Health {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)}\nEquipment L{unit.Level} · {unit.Faction} · service XP {unit.Experience}\nSquad {unit.SquadId} · member {unit.Id}\nMember damage X/Y: {HealthPoints.Format(unit.Profile.Damage)}/{HealthPoints.Format(unit.Profile.SecondaryDamage)}\nPhysical structure damage: {HealthPoints.Format(unit.Profile.StructureDamage)}\n{CapabilityText(unit.Capabilities)}\n{StatusText(unit.Statuses, tick)}\nCommitted: impact {unit.ImpactTick}, ready {unit.ReadyTick}";
     public static string CapabilityText(UnitCapabilities c)
     {
         var parts = new List<string>();
@@ -131,8 +131,8 @@ public static class ProgressionPresentation
             : preview ? "next: unavailable" : !unit.Participating ? "reserve" : unit.Deployed ? "participating" : "fed · capacity queue";
         if (unit.Assignment is { Stored: true } hall)
             status = $"Town hall plot {hall.HallSlot + 1} · {(preview ? city.FoodForecast is null ? "next: unavailable" : city.FoodForecast.Funded.Contains(unit.Id) ? "next: funded" : "next: unfunded" : "noncombatant")} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no completed paid recovery")}";
-        else if (unit.Assignment is { } home) status += $" · home tile {home.Tile}, anchor {home.Anchor}";
+        else if (unit.Assignment is { } home) status += $" · squad home {home.Tile + 1}";
         string committed = unit.Statuses.Chill is null ? "" : $" · committed impact {unit.ImpactTick}, ready {unit.ReadyTick}";
-        return $"#{unit.Id} {AssetCatalog.UnitName(unit.Type, unit.Faction)}{(unit.IsBoss ? " BOSS" : "")} L{unit.Level} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · damage {HealthPoints.Format(unit.Profile.Damage)} · size {unit.Size} · {status} · {CapabilityText(unit.Capabilities)} · {StatusText(unit.Statuses, tick)}{committed}";
+        return $"#{unit.Id} {AssetCatalog.UnitName(unit.Type, unit.Faction)}{(unit.IsBoss ? " BOSS" : "")} L{unit.Level} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · X/Y {HealthPoints.Format(unit.Profile.Damage)}/{HealthPoints.Format(unit.Profile.SecondaryDamage)} · squad {unit.SquadId} · {status} · {CapabilityText(unit.Capabilities)} · {StatusText(unit.Statuses, tick)}{committed}";
     }
 }

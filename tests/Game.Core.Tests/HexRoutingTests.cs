@@ -2,102 +2,57 @@ using Xunit;
 
 namespace Game.Core.Tests;
 
+// Tier A replacement for per-member, city-isolated/size-budget routing. Real
+// SharedArena routes must respect footprints and temporary blockers yet cross
+// sector boundaries. Fixed topology, no child resources; estimated <1s.
 public sealed class HexRoutingTests
 {
-    private static readonly CombatFingerprint Fingerprint = new CombatConfiguration(new()).Fingerprint;
-    private static int At(CombatSimulation combat, UnitType type, Faction faction, int cell, int footprint)
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void ReachableRoutesAreShortestAdjacentAndNeverUseStaticOrOpposingCells(int players)
     {
-        int id = combat.Create(type, faction == Faction.Adventurers ? 1 : 0, 1, 1, faction);
-        UnitState unit = combat.Read(id);
-        combat.Seed(unit with { Hex = CombatFixture.At(unit, cell, footprint) });
-        return id;
-    }
-    private static (HexPosition[] Route, int StaticSteps) Query(CombatSimulation combat, int actor, int target, HexOccupancy occupancy, int[]? visited = null, ulong seed = 123, HexRouting? routing = null)
-    {
-        routing ??= new(combat.Board, occupancy);
-        CombatUnit unit = combat.Inspect(actor), opponent = combat.Inspect(target);
-        HexReachability search = routing.Search(unit, visited ?? []);
-        ApproachScore score = routing.Score(unit, new(CombatTargetKind.Unit, target), opponent.Location.Position.Cell, opponent.Profile.Initiative, search);
-        return (routing.Route(unit, score, combat.Units(), new(seed, Fingerprint, 1, 1, CombatActorKind.Unit, actor, 0, 0, CombatPurpose.Target), search), score.StaticSteps);
-    }
-    [Fact]
-    public void OccupiedDirectApproachUsesAFeasibleDetourWithoutEnteringOpposingCells()
-    {
-        using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Swordsman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 8, 1);
-        At(combat, UnitType.Crossbowman, Faction.Skeletons, 13, 1);
-        At(combat, UnitType.Crossbowman, Faction.Skeletons, 14, 1);
-        var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        var detour = Query(combat, actor, target, occupancy);
-        Assert.Equal(2, detour.StaticSteps); Assert.Equal(3, detour.Route.Length); Assert.Equal(18, detour.Route[0].Cell);
-        Assert.DoesNotContain(detour.Route, p => p.Cell is 13 or 14);
-        Assert.Equal(1, combat.Board.Distance(detour.Route[^1].Cell, 8));
-        Assert.Equal(detour.Route.Length, detour.Route.Select(p => p.Cell).Distinct().Count());
-        int previous = 17;
-        foreach (HexPosition step in detour.Route)
-        { Assert.Contains(step.Cell, combat.Board.Cell(previous).Neighbors); previous = step.Cell; }
-    }
-    [Fact]
-    public void EqualShortestSupportGoalsPreferScreenThenUnusedCapacity()
-    {
-        using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 1);
-        int screen = At(combat, UnitType.Swordsman, Faction.Adventurers, 8, 1);
-        At(combat, UnitType.Crossbowman, Faction.Adventurers, 11, 1);
-        At(combat, UnitType.Crossbowman, Faction.Skeletons, 12, 1);
-        var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        var routing = new HexRouting(combat.Board, occupancy);
-        foreach (ulong seed in new ulong[] { 0, 1, 123 })
+        var arena = new SharedArena(Enumerable.Range(1, players));
+        int source = arena.Deployment(1, 0), target = arena.Keep(players);
+        var work = new WorkCounters(); work.Support(WorkMetric.BfsSearches, WorkMetric.BfsDequeues, WorkMetric.BfsEdges);
+        IReadOnlyDictionary<int, int[]> routes = arena.Routes(source, [target, arena.Watchpost(1)], 1, _ => true, work);
+        int[] direct = routes[target];
+        Assert.Equal(2, routes.Count); Assert.Equal(1, work.Snapshot()[WorkMetric.BfsSearches]);
+        Assert.NotEmpty(direct);
+        var blockers = new HashSet<int> { direct[0] };
+        int[] detour = arena.Routes(source, [target], 1, cell => !blockers.Contains(cell))[target];
+        Assert.NotEmpty(detour); Assert.DoesNotContain(detour, blockers.Contains);
+        Assert.Equal(detour, arena.Routes(source, [target], 1, cell => !blockers.Contains(cell))[target]);
+        int previous = source;
+        foreach (int cell in detour)
         {
-            var approach = Query(combat, actor, target, occupancy, seed: seed, routing: routing);
-            Assert.Equal(2, approach.Route.Length); Assert.Equal(11, approach.Route[^1].Cell);
+            Assert.Contains(cell, arena.Board.Cell(previous).Neighbors);
+            Assert.True(arena.CanOccupy(cell)); previous = cell;
         }
-        combat.Remove(screen); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        foreach (ulong seed in new ulong[] { 0, 1, 123 })
-        {
-            var approach = Query(combat, actor, target, occupancy, seed: seed, routing: routing);
-            Assert.Equal(2, approach.Route.Length); Assert.Equal(10, approach.Route[^1].Cell);
-        }
-        var blockers = new List<int>();
-        for (int footprint = 1; footprint <= 3; footprint++) blockers.Add(At(combat, UnitType.Crossbowman, Faction.Adventurers, 10, footprint));
-        occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        Assert.Equal(11, Query(combat, actor, target, occupancy, routing: routing).Route[^1].Cell);
-        foreach (int id in blockers) combat.Remove(id);
-        occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        Assert.Equal(10, Query(combat, actor, target, occupancy, routing: routing).Route[^1].Cell);
+        Assert.Equal(detour.Length, detour.Distinct().Count());
+        Assert.Equal(1, arena.Board.Distance(detour[^1], target));
+        // Geometry oracle preserves independent shortest-distance evidence from
+        // retired RoutingScoreEfficiency without obsolete goal/size cache policy.
+        var distances = new Dictionary<int, int> { [source] = 0 };
+        var pending = new Queue<int>(); pending.Enqueue(source);
+        while (pending.TryDequeue(out int current))
+            foreach (int neighbor in arena.Board.Cell(current).Neighbors)
+                if (arena.CanOccupy(neighbor) && !blockers.Contains(neighbor) && distances.TryAdd(neighbor, distances[current] + 1))
+                    pending.Enqueue(neighbor);
+        int shortest = distances.Where(p => arena.Board.Distance(p.Key, target) == 1).Min(p => p.Value);
+        Assert.Equal(shortest, detour.Length);
+        if (players == 4) Assert.True(arena.Board.Cell(detour[^1]).Coordinate.Column >= 21);
     }
+
     [Fact]
-    public void TemporaryTransitContentionDoesNotEraseTheApproachAndReleaseAllowsCommit()
+    public void BlockedRouteCannotEnterOccupiedGoalAndBecomesAvailableWhenBlockersLeave()
     {
-        using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 1);
-        int moving = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 2);
-        UnitState mover = combat.Read(moving); HexPosition to = new(14, 1);
-        combat.Seed(mover with
-        {
-            Hex = mover.Hex! with
-            { Action = UnitActionKind.Moving, Destination = to, Transition = combat.Board.Transition(mover.Hex.Position, to).Id, ActionSequence = 1, StartTick = 1, EndTick = 31 }
-        });
-        var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        var blocked = Query(combat, actor, target, occupancy);
-        Assert.Equal(2, blocked.Route.Length); Assert.False(occupancy.TryMove(combat.Inspect(actor).Reservation, blocked.Route[0], 1));
-        combat.Seed(combat.Read(moving) with { Hex = mover.Hex! with { Position = to, ActionSequence = 1 } });
-        occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        var released = Query(combat, actor, target, occupancy);
-        Assert.Equal(2, released.Route.Length); Assert.True(occupancy.TryMove(combat.Inspect(actor).Reservation, released.Route[0], 1));
-    }
-    [Fact]
-    public void UnchangedEpisodeExcludesPreviouslyVisitedCellsRatherThanWalkingBack()
-    {
-        using var combat = new CombatSimulation(new());
-        int actor = At(combat, UnitType.Crossbowman, Faction.Adventurers, 17, 1);
-        int target = At(combat, UnitType.Swordsman, Faction.Skeletons, 2, 1);
-        var occupancy = new HexOccupancy(combat.Board); occupancy.Rebuild(combat.Units().Select(u => u.Reservation));
-        var alternative = Query(combat, actor, target, occupancy, [13]);
-        Assert.Equal(2, alternative.Route.Length); Assert.DoesNotContain(alternative.Route, p => p.Cell == 13);
-        Assert.Empty(Query(combat, actor, target, occupancy, [13, 14, 16, 18]).Route);
+        var arena = new SharedArena([1]); int source = arena.Deployment(1, 3), target = arena.Watchpost(1);
+        Assert.NotEmpty(arena.Routes(source, [target], 1, _ => true)[target]);
+        Assert.Empty(arena.Routes(source, [target], 1, _ => false)[target]);
+        Assert.NotEmpty(arena.Routes(source, [target], 1, _ => true)[target]);
+        Assert.Empty(arena.Routes(source, [target], arena.Board.Diameter, _ => false)[target]);
+        Assert.Throws<ArgumentException>(() => arena.Routes(arena.Keep(1), [target], 1, _ => true));
+        Assert.Throws<ArgumentException>(() => arena.Routes(source, [target], 0, _ => true));
     }
 }

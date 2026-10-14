@@ -17,6 +17,7 @@ internal sealed class TabletopCamera(Camera3D camera)
     private static readonly bool TravelTrace = System.Environment.GetEnvironmentVariable("ODOT_CAMERA_TRAVEL_TRACE") == "1";
     private Transform3D _base, _fittedBase;
     private float _baseSize;
+    private Vector2 _travel = Travel;
     private Rect2 _boundary, _viewport, _content;
     internal Rect2 Boundary => _boundary;
     internal Vector3? ViewCenter => Ground(_viewport.GetCenter());
@@ -25,9 +26,15 @@ internal sealed class TabletopCamera(Camera3D camera)
     internal double MovementSeconds { get; private set; }
     internal Vector2 MovementDirection { get; private set; }
 
-    internal void Fit(Rect2 content, Rect2 viewport)
+    internal void Fit(Rect2 content, Rect2 viewport, bool sharedArena = false)
     {
         _fittedBase = _base = camera.Transform; _baseSize = camera.Size; _viewport = viewport; _content = content.Grow(BattlefieldFrame.Margin);
+        _travel = sharedArena ? content.Size / 2 : Travel;
+        // A long arena in a portrait viewport needs its fitted overview's ground
+        // center retained even when HUD compensation puts it beyond the diorama.
+        // The projected opaque boundary remains the hard travel limit.
+        if (sharedArena && Ground(viewport.GetCenter()) is { } fittedCenter)
+            _content = _content.Expand(new(fittedCenter.X, fittedCenter.Z));
         // Include the complete default native projection, even behind the HUD.
         // This also handles narrow/wide resize without exposing a perimeter end.
         _boundary = BattlefieldFrame.Footprint(camera, viewport).Merge(content.Grow(BattlefieldFrame.Margin)).Grow(1);
@@ -115,8 +122,8 @@ internal sealed class TabletopCamera(Camera3D camera)
         Rect2 footprint = BattlefieldFrame.Footprint(camera, _viewport);
         Vector3 aim = Ground(_viewport.GetCenter()) ?? _base.Origin;
         Vector2 center = new(aim.X, aim.Z);
-        Vector2 minimum = (-Travel).Max(_boundary.Position - footprint.Position).Max(_content.Position - center);
-        Vector2 maximum = Travel.Min(_boundary.End - footprint.End).Min(_content.End - center);
+        Vector2 minimum = (-_travel).Max(_boundary.Position - footprint.Position).Max(_content.Position - center);
+        Vector2 maximum = _travel.Min(_boundary.End - footprint.End).Min(_content.End - center);
         Pan = Pan.Clamp(minimum, maximum);
         camera.Position += new Vector3(Pan.X, 0, Pan.Y);
     }

@@ -43,8 +43,26 @@ public partial class Tabletop
     {
         _speedPanel = new PanelContainer { Name = "CombatSpeed", Position = new(152, 12), MouseFilter = Control.MouseFilterEnum.Stop };
         root.AddChild(_speedPanel);
+        _speedPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new("181c26"),
+            BorderColor = new("947247"),
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 8,
+            CornerRadiusTopRight = 8,
+            CornerRadiusBottomLeft = 8,
+            CornerRadiusBottomRight = 8,
+            ContentMarginLeft = 8,
+            ContentMarginRight = 8,
+            ContentMarginTop = 6,
+            ContentMarginBottom = 6
+        });
         var speedRow = new HBoxContainer(); _speedPanel.AddChild(speedRow);
-        Text(speedRow, "Combat speed", 14);
+        Label speedLabel = Text(speedRow, "Combat speed", 14);
+        speedLabel.AutowrapMode = TextServer.AutowrapMode.Off;
         foreach (CombatSpeed speed in Enum.GetValues<CombatSpeed>())
         {
             CombatSpeed selected = speed;
@@ -175,6 +193,7 @@ public partial class Tabletop
         _recruit = _recruitment[UnitType.Swordsman]; _ranged = _recruitment[UnitType.Crossbowman];
         CreateResearch(city, root);
         CreateArmyControls(city, context, details);
+        CreateSquadControls(city);
         var match = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = .22f }; columns.AddChild(match);
         _phase = Text(match, "Lobby", 12);
         _counters = Text(match, "", 11);

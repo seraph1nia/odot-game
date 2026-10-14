@@ -11,6 +11,7 @@ namespace DevRunner;
 internal sealed class Child : IAsyncDisposable
 {
     private readonly Process _process;
+    private readonly int _processId;
     private readonly StreamWriter _log;
     private readonly StreamWriter? _engineLog;
     private long _engineBytes;
@@ -47,7 +48,7 @@ internal sealed class Child : IAsyncDisposable
     public string? AllowedEngineError { get; set; }
     public bool HasUnexpectedEngineErrors { get { lock (_gate) return _engineErrorOverflow || _engineErrors.Any(e => AllowedEngineError is null || !e.Contains(AllowedEngineError, StringComparison.Ordinal)); } }
     public string LogPath { get; }
-    public int ProcessId => _process.Id;
+    public int ProcessId => _processId;
 
     public Child(string name, string executable, IEnumerable<string> args, string directory, bool game = false, bool quiet = false, string? workingDirectory = null,
         IReadOnlyDictionary<string, string?>? environment = null, string? evidenceDirectory = null, bool ownsGroup = false, bool sanitizeSteam = false, bool trace = false, string? engineLogPath = null, int simulationSpeed = 1)
@@ -77,6 +78,7 @@ internal sealed class Child : IAsyncDisposable
         try
         {
             if (!_process.Start()) throw new InvalidOperationException($"Could not start {executable}.");
+            _processId = _process.Id; // Error evidence may be requested after Process disposal.
         }
         catch
         {
@@ -157,6 +159,11 @@ internal sealed class Child : IAsyncDisposable
             string content = JsonSerializer.Serialize(new
             {
                 Condition = _failureCondition ?? condition,
+                ProcessId,
+                HasExited,
+                ExitCode = _exitCode,
+                ExpectedFailure,
+                OwnsProcessGroup = _ownsGroup,
                 Trace = _trace,
                 SimulationSpeed = _simulationSpeed,
                 LastTick,
@@ -268,6 +275,9 @@ internal sealed class Child : IAsyncDisposable
             while (GroupRunning(_process.Id) && deadline.Elapsed < TimeSpan.FromSeconds(3)) await Task.Delay(25);
             if (GroupRunning(_process.Id)) throw new TimeoutException($"Owned process group {_process.Id} did not stop.");
         }
+        // Retain the actual terminal PID/exit receipt after every owned wait,
+        // without changing child admission, shutdown ordering or deadlines.
+        DumpEvidence("Owned cleanup checkpoint");
         lock (_gate) { _log.Dispose(); _engineLog?.Dispose(); _logClosed = true; }
         _process.Dispose();
     }

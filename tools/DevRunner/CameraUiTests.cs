@@ -12,7 +12,12 @@ internal sealed partial class Runner
     {
         Require(Math.Abs(frame.Camera.Zoom - 1) < 0.001 && Math.Abs(frame.Camera.PanX) < 0.001 && Math.Abs(frame.Camera.PanZ) < 0.001
             && Math.Abs(frame.Camera.BaseSize - frame.Camera.Size) < 0.001, "reset fitted overview");
-        Require(Enumerable.Range(0, 9).All(i => frame.Targets["Plot" + i].Visible), "all nine plots visible at overview");
+        // Tier E: the live melee capture resets the shared arena, where
+        // settlement plots are deliberately not pickable. Countryside below
+        // verifies every owner's arena cells/opaque coverage instead; retain
+        // the independent nine-plot contract for settlement camera checks.
+        if (!frame.SharedArenaVisible)
+            Require(Enumerable.Range(0, 9).All(i => frame.Targets["Plot" + i].Visible), "all nine plots visible at overview");
         WoodlandPresentation(frame);
         Countryside(frame);
     }
@@ -213,8 +218,8 @@ internal sealed partial class Runner
         UiObservation after = await UiProtocol.Probe(client, options.StartupTimeout, token);
         HealthBars(after);
         Require(before.VisualSeconds == after.VisualSeconds && JsonSerializer.Serialize(before.Units) == JsonSerializer.Serialize(after.Units), "local camera keeps paused world poses and health frozen");
-        Require(after.HealthBars.Any(b => b.Visible && before.HealthBars.Any(old => old.Id == b.Id && old.Visible && (Math.Abs(old.X - b.X) > 1 || Math.Abs(old.Y - b.Y) > 1))), "paused overhead bars follow camera");
-        Require(after.HealthBars.All(b => before.HealthBars.Single(old => old.Id == b.Id).Fraction == b.Fraction), "paused camera preserves health fractions");
+        Require(HealthDisplay(after).Any(b => b.Visible && HealthDisplay(before).Any(old => old.Id == b.Id && old.Visible && (Math.Abs(old.X - b.X) > 1 || Math.Abs(old.Y - b.Y) > 1))), "paused overhead bars follow camera");
+        Require(HealthDisplay(after).All(b => HealthDisplay(before).Single(old => old.Id == b.Id).Fraction == b.Fraction), "paused camera preserves health fractions");
         await Checkpoint(client, "combat-camera-paused", token);
         await Click(client, "ResetView", token);
     }

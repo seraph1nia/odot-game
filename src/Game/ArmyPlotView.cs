@@ -10,16 +10,17 @@ internal sealed partial class ArmyPlotView : Node3D
     internal Aabb?[] Bounds { get; } = new Aabb?[ArmyConfiguration.PlotCount];
     internal static Vector3 PlotPosition(MatchSnapshot state, int id)
     {
-        int cell = state.Players.First(p => p.Army is not null).Army!.Homes.Single(h => h.PlotId == id).Cell;
-        HexCoordinate coordinate = state.Rules.Combat.Board.Cells.Single(c => c.Id == cell).Coordinate;
-        return VillageLayout.Hex(coordinate.Column, coordinate.R);
+        _ = state; // Persistent home indexes are not shared arena cell IDs.
+        int index = id - ArmyConfiguration.PlotOffset;
+        if (index is < 0 or >= ArmyConfiguration.PlotCount) throw new ArgumentOutOfRangeException(nameof(id));
+        return VillageLayout.Hex(index % 3 - 1, 6 + index / 3);
     }
     internal static string Title(ArmyHomeState home) => $"Army {home.Number} · " + (home.State switch
     {
         ArmyPlotStatus.Locked => "locked · purchase",
         ArmyPlotStatus.OwnedEmpty => "owned · empty",
-        ArmyPlotStatus.UnitOccupied => $"units · {home.Used}/6",
-        _ => $"{AssetCatalog.BuildingName(home.Plot.Type)} · all 6 spots"
+        ArmyPlotStatus.UnitOccupied => $"squad · {home.Used} members",
+        _ => $"{AssetCatalog.BuildingName(home.Plot.Type)} · whole squad home"
     });
     internal ArmyPlotView(CityState city, MatchSnapshot state, LandscapeAssets assets)
     {

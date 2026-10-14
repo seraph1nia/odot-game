@@ -61,11 +61,11 @@ internal sealed partial class Runner
         if (city.Slots[2].Type == Building.CatapultTower && city.Slots[2].UpgradeQuote is ResourceCost upgrade && city.Resources.TryPay(upgrade, out _))
             city = State(await Action(observer, "upgrade 2", token)).Players.Single(p => p.Id == observer.PlayerId);
     }
-    private async Task EnsureFieldRoom(Child client, CancellationToken token, bool actualInput = true)
+    private async Task EnsureFieldRoom(Child client, CancellationToken token, bool actualInput = true, UnitType type = UnitType.Swordsman)
     {
         CityState city = Latest(client).Players.Single(p => p.Id == client.PlayerId);
-        if (city.Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6)) return;
-        int next = city.Army.PurchasedHomes - 2;
+        if (CampaignStrategy.CanField(city, type)) return;
+        int next = city.Army!.PurchasedHomes - 2;
         Require(next < city.Army.HomePrices.Length && city.Gold >= city.Army.HomePrices[next], "ordinary quoted expansion funds the next role's physical home");
         int selected = actualInput ? (await UiProtocol.Probe(client, options.StartupTimeout, token)).SelectedSlot : -1;
         await BuyArmyPlot(client, token, actualInput);
@@ -83,9 +83,9 @@ internal sealed partial class Runner
         while (Latest(client).Players.Single(p => p.Id == client.PlayerId) is CityState city && city.Soldiers.Count(u => u.Assignment is not { Stored: true }) < target
             && city.Resources.TryPay(city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[slot].Level).Cost, out _))
         {
-            if (!city.Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6))
+            if (!CampaignStrategy.CanField(city, UnitType.Swordsman))
             {
-                int next = city.Army.PurchasedHomes - 2;
+                int next = city.Army!.PurchasedHomes - 2;
                 if (next >= city.Army.HomePrices.Length || city.Gold < city.Army.HomePrices[next]) break;
                 await BuyArmyPlot(client, token, actualInput);
                 if (actualInput) await Pick(client, slot, token);

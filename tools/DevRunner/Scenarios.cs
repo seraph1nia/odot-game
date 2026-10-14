@@ -8,7 +8,7 @@ namespace DevRunner;
 
 internal static class ScenarioNames
 {
-    public static readonly string[] Network = ["authority-resume-victory", "redistribution", "defeat", "failure-cases", "solo-session", "playing-host-lifecycle"];
+    public static readonly string[] Network = ["authority-resume-victory", "redistribution", "eliminated-resume", "active-fallen", "defeat", "failure-cases", "solo-session", "playing-host-lifecycle"];
     public static readonly string[] Ui = ["economy", "reconnect", "settings", "launcher", "combat", "exported-package", "installed-linux"];
 }
 

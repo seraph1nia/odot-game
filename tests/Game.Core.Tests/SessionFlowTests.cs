@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DevRunner;
 using Game.Core;
 using Xunit;
@@ -74,7 +75,7 @@ public sealed class SessionFlowTests
     }
 
     [Fact]
-    public void SerializedThreeCityTransferPreservesIdentityAndNextWaveAllocation()
+    public void SerializedPaidThreeCityFallAndTeamClearPreserveVeteransReceiptsAndFutureAllocation()
     {
         using var flow = new SessionFlow(players: 3, seed: 8);
         flow.Act(1, new("start"));
@@ -107,30 +108,60 @@ public sealed class SessionFlowTests
             Assert.Equal(p.Soldiers.Select(u => u.Id), p.LastUpkeep.Funded);
             Assert.Equal(12, p.Metal); Assert.Equal(9, p.Food);
         });
-        MatchSnapshot fallen = flow.StepUntil(s => s.Players.Single(c => c.Id == 3).Eliminated);
-        UnitState[] transferred = fallen.Enemies.Where(u => u.Origin == 3).ToArray();
-        Assert.NotEmpty(transferred);
-        Assert.All(transferred, u =>
+        // Tier A: actual new paid timing changes recruitment/actor identities;
+        // this fixed six-member opening now sacrifices the uninvested Keep.
+        // Preserve the real loss, received redirection/identity and team clear,
+        // not an all-Keeps rescue claim or another chosen seed/balance change.
+        Assert.Empty(initial.Players[2].Soldiers);
+        MatchSnapshot fallen = flow.StepUntil(s => s.Players[2].Eliminated, 3000);
+        UnitState[] incoming = fallen.Enemies.Where(u => u.Origin == 3).ToArray();
+        Assert.NotEmpty(incoming);
+        Assert.All(incoming, u =>
         {
-            UnitState old = initial.Enemies.Single(e => e.Id == u.Id);
-            Assert.NotEqual(3, u.Destination); Assert.True(u.Health <= old.Health);
-            Assert.Equal(old.Profile, u.Profile); Assert.Equal(old.Size, u.Size);
+            UnitState original = initial.Enemies.Single(e => e.Id == u.Id);
+            Assert.NotEqual(3, u.Destination); Assert.Equal(original.Profile, u.Profile);
+            Assert.Equal(original.SquadId, u.SquadId); Assert.Equal(original.FormationSlot, u.FormationSlot);
+            Assert.InRange(u.Health, 1, original.Health);
         });
         SessionFlow.RoundTrip(fallen);
-        flow.StepUntil(s => s.Phase != Phase.Combat);
-        Assert.Equal(2, flow.State.Wave);
+        MatchSnapshot clear = flow.StepUntil(s => s.Phase != Phase.Combat, 3000);
+        Assert.Equal(Phase.Building, clear.Phase); Assert.Equal(2, clear.Wave);
+        Assert.All(clear.Players.Take(2), city => Assert.False(city.Eliminated));
+        Assert.True(clear.Players[2].Eliminated);
+        Assert.NotEmpty(clear.Players.Take(2).SelectMany(c => c.Soldiers));
+        foreach (CityState city in clear.Players)
+        {
+            Assert.Equal(JsonSerializer.Serialize(initial.Players.Single(c => c.Id == city.Id).LastUpkeep, WireJson.Options), JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options));
+            foreach (UnitState member in city.Soldiers)
+            {
+                UnitState old = initial.Players.Single(c => c.Id == city.Id).Soldiers.Single(u => u.Id == member.Id);
+                Assert.Equal(old.Profile, member.Profile); Assert.Equal(old.SquadId, member.SquadId);
+                Assert.Equal(old.FormationSlot, member.FormationSlot); Assert.Equal(old.Assignment, member.Assignment);
+                Assert.True(member.Health <= old.Health); Assert.Equal(old.Experience + 1, member.Experience);
+            }
+        }
+        MatchSnapshot received = SessionFlow.RoundTrip(clear);
+        SnapshotCompatibility.RequireSharedArena(received);
+        CombatReservations claims = CombatReservations.Reconstruct(received.Arena!, received.Squads);
+        Assert.Equal(received.Reservations.Positions, claims.Positions); Assert.Equal(received.Reservations.Transit, claims.Transit);
         flow.Disconnect(3); flow.Rebind(3, 77);
-        Assert.True(flow.State.Players[2].Eliminated);
+        string before = SessionFlow.Gameplay(flow.State);
+        Assert.False(flow.Send(3, flow.Command(3, new("build", 0, Building.Farm)) with { City = 1 }).Accepted);
         Assert.False(flow.Send(3, flow.Command(3, new("build", 0, Building.Farm))).Accepted);
+        Assert.Equal(before, SessionFlow.Gameplay(flow.State));
+        flow.StepUntil(s => s.DyingBodies.Length == 0, 120);
         for (int turn = 0; turn < 3; turn++)
         {
-            while (CampaignStrategy.ReinforcementInvestment(flow.State, 1, true) is EconomyAction decision) flow.Act(1, decision);
-            if (turn == 2) flow.Act(2, new("recruit", 1));
+            foreach (int player in new[] { 1, 2 })
+                while (CampaignStrategy.ReinforcementInvestment(flow.State, player, player == 1) is EconomyAction decision) flow.Act(player, decision);
             foreach (int player in new[] { 1, 2 }) flow.Act(player, new("ready"));
         }
         flow.StepUntil(s => s.Phase == Phase.Combat, 120);
         Assert.Equal(12, flow.State.Enemies.Length);
-        Assert.All(flow.State.Players.Where(c => !c.Eliminated), c => Assert.Equal(6, flow.State.Enemies.Count(u => u.Destination == c.Id)));
+        Assert.Equal(4, flow.State.Enemies.Count(u => u.Origin == 3));
+        Assert.All(flow.State.Players.Take(2), c => Assert.Equal(6, flow.State.Enemies.Count(u => u.Destination == c.Id)));
+        Assert.Equal(clear.Players[2].Resources, flow.State.Players[2].Resources);
+        Assert.Equal(clear.Players[2].Research, flow.State.Players[2].Research);
         SessionFlow.RoundTrip(flow.State);
     }
 

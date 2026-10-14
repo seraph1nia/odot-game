@@ -52,33 +52,36 @@ public sealed class StatusEffectTests
     {
         using var combat = new CombatSimulation(new Rules { DefenderDamage = 0 });
         int ally = combat.Create(UnitType.Swordsman, 1, 1, 1), enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        Place(combat, ally, 11, 1); Place(combat, enemy, 8, 1);
+        Place(combat, ally, 17, 1); Place(combat, enemy, 18, 1);
         CombatUnit attacker = combat.Inspect(ally), target = combat.Inspect(enemy);
         combat.Seed(attacker with { Health = 100, Statuses = StatusPolicy.Apply(new(), Application(StatusKind.Poison, 0), Rules), Action = CombatActions.Attack(attacker.Action, new(CombatTargetKind.Unit, enemy), 0, 60, 30) });
         combat.Advance(60, []); Assert.Equal(target.Health - attacker.Profile.Damage, combat.Read(enemy).Health);
         Assert.Equal(UnitLifecycle.Dying, combat.Read(ally).Hex!.Lifecycle); Assert.False(combat.Read(ally).Statuses.Active);
-        Assert.Contains(combat.Events(), e => e.Type == CombatEventType.Death && e.Unit!.Id == ally && e.Unit.Statuses.Poison.Length == 1);
+        Assert.Contains(combat.Events(), e => e.Type == CombatEventType.Death && e.Unit!.Id == ally && e.Periodic.Length == 1);
+        Assert.DoesNotContain(combat.Reservations.Positions, p => p.UnitId == combat.Read(ally).SquadId);
     }
     [Fact]
-    public void LandedSplashAppliesOnlyToSurvivorsAndPoisonTransferTicksWhileQueued()
+    public void LandedGroupDamageAppliesToEachSurvivorAndBurnPersistsThroughSectorRedirection()
     {
         using var combat = new CombatSimulation(new Rules { DefenderDamage = 0 });
-        int mage = combat.Create(UnitType.Mage, 1, 1, 1, capabilities: new(BurnPercent: 20)); Place(combat, mage, 11, 1);
+        int mage = combat.Create(UnitType.Mage, 1, 1, 1, capabilities: new(BurnPercent: 20)); Place(combat, mage, 17, 1);
         int[] enemies = Enumerable.Range(0, 3).Select(n => combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons)).ToArray();
-        for (int n = 0; n < 3; n++) Place(combat, enemies[n], 8, n + 1);
-        CombatUnit actor = combat.Inspect(mage); combat.Seed(actor with { Action = CombatActions.Attack(actor.Action, new(CombatTargetKind.Unit, enemies[0]), 0, 1, 30) });
-        combat.Advance(1, []); Assert.Equal(2, combat.Enemies().Count(u => u.Statuses.Burn is not null));
+        for (int n = 0; n < 3; n++) Place(combat, enemies[n], 18, 1);
+        CombatUnit actor = combat.Inspect(mage); combat.Seed(actor with { Action = CombatActions.Attack(actor.Action, new(CombatTargetKind.Unit, combat.Read(enemies[0]).SquadId), 0, 1, 30) });
+        combat.Advance(1, []); Assert.Equal(3, combat.Enemies().Count(u => u.Statuses.Burn is not null));
         int afflicted = combat.Enemies().First(u => u.Statuses.Burn is not null).Id; UnitState before = combat.Read(afflicted);
-        combat.Transfer(afflicted, 2); Assert.False(combat.Read(afflicted).Deployed); Assert.Equal(before.Statuses, combat.Read(afflicted).Statuses);
+        combat.Transfer(afflicted, 2); Assert.True(combat.Read(afflicted).Deployed); Assert.Equal(before.Statuses, combat.Read(afflicted).Statuses);
+        Assert.All(combat.Enemies(), u => Assert.Equal(2, u.Destination));
         combat.Remove(mage); combat.Advance(61, []); Assert.Equal(before.Health - before.Statuses.Burn!.Strength, combat.Read(afflicted).Health);
-        Assert.Equal(UnitLifecycle.Queued, combat.Read(afflicted).Hex!.Lifecycle); Assert.DoesNotContain(combat.Reservations.Positions, p => p.UnitId == afflicted);
+        Assert.Equal(UnitLifecycle.Alive, combat.Read(afflicted).Hex!.Lifecycle);
+        Assert.Contains(combat.Reservations.Positions, p => p.UnitId == before.SquadId && p.Cell == before.Hex!.Position.Cell);
         UnitState transported = JsonSerializer.Deserialize<UnitState>(JsonSerializer.Serialize(combat.Read(afflicted), WireJson.Options), WireJson.Options)!;
         using var restored = new CombatSimulation(new()); restored.Seed(transported); Assert.Equal(transported.Statuses, restored.Read(afflicted).Statuses);
     }
     [Fact]
     public void ChillCommitsIntervalsAndExpiryDoesNotChangeMovementReservations()
     {
-        using var combat = new CombatSimulation(new()); int id = combat.Create(UnitType.Swordsman, 1, 1, 1); Place(combat, id, 11, 1);
+        using var combat = new CombatSimulation(new()); int id = combat.Create(UnitType.Swordsman, 1, 1, 1); Place(combat, id, 17, 1);
         CombatUnit actor = combat.Inspect(id); StatusState chill = StatusPolicy.Apply(new(), Application(StatusKind.Chill, 0, 40), Rules);
         CombatAction windup = CombatActions.Attack(actor.Action, new(CombatTargetKind.City, 1), 170,
             StatusPolicy.Duration(actor.Profile.WindupTicks, chill.ChillAt(170)), StatusPolicy.Duration(actor.Profile.CadenceTicks - actor.Profile.WindupTicks, chill.ChillAt(170)));
@@ -92,31 +95,69 @@ public sealed class StatusEffectTests
     [Theory]
     [InlineData(false, 0)]
     [InlineData(true, 10)]
-    public void ZeroDamageAndInvalidPrimaryMissCannotApplyAnyStatusOrSplash(bool removePrimary, int damage)
+    public void ZeroBothChannelsOrLostGroupCannotApplyAnyStatus(bool removeGroup, int damage)
     {
-        using var combat = new CombatSimulation(new Rules { MageDamage = damage, DefenderDamage = 0 });
+        using var combat = new CombatSimulation(new Rules { MageDamage = damage, DefenderDamage = 0, Arena = new() { MageSecondaryDamage = damage } });
         int mage = combat.Create(UnitType.Mage, 1, 1, 1, capabilities: new(BurnPercent: 20, PoisonPercent: 10, ChillPercent: 20));
         int primary = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons), secondary = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
-        Place(combat, mage, 11, 1); Place(combat, primary, 8, 1); Place(combat, secondary, 8, 2);
+        Place(combat, mage, 17, 1); Place(combat, primary, 18, 1); Place(combat, secondary, 18, 1);
         CombatUnit actor = combat.Inspect(mage);
-        combat.Seed(actor with { Action = CombatActions.Attack(actor.Action, new(CombatTargetKind.Unit, primary), 0, 1, 30) });
+        combat.Seed(actor with { Action = CombatActions.Attack(actor.Action, new(CombatTargetKind.Unit, combat.Read(primary).SquadId), 0, 1, 30) });
         int original = combat.Read(secondary).Health;
-        if (removePrimary) combat.Remove(primary);
+        if (removeGroup) { combat.Remove(primary); combat.Remove(secondary); }
         combat.Advance(1, []);
-        Assert.All(combat.Enemies(), u => Assert.False(u.Statuses.Active)); Assert.Equal(original, combat.Read(secondary).Health);
+        Assert.All(combat.Enemies(), u => Assert.False(u.Statuses.Active));
+        Assert.Equal(!removeGroup, Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact).Landed);
+        if (!removeGroup) Assert.Equal(original, combat.Read(secondary).Health);
+    }
+
+    // Tier A: independent X/Y zeros must not invent statuses on an undamaged
+    // primary/secondary member. Kernel arithmetic alone misses status attribution.
+    // Three fixed living members, one committed strike, no children; subsecond.
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(10, 0)]
+    public void StatusesFollowOnlyActualNonzeroXYContributions(int x, int y)
+    {
+        using var combat = new CombatSimulation(new Rules { MageDamage = x, Arena = new() { MageSecondaryDamage = y } });
+        int mage = combat.Create(UnitType.Mage, 1, 1, 1, capabilities: new(BurnPercent: 20, PoisonPercent: 10, ChillPercent: 20));
+        int[] members = Enumerable.Range(0, 3).Select(_ => combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons)).ToArray();
+        Place(combat, mage, 17, 1);
+        foreach (int id in members) Place(combat, id, 18, 1);
+        CombatUnit actor = combat.Inspect(mage);
+        combat.Seed(actor with { Action = CombatActions.Attack(actor.Action, new(CombatTargetKind.Unit, combat.Read(members[0]).SquadId), 0, 1, 30) });
+        combat.Advance(1, []);
+        CombatEvent impact = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact);
+        Assert.Equal(x == 0 ? 2 : 1, impact.Victims.Length);
+        foreach (int id in members)
+        {
+            UnitState member = combat.Read(id);
+            bool damaged = impact.Victims.Contains(id);
+            Assert.Equal(damaged, member.Statuses.Active);
+            Assert.Equal(member.Profile.Health - (damaged ? HealthPoints.FromWhole(10) : 0), member.Health);
+            if (damaged)
+            {
+                Assert.Equal(HealthPoints.FromWhole(2), member.Statuses.Burn!.Strength);
+                Assert.Equal(HealthPoints.FromWhole(1), Assert.Single(member.Statuses.Poison).Strength);
+                Assert.Equal(20, member.Statuses.ChillAt(1));
+            }
+        }
+        Assert.Equal(x > 0, impact.Victims.Contains(impact.TargetId));
     }
 
     [Fact]
     public void GuardianRoundsEachSmallOrdinaryAndPeriodicContributionOnce()
     {
         using var combat = new CombatSimulation(new Rules { DefenderDamage = 0 });
-        int ally = combat.Create(UnitType.Swordsman, 1, 1, 1, capabilities: new(ReductionPercent: 20)); Place(combat, ally, 11, 1);
+        int ally = combat.Create(UnitType.Swordsman, 1, 1, 1, capabilities: new(ReductionPercent: 20)); Place(combat, ally, 17, 1);
         int[] enemies = Enumerable.Range(0, 2).Select(_ => combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons)).ToArray();
         for (int n = 0; n < enemies.Length; n++)
         {
-            Place(combat, enemies[n], 8, n + 1); CombatUnit actor = combat.Inspect(enemies[n]);
-            combat.Seed(actor with { Profile = actor.Profile with { Damage = 3 }, Action = CombatActions.Attack(actor.Action, new(CombatTargetKind.Unit, ally), 0, 60, 30) });
+            Place(combat, enemies[n], 18, 1); CombatUnit actor = combat.Inspect(enemies[n]);
+            combat.Seed(actor with { Profile = actor.Profile with { Damage = 3 } });
         }
+        CombatUnit leader = combat.Inspect(enemies[0]);
+        combat.Seed(leader with { Action = CombatActions.Attack(leader.Action, new(CombatTargetKind.Unit, combat.Read(ally).SquadId), 0, 60, 30) });
         CombatUnit target = combat.Inspect(ally); combat.Seed(target with { Statuses = StatusPolicy.Apply(new(), new(ally, StatusKind.Burn, enemies[0], 1, 0, 3), Rules) });
         combat.Advance(60, []);
         Assert.Equal(target.Health - 9, combat.Read(ally).Health);

@@ -10,9 +10,9 @@ namespace Game.Core.Tests;
 // Expected cost: milliseconds per numerical fixture, no launched game/process.
 public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    private static Match Create()
+    private static Match Create(int squadCapacity = 3)
     {
-        var match = new Match(new Rules { StartingGold = 100, StartingWood = 100, DefenderDamage = 0 }, combatSeed: 17);
+        var match = new Match(new Rules { StartingGold = 100, StartingWood = 100, DefenderDamage = 0, Arena = new() { SquadCapacity = squadCapacity } }, combatSeed: 17);
         match.Join(); match.Join(); Act(match, "start");
         match.Players[1].Stone = 100; match.Players[1].Metal = 100;
         return match;
@@ -58,11 +58,11 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
         MatchSnapshot loaded = SnapshotPayload.Decode(SnapshotPayload.Encode(match.Snapshot()))!;
         CityState received = loaded.Players[0]; ArmyState army = received.Army!;
         Assert.Equal(Enumerable.Range(9, 6), army.Homes.Select(h => h.PlotId));
-        Assert.Equal(ArmyPlotStatus.TowerOccupied, army.Homes[1].State); Assert.Equal(6, army.Homes[1].Used);
+        Assert.Equal(ArmyPlotStatus.TowerOccupied, army.Homes[1].State); Assert.Equal(0, army.Homes[1].Used); // no fictitious squad members
         Assert.Equal(ArmyPlotStatus.UnitOccupied, army.Homes[2].State); Assert.Equal(ArmyPlotStatus.Locked, army.Homes[3].State);
         Assert.Equal(city.Soldiers.Select(u => u.Assignment), received.Soldiers.Select(u => u.Assignment));
-        Assert.Equal(match.Army.Find(city.Soldiers, city.PurchasedHomes, 2, plots: city.ArmyPlots),
-            match.Army.Find(received.Soldiers, army.PurchasedHomes, 2, plots: army.Homes.Select(h => h.Plot).ToArray()));
+        Assert.Equal(match.Army.Find(city.Soldiers, city.PurchasedHomes, plots: city.ArmyPlots),
+            match.Army.Find(received.Soldiers, army.PurchasedHomes, plots: army.Homes.Select(h => h.Plot).ToArray()));
         Assert.DoesNotContain(city.Soldiers, u => u.Assignment!.Tile == match.Army.HomeCells[1]);
     }
     [Theory]
@@ -82,6 +82,9 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
         Act(match, "ready"); Reject(match, Request(match, "build", plot, Building.ArrowTower)); Act(match, "unready");
         Act(match, "build", plot, Building.ArrowTower);
         SlotState basis = city.ArmyPlots[plot - 9]; Assert.True(basis.Generation > 0);
+        StructureState physical = Assert.Single(match.Snapshot().Structures, s => s.Owner == 1 && s.Slot == plot);
+        Assert.Equal(new SharedArena([1, 2]).Deployment(1, plot - 9), physical.Cell);
+        Assert.Contains(match.Snapshot().Arena!.Footprints, f => f.Owner == 1 && f.Slot == plot && f.Cell == physical.Cell);
         Command rapid = Request(match, "upgrade-tower", plot, Building.RapidArrowTower);
         Command bombard = Request(match, "upgrade-tower", plot, Building.BombardTower);
         Reject(match, bombard with { ExpectedGeneration = basis.Generation + 1 });
@@ -94,6 +97,7 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
         ResourceCost refund = city.ArmyPlots[plot - 9].Refund; stock = city.Resources;
         Act(match, "sell", plot); Assert.True(stock.TryAdd(refund, out ResourceCost refunded)); Assert.Equal(refunded, city.Resources);
         Assert.True(city.ArmyPlots[plot - 9].Purchased); Assert.Empty(city.Towers);
+        Assert.DoesNotContain(match.Snapshot().Arena!.Footprints, f => f.Owner == 1 && f.Slot == plot);
         Reject(match, Request(match, "sell", plot));
         Act(match, "build", plot, Building.ArrowTower); Reject(match, rapid);
         Assert.True(city.ArmyPlots[plot - 9].Generation > basis.Generation);
@@ -112,60 +116,65 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
     }
     [Theory]
     [InlineData(Building.RapidArrowTower, 1)]
-    [InlineData(Building.BombardTower, 3)]
-    public void UpgradedArmyDefenseAppliesOneAuthoritativeHitPerValidTargetWithRadiusAndAttribution(Building path, int count)
+    [InlineData(Building.BombardTower, 5)]
+    public void UpgradedArmyDefenseHitsOneAssignedForeignSquadWithoutCapsOrCrossHexDamage(Building path, int count)
     {
-        using Match match = Create(); City city = match.Players[1];
+        using Match match = Create(squadCapacity: 5); City city = match.Players[1];
         Act(match, "build", 10, Building.ArrowTower); Act(match, "upgrade-tower", 10, path);
         CombatSimulation combat = match.Combat;
-        int Enemy(int cell, int anchor, int destination = 1)
-        {
-            int id = combat.Create(UnitType.Crossbowman, 0, 1, destination, Faction.Skeletons);
-            combat.Seed(combat.Read(id) with { Hex = CombatFixture.At(combat.Read(id), cell, anchor) });
-            return id;
-        }
-        int primary = Enemy(11, 1), same = Enemy(11, 2);
-        int adjacent = Enemy(combat.Board.Cell(11).Neighbors.First(), 1);
-        int far = Enemy(combat.Board.Cells.First(c => combat.Board.Distance(11, c.Id) > 1).Id, 1);
-        int foreign = Enemy(11, 1, 2), dead = Enemy(11, 3);
-        combat.Seed(combat.Read(dead) with { Health = 0, Hex = CombatFixture.At(combat.Read(dead), 11, 3) with { Lifecycle = UnitLifecycle.Dying, DeathStartTick = 0, DeathEndTick = 78 } });
+        var arena = new SharedArena([1, 2], [(1, 10)]);
+        int cell = arena.Board.Cell(arena.Tower(1, 10)).Neighbors.First(arena.CanOccupy);
+        int[] group = Enumerable.Range(0, 5).Select(_ => combat.Create(UnitType.Crossbowman, 0, 2, 2, Faction.Skeletons)).ToArray();
+        foreach (int id in group) combat.Seed(combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, 1)) });
+        int adjacentCell = arena.Board.Cell(cell).Neighbors.First(c => arena.CanOccupy(c) && c != arena.Tower(1, 10));
+        int adjacent = combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
+        combat.Seed(combat.Inspect(adjacent) with { Location = new(UnitLifecycle.Alive, new(adjacentCell, 1)) });
         int friendly = combat.Create(UnitType.Swordsman, 1, 1, 1);
-        combat.Seed(combat.Read(friendly) with { Hex = CombatFixture.At(combat.Read(friendly), 14, 1) });
-        city.Towers[10] = city.Towers[10] with { TargetId = primary, PendingImpact = true, AttackSequence = 1, ImpactTick = 30, ReadyTick = 120 };
-        int initial = combat.Read(primary).Health;
-        combat.Advance(30, [city]);
+        int friendlyCell = arena.Board.Cells.First(c => arena.CanOccupy(c.Id) && c.Id != cell && c.Id != adjacentCell).Id;
+        combat.Seed(combat.Inspect(friendly) with { Location = new(UnitLifecycle.Alive, new(friendlyCell, 1)) });
+        city.Towers[10] = city.Towers[10] with { TargetId = combat.Read(group[0]).SquadId, PendingImpact = true, AttackSequence = 1, ImpactTick = 30, ReadyTick = 120 };
+        int initial = combat.Read(group[0]).Health;
+        TowerDefinition profile = match.Configuration.Towers.Single(t => t.Type == path && t.Level == 2);
+        combat.Advance(30, match.Players.Values);
         CombatEvent impact = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Tower?.Slot == 10);
-        Assert.Equal(count, impact.Victims.Length); Assert.Equal(count, impact.Victims.Distinct().Count()); Assert.DoesNotContain(dead, impact.Victims);
-        Assert.Equal(primary, impact.Victims[0]); Assert.Equal(city.Id, impact.Tower!.City); Assert.Null(impact.Unit);
-        Assert.All(impact.Victims, id => Assert.Equal(initial - impact.Damage, combat.Read(id).Health));
-        Assert.All(new[] { same, adjacent, far, foreign }.Except(impact.Victims), id => Assert.Equal(initial, combat.Read(id).Health));
+        Assert.Equal(count, impact.Victims.Length); Assert.Equal(count, impact.Victims.Distinct().Count());
+        Assert.All(impact.Victims, id => Assert.Contains(id, group));
+        Assert.Equal(city.Id, impact.Tower!.City); Assert.Null(impact.Unit);
+        Assert.All(group, id => Assert.Equal(initial - (id == impact.TargetId ? profile.Damage : profile.SecondaryDamage), combat.Read(id).Health));
+        Assert.Equal(initial, combat.Read(adjacent).Health);
         Assert.Equal(HealthPoints.FromWhole(match.Rules.SoldierHealth), combat.Read(friendly).Health);
-        if (path == Building.BombardTower) Assert.Equal(new[] { primary, same, adjacent }.Order(), impact.Victims.Order());
-        else Assert.Equal(30, match.Configuration.Towers.Single(t => t.Type == path && t.Level == 2).CadenceTicks);
-        combat.Advance(31, [city]); Assert.Equal(count, combat.Events().Count(e => e.Type == CombatEventType.Hit));
+        if (path == Building.RapidArrowTower) Assert.Equal(30, profile.CadenceTicks);
+        combat.Advance(31, match.Players.Values); Assert.Equal(count, combat.Events().Count(e => e.Type == CombatEventType.Hit));
     }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void BombardMissesDeadOrTransferredPrimaryWithoutSplash(bool dead)
+    public void BombardKeepsCommittedGroupAfterMemberDeathOrSectorRedirection(bool memberDies)
     {
         using Match match = Create(); City city = match.Players[1];
         Act(match, "build", 9, Building.ArrowTower); Act(match, "upgrade-tower", 9, Building.BombardTower);
-        int primary = match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
-        int neighbor = match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
-        foreach ((int id, int anchor) in new[] { (primary, 1), (neighbor, 2) })
-            match.Combat.Seed(match.Combat.Read(id) with { Hex = CombatFixture.At(match.Combat.Read(id), 11, anchor) });
-        city.Towers[9] = city.Towers[9] with { TargetId = primary, PendingImpact = true, ImpactTick = 30 };
-        if (dead) match.Combat.Remove(primary); else match.Combat.Transfer(primary, 2);
-        match.Combat.Advance(30, [city]);
+        var arena = new SharedArena([1, 2], [(1, 9)]);
+        int cell = arena.Board.Cell(arena.Tower(1, 9)).Neighbors.First(arena.CanOccupy);
+        int[] group = Enumerable.Range(0, 2).Select(_ => match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons)).ToArray();
+        foreach (int id in group) match.Combat.Seed(match.Combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, 1)) });
+        int target = match.Combat.Read(group[0]).SquadId;
+        city.Towers[9] = city.Towers[9] with { TargetId = target, PendingImpact = true, AttackSequence = 1, ImpactTick = 30 };
+        if (memberDies) match.Combat.Remove(group[0]); else match.Combat.Transfer(group[0], 2);
+        match.Combat.Advance(30, match.Players.Values);
         CombatEvent impact = Assert.Single(match.Combat.Events(), e => e.Type == CombatEventType.Impact);
-        Assert.False(impact.Landed); Assert.Empty(impact.Victims);
-        Assert.Equal(HealthPoints.FromWhole(match.Rules.RangedHealth), match.Combat.Read(neighbor).Health);
+        Assert.True(impact.Landed); Assert.Equal(target, impact.SquadId);
+        Assert.True(match.Combat.Read(group[1]).Health < HealthPoints.FromWhole(match.Rules.RangedHealth));
+        // Loss of the final member must miss, not retarget a neighboring group.
+        foreach (int id in group) match.Combat.Remove(id);
+        city.Towers[9] = city.Towers[9] with { PendingImpact = true, ImpactTick = 31 };
+        match.Combat.Advance(31, match.Players.Values);
+        CombatEvent miss = Assert.Single(match.Combat.Events(), e => e.Type == CombatEventType.Impact && e.Tick == 31);
+        Assert.False(miss.Landed); Assert.Empty(miss.Victims);
     }
     [Fact]
     public void TowerOnlyAuthoringPublishesDistinctRulesWithoutRerollingUnchangedUnitAndDefenderDecisions()
     {
-        Rules rules = new(); Rules changed = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80, 4, 2) } };
+        Rules rules = new(); Rules changed = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80) } };
         using var baseline = new Match(rules, combatSeed: 1); using var variant = new Match(changed, combatSeed: 1);
         Assert.NotEqual(baseline.Configuration.Fingerprint, variant.Configuration.Fingerprint);
         Assert.Equal(baseline.Configuration.ActorDecisionFingerprint, variant.Configuration.ActorDecisionFingerprint);
@@ -189,29 +198,35 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
     [InlineData(1UL)]
     [InlineData(123UL)]
     [InlineData(14056307608042553509UL)]
-    public void LegacyBaseTowerSelectionIgnoresNewVariantMetadataWithOneSaltCounterfactual(ulong seed)
+    public void BaseTowerSelectionIgnoresOptionalUpgradeTimingWithOneSaltCounterfactual(ulong seed)
     {
-        Rules rules = new(); Rules newFields = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80, 4, 2) } };
+        Rules rules = new(); Rules newFields = rules with { Combat = rules.Combat with { RapidArrowTower = new(3, 17), BombardTower = new(20, 80) } };
         using var baseline = new Match(rules, combatSeed: seed); using var candidate = new Match(newFields, combatSeed: seed);
         int Target(Match match)
         {
             match.Join(); Act(match, "start"); Act(match, "build", 0, Building.ArrowTower);
-            for (int anchor = 1; anchor <= 3; anchor++)
+            var arena = new SharedArena([1]);
+            int[] cells = arena.Board.Cell(arena.Tower(1, 0)).Neighbors.Where(arena.CanOccupy).Take(3).ToArray();
+            Assert.Equal(3, cells.Length);
+            for (int index = 0; index < cells.Length; index++)
             {
-                int id = match.Combat.Create(UnitType.Crossbowman, 0, 1, 1, Faction.Skeletons);
-                match.Combat.Seed(match.Combat.Read(id) with { Hex = CombatFixture.At(match.Combat.Read(id), 8, anchor) });
+                int id = match.Combat.Create(UnitType.Crossbowman, 0, index + 1, 1, Faction.Skeletons);
+                match.Combat.Seed(match.Combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cells[index], 1)) });
             }
             match.Combat.StartActions(match.Players.Values);
             return match.Players[1].Towers[0].TargetId;
         }
         int oldTarget = Target(baseline), actual = Target(candidate); Assert.Equal(oldTarget, actual);
-        CombatUnit[] enemies = candidate.Combat.Units().Where(u => u.Faction == Faction.Skeletons).ToArray();
+        SquadState[] enemies = candidate.Combat.SquadSnapshots().Where(u => u.Faction == Faction.Skeletons).ToArray();
+        Assert.Contains(enemies, s => s.Id == actual);
         // Change ONLY the salt in the existing selector, not actors, positions,
         // profiles, resources, sequence or target metric. Full identity is the
         // rejected pre-fix coupling; it is never used as a compatibility shortcut.
         var counterfactual = new CombatDecisionKey(seed, candidate.Configuration.Fingerprint, 1, 1, CombatActorKind.Tower, 1, 0, 0, CombatPurpose.Target);
-        int fullIdentityTarget = CombatDecisions.Select(enemies, u => candidate.Configuration.Board.CityDistance(u.Location.Position.Cell), counterfactual)!.Id;
-        Assert.Equal(new DefenseProfile(500, 12, 48, 1, 0), candidate.Configuration.Tower(Building.ArrowTower, 1));
+        var topology = new SharedArena([1]);
+        int fullIdentityTarget = enemies.OrderBy(s => topology.Board.Distance(topology.Tower(1, 0), s.Hex.Position.Cell))
+            .ThenBy(s => SeededDecision.Mix(SeededDecision.State(counterfactual) ^ (ulong)s.Id)).First().Id;
+        Assert.Equal(new DefenseProfile(500, 12, 48), candidate.Configuration.Tower(Building.ArrowTower, 1));
         output.WriteLine(JsonSerializer.Serialize(new
         {
             seed,
@@ -220,7 +235,7 @@ public sealed class ArmyPlotTowerTests(Xunit.Abstractions.ITestOutputHelper outp
             OldNamespaceTarget = oldTarget,
             ActualTarget = actual,
             FullIdentityCounterfactualTarget = fullIdentityTarget,
-            LegacySalt = candidate.Configuration.ActorDecisionFingerprint.ToString(),
+            BaseActorSalt = candidate.Configuration.ActorDecisionFingerprint.ToString(),
             FullIdentity = candidate.Configuration.Fingerprint.ToString(),
             Stock = candidate.Players[1].Resources,
             Profiles = candidate.Configuration.Towers

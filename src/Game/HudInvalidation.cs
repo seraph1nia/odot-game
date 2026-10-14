@@ -51,7 +51,7 @@ internal sealed class HudInvalidation
         List<object?> context = [.. Common(), connected, focus, slot, group, player, city?.Resources, city?.Research, me?.Resources, me?.Ready, me?.Eliminated];
         context.Add(city?.Army?.PurchasedHomes); Add(context, city?.Army?.HomePrices.Cast<object>());
         Add(context, city?.Army?.Homes.Cast<object>());
-        Add(context, city?.Soldiers.Select(u => (object)(u.Id, u.Size, u.Assignment)));
+        Add(context, city?.Soldiers.Select(u => (object)(u.Id, u.SquadId, u.Type, u.IsBoss, u.Assignment)));
         Add(context, city?.Slots.Cast<object>()); Add(context, city?.RecruitmentQuotes.Cast<object>());
         Add(context, state?.TowerCatalog.Cast<object>()); Add(context, state?.MarketRates.Cast<object>());
         Add(context, state?.TechnologyCatalog.Cast<object>()); Add(context, state?.PlotPrices.Cast<object>());

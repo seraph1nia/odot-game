@@ -198,12 +198,13 @@ public sealed class HarnessTests
     public void RiggedObservationPreservesStringEnumsAndActualPoseFields()
     {
         const string json = """
-            {"Units":[{"Id":7,"Type":"Crossbowman","Clip":"2H_Ranged_Shoot","PoseSeconds":0.43,"BoneRotation":"(0, 1, 0, 0)","WeaponAttached":true,"Dead":false,"ShotVisible":true}],"EventCursor":12,"CombatTick":44,"PlaybackGeneration":2}
+            {"Units":[{"Id":7,"SquadId":3,"FormationSlot":2,"Type":"Crossbowman","Clip":"2H_Ranged_Shoot","PoseSeconds":0.43,"BoneRotation":"(0, 1, 0, 0)","WeaponAttached":true,"Dead":false,"ShotVisible":true}],"EventCursor":12,"CombatTick":44,"PlaybackGeneration":2}
             """;
         UiObservation observation = JsonSerializer.Deserialize<UiObservation>(json, WireJson.Options)!;
         UnitObservation unit = Assert.Single(observation.Units);
         Assert.Equal(UnitType.Crossbowman, unit.Type); Assert.True(unit.WeaponAttached); Assert.True(unit.ShotVisible);
         Assert.Equal(0.43, unit.PoseSeconds); Assert.Equal(12, observation.EventCursor); Assert.Equal(2, observation.PlaybackGeneration);
+        Assert.Equal(3, unit.SquadId); Assert.Equal(2, unit.FormationSlot);
     }
     [Fact]
     public void DevelopmentCapacityIncludesThePlayingHost()
@@ -393,6 +394,8 @@ public sealed class HarnessTests
     {
         Options selected = Options.Parse(["test-network", "--scenario", "defeat", "--jobs", "1"]);
         Assert.Equal("defeat", selected.Scenario); Assert.Equal(1, selected.Jobs);
+        Assert.Equal("eliminated-resume", Options.Parse(["test-network", "--scenario", "eliminated-resume"]).Scenario);
+        Assert.Equal("active-fallen", Options.Parse(["test-network", "--scenario", "active-fallen"]).Scenario);
         Assert.Equal(2, Options.Parse(["test-network"]).Jobs);
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-network", "--scenario", "defeat", "--port", "7001"]));
         Assert.Equal(7001, Options.Parse(["test-network", "--scenario", "authority-resume-victory", "--port", "7001"]).Port);
@@ -444,11 +447,16 @@ public sealed class HarnessTests
             Assert.Equal(scope.EnvironmentFor("a")["XDG_DATA_HOME"], scope.EnvironmentFor("a")["XDG_DATA_HOME"]);
             Assert.NotEqual(scope.EnvironmentFor("a")["XDG_DATA_HOME"], scope.EnvironmentFor("b")["XDG_DATA_HOME"]);
             Child owned = scope.Own(new Child("owned", "/bin/sh", ["-c", "printf 'ODOT_EVENT {\"Type\":\"ready\"}\\n'; sleep 30"], root, environment: scope.EnvironmentFor("a"), evidenceDirectory: scope.EvidenceDirectory));
+            int ownedPid = owned.ProcessId;
             await owned.WaitFor(e => e.Type == "ready", "fixture readiness", 2000, CancellationToken.None);
             File.WriteAllText(Path.Combine(scope.EnvironmentFor("a")["XDG_DATA_HOME"]!, "settings.cfg"), "owned setting");
             await scope.DisposeAsync(); await scope.DisposeAsync();
             Assert.True(owned.HasExited); Assert.False(Directory.Exists(runtime)); Assert.False(unrelated.HasExited);
             Assert.True(File.Exists(owned.LogPath));
+            using var receipt = System.Text.Json.JsonDocument.Parse(File.ReadAllText(owned.LogPath + ".states.json"));
+            Assert.Equal(ownedPid, receipt.RootElement.GetProperty("ProcessId").GetInt32());
+            Assert.True(receipt.RootElement.GetProperty("HasExited").GetBoolean());
+            Assert.Equal(owned.ExitCode, receipt.RootElement.GetProperty("ExitCode").GetInt32());
         }
         finally { if (!unrelated.HasExited) unrelated.Kill(); await unrelated.WaitForExitAsync(); Directory.Delete(root, true); }
     }
@@ -475,7 +483,11 @@ public sealed class HarnessTests
             await using var scope = new ScenarioScope("fixture", new Evidence(root));
             var child = scope.Own(new Child("error", "/bin/sh", ["-c", "echo 'ERROR: fixture engine error' >&2"], root));
             await child.WaitExit(CancellationToken.None); await scope.DisposeAsync();
-            Assert.Throws<InvalidOperationException>(scope.CheckErrors);
+            var error = Assert.Throws<InvalidOperationException>(scope.CheckErrors);
+            Assert.Contains("unexpected engine error or exit", error.Message);
+            using var receipt = System.Text.Json.JsonDocument.Parse(File.ReadAllText(child.LogPath + ".states.json"));
+            Assert.Equal(child.ProcessId, receipt.RootElement.GetProperty("ProcessId").GetInt32());
+            Assert.Contains("Unexpected engine error", receipt.RootElement.GetProperty("Condition").GetString());
             Assert.Throws<InvalidOperationException>(() => UiProtocol.Target(new UiObservation(), "Start"));
             Assert.Throws<InvalidOperationException>(() => UiProtocol.Frame(new UiObservation(), Path.Combine(root, "missing.png")));
         }

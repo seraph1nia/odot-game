@@ -69,15 +69,15 @@ internal sealed partial class UnitInspector : PanelContainer
         {
             int selected = _hall.ItemCount > 0 ? _hall.GetSelectedId() : -1;
             _hallKey = key; _hall.Clear();
-            foreach (TownHallState hall in city?.Army?.Halls ?? []) _hall.AddItem($"Town hall · plot {hall.Slot + 1} · {hall.Capacity} size", hall.Slot);
+            foreach (TownHallState hall in city?.Army?.Halls ?? []) _hall.AddItem($"Town hall · plot {hall.Slot + 1} · {hall.Capacity} individuals", hall.Slot);
             int index = _hall.GetItemIndex(selected); if (index >= 0) _hall.Select(index);
         }
         int slot = _hall.ItemCount > 0 ? _hall.GetSelectedId() : -1;
         TownHallState? destination = city?.Army?.Halls.FirstOrDefault(h => h.Slot == slot);
         bool fits = owned && city is not null && destination is not null
-            && army?.Find(city.Soldiers, city.Army!.PurchasedHomes, _sample!.Size, destination.Slot, destination.Generation, destination.Capacity) is not null;
+            && army?.Find(city.Soldiers, city.Army!.PurchasedHomes, destination.Slot, destination.Generation, destination.Capacity) is not null;
         _store.Disabled = !editable || !fits; _hall.Disabled = !editable || destination is null;
-        _store.TooltipText = destination is null ? "Build a Town hall on a purchased plot first." : !fits ? "This Town hall has no fitting size capacity." : "Keep identity, level and wounds in reserve. Still consumes battle food.";
+        _store.TooltipText = destination is null ? "Build a Town hall on a purchased plot first." : !fits ? "This Town hall has no free individual slot." : "Keep identity, level and wounds in reserve. Still consumes battle food.";
     }
     internal void Place(Vector2 viewport, float resourceBottom, float hudTop)
     {
@@ -95,6 +95,6 @@ internal sealed partial class UnitInspector : PanelContainer
         application.ObserveControl(targets, "UnitInspector", this);
         foreach (Button button in new[] { _retire, _store }) application.ObserveControl(targets, button.Name, button);
         application.ObserveControl(targets, "StoreDestination", _hall);
-        fields["InspectedUnit"] = _sample is { } unit ? new { unit.Id, Name = _name.Text, Description = _description.Text, StatsText = _stats.Text, Fraction = _health.Value / 100, unit.Level, unit.Health, MaximumHealth = unit.Profile.Health, Damage = unit.Profile.Damage, unit.Size, unit.IsBoss, unit.Faction, unit.Assignment, unit.RecoveryEligible, Preview = UnitAssets.Character(unit.Type, unit.Faction) } : null;
+        fields["InspectedUnit"] = _sample is { } unit ? new { unit.Id, Name = _name.Text, Description = _description.Text, StatsText = _stats.Text, Fraction = _health.Value / 100, unit.Level, unit.Health, MaximumHealth = unit.Profile.Health, Damage = unit.Profile.Damage, unit.SquadId, unit.IsBoss, unit.Faction, unit.Assignment, unit.RecoveryEligible, Preview = UnitAssets.Character(unit.Type, unit.Faction) } : null;
     }
 }

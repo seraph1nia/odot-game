@@ -19,7 +19,11 @@ internal static class CombatVisualTiming
         => hex is { Lifecycle: UnitLifecycle.Alive, HoldsTransit: true }
             ? .8 * Envelope(hex.FrozenTick ?? tick, hex.StartTick, hex.EndTick, 4, 4) : 0;
     public static double Attack(UnitState unit, double tick)
-        => unit.Hex?.Lifecycle == UnitLifecycle.Dying || unit.AttackSequence == 0 || unit.TargetId == 0 ? 0
+        => unit.Hex?.Lifecycle == UnitLifecycle.Dying ? 0 : AttackWeight(unit, tick);
+    public static double Lunge(UnitState unit, double tick)
+        => unit.Class == UnitClass.Melee && unit.Hex?.HoldsTransit != true ? .65 * AttackWeight(unit, tick) : 0;
+    private static double AttackWeight(UnitState unit, double tick)
+        => unit.AttackSequence == 0 || unit.TargetId == 0 ? 0
             : Envelope(unit.Hex?.FrozenTick ?? tick, unit.ActionStartTick, unit.ReadyTick, Math.Min(3, unit.ImpactTick - unit.ActionStartTick), 4);
     public static double Hit(double seconds, double started, bool dead, bool attacking)
         => dead || started < 0 ? 0 : Envelope(seconds, started, started + .15, .025, .05) * (attacking ? .3 : 1);
@@ -32,7 +36,6 @@ internal static class CombatVisualTiming
         double weight = Math.Min(entrance, exit);
         return weight * weight * (3 - 2 * weight);
     }
-    public const int IntentDashes = 12;
     public const int StrikeTrailTicks = 12;
     public const float LocalStrikeRadius = .34f;
     public static string MeleePhase(UnitState actor, double tick)

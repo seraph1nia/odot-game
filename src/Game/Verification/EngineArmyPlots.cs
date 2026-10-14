@@ -100,13 +100,13 @@ public partial class EngineTests
             Check(session.Commands[^1] is { Action: "build", Slot: 14, Building: Building.ArrowTower } && session.Results[^1].Accepted,
                 "native empty army plot construction builds a real base tower");
             session.Acknowledge(); hud.RefreshHud(1, 14); Receive(); Pick(14, roof: true);
-            Check(receiver!.Bounds[5] is not null && Detail().Text.Contains("TowerOccupied · 6/6", StringComparison.Ordinal)
-                && receiver.GetNode<Label3D>("Home5").Text.Contains("all 6 spots", StringComparison.Ordinal),
+            Check(receiver!.Bounds[5] is not null && Detail().Text.Contains("TowerOccupied · whole squad home", StringComparison.Ordinal)
+                && receiver.GetNode<Label3D>("Home5").Text.Contains("whole squad home", StringComparison.Ordinal),
                 "actual imported tower bounds, label and selected inspection expose whole-plot occupation");
             CheckInspection("single target · no splash");
             await CheckUpgradeSpacing(14);
-            Check(Button("BombardUpgrade").TooltipText.Contains("radius 1 hex · up to 3 enemies", StringComparison.Ordinal),
-                "default bombard preview retains authoritative radius and victim cap");
+            Check(Button("BombardUpgrade").TooltipText.Contains("one target squad · every other living member", StringComparison.Ordinal),
+                "default bombard preview describes uncapped within-squad secondary damage");
             match.Players[1].Metal = 0;
             await Click("BombardUpgrade"); hud.RefreshHud(1, 14);
             Check(!session.Results[^1].Accepted && match.Players[1].Towers[14].Type == Building.ArrowTower
@@ -121,7 +121,7 @@ public partial class EngineTests
             Check(session.State.Players[0].Towers.Single() is { Type: Building.BombardTower, Level: 2 }
                 && Detail().Text.Contains("Bombard tower", StringComparison.Ordinal) && !Button("BombardUpgrade").Visible,
                 "accepted upgraded artwork/inspection consumes authoritative path and removes duplicate upgrades");
-            CheckInspection("radius 1 hex · up to 3 enemies");
+            CheckInspection("one target squad · every other living member");
             Pick(9); await Click("ArrowTower"); session.Acknowledge(); hud.RefreshHud(1, 9); Receive(); Pick(9, roof: true);
             Check(Button("RapidArrowUpgrade").TooltipText.Contains("single target · no splash", StringComparison.Ordinal), "faster arrow preview explicitly excludes splash");
             await Click("RapidArrowUpgrade"); session.Acknowledge(); hud.RefreshHud(1, 9); Receive(); Pick(9, roof: true);
@@ -129,17 +129,17 @@ public partial class EngineTests
                 "second real native path acknowledges faster single-target arrow upgrade");
             CheckInspection("single target · no splash");
             Pick(10); await Click("CatapultTower"); session.Acknowledge(); hud.RefreshHud(1, 10); Receive(); Pick(10, roof: true);
-            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            CheckInspection("one target squad · every other living member");
             await Click("Upgrade"); session.Acknowledge(); hud.RefreshHud(1, 10);
             Check(session.Results[^1].Accepted && session.State.Players[0].Towers.Single(t => t.Slot == 10).Level == 2,
                 "native legacy army catapult upgrade retains its independent level path");
-            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            CheckInspection("one target squad · every other living member");
             session.SendAction("build", 1, Building.CatapultTower); session.Acknowledge(); hud.RefreshHud(1, 1);
-            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            CheckInspection("one target squad · every other living member");
             await Click("Upgrade"); session.Acknowledge(); hud.RefreshHud(1, 1);
             Check(session.Results[^1].Accepted && session.State.Players[0].Towers.Single(t => t.Slot == 1).Level == 2,
                 "native legacy city catapult upgrade retains its independent level path");
-            CheckInspection("same-cell splash · radius 0 hex · up to 3 enemies");
+            CheckInspection("one target squad · every other living member");
             session.SendAction("build", 2, Building.ArrowTower); session.Acknowledge(); hud.RefreshHud(1, 2);
             Check(session.Results[^1].Accepted, "city base arrow tower enables both native upgrade siblings");
             await CheckUpgradeSpacing(2);
@@ -148,13 +148,13 @@ public partial class EngineTests
             Check(Button("Recruit").Disabled, "actual recruitment UI excludes all tower occupied slots, including initially owned army plots");
             Check(!hud.IsInsideTree() && hud.GetChildCount() == 0 && host.Theme == theme,
                 "army fixture uses production current native resources and no application/world startup");
-            foreach (var (timing, expected) in new[]
+            foreach (var (secondary, expected) in new[]
             {
-                (new DefenseTiming(30, 90, 4, 0), "same-cell splash · radius 0 hex · up to 4 enemies"),
-                (new DefenseTiming(30, 90, 1, 2), "single target · no splash")
+                (9, "one target squad · every other living member"),
+                (0, "single target · no splash")
             })
             {
-                using var configured = new Match(new Rules { StartingGold = 100, StartingWood = 100, Combat = new() { BombardTower = timing } });
+                using var configured = new Match(new Rules { StartingGold = 100, StartingWood = 100, Arena = new() { CatapultSecondaryDamage = secondary } });
                 configured.Join(); configured.Join();
                 Check(configured.Apply(1, Command.FromSnapshot(configured.Snapshot(), 1, "start", 1)).Accepted, "configured preview authority starts");
                 configured.Players[1].Stone = 100; configured.Players[1].Metal = 100;
@@ -169,7 +169,7 @@ public partial class EngineTests
                     var button = previewHost.FindChildren("BombardUpgrade", "Button", true, false).OfType<Button>().Single();
                     Check(button.TooltipText.Contains(expected, StringComparison.Ordinal)
                         && previewHud.DetailModals.OfType<UiDialog>().Any(d => d.Content.FindChildren("*", "Label", true, false).OfType<Label>().Any(l => l.Text.Contains(expected, StringComparison.Ordinal))),
-                        "configured bombard preview and Details describe victim cap before radius");
+                        "configured bombard preview and Details describe the authoritative secondary channel");
                     button.EmitSignal(BaseButton.SignalName.Pressed);
                     Check(previewSession.Results[^1].Accepted, "configured native bombard upgrade accepted");
                     previewSession.Acknowledge(); previewHud.RefreshHud(1, 9);

@@ -2,33 +2,34 @@ using Xunit;
 
 namespace Game.Core.Tests;
 
+// Tier A against actual squad action/routing owners. Old anchor release,
+// city-local observations and member-policy caches are intentionally absent.
+// Fixed graph/cells/seeds; no processes. One expansion per decision is measured
+// at the genuine BFS site, rather than inferred from a copied scoring policy.
 public sealed class CombatPolicyTests
 {
     [Fact]
-    public void ReleasedAnchorsMakeTheCloserOpponentEligibleAtArrival()
+    public void ReleasedSquadCellsMakeTheCloserOpponentReachableAtTheNextBoundary()
     {
         using var combat = new CombatSimulation(new(), seed: 123);
-        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 16);
-        int nearer = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 11);
-        int reachable = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 15, UnitType.Mage);
+        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 38);
+        int nearer = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 18);
+        int reachable = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 1);
         foreach (int id in new[] { nearer, reachable }) combat.Seed(combat.Inspect(id) with { Action = new CombatAction.Recovery(0, 0, 1000) });
-        var blockers = new List<int>();
-        foreach (int cell in new[] { 7, 8, 10, 12, 13, 14 })
-            for (int anchor = 1; anchor <= 3; anchor++)
-            {
-                int id = combat.Create(UnitType.Crossbowman, 1, 1, 1);
-                combat.Seed(combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, anchor)), Action = new CombatAction.Recovery(0, 0, 1000) });
-                if (cell == 13) blockers.Add(id);
-            }
+        int[] blockers = combat.Board.Cell(18).Neighbors.Select(cell =>
+        {
+            int id = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, cell, UnitType.Crossbowman);
+            combat.Seed(combat.Inspect(id) with { Action = new CombatAction.Recovery(0, 0, 1000) });
+            return id;
+        }).ToArray();
         combat.StartActions([]);
-        Assert.Equal(reachable, combat.Read(actor).TargetId);
+        Assert.Equal(combat.Read(reachable).SquadId, combat.Read(actor).Decision!.ObjectiveId);
         CombatAction.Moving move = Assert.IsType<CombatAction.Moving>(combat.Inspect(actor).Action);
         foreach (int id in blockers) combat.Remove(id);
         combat.StartActions([]);
         Assert.Same(move, combat.Inspect(actor).Action);
-        combat.Advance(move.EndTick, []);
-        combat.StartActions([]);
-        Assert.Equal(nearer, combat.Read(actor).TargetId);
+        combat.Advance(move.EndTick, []); combat.StartActions([]);
+        Assert.Equal(combat.Read(nearer).SquadId, combat.Read(actor).Decision!.ObjectiveId);
     }
 
     [Fact]
@@ -61,74 +62,76 @@ public sealed class CombatPolicyTests
     }
 
     [Fact]
-    public void OneExpansionScoresEveryOpponentAndOnlyWinnerNeedsRouteConstruction()
+    public void OneExpansionScoresEveryOpponentAndCommittedMovesDoNotSearchAgain()
     {
         using var combat = new CombatSimulation(new(), seed: 123);
-        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 17);
-        foreach (int cell in new[] { 1, 2, 3, 4, 5, 6, 8 })
+        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 38);
+        foreach (int cell in new[] { 1, 2, 3, 4, 5, 6, 18 })
         {
             int id = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, cell);
             combat.Seed(combat.Inspect(id) with { Action = new CombatAction.Recovery(0, 0, 1000) });
         }
+        var work = new WorkCounters(); combat.Work = work;
         combat.StartActions([]);
-        Assert.Equal(1, combat.RouteSearches);
-        Assert.Equal(8, combat.Read(actor).Decision!.ObjectiveCell);
+        Assert.Equal(1, combat.RouteSearches); Assert.Equal(1, work.Snapshot()[WorkMetric.BfsSearches]);
+        Assert.Equal(18, combat.Read(actor).Decision!.ObjectiveCell);
         Assert.IsType<CombatAction.Moving>(combat.Inspect(actor).Action);
         combat.StartActions([]);
-        Assert.Equal(1, combat.RouteSearches);
+        Assert.Equal(1, combat.RouteSearches); Assert.Equal(1, work.Snapshot()[WorkMetric.BfsSearches]);
     }
 
     [Fact]
-    public void RetainedRepairUsesAtMostOneAdditionalExpansion()
+    public void StaleMemberVisitedHintsCannotExcludeTheSharedShortestRoute()
     {
         using var combat = new CombatSimulation(new(), seed: 123);
-        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 17);
+        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 38);
         int target = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 2);
         combat.Seed(combat.Inspect(target) with { Action = new CombatAction.Recovery(0, 0, 1000) });
         CombatUnit unit = combat.Inspect(actor);
-        combat.Seed(unit with { Decision = unit.Decision with { ObjectiveId = target, ObjectiveCell = 2, Visited = [13] } });
+        combat.Seed(unit with { Decision = unit.Decision with { ObjectiveId = combat.Read(target).SquadId, ObjectiveCell = 2, Visited = [32] } });
         combat.StartActions([]);
-        Assert.Equal(2, combat.RouteSearches);
-        Assert.DoesNotContain(combat.Read(actor).Decision!.Route, p => p.Cell == 13);
+        Assert.Equal(1, combat.RouteSearches);
+        Assert.Empty(combat.Read(actor).Decision!.Visited);
+        Assert.DoesNotContain(combat.Read(actor).Decision!.Route, p => p.Cell == 32); // physical Watchpost
     }
 
     [Fact]
-    public void NewObjectiveResetsVisitedCellsAndCommittedMoveKeepsItsDestination()
+    public void NewObjectiveClearsOldHintsButNeverRedirectsACommittedMove()
     {
         using var combat = new CombatSimulation(new(), seed: 123);
-        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 17);
-        int old = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 2);
-        int nearer = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 8);
+        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 38);
+        int old = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 1);
+        int nearer = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 18);
         foreach (int id in new[] { old, nearer }) combat.Seed(combat.Inspect(id) with { Action = new CombatAction.Recovery(0, 0, 1000) });
         CombatUnit unit = combat.Inspect(actor);
-        combat.Seed(unit with { Decision = unit.Decision with { ObjectiveId = old, ObjectiveCell = 2, Visited = [13, 14, 16, 18] } });
+        combat.Seed(unit with { Decision = unit.Decision with { ObjectiveId = combat.Read(old).SquadId, ObjectiveCell = 1, Visited = [13, 14, 16, 18] } });
         combat.StartActions([]);
         CombatAction.Moving move = Assert.IsType<CombatAction.Moving>(combat.Inspect(actor).Action);
         Assert.Empty(combat.Inspect(actor).Decision.Visited);
-        Assert.Equal(nearer, combat.Inspect(actor).Decision.ObjectiveId);
-        int incoming = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 11);
+        Assert.Equal(combat.Read(nearer).SquadId, combat.Inspect(actor).Decision.ObjectiveId);
+        int cell = combat.Board.Cell(move.Destination.Cell).Neighbors.First(c => c != unit.Location.Position.Cell && c != 18 && !combat.Arena.Footprints.Any(f => f.Cell == c));
+        int incoming = CombatDecisionRegressionTests.At(combat, Faction.Skeletons, cell);
         combat.Seed(combat.Inspect(incoming) with { Action = new CombatAction.Recovery(0, 0, 1000) });
-        combat.StartActions([]);
-        Assert.Same(move, combat.Inspect(actor).Action);
-        combat.Advance(move.EndTick, []);
-        combat.StartActions([]);
+        combat.StartActions([]); Assert.Same(move, combat.Inspect(actor).Action);
+        combat.Advance(move.EndTick, []); combat.StartActions([]);
         Assert.Equal(incoming, combat.Read(actor).TargetId);
     }
 
     [Fact]
-    public void ObservationIsLocalAndIgnoresHealthAndActionOrdinals()
+    public void NearbyEnemyInAnotherAssignedSectorIsAnImmediateSharedEngagement()
     {
-        using var combat = new CombatSimulation(new());
-        int actor = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 17);
-        BattlefieldObservation Capture() => BattlefieldObservation.Capture(1, 4, combat.Reservations, combat.Units());
-        BattlefieldObservation first = Capture();
-        int other = combat.Create(UnitType.Swordsman, 2, 2, 2);
-        combat.Seed(combat.Inspect(other) with { Location = new(UnitLifecycle.Alive, new(17, 1)) });
-        Assert.True(first.Matches(Capture()));
-        CombatUnit unit = combat.Inspect(actor);
-        combat.Seed(unit with { Health = unit.Health - 100, Action = new CombatAction.Waiting(3) });
-        Assert.True(first.Matches(Capture()));
-        combat.Seed(combat.Inspect(actor) with { Location = new(UnitLifecycle.Alive, new(14, 1)) });
-        Assert.False(first.Matches(Capture()));
+        using var combat = new CombatSimulation(new(), seed: 123);
+        combat.ConfigureArena([1, 2]);
+        var arena = new SharedArena([1, 2]);
+        int cell = arena.Deployment(2, 2);
+        int actor = combat.Create(UnitType.Swordsman, 2, 2, 2);
+        combat.Seed(combat.Inspect(actor) with { Location = new(UnitLifecycle.Alive, new(cell, 1)) });
+        int adjacent = arena.Board.Cell(cell).Neighbors.First(arena.CanOccupy);
+        int enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
+        combat.Seed(combat.Inspect(enemy) with { Location = new(UnitLifecycle.Alive, new(adjacent, 1)) });
+        combat.StartActions([]);
+        Assert.Equal(UnitActionKind.Windup, combat.Read(actor).Hex!.Action);
+        Assert.Equal(enemy, combat.Read(actor).TargetId);
+        Assert.Equal(0, combat.RouteSearches);
     }
 }

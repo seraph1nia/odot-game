@@ -59,9 +59,26 @@ A disconnected guest player's city, resources, buildings, soldiers, health, elim
 - **AND** no guest continues combat as a new authority
 
 ### Requirement: Complete authoritative resynchronization
-Initial joins and successful resumes SHALL receive complete current match state before gameplay input is enabled. The state SHALL include the stable roster and connection status, every city's economy/slots/upgrades/army/health/research points/production progress/purchased technologies/exclusive choices, live enemies and their current destination/health, soldier and enemy types/profiles, formation positions and entry status, targets, movement state, action identities and simulation timing, technology-derived capabilities, active burn/poison/chill strengths, bounded stack identities and absolute application/expiry/next-damage timing, phase and turn/wave counters, readiness, pause state, and outcome. State updates SHALL carry a monotonically increasing revision within the match, including changes while simulation time is paused. Clients SHALL discard stale updates and reconstruct their view from the server state rather than restoring an old local simulation.
 
-The state SHALL also carry bounded, sequenced recent combat events sufficient to observe actions and deaths between regular snapshots, with retained final casualty position and type. Event identity SHALL be scoped to the match. Clients SHALL deduplicate overlapping event history and baseline newly joined/resumed clients at the current state rather than replaying older effects. A gap beyond retained history SHALL recover from the current state without synthesizing damage, resurrecting units or accumulating an unbounded backlog. Protocol admission SHALL reject builds incompatible with typed technology purchases, research or this status-aware combat state before accepting gameplay commands.
+Initial join/resume SHALL deliver complete compatible current state before gameplay input or reconnect credentials are enabled/replaced. State SHALL include original roster/connectivity, each city's slots/economy/investment/research/upkeep/health, connected arena/sectors/static footprints, squads with separate member/participant IDs, persistent homes, formation slots, individual HP/equipment/service/status/eligibility, physical structures/weapons, current actions/targets/claims/deadlines, seed/full rules identity, battle-flow identity/speed, authoritative next-wave forecast, phase/readiness/pause/outcome/rewards and current cosmetic deaths. Revisions SHALL increase monotonically within a match, including paused revisions. Welcome, acknowledgment and normal delivery SHALL use the same compatibility validation. Stale/inconsistent projections SHALL not partially replace live state.
+
+Bounded match-scoped sequenced events SHALL be deduplicated. Join/resume/history gaps SHALL reconstruct current state without replaying effects, inventing damage, resurrecting actors or expanding history. Protocol 15/combat rules 7/battle flow 2 SHALL refuse both incompatible predecessor protocol-14 schemas and unversioned/legacy size-budget/splash snapshots. Missing arena/forecast, duplicate claims, invalid squad/member/formation identity or mismatched configuration SHALL fail before binding gameplay or replacing credentials. Failure SHALL explain compatible rejoin/fresh-match recovery. Resume files SHALL be credentials for the same running authority, not migrated saved matches.
+
+#### Scenario: Fallen spectator reconnect
+- **WHEN** an original fallen owner resumes the same running host during pause
+- **THEN** the same stored/inactive/current-fighting member identities, injuries and shared battle state restore without revival, payment or extra roster allocation
+
+#### Scenario: Old schema
+- **WHEN** a predecessor protocol-14 peer or legacy compressed combat state attempts admission
+- **THEN** it is refused clearly without changing the legitimate live state or reconnect credentials
+
+#### Scenario: History gap
+- **WHEN** a client restores a current moving/dying member after missing the event window
+- **THEN** its current group cycle and elapsed pose restore without historical shots/hits/death sounds
+
+#### Scenario: Duplicate delivery
+- **WHEN** acknowledgment and ordinary delivery contain overlapping events or an older revision
+- **THEN** the newest accepted state remains and each visible effect is consumed at most once
 
 #### Scenario: Reconnect after match progression
 - **WHEN** turns or combat progressed while a player was absent

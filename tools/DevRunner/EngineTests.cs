@@ -1,3 +1,6 @@
+using System.Text.Json;
+using Game.Core;
+
 namespace DevRunner;
 
 internal sealed partial class Runner
@@ -6,7 +9,7 @@ internal sealed partial class Runner
     private async Task EngineTests(bool exported = false)
     {
         int timeout = options.ExplicitTimeout ? options.Timeout : 60000;
-        string[] selected = exported ? ["worldtree"] : options.Scenario is null ? ["settings", "animation", "assets", "worldtree", "receiving"] : [options.Scenario];
+        string[] selected = exported ? ["worldtree"] : options.Scenario is null ? ["settings", "animation", "assets", "worldtree", "receiving", "arena"] : [options.Scenario];
         foreach (string scenario in selected)
             await _evidence.Measure("engine-" + scenario, "engine", async () =>
             {
@@ -34,6 +37,19 @@ internal sealed partial class Runner
                 deadline.Token.ThrowIfCancellationRequested();
                 if (code != 0 || child.HasEngineErrors)
                     throw new InvalidOperationException("Engine component failed.\n" + child.Tail());
+                if (!exported && scenario == "animation")
+                {
+                    foreach (var (name, phase) in new[] { ("melee-windup", MeleeCoverage.Windup), ("melee-impact", MeleeCoverage.Impact) })
+                    {
+                        GameEvent native = child.History().Single(e => e.Type == name);
+                        UiObservation frame = JsonSerializer.Deserialize<UiObservation>(native.Message!, WireJson.Options)!;
+                        RenderedContact(frame);
+                        MeleeCoverage required = phase | MeleeCoverage.Shared | MeleeCoverage.Simultaneous;
+                        MeleeWitness[] witnesses = MeleeVisualProof.Inspect(frame, new HexBoard(native.State!.Arena!.Board));
+                        Require(witnesses.Length == 4 && witnesses.All(w => (w.Coverage & required) == required),
+                            "actual native melee observations satisfy the production " + name + " detector");
+                    }
+                }
                 if (!exported && scenario == "settings")
                 {
                     // Intentional restart of this same minimal component client,

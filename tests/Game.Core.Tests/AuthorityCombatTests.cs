@@ -23,6 +23,12 @@ public sealed class AuthorityCombatTests
     {
         using var match = new Match(combatSeed: 1); match.Join();
         Opening((action, slot, building) => Assert.True(VillageStrategyTests.Act(match, 1, action, slot, building).Accepted), match.Snapshot);
+        var arena = new SharedArena(match.Snapshot().Players.Select(p => p.Id));
+        string topology = JsonSerializer.Serialize(arena.Snapshot(), WireJson.Options);
+        Rules wireRules = JsonSerializer.Deserialize<Rules>(JsonSerializer.Serialize(match.Snapshot().Rules, WireJson.Options), WireJson.Options)!;
+        string rules = JsonSerializer.Serialize(wireRules, WireJson.Options);
+        var configuration = new CombatConfiguration(wireRules);
+        CombatFingerprint fingerprint = RulesIdentity.Resolve(wireRules);
         bool movement = false, death = false, recovery = false;
         for (int step = 0; step < 2000 && (match.Phase == Phase.Combat || match.Snapshot().DyingBodies.Length > 0); step++)
         {
@@ -30,14 +36,20 @@ public sealed class AuthorityCombatTests
             MatchSnapshot received = JsonSerializer.Deserialize<MatchSnapshot>(Json(published), WireJson.Options)!;
             Assert.Equal(Json(published), Json(received));
             Assert.Equal(1UL, received.CombatSeed);
-            var configuration = new CombatConfiguration(received.Rules);
-            Assert.Equal(RulesIdentity.Resolve(received.Rules), received.ConfigurationFingerprint);
+            Assert.Equal(rules, JsonSerializer.Serialize(received.Rules, WireJson.Options));
+            Assert.Equal(fingerprint, received.ConfigurationFingerprint);
             Assert.Equal(configuration.RulesVersion, received.CombatRulesVersion);
             UnitState[] units = CombatPlayback.All(received).Concat(received.DyingBodies).ToArray();
             Assert.All(units, u => { Assert.NotNull(u.Hex); Assert.NotNull(u.Decision); });
-            var occupancy = new HexOccupancy(configuration.Board); occupancy.Rebuild(units.Select(u => ReservationOwner.FromSnapshot(u.Hex!)));
-            Assert.Equal(JsonSerializer.Serialize(received.Reservations), JsonSerializer.Serialize(occupancy.Snapshot()));
-            movement |= units.Any(u => u.Hex!.HoldsTransit);
+            // Tier A real authority -> wire -> typed actor reconstruction; fixtures
+            // alone miss mismatches between committed actions and projections.
+            // Seeded paid opening, bounded 2000 steps, no child resources.
+            // Verify wire topology, then reuse its immutable geometry across ticks.
+            Assert.Equal(topology, JsonSerializer.Serialize(received.Arena, WireJson.Options));
+            CombatReservations rebuilt = CombatReservations.Reconstruct(arena, received.Squads);
+            Assert.Equal(JsonSerializer.Serialize(received.Reservations), JsonSerializer.Serialize(rebuilt));
+            Assert.DoesNotContain(rebuilt.Positions, p => received.Squads.Single(s => s.Id == p.UnitId).Hex.Lifecycle != UnitLifecycle.Alive);
+            movement |= received.Squads.Any(s => s.Hex.HoldsTransit && s.Hex.Lifecycle == UnitLifecycle.Alive);
             death |= received.DyingBodies.Length > 0;
             recovery |= units.Any(u => u.Hex!.Action == UnitActionKind.Recovery);
             Assert.InRange(received.CombatEvents.Length, 0, CombatSimulation.HistoryLimit);

@@ -6,6 +6,31 @@ namespace Game.Core.Tests;
 
 public sealed class PresentationLimitsTests
 {
+    // Tier A: actual forecast identities plus an ordinarily paid member catch
+    // the arena-only mask hiding landed preview figures. No engine or paid
+    // viability claim; milliseconds, current snapshot/profile inputs.
+    [Fact]
+    public void ForecastFiguresBelongToTheirSettlementAndRealMembersToTheSharedArena()
+    {
+        using var match = new Match(); match.Join(); match.Join();
+        Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "start", 1)).Accepted);
+        UnitState[] forecast = match.Snapshot().NextWave;
+        Assert.NotEmpty(forecast);
+        Assert.All(forecast, unit =>
+        {
+            Assert.True(PresentationLimits.VisibleInTabletop(unit, false, unit.Destination));
+            Assert.False(PresentationLimits.VisibleInTabletop(unit, false, unit.Destination == 1 ? 2 : 1));
+            Assert.False(PresentationLimits.VisibleInTabletop(unit, true, unit.Destination));
+        });
+        void Apply(int owner, string action, int slot = -1, Building building = Building.Empty)
+            => Assert.True(match.Apply(owner, Command.FromSnapshot(match.Snapshot(), match.Revision + 1, action, owner, slot, building)).Accepted);
+        Apply(1, "build", 0, Building.Farm); Apply(1, "build", 1, Building.MetalMine); Apply(1, "build", 2, Building.Barracks);
+        Apply(1, "ready"); Apply(2, "ready"); Apply(1, "recruit", 2);
+        UnitState member = Assert.Single(match.Players[1].Soldiers);
+        Assert.True(PresentationLimits.VisibleInTabletop(member, true, 2));
+        Assert.False(PresentationLimits.VisibleInTabletop(member, false, 1));
+        Assert.False(PresentationLimits.VisibleInTabletop(member with { Deployed = false }, true, 1));
+    }
     [Theory]
     [InlineData(DefeatReason.BattleStalled, "DEFEAT • battle stalled")]
     [InlineData(DefeatReason.AllCitiesFallen, "DEFEAT • all cities fell")]

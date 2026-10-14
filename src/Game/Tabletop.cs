@@ -92,6 +92,7 @@ public partial class Tabletop : Node3D
     {
         _unitBindings = UnitAssets.Validate(this);
         _effects = new VillageFeedback(); AddChild(_effects);
+        _arenaView = new SharedArenaView { Name = "SharedArena", Visible = false }; AddChild(_arenaView);
 
         _camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Current = true, Far = 180 };
         AddChild(_camera);
@@ -106,7 +107,7 @@ public partial class Tabletop : Node3D
     }
     public override void _ExitTree()
     {
-        foreach (Control? dialog in new Control?[] { _detailsDialog, _researchDialog, _hallDialog })
+        foreach (Control? dialog in new Control?[] { _detailsDialog, _researchDialog, _hallDialog, _squadDialog })
             if (dialog is not null && IsInstanceValid(dialog)) { dialog.Hide(); dialog.QueueFree(); }
     }
     private void ContextAction(string action, Building building = Building.Empty, UnitType soldierType = UnitType.Swordsman, TechnologyId technology = TechnologyId.None, ConstructionPayment payment = ConstructionPayment.Standard)
@@ -132,7 +133,7 @@ public partial class Tabletop : Node3D
         Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
         _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
-    internal Node?[] DetailModals => [_hallDialog, _detailsDialog, _researchDialog];
+    internal Node?[] DetailModals => [_hallDialog, _detailsDialog, _researchDialog, _squadDialog];
     internal bool DetailsOpen => GameApplication.SelectModal(DetailModals) is not null;
     private CityState? Me() => game.State?.Players.FirstOrDefault(p => p.Id == game.PlayerId);
     private CityState? Focus() => game.State?.Players.FirstOrDefault(p => p.Id == _focus);
@@ -156,7 +157,7 @@ public partial class Tabletop : Node3D
             Vector3 point = view.GlobalPosition + new Vector3(0, .7f, 0);
             Vector2 position = _camera.UnprojectPosition(point);
             Vector2 screen = GetViewport().GetFinalTransform() * position;
-            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position), Enabled = !Application.IsModalOpen };
+            targets["Unit" + id] = new { X = screen.X, Y = screen.Y, Visible = view.Visible && !view.Dead && view.State.Health > 0 && view.State.Deployed && WorldArea().HasPoint(position) && !BlocksWorld(position) && PickUnit(position) == view, Enabled = !Application.IsModalOpen };
         }
         fields["WorldLabels"] = _boards.GetValueOrDefault(_focus)?.FindChildren("*", "Label3D", true, false).OfType<Label3D>()
             .Where(label => label.IsVisibleInTree() && label.Text.Length > 0).Select(label => label.Text).ToArray() ?? [];
@@ -190,7 +191,7 @@ public partial class Tabletop : Node3D
                 if (n.Name.ToString().StartsWith("Slot", StringComparison.Ordinal) && Focus()?.Slots[int.Parse(n.Name.ToString()[4..], System.Globalization.CultureInfo.InvariantCulture)].Type is Building.ArrowTower or Building.CatapultTower or Building.RapidArrowTower or Building.BombardTower or Building.ResearchTower && placementBoard.GetNodeOrNull<Node3D>("Buildings/Upgrade" + n.Name.ToString()[4..]) is { } basis && basis.GetMeta("asset").AsString() == AssetCatalog.Plinth) support = LandscapeAssets.TowerDeck(basis);
                 return new { Name = n.Name.ToString(), Asset = n.GetMeta("asset").AsString(), X = anchor.X, Y = anchor.Y, Z = anchor.Z, Support = support, Top = LandscapeAssets.Bounds(n).End.Y, Contact = new[] { contact.X, contact.Y, contact.Z } };
             }).ToArray() : [];
-        fields["Camera"] = _navigation.Observe(Center(_focus) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
+        fields["Camera"] = _navigation.Observe((InArena ? CombatLayout.ArenaOrigin : Center(_focus)) + new Vector3(2, 0, -3), GetViewport().GetFinalTransform());
         fields["Revision"] = _revision;
         fields["MatchId"] = _matchId;
         fields["MatchPhase"] = game.State?.Phase ?? Phase.Lobby;
@@ -219,6 +220,9 @@ public partial class Tabletop : Node3D
         fields["HudHeight"] = _panel.Size.Y;
         fields["HudTop"] = (GetViewport().GetFinalTransform() * _panel.Position).Y;
         fields["HealthBars"] = _healthBars.OrderBy(p => p.Key).Select(p => p.Value.Observe(p.Key, GetViewport().GetFinalTransform())).ToArray();
+        fields["SharedArenaVisible"] = _arenaView?.Visible == true;
+        if (_arenaView is not null) fields["ArenaFrame"] = _arenaView.ObserveFrame(_camera);
+        fields["SquadSummaries"] = _arenaView?.Observe(_camera, GetViewport().GetFinalTransform(), WorldArea()) ?? [];
         fields["FeedbackText"] = _feedback.Text;
         fields["DetailText"] = _detail.Text;
         fields["RosterText"] = _rosterDetails.Text;
@@ -264,12 +268,14 @@ public partial class Tabletop : Node3D
             _boards.Clear(); _landscapes.Clear(); _units.Clear(); _deathCleanups.Clear(); _boardKeys.Clear(); _buildingBounds.Clear(); _stockpileKeys.Clear(); _flags.Clear(); _effects.Clear();
             CancelGesture(); _inspector.Close();
             _hallDialog.Hide(); _hallSlot = -1; _storedUnit = 0; _hallKey = "";
+            _squadDialog.Hide(); _selectedSquad = _selectedMember = 0; _squadRosterKey = ""; _showDeployment = false;
             _navigation.Reset(); _frameFocus = -1;
             _matchId = state.MatchId; _constructionGroup = "Production"; _revision = -1; _focus = game.PlayerId; _slot = -1; _hover = -1;
         }
         if (state is not null && state.Revision != _revision)
         {
             _revision = state.Revision;
+            if (state.Phase == Phase.Combat) _showDeployment = false;
             if (_focus == 0 || !state.Players.Any(p => p.Id == _focus)) _focus = game.PlayerId;
             (game as Main)?.Timing?.Record("presentation-world-begin", state);
             UpdateWorld(state);
@@ -288,12 +294,13 @@ public partial class Tabletop : Node3D
         FrameCamera();
         _navigation.Move(delta, Focus() is not null && GetWindow().HasFocus() && !Application.IsModalOpen && GetViewport().GuiGetFocusOwner() is not (LineEdit or TextEdit), WorldArea().Size.Y / GetViewport().GetVisibleRect().Size.Y);
         mark = ReplayMark("Camera", mark);
-        if (_landscapes.TryGetValue(_focus, out VillageLandscape? landscape))
+        if (!InArena && _landscapes.TryGetValue(_focus, out VillageLandscape? landscape))
             landscape.CoverBattlefield(BattlefieldFrame.GroundRect(_frameContent), new Rect2(_navigation.Boundary.Position - new Vector2(Center(_focus).X, Center(_focus).Z), _navigation.Boundary.Size));
         mark = ReplayMark("Landscape", mark);
         UpdateHealthBars();
         UpdateInspector();
         _homeHealth.Sample(Focus(), game.State?.Rules.CityHealth ?? 100, Center(_focus) + VillageLandscape.Home + new Vector3(0, 2.7f, 0), _camera, WorldArea());
+        _homeHealth.Visible = !InArena;
         mark = ReplayMark("Overlays", mark);
         Vector2 mouse = GetViewport().GetMousePosition();
         int hover = game.Connected && !BlocksWorld(mouse) && !_panel.GetGlobalRect().HasPoint(mouse) ? Pick(mouse) : -1;
@@ -313,6 +320,7 @@ public partial class Tabletop : Node3D
         var inputs = HudInvalidation.Capture(s, _focus, _slot, _constructionGroup, game.Connected, game.Status, game.Feedback, game.PlayerId, game.HostPlayerId, game.CanStart, game.CanInvite);
         RefreshResearch();
         RefreshArmy();
+        RefreshSquads();
         RefreshCombatSpeed();
         bool statusChanged = _hud.Refresh(HudSection.Status, inputs[HudSection.Status]);
         bool economyChanged = _hud.Refresh(HudSection.Economy, inputs[HudSection.Economy]);
@@ -366,7 +374,7 @@ public partial class Tabletop : Node3D
             TowerDefinition? tower = s?.TowerCatalog.FirstOrDefault(t => t.Type == slot.Type && t.Level == slot.Level);
             BuildingDefinition? definition = s?.BuildingCatalog.FirstOrDefault(b => b.Type == slot.Type);
             _detail.Text = _slot < 0 ? "" : !slot.Purchased ? $"Locked plot {_slot + 1} · buy permanent land" : slot.Type == Building.Empty ? "" : (slot.Type == Building.TownHall ? "Town hall\n" : $"{AssetCatalog.BuildingName(slot.Type)} · L{slot.Level}/{definition?.MaximumLevel ?? 2}\n") + (definition?.Produces is Game.Core.Resource output ? ProgressionPresentation.ProducerBenefit(definition, slot.Level, research: focus!.Research, technologies: s!.TechnologyCatalog) : definition?.Recruits is not null ? $"Recruit level {slot.Level}; veterans keep their own level" : slot.Type == Building.TownHall ? $"Storage L{slot.CapacityLevel}/3 · healing L{slot.HealingLevel}/3 · open roster" : slot.Type == Building.Market ? "Sell resources in fixed bundles for gold" : slot.Type == Building.ResearchTower ? $"+{slot.Level} research per full three-production cycle" : TowerDamageDescription(tower));
-            if (home is not null) _detail.Text = $"Army plot {home.Number} · {home.State} · {home.Used}/6 spots\n" + _detail.Text;
+            if (home is not null) _detail.Text = $"Army plot {home.Number} · {home.State} · " + (ArmyConfiguration.IsTower(home.Plot.Type) ? "whole squad home\n" : $"{home.Used}/{focus!.Army!.SquadCapacity} members\n") + _detail.Text;
             string explanation = !game.Connected ? "Waiting for a synchronized connection." : _focus != game.PlayerId && focus is not null ? "Observing · only your city can be edited." : me?.Eliminated == true ? "Your city has fallen · observe or pause." : s?.Paused == true ? "Match frozen · resume to continue." : me?.Ready == true ? "Unready to edit your city." : s?.Phase == Phase.Combat ? "Your army and defender fight automatically." : "";
             if (explanation.Length != 0) _detail.Text += "\n" + explanation;
             _buildActions.Visible = _slot >= 0 && slot.Purchased && slot.Type == Building.Empty && (home is null || home.Used == 0);
@@ -413,7 +421,7 @@ public partial class Tabletop : Node3D
             _upgrade.Text = slot.UpgradeQuote is null ? "Maximum level" : $"Upgrade to L{slot.Level + 1}{(definition?.Produces is not null ? " · " + ProgressionPresentation.ProducerBenefit(definition, slot.Level, upgrade: true, research: focus!.Research, technologies: s!.TechnologyCatalog) : "")}\n ";
             _upgrade.Disabled = !edit || slot.UpgradeQuote is not ResourceCost upgrade || !me!.Resources.TryPay(upgrade, out _);
             UiAssets.Cost(_upgrade, slot.UpgradeQuote ?? default);
-            _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {AssetCatalog.UnitName(q.Type)} L{q.Level} · size {q.Profile.Size} · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
+            _upgrade.TooltipText = definition?.Recruits is UnitType[] offers && focus is not null ? string.Join('\n', focus.RecruitmentQuotes.Where(q => offers.Contains(q.Type) && q.Level == slot.Level + 1).Select(q => $"Next: {AssetCatalog.UnitName(q.Type)} L{q.Level} · individual · HP {HealthPoints.Format(q.Profile.Health)} · damage {HealthPoints.Format(q.Profile.Damage)} · equipment {ResourceText(q.Cost)} · food upkeep {q.Upkeep}/battle")) : "Producer output and tower improvement follow the authoritative next-level quote.";
             if (slot.UpgradeQuote is ResourceCost nextUpgrade && focus is not null) _upgrade.TooltipText += "\n" + CostExplanation(nextUpgrade, focus.Resources);
             _sell.Text = "Sell · " + (slot.Refund == default ? "no refund" : ResourceText(slot.Refund)); _sell.Disabled = !edit || slot.Type == Building.Empty || slot.Type == Building.TownHall && focus!.Soldiers.Any(u => u.Assignment is { Stored: true } a && a.HallSlot == _slot && a.HallGeneration == slot.Generation);
             _sell.TooltipText = "Refund half the building's total paid construction and upgrades. Land, army, health and research remain.";
@@ -432,9 +440,9 @@ public partial class Tabletop : Node3D
                 button.Text = $"{AssetCatalog.UnitName(type)} L{slot.Level}\n ";
                 button.Visible = definition?.Recruits?.Contains(type) == true;
                 button.Disabled = !edit || !button.Visible || quote is null || !me!.Resources.TryPay(quote.Cost, out _)
-                    || UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, quote.Profile.Size, plots: focus.Army.Homes.Select(h => h.Plot).ToArray()) is null;
+                    || UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, plots: focus.Army.Homes.Select(h => h.Plot).ToArray(), type: type) is null;
                 UiAssets.Cost(button, quote?.Cost ?? default);
-                if (quote is not null) button.TooltipText = (UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, quote.Profile.Size, plots: focus.Army.Homes.Select(h => h.Plot).ToArray()) is null ? "Battlefield homes full · buy a space, store or retire a unit.\n" : "") + $"L{quote.Level} · size {quote.Profile.Size} · HP {HealthPoints.Format(quote.Profile.Health)} · damage {HealthPoints.Format(quote.Profile.Damage)} · food upkeep {quote.Upkeep}/battle\n" + CostExplanation(quote.Cost, focus!.Resources);
+                if (quote is not null) button.TooltipText = (UiArmy()!.Find(focus!.Soldiers, focus.Army!.PurchasedHomes, plots: focus.Army.Homes.Select(h => h.Plot).ToArray(), type: type) is null ? "Squad homes full · buy an empty plot, store or retire a member.\n" : "") + $"L{quote.Level} · HP {HealthPoints.Format(quote.Profile.Health)} · X/Y {HealthPoints.Format(quote.Profile.Damage)}/{HealthPoints.Format(quote.Profile.SecondaryDamage)} · food upkeep {quote.Upkeep}/battle\n" + CostExplanation(quote.Cost, focus!.Resources);
             }
             _quoteDetails.Text = _detail.Text + "\n" + string.Join("\n\n", _construction.Values.Concat(_recruitment.Values).Concat(_trades.Values).Append(_upgrade).Append(_rapidTower).Append(_bombardTower).Append(_buyPlot).Append(_recovery).Where(button => button.IsVisibleInTree() && button.TooltipText.Length > 0).Select(button => button.Text.Trim() + "\n" + button.TooltipText));
             foreach (Button button in _construction.Values.Concat(_recruitment.Values).Append(_upgrade).Append(_rapidTower).Append(_bombardTower))
@@ -465,32 +473,34 @@ public partial class Tabletop : Node3D
     private static string BuildingGroup(Building type) => type switch
     { Building.Barracks or Building.ArcheryRange or Building.Arcanum or Building.ResearchTower or Building.TownHall => "Army", Building.ArrowTower or Building.CatapultTower or Building.RapidArrowTower or Building.BombardTower => "Defense", Building.Market => "Trade", _ => "Production" };
     private static string TowerDamageDescription(TowerDefinition? tower) => tower is null ? "" :
-        $"{HealthPoints.Format(tower.Damage)} damage every {tower.CadenceTicks} ticks · " +
-        (tower.VictimCap == 1 ? "single target · no splash" :
-            $"{(tower.SplashHexRadius == 0 ? "same-cell splash · " : "")}radius {tower.SplashHexRadius} hex · up to {tower.VictimCap} enemies");
+        $"X/Y {HealthPoints.Format(tower.Damage)}/{HealthPoints.Format(tower.SecondaryDamage)} every {tower.CadenceTicks} ticks · range {tower.HexRange} hex · " +
+        (tower.SecondaryDamage == 0 ? "single target · no splash" : "one target squad · every other living member");
     private static string BuildingName(Building type) => AssetCatalog.BuildingName(type);
     private static string ResourceText(ResourceCost cost) => string.Join(" / ", Enum.GetValues<Game.Core.Resource>().Where(r => cost.Amount(r) > 0).Select(r => $"{cost.Amount(r)} {r}"));
     private static string CostExplanation(ResourceCost cost, ResourceCost stocks) => ProgressionPresentation.CostExplanation(cost, stocks);
     private void UpdateMarkers()
     {
-        _selection.Visible = _slot >= 0;
+        _selection.Visible = !InArena && _slot >= 0;
         if (_selection.Visible) _selection.Position = Center(_focus) + SlotPosition(_slot) + new Vector3(0, 0.025f, 0);
-        _hoverMarker.Visible = _hover >= 0 && _hover != _slot;
+        _hoverMarker.Visible = !InArena && _hover >= 0 && _hover != _slot;
         if (_hoverMarker.Visible) _hoverMarker.Position = Center(_focus) + SlotPosition(_hover) + new Vector3(0, 0.03f, 0);
     }
     private void FrameCamera()
     {
         Vector2 size = GetViewport().GetVisibleRect().Size;
         float hud = _panel.Size.Y;
-        Aabb content = BattlefieldFrame.Content(game.State, _buildingBounds.GetValueOrDefault(_focus)?.OfType<Aabb>() ?? []);
-        if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == _focus && content == _frameContent) return;
-        foreach ((int id, Node3D board) in _boards) board.Visible = id == _focus;
-        foreach (UnitView unit in _units.Values) unit.Visible = unit.State.Deployed && unit.State.Destination == _focus;
-        if (_frameFocus != _focus) _navigation.Reset();
-        _frameSize = size; _framePanelHeight = hud; _frameFocus = _focus; _frameContent = content;
-        Vector3 center = Center(Math.Max(1, _focus));
+        Aabb content = InArena && _arenaView is not null ? _arenaView.Content : BattlefieldFrame.Content(game.State, _buildingBounds.GetValueOrDefault(_focus)?.OfType<Aabb>() ?? []);
+        if (size == _frameSize && Math.Abs(hud - _framePanelHeight) < 0.5f && _frameFocus == (InArena ? -2 : _focus) && content == _frameContent) return;
+        foreach ((int id, Node3D board) in _boards) board.Visible = !InArena && id == _focus;
+        if (_arenaView is not null) _arenaView.Visible = InArena;
+        foreach (UnitView unit in _units.Values) unit.Visible = PresentationLimits.VisibleInTabletop(unit.State, InArena, _focus);
+        int frame = InArena ? -2 : _focus;
+        if (_frameFocus != frame) _navigation.Reset();
+        _frameSize = size; _framePanelHeight = hud; _frameFocus = frame; _frameContent = content;
+        Vector3 center = InArena ? CombatLayout.ArenaOrigin : Center(Math.Max(1, _focus));
         BattlefieldFrame.FitCamera(_camera, content, center, size, hud);
-        _navigation.Fit(new Rect2(BattlefieldFrame.GroundRect(content).Position + new Vector2(center.X, center.Z), BattlefieldFrame.GroundRect(content).Size), GetViewport().GetVisibleRect());
+        _navigation.Fit(new Rect2(BattlefieldFrame.GroundRect(content).Position + new Vector2(center.X, center.Z), BattlefieldFrame.GroundRect(content).Size), GetViewport().GetVisibleRect(), InArena);
+        if (InArena) _arenaView?.CoverBoundary(_navigation.Boundary);
     }
     private void UpdateWorld(MatchSnapshot state)
     {
@@ -551,7 +561,7 @@ public partial class Tabletop : Node3D
             }
         }
     }
-    private void UpdateStockpiles(Node3D board, CityState city)
+    internal void UpdateStockpiles(Node3D board, CityState city)
     {
         int gold = PresentationLimits.StockpileCount(city.Gold), food = PresentationLimits.StockpileCount(city.Food), wood = PresentationLimits.StockpileCount(city.Wood);
         string key = $"{gold}:{food}:{wood}";
@@ -578,7 +588,7 @@ public partial class Tabletop : Node3D
         {
             foreach (UnitView view in _units.Values) view.QueueFree();
             foreach (MeleeStrike strike in _strikes.Values) strike.QueueFree(); _strikes.Clear();
-            _combatLayout = game.State is null ? null : new CombatLayout(new HexBoard(game.State.Rules.Combat.Board));
+            _combatLayout = game.State is null ? null : new CombatLayout(new HexBoard(game.State.Arena?.Board ?? game.State.Rules.Combat.Board)) { Arena = game.State.Arena };
             _units.Clear(); _deathCleanups.Clear(); ClearBars(); _effects.Clear(); _playbackGeneration = _playback.Generation;
         }
         _playback.Advance(delta, game.Connected);
@@ -590,16 +600,21 @@ public partial class Tabletop : Node3D
         _effects.Sample(_playback.VisualSeconds, audible);
         var current = _playback.Units().ToDictionary(u => u.Id);
         if (_combatLayout is null) return;
+        if (game.State is { } accepted)
+        {
+            _combatLayout.Synchronize(accepted);
+            _arenaView?.Synchronize(accepted, _combatLayout, _showDeployment && accepted.Phase is Phase.Building or Phase.Preparation, game.PlayerId, _selectedSquad);
+            _arenaView?.Sample(_playback, current.Values);
+        }
         UnitState[] preview = game.State?.NextWave ?? [];
         _combatLayout.SetPreview(preview);
         foreach (UnitState unit in preview) current.Add(unit.Id, unit);
         foreach (UnitState unit in current.Values.Where(u => u.Deployed)) View(unit).Synchronize(unit);
         foreach (CombatEvent entry in _playback.Drain())
         {
-            Vector3? source = entry.Unit is { Deployed: true } actor ? _combatLayout.Position(actor, entry.Tick) + new Vector3(0, .6f, 0)
-                : entry.Tower is { Slot: >= 0 } tower && _buildingBounds.GetValueOrDefault(tower.City)?[tower.Slot] is { } towerBounds
-                    ? Center(tower.City) + new Vector3(towerBounds.GetCenter().X, towerBounds.End.Y - .2f, towerBounds.GetCenter().Z) : null;
-            _effects.Combat(entry, _focus, _playback.VisualSeconds, audible, source, _combatLayout.EventImpact(entry));
+            Vector3? source = entry.Unit is { Deployed: true } actor ? _units.GetValueOrDefault(actor.Id)?.StrikeOrigin ?? _combatLayout.Position(actor, entry.Tick) + new Vector3(0, .6f, 0)
+                : entry.Tower is { } tower ? _arenaView?.WeaponOrigin(tower) : null;
+            _effects.Combat(entry, InArena ? 0 : _focus, _playback.VisualSeconds, audible, source, _combatLayout.EventImpact(entry));
             if (entry.Unit is not null && (entry.Type is CombatEventType.Death or CombatEventType.Hit || entry.Type == CombatEventType.Impact && entry.Unit.Type == UnitType.Crossbowman))
                 if (_units.TryGetValue(entry.Unit.Id, out UnitView? existing)) existing.Event(entry, _playback.VisualSeconds);
         }
@@ -618,13 +633,14 @@ public partial class Tabletop : Node3D
                 }
                 view.QueueFree(); _units.Remove(id); continue;
             }
-            view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, _focus, _combatLayout, current);
+            view.Sample(current.GetValueOrDefault(id), _playback.Tick, _playback.VisualSeconds, 0, _combatLayout, current);
+            view.Visible &= PresentationLimits.VisibleInTabletop(view.State, InArena, _focus);
         }
         foreach (int id in _strikes.Keys.Where(id => !_units.ContainsKey(id)).ToArray()) { _strikes[id].QueueFree(); _strikes.Remove(id); }
         foreach ((int id, UnitView view) in _units.Where(p => p.Key > 0 && p.Value.State.Class == UnitClass.Melee))
         {
             if (!_strikes.TryGetValue(id, out MeleeStrike? strike)) { strike = new(); AddChild(strike); _strikes.Add(id, strike); }
-            strike.Sample(view, _units.GetValueOrDefault(view.State.TargetId), _playback.Tick, _focus, _combatLayout);
+            strike.Sample(view, _units.GetValueOrDefault(view.State.TargetId), _playback.Tick, 0, _combatLayout);
         }
     }
     private void ClearBars()
@@ -634,17 +650,9 @@ public partial class Tabletop : Node3D
     }
     private void UpdateHealthBars()
     {
-        foreach (int id in _healthBars.Keys.ToArray())
-            if (!_units.TryGetValue(id, out UnitView? view) || view.Dead || !view.Visible || !view.State.Deployed)
-            { UnitHealthBar bar = _healthBars[id]; _healthRoot.RemoveChild(bar); bar.QueueFree(); _healthBars.Remove(id); }
+        // Squad summaries own default health overlays, including individual HP.
+        ClearBars();
         _healthRoot.Size = new(_frameSize.X, Math.Max(0, _frameSize.Y - _panel.Size.Y));
-        Rect2 world = new(Vector2.Zero, _healthRoot.Size);
-        foreach (var (id, view) in _units)
-        {
-            if (view.Dead || !view.Visible || !view.State.Deployed) continue;
-            if (!_healthBars.TryGetValue(id, out UnitHealthBar? bar)) { bar = new UnitHealthBar { Name = "Health" + id }; _healthBars[id] = bar; _healthRoot.AddChild(bar); }
-            bar.Sample(view, _camera, world);
-        }
         _healthRoot.MoveChild(_homeHealth, -1);
     }
     private Node3D Model(Node3D parent, string path, Vector3 position, float size) => _landscapeAssets.Place(parent, path, position, size);
@@ -678,7 +686,7 @@ public partial class Tabletop : Node3D
     private int Pick(Vector2 mouse) => PickPlotRay(_camera.ProjectRayOrigin(mouse) - Center(_focus), _camera.ProjectRayNormal(mouse));
     internal int PickPlotRay(Vector3 origin, Vector3 direction)
     {
-        if (Focus() is null) return -1;
+        if (InArena || Focus() is null) return -1;
         int selected = -1; float nearest = float.PositiveInfinity;
         if (_buildingBounds.TryGetValue(_focus, out Aabb?[]? bounds))
             for (int slot = 0; slot < bounds.Length; slot++)

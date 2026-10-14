@@ -7,7 +7,16 @@ Provide a small cooperative city-defense match whose economic choices and automa
 ## Requirements
 
 ### Requirement: Fixed roster and personal cities
-Cooperative play SHALL offer a lobby for up to four players and an explicit start action that locks the current roster. In a player-hosted lobby only the original host SHALL start the match; explicit dedicated-server sessions SHALL retain their existing connected-member start behavior. Selecting Single player SHALL create exactly one local player and constitute the explicit start of that local match, with no network admission. Each roster member SHALL begin with an independent city of nine stable indexed building plots, initially five empty usable slots and four locked expansion plots, positive city health, starting gold, and a built-in ranged defender outside those slots. Slot identities SHALL remain stable across graphical placement, upgrades, observation, and reconnects; the slots SHALL NOT require square geometry. Each city SHALL also have a separate declared combat hex board whose adjacency, capacity and permanent faction deployment protection govern autobattle. Decorative hex terrain outside that board SHALL NOT add adjacency bonuses, movement rules or building capacity; the combat board SHALL NOT create additional building slots. One player SHALL be sufficient for solo play and hosting; the cooperative match SHALL support at least two simultaneous players. Fresh players SHALL NOT join an already started match, but roster members SHALL be able to reconnect.
+
+The lobby SHALL support one through four players and an explicit start locking its roster. Only the original playing host SHALL start its hosted lobby; a dedicated lobby SHALL retain connected-member start permissions. Single player SHALL start exactly one local city without network admission. Each owner SHALL retain nine stable settlement slots, five initially purchased and four locked, its own economy/research, positive Keep health and one built-in defender represented by a Watchpost. All original owners SHALL share one connected combat arena with adjacent sectors; settlement slots SHALL not become combat capacity. Scenery SHALL grant no topology/economy bonuses. New players SHALL be refused after start; roster members SHALL reconnect to the same city.
+
+#### Scenario: Shared roster
+- **WHEN** a hosted two-player lobby starts
+- **THEN** two independent cities and adjacent combat sectors are created with equal configured starting grants and one locked roster
+
+#### Scenario: Fresh join after start
+- **WHEN** a connection lacks valid original-roster credentials after start
+- **THEN** it is refused without creating a city, sector or enemy allocation
 
 #### Scenario: Start a cooperative match
 - **WHEN** the original host of a hosted lobby, or a connected member of a dedicated-server lobby, starts a match with two players present
@@ -83,7 +92,16 @@ The default city SHALL begin with 12 gold and 6 wood and zero other stocks, rece
 - **AND** projecting, reconnecting or observing the value grants no resources
 
 ### Requirement: Manual recruitment and persistent soldiers
-A player SHALL recruit one soldier by explicitly selecting an owned recruitment building during unpaused building or preparation while alive and not ready. Barracks SHALL offer Swordsman and Berserker, Archery Range SHALL offer Crossbowman, and Arcanum SHALL offer Mage. Unknown or mismatched archetypes SHALL be rejected without spending. Each successful recruitment SHALL deduct the selected archetype's configured material and supplemental gold costs, resolved for the selected recruitment building's level, and immediately add one soldier of that type and building level to that city's army only after preflighting a fitting purchased battlefield home under army-roster. Unknown soldier types SHALL be rejected atomically; requests without an explicit type SHALL select Swordsman. Swordsmen and Berserkers SHALL require metal, Crossbowmen SHALL require metal and wood, and Mages SHALL require cloth and gold. Recruitment SHALL spend no food; food SHALL be reserved for battle upkeep. Recruitment buildings SHALL NOT grant free soldiers when constructed, upgraded or during production, and gold SHALL NOT substitute for required materials. Every building SHALL retain its existing archetype offerings at level one; higher levels SHALL improve new recruits without adding archetype unlocks. Default recruitment SHALL remain Swordsman from Barracks. Living soldiers SHALL retain their identities, types, individual levels and remaining health between waves; upgrading a recruitment building SHALL NOT change or heal existing soldiers; dead soldiers SHALL NOT return automatically.
+
+A living connected unready owner SHALL pay the complete per-member material/gold quote at the selected owned trainer during unpaused editable stages. Barracks SHALL offer Swordsman/Berserker, Archery Range Crossbowman and Arcanum Mage; omitted type SHALL default to Swordsman and unknown/mismatched types SHALL refuse atomically. Trainer level SHALL determine only the new recruit's equipment level/profile/quote. Swordsman/Berserker SHALL require metal, Crossbowman metal/wood and Mage cloth/gold; food SHALL be separate battle upkeep. Buildings/production SHALL grant no free recruits, and gold SHALL not silently replace materials. Capacity/type/home SHALL be preflighted under army-roster before spending; reinforcement/new-squad choice SHALL be explicit. Veterans SHALL retain IDs, levels, injuries and experience; replacements SHALL begin at zero experience and not heal veterans. Every surviving funded field participant SHALL earn one service point on successful shared clear, including current-wave fallen-owner fighters; storage/unfunded reserves SHALL earn none. Service SHALL not automatically upgrade equipment.
+
+#### Scenario: Higher-level reinforcement
+- **WHEN** an eligible owner recruits into a compatible partial squad from a level-two trainer
+- **THEN** exactly one level-two member is paid/added and existing veterans retain identity, wounds and equipment
+
+#### Scenario: Retry
+- **WHEN** an accepted reinforcement is retried
+- **THEN** no second member, payment or experience is created
 
 #### Scenario: Click a barracks to recruit
 - **WHEN** a player activates their barracks with all required materials
@@ -127,8 +145,6 @@ A player SHALL recruit one soldier by explicitly selecting an owned recruitment 
 - **THEN** selecting each recruits at that building's level and price
 - **AND** the city does not receive a global level or discount from either building
 
-Recruitment SHALL reject a full home roster without payment; retirement and Town hall transfers SHALL follow army-roster and preserve the existing ownership/phase/session guards.
-
 ### Requirement: Simple building upgrades
 Barracks, Archery Range and Arcanum SHALL each have five levels; Gold Mines, Farms, Lumbermills, Stonecutters, Metal Mines, Weavers, Research Towers, Arrow Towers and Catapult Towers SHALL have two levels; Markets SHALL have one level and no upgrade action. A player SHALL be able to spend the complete displayed resource quote to upgrade their own building by exactly one level up to its type-specific maximum during unpaused building or preparation while alive and not ready. Level-two producers SHALL produce more of their respective resource per plot; recruitment-building upgrades SHALL raise future recruits to the new building level and make their displayed total recruitment price nondecreasing, without food discounts. Positive recruitment cost components SHALL be rounded to nearest whole units with midpoint ties upward and remain positive; zero components SHALL remain zero. Prices SHALL be calculated from the archetype base cost and its configured growth curve, not from previously rounded prices. Default total prices SHALL increase at each level; custom positive small costs SHALL permit a nondecreasing total with rounding plateaus. Default level-one equipment costs SHALL be 2 metal for Swordsman, 3 metal for Berserker, 2 wood plus 1 metal for Crossbowman, and 3 cloth plus 1 gold for Mage. Tower upgrade paths and preserved legacy level upgrades SHALL follow the [gameplay tower contract](../../../docs/gameplay.md#defense-towers-on-army-plots). Research Tower level two SHALL contribute two research progress units per production instead of one; its level SHALL NOT gate technology purchases or grant a technology automatically. Barracks and Archery Range upgrades to level two SHALL cost 2 wood without gold; Arcanum upgrades to level two SHALL cost 4 gold and 2 wood. Recruitment-building upgrades from level two to three, three to four and four to five SHALL cost respectively 6 gold plus 2 wood plus 2 stone, 9 gold plus 2 wood plus 3 stone, and 14 gold plus 2 wood plus 4 stone. All basic producer upgrades SHALL cost 2 wood and 2 stone without gold. Research Tower upgrades SHALL cost 4 gold, 2 wood and 2 stone; tower quotes SHALL follow the same gameplay tower contract. Buildings SHALL retain their upgrades between turns and waves until sold. A maximum-level or unaffordable upgrade SHALL fail without spending resources.
 
@@ -166,7 +182,7 @@ Barracks, Archery Range and Arcanum SHALL each have five levels; Gold Mines, Far
 Town hall SHALL use the independently quoted capacity and healing tracks in army-roster rather than a shared building-level upgrade.
 
 ### Requirement: Ready checks and preparation wave cadence
-Readiness eligibility, numbered stages, settlement, the final spending boundary and death-cleanup deferral SHALL follow [preparation and battle controls](../../../docs/gameplay.md#preparation-and-battle-controls). Snapshots SHALL preserve the serialized phase meanings and commands from prior stages SHALL be stale, under [session compatibility](../../../docs/sessions.md).
+Readiness eligibility, numbered stages, settlement, the final spending boundary and death-cleanup deferral SHALL follow `docs/gameplay.md#preparation-and-battle-controls` (preparation and battle controls). Snapshots SHALL preserve the serialized phase meanings and commands from prior stages SHALL be stale, under `docs/sessions.md` (session compatibility).
 
 #### Scenario: Final readiness starts a wave
 - **WHEN** all required players become ready in final preparation
@@ -183,7 +199,7 @@ Readiness eligibility, numbered stages, settlement, the final spending boundary 
 
 #### Scenario: Final edits precede settlement
 - **WHEN** a player makes eligible economic or army edits during final preparation
-- **THEN** they follow the spending and settlement boundary in [gameplay controls](../../../docs/gameplay.md#preparation-and-battle-controls)
+- **THEN** they follow the spending and settlement boundary in `docs/gameplay.md#preparation-and-battle-controls` (gameplay controls)
 - **AND** no subsequent income-spending stage is exposed before combat
 
 #### Scenario: Preparation survives pause and reconnect
@@ -191,15 +207,25 @@ Readiness eligibility, numbered stages, settlement, the final spending boundary 
 - **THEN** it sees current resources, readiness and preparation state, with economic actions disabled until resume
 
 #### Scenario: Ready while previous deaths finish
-- **WHEN** players finish the next preparation ready check before the previous wave's death reservations expire
+- **WHEN** players finish the next preparation ready check before the previous wave's cosmetic death cleanup completes
 - **THEN** their readiness remains set and no extra income, upkeep payment or battle is created
 - **AND** the next wave begins once cleanup completes if the ordinary ready eligibility still holds
 
 ### Requirement: Automatic battles and city defense
-Each city SHALL have an automatic bounded hex battlefield with Swordsman, Berserker, Crossbowman and Mage archetypes on both factions, classified as melee, ranged and magic. Equal archetype, unit level, research rank and explicit boss modifiers SHALL have identical combat statistics and attack rules across factions. Enemy presentation SHALL follow [authored presentation identities](../authored-asset-distribution/spec.md#requirement-presentation-identities-preserve-gameplay-compatibility) while retaining the canonical Skeletons faction without hidden faction stat bonuses. Each wave SHALL have a deterministic authored composition whose entries declare archetype, positive unit level, positive count and explicit boss identity. A wave SHALL support entries of different levels and SHALL NOT derive a unit level implicitly from its wave number. Default ordinary waves SHALL progress from melee to mixed threats while preserving original-roster allocation and redistribution. Melee units SHALL approach melee range; ranged and magic units SHALL approach their longer attack range and hold while a valid target remains in range. Each type SHALL use its own authoritative health, damage, unit size, initiative, integer hex range and move/windup/recovery/death durations from the frozen combat configuration. Melee SHALL attack distinct adjacent hexes at range one. Ready units SHALL choose the closest in-range opponent, then lowest initiative and a seeded tie; units without an in-range target SHALL approach a usable attack position or wait when blocked. Units SHALL hold through attack windup and recovery and SHALL NOT automatically retreat when reached in melee. Crossbow hits SHALL be single-target attacks with no friendly fire; their cosmetic projectile SHALL NOT require physical collision or impart knockback. Mage splash SHALL obey the bounded combat-archetypes contract. Soldiers SHALL fight without player orders. While alive, each city's built-in defender SHALL repeatedly attack living enemies assigned to that city at low damage even if its army has been wiped out. Enemies without a living deployed participating defending soldier SHALL approach the declared city-defense anchor and attack city health using their own range and attack timing. Legal siege positions SHALL keep city health reachable without requiring occupation of protected allied deployment cells. Reinforcements arriving after that city cleared its enemies SHALL use guaranteed protected entry and reach engagement within the declared admission bound even when defenders hold neutral enemy-forward cells. City impacts SHALL revalidate that exposure and destination; an invalid city primary SHALL miss without retargeting. Capacity-queued and dying units SHALL NOT attack or be selected. Unfed reserves SHALL neither deploy nor attack, be targeted, reserve capacity or screen city health; they SHALL remain distinct from fed units queued for capacity. Army loss alone SHALL NOT eliminate the city. Construction, recruitment, research, upgrades, plot purchases, building sales and Market trades SHALL be unavailable during combat. Buildable towers SHALL supplement the built-in defender without occupying combat capacity and SHALL stop attacking when their city falls. City health SHALL carry between waves without automatic healing.
+
+All sectors SHALL use one squad-based automatic battle, with equal resolved archetype profiles across factions and authored per-member wave type/level/count/boss inputs. Members SHALL not independently route or choose target groups. Squads SHALL engage groups in physical range, otherwise approach legal reachable groups/objectives, and hold through committed windup/recovery. Crossbowman SHALL remain X-only and continue its ranged profile when reached in melee; Mage SHALL use the within-group X/Y contract. Keep/Watchpost attacks SHALL depend on physical range and structural profile, not the absence of every defending soldier. Watchposts SHALL be the existing defender's physical origin, reset to configured full HP for living owners each wave, and stop that weapon when destroyed. Destruction SHALL apply one nonstacking owning-participant-squad Rally disruption per wave: default 20 percent less direct damage for 240 ticks, without movement/attack disablement or resource theft. Keep HP SHALL persist between waves. Purchased towers SHALL operate physically and stop on Keep loss. Combat SHALL forbid development/army editing while allowing shared pause and local inspection/navigation.
+
+#### Scenario: Keep exposed through a flank
+- **WHEN** an enemy reaches valid Keep range while friendly squads remain elsewhere
+- **THEN** its normal committed structure attack can damage the Keep without a global army shield
+
+#### Scenario: Watchpost breaks
+- **WHEN** a Watchpost reaches zero during a wave
+- **THEN** its defender stops and only that owner's current participating squads receive one bounded direct-damage disruption
+- **AND** a surviving owner's next wave restores the Watchpost and clears disruption
 
 #### Scenario: Exposed city fights back
-- **WHEN** the last soldier dies while enemies remain
+- **WHEN** the last soldier dies while enemies remain and its physical Watchpost is still alive
 - **THEN** the city remains alive while its health is positive, enemies attack it, and its built-in defender continues damaging those enemies
 
 #### Scenario: Remaining army needs no control
@@ -216,35 +242,57 @@ Each city SHALL have an automatic bounded hex battlefield with Swordsman, Berser
 - **THEN** the enemy can damage that soldier at melee range and the Crossbowman continues using its shooting profile without passing through the enemy
 
 #### Scenario: Transferred specialist retains its role
-- **WHEN** an enemy Mage or Crossbowman transfers after a city falls
-- **THEN** it retains identity, archetype, level, rank, boss identity/modifiers, health, origin and remaining attack recovery
-- **AND** its old destination windup is cancelled and no destination research changes its profile
+- **WHEN** a living enemy Mage or Crossbowman group redirects after Keep loss
+- **THEN** type, level, origin, member HP, status and committed timing remain unchanged
+- **AND** no destination technologies, teleportation or fresh target shot are introduced
 
 #### Scenario: Queued defender arrives during city windup
-- **WHEN** an enemy starts attacking an exposed city and a living defending soldier deploys before impact
-- **THEN** exposure validation makes that locked city attack miss with normal recovery
-- **AND** a later ready decision can select the deployed soldier
+- **WHEN** a friendly squad enters range of an enemy already winding up on a Keep
+- **THEN** the committed Keep attack validates physical target/range rather than a global defender-exposure shield
+- **AND** the next eligible target selection considers the new nearby squad
 
 #### Scenario: Reinforce a previously cleared city
-- **WHEN** a city cleared its allocated enemies, its surviving defenders stand at the neutral enemy-forward band, and living enemies transfer from another fallen city
-- **THEN** assignment is immediate, protected rear cells supply admission within their release bound and actual attacks resume
-- **AND** identities, health and remaining recovery are conserved and the check fails if progress depends on BattleStalled
+- **WHEN** a neighboring Keep falls while the shared battle remains active
+- **THEN** living redirected enemies approach from their actual cells and friendly squads may intercept
+- **AND** identities and health remain conserved and progress does not depend on corpse transfer admission or BattleStalled
 
 ### Requirement: Elimination and immediate enemy redistribution
-A city SHALL be eliminated when its health reaches zero. Its defender SHALL stop, its owner SHALL lose building/recruitment/readiness actions, and its surviving attackers SHALL immediately be divided among all remaining living cities, including disconnected ones. Transferred enemies SHALL retain their identity and remaining health, with no duplication or revival of killed enemies. Integer remainders SHALL be assigned in stable player order, with allocations differing by at most one. All cities eliminated in one combat step SHALL be excluded before that step's redistribution. A city that cleared its own enemies SHALL receive redistributed enemies while the shared wave remains active.
+
+Zero Keep HP SHALL eliminate its owner, stop weapons/future development, deny city/army/readiness requests and retain the fallen roster for inspection. Current participating survivors SHALL continue fighting to the current battle's result. Surviving enemy squads preferring fallen sectors SHALL redirect toward living owners in deterministic balanced group allocation after simultaneous eliminations are excluded. Redirection SHALL preserve member count/origin/HP/profile, physical source, current transition and committed timing; it SHALL not teleport, duplicate, heal or cancel a move solely to rebuild city-local admission. Connected fallen owners SHALL spectate and retain shared pause/resume. After the battle, their survivors SHALL receive no future deployment/upkeep/production/healing.
+
+#### Scenario: Active fallen-owner survivor
+- **WHEN** a Keep falls with an owned field squad alive and another Keep survives
+- **THEN** the squad can land subsequent current-wave impacts while owner spending/readiness/weapons are disabled
+
+#### Scenario: Several Keeps fall together
+- **WHEN** two Keeps fall on the same tick
+- **THEN** neither is selected as a redirect destination and every surviving enemy group/member remains present exactly once
 
 #### Scenario: Transfer living attackers
-- **WHEN** one city falls with five enemies alive and two other cities remain
-- **THEN** the remaining cities receive three and two of those enemies in stable order immediately
-- **AND** each transferred enemy retains its health and is present exactly once
+- **WHEN** a Keep falls with living enemy groups and two other Keeps remain
+- **THEN** groups redirect preferences in stable balanced group allocation with every member retained exactly once
+- **AND** different partial-group populations need not yield equal member counts and actors are not teleported
 
 #### Scenario: Multiple cities fall together
-- **WHEN** two cities fall in the same combat step and one city remains
-- **THEN** every surviving attacker from both fallen cities is assigned to the remaining city
-- **AND** none is assigned to either eliminated city
+- **WHEN** two Keeps fall on the same combat tick and one remains
+- **THEN** all surviving enemy groups preferring either fallen owner redirect to the living owner
+- **AND** no eliminated owner is selected and member identities/HP remain intact
 
 ### Requirement: Future allocations and twenty-wave outcome
-Each of twenty waves SHALL contain a configured baseline enemy allocation for every original roster member. A living member SHALL receive their own allocation; allocations of eliminated members SHALL be split among the remaining living cities in stable order with balanced integer remainders. Original allocations SHALL be counted once regardless of how many eliminations have occurred. The match SHALL enter shared victory once wave twenty has no living enemies and at least one city remains. It SHALL enter defeat as soon as no living city remains, taking precedence over simultaneous enemy deaths, with an all-cities-fallen reason. If living enemies remain after ordinary health/outcome resolution and an active engagement's no-progress limit or the wave's maximum combat duration expires, the whole match SHALL instead enter defeat with a battle-stalled reason, identifying the triggering city when applicable, limit and tick. Protected deployment SHALL handle ordinary reinforcement admission independently of this fallback. Battle-stalled defeat SHALL NOT change surviving health, mark living cities eliminated, award victory or redistribute fabricated casualties. Ordinary wave completion on the deadline tick SHALL take precedence over a limit, while ordinary health defeat SHALL retain precedence over victory. No twenty-first wave, further economic turns or combat actions SHALL run after an outcome. Dying bodies SHALL NOT delay the ordinary gameplay outcome, and their bounded authoritative cleanup SHALL continue without new combat actions; a nonterminal next wave SHALL NOT reuse reserved positions before cleanup completes. Eliminated connected players SHALL be able to observe the rest of the match.
+
+Each of twenty authored waves SHALL retain one baseline allocation per original roster member. Fallen-owner future allocations SHALL be split among living preferred sectors with stable balanced integer remainders and unchanged original counts, including disconnected living owners. A wave SHALL clear only with no living/queued enemies and at least one Keep alive. Wave twenty SHALL yield shared victory; no living Keep SHALL yield AllCitiesFallen defeat before simultaneous clear. Existing positive no-health-progress/wave limits SHALL yield explicit BattleStalled only after ordinary results, without fabricated damage/casualties/rewards. No wave twenty-one, later development or new combat actions SHALL run after an outcome. Dying bodies SHALL not delay that outcome; bounded cosmetic cleanup SHALL continue, and next formation SHALL wait for cleanup. Fallen connected players SHALL remain observers.
+
+#### Scenario: Future pressure preserved
+- **WHEN** one of three original owners has fallen before a six-enemy-per-origin wave
+- **THEN** the two living preferred sectors receive nine original members each, eighteen total
+
+#### Scenario: Last enemy and Keep
+- **WHEN** the last enemy and last Keep die together
+- **THEN** defeat takes precedence and no clear reward is granted
+
+#### Scenario: Final clear
+- **WHEN** the wave-twenty final enemy dies with a surviving Keep
+- **THEN** final rewards precede victory and only bounded cosmetic cleanup may continue
 
 #### Scenario: Fallen city retains future wave pressure
 - **WHEN** one of three original cities has fallen and the next wave allocates six enemies per original city
@@ -269,9 +317,9 @@ Each of twenty waves SHALL contain a configured baseline enemy allocation for ev
 - **THEN** the shared clear reward is granted and wave four begins its first building turn
 
 #### Scenario: Boss pressure includes fallen cities
-- **WHEN** a three-player original roster reaches wave ten with two cities surviving
-- **THEN** exactly three bosses are created, one for each original roster allocation, and the fallen city's boss is assigned by the ordinary stable remainder policy
-- **AND** those bosses remain individual units and can accumulate at one destination
+- **WHEN** a three-owner original roster reaches wave10 with two living Keeps
+- **THEN** three original single-member boss squads are assigned among living preferred sectors by stable remainders
+- **AND** each occupies its own physical cell and preserves the ordinary actor architecture
 
 ### Requirement: Changed-state snapshot publication
 The authority SHALL publish complete changed snapshots at the bounded combat cadence and promptly for pause or non-combat revisions. It SHALL NOT continually enqueue unchanged paused/building snapshots on the reliable channel. Welcome and command acknowledgment delivery SHALL still carry the complete current state, and current death cleanup SHALL remain observable as it changes authoritative revisions.
@@ -282,11 +330,16 @@ The authority SHALL publish complete changed snapshots at the bounded combat cad
 - **AND** repeated copies of the prior unchanged pause do not delay the revision behind a growing reliable snapshot queue
 
 ### Requirement: Once-per-battle food upkeep and inactive reserves
-Food SHALL pay army upkeep at battle entry and SHALL NOT be a recruitment cost. Each recruit archetype SHALL declare a positive whole food upkeep amount per battle, independent of unit level and research. At the actual preparation-to-combat transition, after prior death cleanup and before formation, every living city's living soldiers, including Town hall storage, SHALL be evaluated once, including disconnected cities. Enemies, bosses, towers, the built-in defender and dying/dead units SHALL owe no city food. Zero living soldiers SHALL cost zero. The authority SHALL process soldiers by field-assigned first, then stored, with descending unit level and ascending stable identity within each group; it SHALL fully pay each affordable soldier and include only field-assigned funded soldiers, otherwise skip that soldier and continue to later soldiers with the remaining food. No partial payment or negative food SHALL occur. A participant that waits in a capacity queue SHALL already be paid and SHALL NOT pay again on admission.
 
-Unfed field-assigned soldiers SHALL remain living inactive reserves for the entire shared wave, preserving identity, archetype, level, research and health. Stored units SHALL retain their separate lifecycle under [army-roster](../army-roster/spec.md). They SHALL have no active footprint, admission queue, targeting, attacks or city-screening effect, and no starvation damage or profile penalty. Existing building ownership SHALL NOT affect their upkeep or survival. Food shortage SHALL NOT prevent the shared battle from starting. At the next wave's preparation all surviving reserves SHALL be eligible for a fresh forecast, and its battle entry SHALL recalculate participation from current food and army. Local clearing and enemy redistribution SHALL NOT change that wave's food payment or reactivate reserves. A fallen city's reserves SHALL NOT join another city's army or return to battle.
+Food SHALL be paid once per living individual owned by a living city at actual final settlement/combat entry, including disconnected living cities and stored soldiers, after prior cosmetic cleanup. Default per-type upkeep SHALL remain positive and independent of equipment/research. Field members SHALL be considered first, then stored, each ordered by descending level and stable ID; unaffordable members SHALL be skipped without debt/starvation and cheaper members considered. Only funded field members SHALL participate; a zero-funded squad SHALL have no occupancy. Towers/defender/enemies/bosses/dead members SHALL owe no city food. Shortage SHALL not block battle. Stored/unfunded members SHALL retain HP/identity without targets, claims, attacks or shielding. Redirected enemies and continuing fallen-owner fighters SHALL not be charged again. Fallen owners SHALL owe no future upkeep. Forecasts SHALL match actual final-settlement funding and expose field/stored demand and funded/unfunded/participant identities; retries, reconnects, pause and cleanup SHALL not charge again.
 
-Authority state SHALL expose a current forecast with full army and field/stored demand, available food, projected payment and funded/participant/unfed identities, plus a latest wave-tagged actual payment, funded-identity and participation receipt. Forecast evaluation SHALL NOT spend resources or mutate combat state. Production, readiness changes, cleanup waits, pause, reconnect, duplicate commands/snapshots and repeated stepping SHALL NOT charge again. Wave-clear food SHALL be usable at the next battle only; victory SHALL NOT create upkeep for another wave. New sessions SHALL clear prior forecasts, receipts and reserve status.
+#### Scenario: Partial squad
+- **WHEN** final settlement funds only two of three field members
+- **THEN** one squad cell contains two participants and the unfunded member remains a living reserve
+
+#### Scenario: Storage is not combat
+- **WHEN** a stored veteran is funded at battle entry
+- **THEN** its payment is recorded for recovery but it receives no deployment or claim
 
 #### Scenario: Pay for the whole army once
 - **WHEN** preparation completes with enough food for every living soldier
@@ -315,16 +368,14 @@ Authority state SHALL expose a current forecast with full army and field/stored 
 - **AND** reconnect restores its actual receipt and unchanged reserve identities without another payment
 
 #### Scenario: Prior death cleanup postpones payment
-- **WHEN** all required players are ready but prior-wave death reservations have not expired
-- **THEN** food remains unspent while the barrier waits
-- **AND** cleanup completion charges once only if the normal ready eligibility still holds and combat actually starts
+- **WHEN** final readiness occurs while prior cosmetic death cleanup remains incomplete
+- **THEN** food remains unspent until cleanup ends and normal eligibility still permits actual combat entry
+- **AND** logical claims were already released and cleanup still cannot create another settlement
 
 #### Scenario: Reserves can return in the next wave
 - **WHEN** an unfed soldier's living city later has enough food at the following battle entry
 - **THEN** that same soldier can participate at its retained level and health after its upkeep is paid
 - **AND** it was neither healed, killed nor recruited again while sitting out
-
-Town hall storage SHALL remain independent of unfed reserve status. Funding/participation projections and next-cycle recovery eligibility SHALL follow army-roster, without additional food charges.
 
 ### Requirement: Gold-purchased plot expansion
 A living, connected and unready owner SHALL be able to buy any one of their locked plots during unpaused building or preparation. Buying a plot SHALL pay the authoritative next expansion gold quote atomically and make that specific plot permanently usable for the match; it SHALL NOT construct a building. The default nine-plot board SHALL start with five purchased plots and offer four expansions at strictly increasing positive gold prices based on the number of previous purchases, not plot location. Default expansion prices SHALL be 5, 8, 12 and 18 gold. Plot purchases SHALL require no building, Market, resource other than gold or wave milestone. Already purchased, invalid, foreign or unaffordable requests SHALL fail without changes. Retries SHALL neither charge twice nor unlock another plot. Purchased land SHALL NOT be sold or refunded when its building is sold, and expansions SHALL NOT enlarge the combat board or grant terrain bonuses.
@@ -387,7 +438,12 @@ Owning at least one Market SHALL allow a living, connected, unready city to expl
 - **AND** the next-battle forecast refreshes without charging upkeep
 
 ### Requirement: Simple boss rounds
-Waves ten and twenty SHALL each contain exactly one boss per original roster allocation and no ordinary escorts. The first default boss SHALL be a level-three Swordsman and the final boss a level-five Swordsman. Each boss SHALL use eight times the level-scaled maximum health and twice the level-scaled damage, with ordinary Swordsman targeting, movement, range, attack cadence and death rules, with size six instead of the ordinary size two. Bosses SHALL have no special abilities, summons, phases or immunity. Clearing wave ten SHALL continue the match; clearing wave twenty SHALL end in shared victory if a city survives. A boss moved between cities SHALL retain its remaining health and modifiers without resetting or multiplying them.
+
+Waves ten and twenty SHALL each contain one single-member boss squad per original roster allocation, with no ordinary escorts. Default bosses SHALL remain level-three and level-five Swordsmen with eight times level-scaled HP and twice direct damage. Bosses SHALL use ordinary squad movement, targeting, range, attack/death rules and one exclusive cell, without special phases, summons or immunity. Redirection SHALL retain identity, health, level and modifiers without teleportation/reapplication. Wave ten SHALL continue and wave twenty SHALL yield victory only with a living Keep.
+
+#### Scenario: Boss architecture
+- **WHEN** a solo match enters wave ten
+- **THEN** one level-three Swordsman member uses the ordinary squad cycle and exclusive cell with declared boss modifiers
 
 #### Scenario: Solo boss wave
 - **WHEN** a solo match enters wave ten
@@ -395,8 +451,8 @@ Waves ten and twenty SHALL each contain exactly one boss per original roster all
 - **AND** it fights using ordinary combat actions with the configured increased health and damage
 
 #### Scenario: Transfer a wounded boss
-- **WHEN** a boss survives the fall of its destination city
-- **THEN** it transfers once with unchanged identity, level, remaining health and profile
+- **WHEN** a wounded boss's preferred Keep falls
+- **THEN** it redirects preference with the same member/group identity, pose, health and modifiers
 
 ### Requirement: Exactly-once shared wave-clear rewards
 A wave SHALL clear only when no living assigned or queued enemies remain across the match and at least one city survives. Each surviving city, including disconnected cities, SHALL receive 2 gold, 5 food and 1 wood for an ordinary clear or 4 gold, 10 food and 2 wood for a boss clear. Each surviving city SHALL additionally receive exactly one research point, including on boss and final clears, without a boss multiplier to research. Rewards SHALL be independent of kills, local clear order, number of inherited allocations and roster size. Fallen cities SHALL receive no reward. The reward SHALL be granted exactly once before moving to the next building phase or final victory, without running production or healing units/cities. All-cities-fallen defeat SHALL take precedence over simultaneous final enemy deaths, and neither ordinary defeat nor battle-stalled defeat SHALL grant a clear reward. Authority state SHALL retain the last rewarded wave and per-city awarded material and research amounts so reconnect and outcome views can reconstruct the result without replaying an economic action.

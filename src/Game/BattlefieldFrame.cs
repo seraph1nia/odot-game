@@ -3,19 +3,17 @@ using Godot;
 
 namespace Game;
 
-// Presentation bounds only. All graph cells/anchors and all nine buildable plots
-// survive; no numerical routes, formations or placement rules are shortened.
+// Settlement presentation bounds only. Combat lives in SharedArenaView, whose
+// independent complete content bounds never crop numerical routes or cells.
 internal static class BattlefieldFrame
 {
     internal const float Ground = -1.5f, Roof = 5.2f, Margin = 6;
     internal static Aabb Content(MatchSnapshot? state, IEnumerable<Aabb> buildings)
     {
         var points = new List<Vector3> { VillageLandscape.Home, VillageLandscape.Defender };
-        HexBoardDefinition board = state?.Rules.Combat.Board ?? HexBoardDefinition.Default();
-        foreach (var cell in board.Cells)
-            foreach (var anchor in board.Anchors)
-                points.Add(VillageLayout.Hex(cell.Coordinate.Column, cell.Coordinate.R) + new Vector3(anchor.AnchorX / 1000f, 0, anchor.AnchorForward / 1000f));
         points.AddRange(Enumerable.Range(0, 9).Select(VillageLayout.Slot));
+        if (state is not null)
+            points.AddRange(Enumerable.Range(ArmyConfiguration.PlotOffset, ArmyConfiguration.PlotCount).Select(id => ArmyPlotView.PlotPosition(state, id)));
         // Forecast art lives outside combat occupancy. Include the actual display
         // formation in the same content-derived framing owner, including custom
         // allocation sizes; never assume the old approach bounds happen to fit.
@@ -25,8 +23,8 @@ internal static class BattlefieldFrame
             points.AddRange(manifest.Select(u => positions[u.Id] - CombatLayout.Center(u.Destination)));
             points.Add(new(0, 0, -14)); // next-wave heading
         }
-        // Model/plot silhouette allowance, including queued army/enemy entry
-        // anchors, rather than just units that happen to be deployed this tick.
+        // Complete persistent settlement/forecast silhouettes, not live combat
+        // positions: SharedArenaView owns the independent complete arena bounds.
         Vector3 min = points.Aggregate((a, b) => a.Min(b)) - new Vector3(VillageLayout.Radius, 0, VillageLayout.Radius);
         Vector3 max = points.Aggregate((a, b) => a.Max(b)) + new Vector3(VillageLayout.Radius, 0, VillageLayout.Radius);
         min.Y = Ground; max.Y = Roof;

@@ -39,6 +39,8 @@ public partial class EngineTests
                 Rect2 settingsRect = settings.SettingsButton.GetGlobalRect();
                 Check(!panel.Intersects(settingsRect) && panel.End.X < size.X && panel.End.Y < size.Y,
                     "production top chrome leaves Settings and all speed choices in separate visible regions");
+                Check(panel.Size.Y <= 64 && panel.Size.X <= 360,
+                    "unwrapped native speed label keeps the three controls in a compact horizontal strip");
                 Click(settingsRect.GetCenter()); await Frames();
                 Check(settings.IsOpen && settings.ReturnButton.Visible && session.Commands.Count == 0, "actual Settings remains clickable during a session without issuing a match action");
                 settings.Close(); await Frames();

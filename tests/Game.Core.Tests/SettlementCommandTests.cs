@@ -139,29 +139,31 @@ public sealed class SettlementCommandTests
     }
 
     [Fact]
-    public void PlacementScopesFieldAndExactHallGenerationBeforeSizeAndAnchors()
+    public void PlacementScopesHomogeneousHomesAndIndividualHallCapacityByExactGeneration()
     {
-        var board = new HexBoard(HexBoardDefinition.Default());
-        var army = new ArmyConfiguration(new(), board);
-        int cell = army.HomeCells[0];
-        int[] anchors = board.Anchors.OrderBy(a => a.AnchorForward).ThenBy(a => a.Id).Select(a => a.Id).ToArray();
-        UnitState Soldier(int id, int size, ArmyAssignment? assignment, int health = 100) => new(id, health)
-        { Profile = new() { Size = size }, Assignment = assignment };
+        // Tier A: negative controls distinguish members from a size budget and
+        // field/hall/generation claims. No funded campaign or transport claim.
+        var army = new ArmyConfiguration(new(), new(HexBoardDefinition.Default()));
+        UnitState Soldier(int id, ArmyAssignment? assignment, int health = 100) => new(id, health)
+        { SquadId = 1, Type = UnitType.Swordsman, Assignment = assignment };
         UnitState[] roster =
         [
-            Soldier(1, 4, new(-1, 0, cell, anchors[0])),
-            Soldier(2, 6, new(3, 10, cell, anchors[0])),
-            Soldier(3, 6, new(3, 11, cell, anchors[1])),
-            Soldier(4, 6, new(-1, 0, cell, anchors[1]), health: 0),
-            Soldier(5, 6, null),
-            Soldier(6, 4, new(3, 10, 0, anchors[0])),
-            Soldier(7, 6, new(4, 10, 0, anchors[1])),
-            Soldier(8, 6, new(3, 11, 0, anchors[1]))
+            Soldier(1, new(-1, 0, 0, 1)),
+            Soldier(2, new(3, 10, 0, 1)),
+            Soldier(3, new(3, 11, 1, 1)),
+            Soldier(4, new(-1, 0, 0, 1), health: 0),
+            Soldier(5, null),
+            Soldier(6, new(3, 10, 1, 1)),
+            Soldier(7, new(4, 10, 2, 1)),
+            Soldier(8, new(3, 11, 2, 1))
         ];
-        Assert.Equal(new ArmyAssignment(-1, 0, cell, anchors[1]), army.Find(roster, 2, 2));
-        Assert.Equal(new ArmyAssignment(3, 10, 0, anchors[1]), army.Find(roster, 2, 2, 3, 10, 6));
-        Assert.Null(army.Find(roster, 2, 3, 3, 10, 6));
-        Assert.Equal(new ArmyAssignment(3, 12, 0, anchors[0]), army.Find(roster, 2, 6, 3, 12, 6));
-        Assert.Equal(new ArmyAssignment(-1, 0, cell, anchors[1]), army.Find(roster.Reverse(), 2, 2));
+        Assert.Equal(new ArmyAssignment(-1, 0, 0, 1), army.Find(roster, 2, type: UnitType.Swordsman));
+        Assert.Equal(new ArmyAssignment(-1, 0, 1, 1), army.Find(roster, 2, type: UnitType.Mage));
+        Assert.Equal(new ArmyAssignment(3, 10, 2, 1), army.Find(roster, 2, 3, 10, 3));
+        Assert.Null(army.Find(roster.Append(Soldier(9, new(3, 10, 2, 1))), 2, 3, 10, 3));
+        Assert.Equal(new ArmyAssignment(3, 12, 0, 1), army.Find(roster, 2, 3, 12, 3));
+        Assert.Equal(army.Find(roster, 2, type: UnitType.Swordsman), army.Find(roster.Reverse(), 2, type: UnitType.Swordsman));
+        Assert.Throws<ArgumentOutOfRangeException>(() => army.Find(roster, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => army.Find(roster, 2, capacity: -1));
     }
 }

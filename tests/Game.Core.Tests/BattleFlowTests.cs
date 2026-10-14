@@ -250,6 +250,7 @@ public sealed class BattleFlowTests
         document["Phase"] = "Preparation";
         using var output = new MemoryStream();
         using (var brotli = new BrotliStream(output, CompressionLevel.Fastest, leaveOpen: true)) brotli.Write(System.Text.Encoding.UTF8.GetBytes(document.ToJsonString()));
-        Assert.Throws<InvalidDataException>(() => SnapshotPayload.Decode(Convert.ToBase64String(output.ToArray())));
+        InvalidDataException refusal = Assert.Throws<InvalidDataException>(() => SnapshotPayload.DecodeForReceiving(Convert.ToBase64String(output.ToArray())));
+        Assert.Contains("Rejoin a compatible authority or start a fresh match", refusal.Message);
     }
 }

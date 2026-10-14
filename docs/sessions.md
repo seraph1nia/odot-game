@@ -35,11 +35,12 @@ delegates city editing to the internal `SettlementCommands` module and advances
 revision once for an accepted edit. That module owns quote/instance/capacity
 checks and validated city mutations, not admission, retries, production or
 battle progression. `ArmyConfiguration.Find` uses one living assigned-soldier
-view scoped to field or exact hall generation for both size and anchor checks;
+view scoped to field or exact Hall generation for homogeneous member capacity and stable assignment checks;
 authority and previews share it, passing actual army-plot ownership and type so
 arbitrary purchases retain fixed first-fit order and tower plots are excluded.
-Combat remains the only unit health/identity store, with unchanged restoration
-and death-cleanup barriers.
+Combat remains the only unit health/identity store; [army-home restoration](gameplay.md#purchased-army-homes-and-town-hall-rotation)
+owns the separation between accepted persistent edits and cleanup-time physical
+claims.
 
 Only authority admits physics delta through `AuthoritySession.Advance`; its
 bounded wall-time driver owns deterministic steps, as described in
@@ -104,8 +105,11 @@ recovery eligibility. City command IDs remain 0–8; army IDs are 9–14, displa
 as Army 1–6. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
 and their optional catalog benefits, and the distinct rapid-arrow/bombard tower
 profiles, synchronized combat speed and the authoritative next-wave manifest.
-Authority admission rejects older peers before sending a snapshot, including
-the preceding protocol 13; Steam lobby matching uses the same version boundary.
+Integrated protocol **15** rejects older peers before sending a snapshot,
+including both incompatible predecessor protocol14 schemas. Steam lobby matching
+uses the same version boundary. Combat rules7 and battle-flow version2 are also
+validated explicitly; matching a protocol integer alone cannot validate actors,
+profiles, geometry or the full authoritative configuration fingerprint.
 
 `MatchSnapshot.CurrentBattleFlowVersion` in [the snapshot schema](../src/Game.Core/World.cs)
 distinguishes numbered preparation semantics from legacy four-check snapshots.
@@ -114,9 +118,14 @@ version, Building turns other than 1/2, Preparation turns other than 3, and inva
 combat-speed values. Historical snapshots are not silently migrated or treated
 as game saves. `SessionFile`'s credential/sequence schema is unchanged; reconnect
 to the same matching running authority retains the selected pace and forecast.
-`Command.UnitId` targets retire/store/send; `ExpectedHomeCount` binds the army
-purchase-count quote, `ExpectedTrackLevel` binds the selected hall track or base
-tower level, and `ExpectedGeneration` binds the building instance.
+`Command.UnitId` targets retire/store/send and `regroup-member`.
+`SquadId` selects reinforcement/regrouping/return: zero uses first fit, -1 requests
+a new squad at a free home, and a positive ID selects an existing compatible
+squad. Selectors below -1 reject before placement lookup or mutation.
+`deploy-squad` uses `SquadId` and the physical arena `Cell` to move the complete
+home claim. `ExpectedHomeCount` binds the army purchase-count quote,
+`ExpectedTrackLevel` binds the selected hall track or base tower level, and
+`ExpectedGeneration` binds the building instance.
 `buy-plot` targets a chosen locked army ID as well as city land; legacy
 `buy-home` remains an alias for actual army land acquisition (the first locked
 plot when no ID is supplied), not a separate capacity purchase.
@@ -130,21 +139,21 @@ replays production, food payment or healing.
 
 Full compatibility identity includes all six resolved tower profiles, the current
 combat rules declared in [`CombatSettings`](../src/Game.Core/Combat/CombatConfiguration.cs)
-and the actor decision fingerprint. Seeded actor tie-breaking retains the original
-rules-v5 serialization of all actual legacy settings, including authored Arrow
-victim/radius values even though its resolved damage profile is always single-target.
-Those legacy inputs can change decisions and therefore must also change full
-compatibility identity. Unused new variant metadata cannot reroll unchanged
-soldiers, defenders or base towers; ineffective Rapid Arrow victim/radius authoring
-changes neither fingerprint. `CombatConfigurationTests` covers identity round-trips
-and retained legacy decision transcripts; `ArmyPlotTowerTests` pairs variant-only
-authoring with unchanged legacy decisions and a full-identity counterfactual. Snapshot
-codec/load and credential resume against the same live authority remain the
-persistence boundary, not an authority disk-save or restart-recovery API.
+and the actor decision fingerprint. Both combat fingerprints contain actual
+rules-v7 inputs; retired size, victim-cap and radius authoring fields are refused,
+not retained as hidden decision inputs. The base-actor namespace excludes the
+optional Rapid Arrow/Bombard profiles, so changing only their timing changes full
+compatibility identity without rerolling unchanged squads, defenders or base
+weapons. `CombatConfigurationTests` covers complete identity round-trips and
+observation-invariant reconstructed squad decisions;
+`ArmyPlotTowerTests.BaseTowerSelectionIgnoresOptionalUpgradeTimingWithOneSaltCounterfactual`
+checks that isolation against a full-identity counterfactual. Snapshot codec/load
+and credential resume against the same live authority remain the persistence
+boundary, not an authority disk-save or restart-recovery API.
 
 `recruit <slot>` still means Swordsman; automation also accepts
 `recruit <slot> crossbowman`. Admission refuses earlier protocol versions; there
 is no mixed-version play. Stable unit IDs and event sequences are match-scoped,
 never Arch entity handles. Guest revision/match guards apply to all complete
-states. Presentation baselines history on admission/resume, seeks pending actions
-at the current tick, and resets to living state on a detectable history gap.
+states. [Shared playback](gameplay.md#deterministic-hex-combat) owns admission/resume
+and history-gap baselines for current living poses and unexpired deaths.

@@ -20,7 +20,7 @@ public partial class Tabletop
         if (game.State is not { } state) return null;
         if (_armyConfiguration is null || _armyFingerprint != state.ConfigurationFingerprint)
         {
-            _armyConfiguration = new(state.Rules.Army, new(state.Rules.Combat.Board)); _armyFingerprint = state.ConfigurationFingerprint;
+            _armyConfiguration = new(state.Rules.Army, new(state.Rules.Combat.Board), state.Rules.Arena.SquadCapacity); _armyFingerprint = state.ConfigurationFingerprint;
         }
         return _armyConfiguration;
     }
@@ -59,7 +59,7 @@ public partial class Tabletop
     private void RefreshArmy()
     {
         CityState? city = Focus(); ArmyState? army = city?.Army; ArmyConfiguration? config = UiArmy();
-        _homeSummary.Text = army is null ? "" : "Army plots (first-fit order):\n" + string.Join("\n", army.Homes.Select(h => $"{h.Number}. Tile {h.Cell} · {h.State} · {h.Used}/6 size"));
+        _homeSummary.Text = army is null ? "" : "Army plots (first-fit order):\n" + string.Join("\n", army.Homes.Select(h => $"{h.Number}. {h.State} · {h.Used}/{army.SquadCapacity} members"));
         _openHall.Visible = SelectedPlot(city)?.Type == Building.TownHall;
         _openHall.Disabled = !game.Connected;
         if (_hallSlot < 0 || city?.Slots.ElementAtOrDefault(_hallSlot) is not { Type: Building.TownHall } selected || selected.Generation != _hallGeneration)
@@ -68,7 +68,7 @@ public partial class Tabletop
         }
         TownHallState hall = army!.Halls.Single(h => h.Slot == _hallSlot);
         UnitState[] stored = city.Soldiers.Where(u => u.Assignment is { Stored: true } a && a.HallSlot == _hallSlot && a.HallGeneration == _hallGeneration).OrderBy(u => u.Assignment!.Tile).ThenBy(u => u.Assignment!.Anchor).ToArray();
-        _hallSummary.Text = $"Town hall · plot {_hallSlot + 1}\nStorage L{hall.CapacityLevel}/3 · {stored.Sum(u => u.Size)}/{hall.Capacity} size points\nHealing L{hall.HealingLevel}/3 · {hall.HealingPercent}% current max HP per actual production (rounded up).\nStored units pay battle food but never fight. Recovery requires food paid in the last completed battle.";
+        _hallSummary.Text = $"Town hall · plot {_hallSlot + 1}\nStorage L{hall.CapacityLevel}/3 · {stored.Length}/{hall.Capacity} individual places\nHealing L{hall.HealingLevel}/3 · {hall.HealingPercent}% current max HP per actual production (rounded up).\nStored units pay battle food but never fight. Recovery requires food paid in the last completed battle.";
         void Upgrade(Button button, ResourceCost? quote, string track, int level)
         {
             button.Text = quote is { } q ? $"{track} L{level + 1} · {ResourceText(q)}" : $"{track} complete";
@@ -81,25 +81,25 @@ public partial class Tabletop
         {
             _hallKey = key; _hallUnits.Clear();
             foreach (Node child in _hallRoster.GetChildren()) { _hallRoster.RemoveChild(child); child.QueueFree(); }
-            for (int tile = 0; tile < hall.Capacity / 6; tile++)
+            for (int tile = 0; tile < hall.Capacity; tile++)
             {
-                UnitState[] claims = stored.Where(u => u.Assignment!.Tile == tile).ToArray(); int used = claims.Sum(u => u.Size);
-                Text(_hallRoster, $"Reserve tile {tile + 1} · {used}/6 size · {6 - used} free", 12);
+                UnitState[] claims = stored.Where(u => u.Assignment!.Tile == tile).ToArray(); int used = claims.Length;
+                Text(_hallRoster, $"Reserve place {tile + 1} · {used}/1 member", 12);
                 foreach (UnitState unit in claims)
                 {
                     int id = unit.Id;
-                    Button select = HallButton(_hallRoster, $"#{id} {ProgressionPresentation.UnitName(unit)} L{unit.Level} · size {unit.Size} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no paid recovery")}", () => { _storedUnit = id; RefreshArmy(); });
+                    Button select = HallButton(_hallRoster, $"#{id} {ProgressionPresentation.UnitName(unit)} L{unit.Level} · squad {unit.SquadId} · HP {HealthPoints.Format(unit.Health)}/{HealthPoints.Format(unit.Profile.Health)} · {(unit.RecoveryEligible ? "paid recovery eligible" : "no paid recovery")}", () => { _storedUnit = id; RefreshArmy(); });
                     select.Name = "HallUnit" + id; select.AddThemeFontSizeOverride("font_size", 12); _hallUnits.Add(select);
                 }
-                if (used < 6) Text(_hallRoster, $"Empty reserve space · {6 - used} size points", 12);
+                if (used == 0) Text(_hallRoster, "Empty individual reserve place", 12);
             }
         }
         UnitState? chosen = stored.FirstOrDefault(u => u.Id == _storedUnit);
         foreach (Button button in _hallUnits) button.Modulate = button.Name == "HallUnit" + _storedUnit ? Colors.White : new Color(.85f, .85f, .85f);
         _hallSelection.Text = chosen is null ? "Select a stored unit. Selection changes nothing." : $"Selected #{chosen.Id} · wounds and level are retained when sent.";
-        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, chosen.Size, plots: army.Homes.Select(h => h.Plot).ToArray()) is not null;
+        bool fits = chosen is not null && config!.Find(city.Soldiers, army.PurchasedHomes, plots: army.Homes.Select(h => h.Plot).ToArray(), type: chosen.Type) is not null;
         _hallSend.Disabled = !CanEdit() || chosen is null || !fits; _hallRetire.Disabled = !CanEdit() || chosen is null;
-        _hallSend.TooltipText = chosen is null ? "Select a stored unit." : !fits ? "Battlefield homes are full. Buy a space or retire/store a field unit first." : "Insert at the first fitting purchased tile and free anchor; no healing or payment.";
+        _hallSend.TooltipText = chosen is null ? "Select a stored unit." : !fits ? "Battlefield homes are full. Buy a space or retire/store a field unit first." : "Rejoin a matching squad or a free purchased home; no healing or recruitment payment.";
     }
     private void UpdateArmyMarkers(Node3D board, CityState city, MatchSnapshot state)
     {

@@ -20,6 +20,10 @@ internal static class CampaignStrategy
     private static readonly int[] ProducerSlots = [0, 1, 3, 4];
     private static readonly Resource[] SaleOrder = [Resource.Cloth, Resource.Metal, Resource.Food, Resource.Stone, Resource.Wood];
     private static readonly (int Slot, Building Type)[] Core = [(0, Building.Farm), (1, Building.MetalMine), (2, Building.Barracks), (3, Building.Lumbermill), (4, Building.Stonecutter)];
+    // A ranged opening must earn wood for equipment, not field an empty army
+    // after spending every END's wood on the generic melee producer sequence.
+    private static readonly (int Slot, Building Type)[] RangedCore = [(0, Building.Farm), (1, Building.MetalMine), (3, Building.Lumbermill), (4, Building.Lumbermill), (2, Building.ArcheryRange)];
+    private static readonly (int Slot, Building Type)[] Ranged = [(5, Building.Stonecutter), (6, Building.Market), (7, Building.Mine)];
     private static readonly (int Slot, Building Type)[] Frontline = [(5, Building.Market), (6, Building.Mine)];
     private static readonly (int Slot, Building Type)[] Mixed = [(8, Building.Market), (5, Building.Weaver), (6, Building.Arcanum), (7, Building.ArcheryRange)];
     private static readonly (int Slot, Building Type)[] Towers = [(8, Building.Market), (5, Building.ArrowTower), (6, Building.CatapultTower), (7, Building.ArrowTower)];
@@ -34,11 +38,18 @@ internal static class CampaignStrategy
             return new("build", slot, type, Payment: ConstructionPayment.GoldRecovery);
         return null;
     }
+    internal static bool CanField(CityState city, UnitType type)
+    {
+        ArmyState army = city.Army ?? throw new InvalidOperationException("Authority must project army homes.");
+        return army.Homes.Any(h => h.Purchased && h.Plot.Type == Building.Empty && (h.Used == 0
+            || h.Used < army.SquadCapacity && city.Soldiers.Where(u => u.Health > 0 && u.Assignment is { Stored: false } a && a.Tile == h.Cell)
+                .All(u => u.Type == type && !u.IsBoss)));
+    }
     private static EconomyAction? Recruit(CityState city, int slot, RecruitmentQuote quote, int maximumHomes = 6)
     {
         if (!city.Resources.TryPay(quote.Cost, out _) || city.Food < (city.FoodForecast?.Demand ?? 0) + quote.Upkeep) return null;
         ArmyState army = city.Army ?? throw new InvalidOperationException("Authority must project army homes.");
-        if (army.Homes.Any(h => h.Purchased && h.Used + quote.Profile.Size <= 6)) return new("recruit", slot, Unit: quote.Type);
+        if (CanField(city, quote.Type)) return new("recruit", slot, Unit: quote.Type);
         int expansion = army.PurchasedHomes - 2;
         if (army.PurchasedHomes < maximumHomes && expansion < army.HomePrices.Length)
             return city.Gold >= army.HomePrices[expansion] ? new("buy-home") : null;
@@ -47,8 +58,8 @@ internal static class CampaignStrategy
             .OrderBy(u => u.Level).ThenBy(u => u.Health).ThenBy(u => u.Id).FirstOrDefault();
         return veteran is null ? null : new("retire", UnitId: veteran.Id);
     }
-    // The economy UI keeps its structural Catapult on plot 2. Its obsolete
-    // wounded opening needs a paid trainer and third home before wave three.
+    // The economy witness keeps its Catapult on plot 2 and funds a trainer
+    // through ordinary stocks. Homogeneous squads require actual empty homes.
     internal static EconomyAction? EconomyDefense(MatchSnapshot state, int player)
     {
         CityState city = state.Players.Single(p => p.Id == player);
@@ -69,14 +80,14 @@ internal static class CampaignStrategy
         {
             UnitState[] stored = city.Soldiers.Where(u => u.Assignment is { Stored: true } a && a.HallSlot == hall.Slot).ToArray();
             UnitState? recovered = stored.Where(u => (long)u.Health * 100 >= (long)u.Profile.Health * 90).OrderByDescending(u => u.Level).ThenBy(u => u.Id).FirstOrDefault();
-            if (recovered is not null && army.Homes.Any(h => h.Purchased && h.Used + recovered.Size <= 6)) return new("send", hall.Slot, UnitId: recovered.Id);
+            if (recovered is not null && CanField(city, recovered.Type)) return new("send", hall.Slot, UnitId: recovered.Id);
             if (upgrades && stored.Any(u => u.RecoveryEligible && u.Health < u.Profile.Health) && hall.HealingQuote is { } healing && city.Resources.TryPay(healing, out _))
                 return new("upgrade-healing", hall.Slot);
             UnitState? wounded = city.Soldiers.Where(u => u.Assignment is { Stored: false } && u.RecoveryEligible
                 && u.Level >= city.Slots[2].Level - 1 && (long)u.Health * 100 < (long)u.Profile.Health * 65)
                 .OrderBy(u => u.Health / (decimal)u.Profile.Health).ThenBy(u => u.Id).FirstOrDefault();
             if (wounded is null) continue;
-            if (stored.Sum(u => u.Size) + wounded.Size <= hall.Capacity) return new("store", hall.Slot, UnitId: wounded.Id);
+            if (stored.Length < hall.Capacity) return new("store", hall.Slot, UnitId: wounded.Id);
             if (upgrades && hall.CapacityQuote is { } capacity && city.Resources.TryPay(capacity, out _)) return new("upgrade-capacity", hall.Slot);
             UnitState? obsolete = stored.Where(u => u.Level < wounded.Level).OrderBy(u => u.Level).ThenBy(u => u.Id).FirstOrDefault();
             if (obsolete is not null) return new("retire", UnitId: obsolete.Id);
@@ -88,6 +99,13 @@ internal static class CampaignStrategy
         if (maximumHomes is < 2 or > 6 || maximumTier is < 1 or > 5) throw new ArgumentOutOfRangeException(nameof(maximumHomes));
         CityState city = state.Players.Single(p => p.Id == player);
         if (city.Eliminated || !city.Connected || city.Ready || state.Phase is not (Phase.Building or Phase.Preparation) || state.Paused) return null;
+        if (family == "support")
+        {
+            if (state.Wave == 1) return SupportOpening(state, city, maximumHomes);
+            family = "frontline";
+        }
+        if (state.Wave == 1 && family != "ranged") return SupportOpening(state, city, maximumHomes);
+        if (family == "ranged" && state.Wave <= 3) return RangedOpening(state, city, maximumHomes);
         bool Affordable(ResourceCost cost) => city.Resources.TryPay(cost, out _);
         EconomyAction? Construction(int slot, Building type)
         {
@@ -108,13 +126,13 @@ internal static class CampaignStrategy
             if (city.Slots[4].Type == Building.Stonecutter) return new("sell", 4);
             if (city.Slots[4].Type == Building.Empty && Affordable(state.BuildingCatalog.Single(b => b.Type == Building.Mine).Construction)) return new("build", 4, Building.Mine);
         }
-        foreach ((int slot, Building type) in Core)
+        foreach ((int slot, Building type) in family == "ranged" ? RangedCore : Core)
             if (Construction(slot, type) is EconomyAction founding) return founding;
         int soldierTier = Math.Min(maximumTier, 1 + (state.Wave + 1) / 3);
         if (Upgrade(2, soldierTier) is EconomyAction soldierUpgrade) return soldierUpgrade;
         foreach (int slot in ProducerSlots)
             if (Upgrade(slot, 2) is EconomyAction producerUpgrade) return producerUpgrade;
-        (int Slot, Building Type)[] branch = family switch { "mixed" => Mixed, "towers" => Towers, "research" => Research, "reserve" => Reserve, _ => Frontline };
+        (int Slot, Building Type)[] branch = family switch { "ranged" => state.Wave == 1 ? [] : Ranged, "mixed" => Mixed, "towers" => Towers, "research" => Research, "reserve" => Reserve, _ => Frontline };
         foreach ((int slot, Building type) in branch)
         {
             // Reserve investment follows the first field expansion; it must not
@@ -155,11 +173,69 @@ internal static class CampaignStrategy
         }
         return null;
     }
+    // Two genuine settlements earn equipment before the last editable gate.
+    // Sell the temporary producers for their actual half-refunds; no income
+    // from final END is spendable. W2 prioritizes six L1 members over upgrades.
+    private static EconomyAction? RangedOpening(MatchSnapshot state, CityState city, int maximumHomes)
+    {
+        if (state.Wave == 1)
+        {
+            if (state.Turn == 1)
+            {
+                foreach (var (slot, type) in new[] { (0, Building.Farm), (1, Building.MetalMine), (3, Building.Lumbermill), (4, Building.Lumbermill), (2, Building.Lumbermill) })
+                    if (city.Slots[slot].Type == Building.Empty) return Build(city, state, slot, type);
+            }
+            if (state.Turn != 3) return null;
+            foreach (int slot in new[] { 0, 1, 2 })
+                if (city.Slots[slot].Type is Building.Farm or Building.MetalMine or Building.Lumbermill) return new("sell", slot);
+            if (city.Slots[2].Type == Building.Empty) return Build(city, state, 2, Building.ArcheryRange);
+        }
+        else if (city.Slots[0].Type == Building.Empty) return Build(city, state, 0, Building.Farm);
+        int target = state.Wave == 1 ? 3 : 6;
+        RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Crossbowman && q.Level == 1);
+        return city.Soldiers.Length < target ? Recruit(city, 2, quote, maximumHomes) : null;
+    }
+    private static EconomyAction? SupportOpening(MatchSnapshot state, CityState city, int maximumHomes)
+    {
+        if (state.Turn == 1)
+            foreach (var (slot, type) in new[] { (0, Building.Farm), (1, Building.MetalMine), (4, Building.MetalMine), (3, Building.Lumbermill) })
+                if (city.Slots[slot].Type == Building.Empty) return Build(city, state, slot, type);
+        if (state.Turn != 3) return null;
+        if (city.Slots[4].Type == Building.MetalMine) return new("sell", 4);
+        if (city.Slots[2].Type == Building.Empty) return Build(city, state, 2, Building.Barracks);
+        RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1);
+        return city.Soldiers.Length < 6 ? Recruit(city, 2, quote, maximumHomes) : null;
+    }
     public static EconomyAction? ResearchWitness(MatchSnapshot state, int player)
     {
         CityState city = state.Players.Single(c => c.Id == player);
         if (city.Ready || city.Eliminated || state.Paused || state.Phase is not (Phase.Building or Phase.Preparation)) return null;
         bool Affordable(ResourceCost cost) => city.Resources.TryPay(cost, out _);
+        // The complete paid opening needs two real metal producers before the
+        // last investment gate, not the removed fourth post-income edit. Same
+        // canonical six-member opening as RedistributionPreparation; research
+        // production starts only after that ordinary W1 combat/service boundary.
+        if (state.Wave == 1)
+        {
+            (int Slot, Building Type, ConstructionPayment Payment)[] opening = state.Turn switch
+            {
+                1 => [(0, Building.Farm, ConstructionPayment.Standard), (2, Building.MetalMine, ConstructionPayment.Standard),
+                    (4, Building.MetalMine, ConstructionPayment.Standard), (3, Building.Lumbermill, ConstructionPayment.GoldRecovery)],
+                3 => [(1, Building.Barracks, ConstructionPayment.Standard)],
+                _ => []
+            };
+            foreach (var (slot, type, payment) in opening)
+                if (city.Slots[slot].Type == Building.Empty) return new("build", slot, type, Payment: payment);
+            if (state.Turn == 3 && city.Soldiers.Length < 6)
+            {
+                RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == 1);
+                return Recruit(city, 1, quote);
+            }
+            return null;
+        }
+        // Actual sale/refund opens the Stonecutter's original plot. Never count
+        // nonexistent stone production or keep both producers on one plot.
+        if (city.Slots[4].Type == Building.MetalMine) return new("sell", 4);
         foreach (Building type in new[] { Building.Farm, Building.MetalMine, Building.Barracks, Building.Lumbermill, Building.Stonecutter, Building.ResearchTower, Building.Weaver, Building.Arcanum })
         {
             if (city.Slots.Any(s => s.Type == type) || type == Building.Stonecutter && city.Slots.Any(s => s.Type == Building.ResearchTower)
@@ -222,8 +298,8 @@ internal static class CampaignStrategy
         if (receivingCity)
         {
             if (city.Slots[3].Type == Building.Empty && Build(city, state, 3, Building.Lumbermill) is EconomyAction lumbermill) return lumbermill;
-            // First-fit homes change contact timing. A paid Stonecutter supplies the
-            // receiving city's L3 equipment instead of a redundant second Farm.
+            // A paid Stonecutter supplies the receiving city's L3 equipment.
+            // Sector preference changes never teleport members or restart cycles.
             if (city.Slots[4].Type == Building.Empty && Build(city, state, 4, Building.Stonecutter) is EconomyAction stonecutter) return stonecutter;
             if (state.Wave > 1 && city.Slots[1].Level < 3 && city.Slots[1].UpgradeQuote is ResourceCost barracks && Affordable(barracks)) return new("upgrade", 1);
             if (city.Slots[0].Level == 1 && city.Slots[0].UpgradeQuote is ResourceCost farm && Affordable(farm)) return new("upgrade", 0);
@@ -232,12 +308,69 @@ internal static class CampaignStrategy
         RecruitmentQuote quote = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[1].Level);
         return city.Soldiers.Length < target ? Recruit(city, 1, quote) : null;
     }
+    // One finite paid support input for the stored-spectator witness, NOT a
+    // balance policy or a second simulator. Same phase schedule drives A and C:
+    // six L1 before first Combat, then six L1 plus one paid L2 per living owner.
+    // All material/food comes from real producers/refunds/three ENDs. Returning
+    // no actions after wave2 never creates a fourth investment window.
+    internal static IEnumerable<(int Player, EconomyAction Action)> EliminatedSupportPreparation(MatchSnapshot state)
+    {
+        if (state.Wave == 1)
+        {
+            foreach (var action in RedistributionPreparation(state, 1, 2)) yield return action;
+        }
+        else if (state.Wave == 2)
+            foreach (int player in new[] { 1, 2 })
+            {
+                CityState city = state.Players.Single(c => c.Id == player);
+                if (state.Turn == 1)
+                {
+                    yield return (player, new("sell", 4));
+                    yield return (player, new("build", 4, Building.Stonecutter));
+                    for (int i = city.Soldiers.Length; i < 6; i++) yield return (player, new("recruit", 1));
+                }
+                else if (state.Turn == 2)
+                {
+                    yield return (player, new("upgrade", 1));
+                    yield return (player, new("buy-home"));
+                    for (int i = city.Soldiers.Length; i < 7; i++) yield return (player, new("recruit", 1));
+                }
+            }
+    }
+    // Bounded paid spectator input, not a balance policy: W1 actually funded
+    // field service makes veterans; W2 sells the Farm and stores those actual
+    // survivors at an affordable Hall. The former no-Farm XP0 recruit was only
+    // a stored-survivor witness. Never invent veteran XP/wounds or delete peers.
+    internal static EconomyAction? SpectatorReserveOpening(MatchSnapshot state, int player)
+    {
+        CityState city = state.Players.Single(c => c.Id == player);
+        if (state.Wave == 1) return SupportOpening(state, city, 6);
+        if (state.Wave == 2)
+        {
+            if (city.Slots[4].Type == Building.Empty) return Build(city, state, 4, Building.Stonecutter);
+            if (city.Slots[0].Type == Building.Farm)
+            {
+                ResourceCost hall = state.BuildingCatalog.Single(b => b.Type == Building.TownHall).Construction;
+                return city.Resources.TryAdd(city.Slots[0].Refund, out ResourceCost refunded) && refunded.TryPay(hall, out _)
+                    ? new("sell", 0) : null;
+            }
+            if (city.Slots[0].Type == Building.Empty) return Build(city, state, 0, Building.TownHall);
+            UnitState? member = city.Soldiers.FirstOrDefault(u => u.Assignment is { Stored: false });
+            return member is null ? null : new("store", 0, UnitId: member.Id);
+        }
+        return null;
+    }
+
     private static (UnitType Type, int Target)[] Targets(string family, int wave)
     {
+        if (family == "ranged") return [(UnitType.Crossbowman, wave == 1 ? 6 : wave < 5 ? 12 : 18)];
         if (wave == 1) return [(UnitType.Swordsman, 6)];
         return family switch
         {
-            "mixed" => [(UnitType.Swordsman, 10), (UnitType.Mage, wave < 10 ? 2 : 3), (UnitType.Crossbowman, wave < 10 ? 2 : 3), (UnitType.Berserker, 2)],
+            // Six physical homogeneous homes: three melee groups and one per
+            // support/Berserker role. The former 10/2/2/2 target required seven
+            // homes and could retire/refill forever while starving support.
+            "mixed" => [(UnitType.Swordsman, 9), (UnitType.Mage, 3), (UnitType.Crossbowman, 3), (UnitType.Berserker, 3)],
             "towers" => [(UnitType.Swordsman, wave < 8 ? 10 : 14)],
             "research" => [(UnitType.Swordsman, 16)],
             _ => [(UnitType.Swordsman, wave < 5 ? 12 : 18)]

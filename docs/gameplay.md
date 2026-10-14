@@ -21,7 +21,7 @@ These are the current unresearched defaults, exercised by the finite twenty-wave
 | Arcanum | 5 G + 2 W + 3 S | 5 | Mage |
 | Research Tower | 2 W + 2 S | 2 | +1 / +2 research per three-production cycle |
 | Arrow Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Tower profiles](#defense-towers-on-army-plots) |
-| Catapult Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Legacy splash profile](#defense-towers-on-army-plots) |
+| Catapult Tower | [Tower costs and paths](#defense-towers-on-army-plots) | 2 | [Within-squad X/Y profile](#defense-towers-on-army-plots) |
 | Market | 2 W + 2 S | 1 | Explicit fixed-bundle sales |
 | Town hall | 5 G + 2 W + 2 S | Independent tracks | [Storage and paid recovery](#purchased-army-homes-and-town-hall-rotation) |
 
@@ -51,7 +51,7 @@ A currently owned Market enables explicit one-way sales: five wood or stone retu
 
 ## Preparation and battle controls
 
-Click an outlined plot or a building roof to select its stable slot, then choose an action in the bottom panel. Clicking only selects. Recruitment appears only at the matching building. Open Worldtree without selecting a plot to inspect or buy technologies; viewing another city shows a read-only tree. City tabs clear selection and permit inspection of other players' cities. Ready prevents editing; Unready restores it until all connected living players are ready. There are exactly **Preparation 1, Preparation 2, Preparation 3, Combat**. The old income-free fourth preparation is consolidated into preparation 3. Each preparation's Ready settles one production using the then-current buildings, research and eligible stored army. Resource balances, research progress and recovery are preflighted before any mutation. Preparations 1/2 clear readiness into the next preparation. Final preparation permits all existing construction, upgrades, research, recruitment and assignment operations using two settled productions. **Ready for battle** settles production 3, pays upkeep once from the resulting food and immediately starts combat. Final-phase buildings and research/healing upgrades affect that settlement; there is no intervening spending or fourth ready stage. Twenty waves still have sixty production events, but only sixty numbered preparation checks total. The phase and stage serial guard reject delayed commands, including old ready commands. Ready/unready, pause/resume and reconnect cannot replay the entry settlement. If prior-wave death reservations remain, final readiness waits for their cleanup before settling production and paying upkeep; no repeated Ready is needed if connected/living eligibility still holds.
+Click an outlined plot or a building roof to select its stable slot, then choose an action in the bottom panel. Clicking only selects. Recruitment appears only at the matching building. Open Worldtree without selecting a plot to inspect or buy technologies; viewing another city shows a read-only tree. City tabs clear selection and permit inspection of other players' cities. Ready prevents editing; Unready restores it until all connected living players are ready. There are exactly **Preparation 1, Preparation 2, Preparation 3, Combat**. The old income-free fourth preparation is consolidated into preparation 3. Each preparation's Ready settles one production using the then-current buildings, research and eligible stored army. Resource balances, research progress and recovery are preflighted before any mutation. Preparations 1/2 clear readiness into the next preparation. Final preparation permits all existing construction, upgrades, research, recruitment and assignment operations using two settled productions. **Ready for battle** settles production 3, pays upkeep once from the resulting food and immediately starts combat. Final-phase buildings and research/healing upgrades affect that settlement; there is no intervening spending or fourth ready stage. Twenty waves still have sixty production events, but only sixty numbered preparation checks total. The phase and stage serial guard reject delayed commands, including old ready commands. Ready/unready, pause/resume and reconnect cannot replay the entry settlement. If prior-wave cosmetic bodies remain, final readiness waits for their cleanup before settling production and paying upkeep; no repeated Ready is needed if connected/living eligibility still holds.
 
 The **Combat speed** control at the top selects one global pace, default **1x**:
 
@@ -94,17 +94,25 @@ Enemy pressure uses an authored twenty-wave catalog per original player. Entries
 | 19 | 3 S5, 1 B4, 2 C4, 1 M4 |
 | 20 | 1 S5 boss |
 
-The built-in defender remains a separate city-wide two-damage shot every second outside the nine plots. Unit and tower impacts share one simultaneous damage accumulator. Survivors retain identity, level and remaining health between waves; cities retain damage too. A normal shared clear awards each surviving city two gold, five food and one wood; boss clears double those values. Disconnected survivors receive rewards, fallen cities do not. Local clear gives nothing while other living or queued enemies remain. The final doubled reward is included in victory, without another production, upkeep payment or twenty-first wave. Total gross rewards are 44 gold, 110 food and 22 wood for a city surviving every default clear; net balances also include spending, upkeep and production. Rewards never supply stone, metal or cloth.
+The built-in defender is the physical Watchpost weapon, with a two-damage shot every second outside the nine settlement plots. Unit and tower impacts share one simultaneous damage accumulator. Survivors retain identity, level and remaining health between waves; cities retain damage too. A normal shared clear awards each surviving city two gold, five food and one wood; boss clears double those values. Disconnected survivors receive rewards, fallen cities do not. Local clear gives nothing while other living or queued enemies remain. The final doubled reward is included in victory, without another production, upkeep payment or twenty-first wave. Total gross rewards are 44 gold, 110 food and 22 wood for a city surviving every default clear; net balances also include spending, upkeep and production. Rewards never supply stone, metal or cloth.
 
 Before battle, the authority also checks that the eventual reward can fit bounded stocks after upkeep. Overflow rejects readiness without payment or phase change; spend stocks before retrying. Rewards use one guarded shared transition after defeat precedence, so retries, reconnect and corpse cleanup cannot pay twice.
 
-A city falls at zero health. Its remaining attackers immediately move to the entrances of surviving cities' lanes, retaining identity, health and attack cooldown. They are split evenly, with remainders assigned in player-ID order; a previously cleared city can receive them. If two cities fall in the same step, neither receives transfers. Disconnected living cities still count as survivors. Future waves include one baseline allocation per original player, with fallen players' allocations divided among survivors. For example, after one of three cities falls, wave two gives each survivor 6 enemies (12 total). Inheriting enemies does not multiply future allocations. Eliminated players can observe, pause and resume. All players share victory after wave twenty if a city survives; all cities falling ends the match in defeat, including simultaneous final enemy deaths.
+A Keep falls at zero health. Its owner stops development/weapons/future participation
+but current funded fighters continue to the shared result. Enemy groups redirect
+preferred sectors in stable balanced allocation, preserving current poses,
+identities, statuses and committed timing without teleportation. Simultaneously
+fallen owners cannot receive preferences. Future waves retain one authored
+allocation per original player, split among living owners including disconnected
+ones. Eliminated rosters remain inspectable without future upkeep/healing/revival.
+All players share W20 victory if a Keep survives; all Keeps falling takes defeat
+precedence even with simultaneous final enemy deaths.
 
-The ordinary first defense starts Farm, Metal Mine and Barracks. Two productions supply eight spendable metal and ten food for four Swordsmen before final readiness; the third production supplies another four metal and five food immediately before four-food upkeep. Two purchased homes still have six-Swordsman capacity. Previously the income-free fourth editing opportunity allowed six recruits and left nine food after upkeep; the adopted flow instead leaves eleven food and four metal at combat entry. A Stonecutter/Metal Mine/Lumbermill opening must construct its Catapult before the third settlement if affordable, or during the next wave's preparation, not after final readiness. The historical four-phase flow's finite campaign qualification is recorded below; it is not a qualification of the consolidated three-phase editing windows. No balance values have been compensated for the phase reduction.
+The ordinary first defense starts Farm, Metal Mine and Barracks. Two productions supply eight spendable metal and ten food for four Swordsmen before final readiness; the third production supplies another four metal and five food immediately before four-food upkeep. Two purchased homes still have six-Swordsman capacity. Previously the income-free fourth editing opportunity allowed six recruits and left nine food after upkeep; the adopted flow instead leaves eleven food and four metal at combat entry. A Stonecutter/Metal Mine/Lumbermill opening must construct its Catapult before the third settlement if affordable, or during the next wave's preparation, not after final readiness. The historical four-phase flow's finite campaign qualification is recorded below; it is not a qualification of the consolidated three-phase editing windows. No compensating income or fourth edit is added. The funded support opening instead buys Farm, two Metal Mines and a zero-wood gold recovery Lumbermill before END1; after two settlements, selling the temporary mine funds the Barracks and sixteen metal pays for six Swordsmen before END3. This ordinary-command opening underlies the current finite cooperative and solo policy controls.
 
 Any connected roster member can pause or resume the whole match. Pause freezes movement, attack cooldowns, health, production and turn progression. It also rejects economy/readiness commands. Networking stays active, and absent players can reconnect. Disconnecting itself never pauses or deletes a city: production/combat continue, readiness clears, and disconnected players do not block the ready check. With no connected living players, building waits; combat keeps running unless paused.
 
-Walls, general field/city healing, save recovery, host migration, server restart recovery and matchmaking remain outside this change. Town hall recovery is the bounded stored-unit exception described below. Land expansion, building sales and explicit Market trades use the same authoritative economy command path. Battle upkeep is charged once when preparation actually becomes combat, after prior deaths release their space. Rules and typed catalogs are centralized in `src/Game.Core`; the server sends costs/output values in snapshots so the UI uses the actual rules.
+Walls, general field/city healing, save recovery, host migration, server restart recovery and matchmaking remain outside this change. Town hall recovery is the bounded stored-unit exception described below. Land expansion, building sales and explicit Market trades use the same authoritative economy command path. Battle upkeep is charged once when preparation actually becomes combat, after prior cosmetic cleanup completes. Rules and typed catalogs are centralized in `src/Game.Core`; the server sends costs/output values in snapshots so the UI uses the actual rules.
 
 The bottom panel keeps city resources/health/army and inspection tabs on the left, selected building details/costs in the middle, and match controls on the right. Start is available to the original playing host in a hosted lobby (or connected players on a dedicated server); Ready/Unready and Pause/Resume follow the authoritative phase. Connection and rejection messages appear along the bottom. A disconnected window offers Reconnect to my city; a synchronized resume retains the city and starts with no selected plot. Expired credentials expose the fresh-session lobby action. Fallen players can inspect all cities and pause/resume; victory/defeat remains visible to the entire roster.
 
@@ -191,153 +199,106 @@ focus and changes neither readiness nor shared pause.
 
 ## Deterministic hex combat
 
-Each authoritative `Match` owns one private Arch 2.1.0 world. A single immutable
-`CombatUnit` component owns identity, health, location/lifecycle, decision state
-and a closed waiting/moving/windup/recovery action. The action owns its timing,
-sequence and explicit unit/city target once. Attack ordinals remain separate
-from movement sequences for animation identity. Serialized timing/target fields,
-city armies and reservation indexes are projections of that authority. IDs are
-stable and never reused. All session modes use the same synchronous 60 Hz rules;
-guests render complete snapshots. Engine animation never applies damage.
+Each authoritative `Match` owns one private Arch member store. Individual IDs,
+HP, equipment, experience, status and formation slots persist; a homogeneous
+`CombatSquad` owns the only movement/target/action cycle. All authorities use
+60Hz rules, and animation never applies damage. See [shared arena](shared-arena.md)
+for the numerical and compatibility owners.
 
-The default board has 21 cells, three columns over terrain rows -5 through 1,
-independent of the nine building plots in rows 2 through 4. Each hex contains
-a size budget of six. Every ordinary archetype has size two; a boss has size
-six. Integer sizes one through six are supported by configuration, with no
-current size-one roster entry. Any same-team mix totaling at most six fits:
-three normals, size two plus four, or configured sizes one plus two plus three.
-Six distinct fixed render anchors carry no shape or capacity costs. Opposing
-factions cannot share occupied or reserved cells.
-Range uses shortest-path distance on the authored axial graph, never model
-geometry. A separate city distance anchor links the neutral home frontier and
-provides no movement shortcut. Board scale and anchors passed the early rendered gate. Neighboring rendered centers are approximately
-three world units apart; render anchors use integer thousandths of a world
-unit for presentation only. Melee deliberately uses tabletop presentation:
-rigged swings at fixed anchors, restrained dashed ground-space windup intent
-and a pointer to the locked target, then a short local sword/axe accent and an
-authoritative landed target flash or grey miss cue. It draws no opaque spanning
-sword beam. It does not manufacture physical
-weapon contact or move an attacking model between anchors.
+One connected arena has seven columns by nine rows per original owner, for
+63–252 cells. Each participating squad claims one exclusive hex regardless of
+population; default capacity is three same-type soldiers. Bosses use one member
+and the same exclusive actor architecture. Six preparation homes, physical Keep,
+forward Watchpost and reserved purchased-weapon cells are separate from nine
+settlement plots. Ownership constrains preparation placement, never battle movement.
+Stored/unfunded/queued members have no active claims or world bodies. Enemy entries
+form homogeneous groups in canonical order; overflow retains identities until entry.
 
-Each side's rear row is permanently protected against opposing placement and
-transit, but occupants remain normally attackable. Enemy and isolated non-roster
-setup allocates rear support first, then forward melee, activates together and
-queues overflow. City-roster allies instead start at their persistent purchased
-homes, independent of class; this budget does not restrict later movement. Within each
-tier use initiative and seeded ties; choose the least used compatible cell,
-then center/owner-relative left/right, then its forwardmost free render anchor.
-Combat admission tries forward capacity then protected rear for melee; support
-uses rear capacity. Scan the persistent tier/initiative/seed order past actors
-that do not currently fit, admitting a smaller actor without rerolling a blocked
-boss. Free size in different cells cannot be pooled. No permanent lanes or free intra-hex rearrangement exist.
-Reinforcements transferred into a cleared city can enter protected rear cells
-while defenders hold its neutral forward band. If retained enemy deaths block
-entry, cumulative whole-actor size releases in each protected cell determine
-the fixed first-admission bound: the first existing release tick at which any
-queued actor fits one cell. Retries cannot slide this deadline. A size-six boss
-needs a whole free cell and the same legal route to engagement.
-Further overflow still queues normally. A conserved queue without ensuing
-engagement does not establish progression.
+| Archetype | HP | X / Y | Structure | Equipment | Food | Initiative | Range | Move | Windup / recovery |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Swordsman | 40 | 10 / 0 | 5 | 2 metal | 1 | 10 | 1 | 30 | 12 / 48 |
+| Berserker | 30 | 15 / 3 | 7 | 3 metal | 2 | 20 | 1 | 27 | 18 / 54 |
+| Crossbowman | 40 | 12 / 0 | 3 | 1 metal + 2 wood | 1 | 30 | 3 | 30 | 18 / 42 |
+| Mage | 25 | 12 / 4 | 4 | 3 cloth + 1 gold | 2 | 40 | 3 | 30 | 24 / 66 |
 
-| Archetype | Health | Damage | Equipment | Food per battle | Size | Initiative | Hex range | Move ticks | Windup / recovery | Death ticks |
-| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Swordsman | 40 | 10 | 2 metal | 1 | 2 | 10 | 1 | 30 | 12 / 48 | 48 |
-| Berserker | 30 | 15 | 3 metal | 2 | 2 | 20 | 1 | 27 | 18 / 54 | 48 |
-| Crossbowman | 30 | 10 | 1 metal + 2 wood | 1 | 2 | 30 | 3 | 30 | 18 / 42 | 48 |
-| Mage | 25 | 12 | 3 cloth + 1 gold | 2 | 2 | 40 | 3 | 30 | 24 / 66 | 48 |
+These are level-one bases; all death intervals are48ticks. The finishing change
+modestly raises Crossbow HP30->40 and X10->12, symmetrically for both factions.
+Six Crossbowmen in two full squads survive the default W1 encounter at seeds1/123
+with normal profiles. That equipment/food fixture is arithmetic, not an earned
+opening. Pure-ranged paid openings still lose and are owner-approved deferred
+balance work; see [actual baselines](paid-squad-baselines.md).
 
-These are the current level-one base values. Equal faction profiles use equal levels, authored enemy rank modifiers and explicit capabilities. Player foundations add 5% to maximum HP and direct damage without healing. Specialization mastery replaces its earlier effect. Health/damage use checked integer hundredths, retaining fractional effects.
-New recruits capture their building's level, one through five. Existing veterans retain their level and wounds when a building upgrades, is sold or rebuilt. Stats use `round(base * 1.35^(level - 1))` to whole points with midpoint ties upward, then apply boss multipliers, then research. Swordsman HP by level is 40/54/73/98/133 and damage 10/14/18/25/33. Bosses have size six, eight times leveled HP and twice leveled damage: level three 584 HP/36 damage and level five 1064 HP/66 damage, before research. Ordinary size stays two at every level. Levels do not change timing, movement, range or initiative.
+New recruits capture trainer level1..5. Veterans retain their own levels/wounds.
+HP and X/Y/structure scale from original bases by1.35 per level, rounding nearest
+whole point with midpoint ties upward, then boss/research stages. Swordsman HP
+is40/54/73/98/133 and X10/14/18/25/33. Default bosses are L3/L5 Swordsmen with
+8x leveled HP and2x direct damage, without phases/escorts. Equipment components
+scale by1.35 with positive midpoint-up rounding; zeros remain zero. Recruitment
+never spends food or heals veterans. Surviving funded field participants gain
+one service point per successful clear, including current-wave fallen-owner
+fighters; service never automatically upgrades equipment.
 
-Equipment prices also scale from the original base by 1.35, rounding each positive component to the nearest whole, midpoint upward. Zero components stay zero, and every default total price increases. Swordsman metal costs are 2/3/4/5/7; Mage cloth 3/4/5/7/10 and gold 1/1/2/2/3. Valid custom small costs may plateau after rounding but never decrease. Recruitment never deducts food and buildings never give free recruits. City snapshots publish all leveled equipment/profile quotes, including purchased research.
+Battle entry pays upkeep once for all living owned members of living cities,
+including storage and disconnected owners. Field comes first, then storage;
+each group sorts by descending equipment level and stable ID. Unaffordable
+members are skipped and cheaper members considered, without debt or blocking
+readiness. Only funded field members fight; paying a stored member never deploys
+it. Forecasts include the final imminent production, complete food-sale quotes
+and actual funded/participant/reserve IDs. Final END cannot create another edit
+window. Retries, reconnect, pause and cleanup do not repay upkeep. Funded prior
+battle members may recover only through actual eligible Hall production.
 
-Each living owned soldier owes its archetype's food upkeep at actual battle entry, including Town hall storage, soldiers still queued for combat space and disconnected cities' armies. Upkeep does not grow with level. A pure forecast shows total and field/stored demand and which IDs projected food can fund. In final preparation this is current stock plus the one imminent production; Market food-sale previews apply the complete quote (resource debit and gold proceeds), then that same production projection; insufficient stock, overflow or missing income makes the forecast unavailable without mutation. Actual allocation funds field first, then stored; within each group it sorts by descending level, then ascending unit ID. It skips unaffordable units and continues to cheaper ones: with one food, a level-five Mage sits out while a lower-level Swordsman can participate. There is no debt or partial feeding. Setting/withdrawing ready, pause, snapshots, reconnect and waiting for death cleanup do not charge food.
+Ready actors engage in-range opponent groups before routing. Enemy structural
+preferences rank own Watchpost/Keep before foreign objectives, while range,
+reachable approach length and seeded ties govern current eligible decisions.
+No sector excludes foreign opponents. One shared reachability search scores
+legal approaches; nearer current opportunities precede retained farther routes.
+Committed moves/windup/recovery finish unchanged before reevaluation. Stable
+blocked inputs preserve decision identity, wait and never reroll from rendering.
 
-Unfed field units retain their purchased homes but remain wounded inactive reserves for the entire shared wave: no hex claims, queue admission, targets, attacks or city screening. Stored units remain stored whether funded or unfunded; paying their food never deploys them. Fed capacity-queued soldiers remain participants and pay only once. Towers and the built-in defender continue normally if all soldiers sit out. At the next battle all survivors are considered again; only eligible stored production recovery can have changed their wounds. A wave-tagged receipt preserves actual payment, funded IDs and field-participant/unfunded IDs independently of the next forecast. Food sold at a Market reduces the next forecast, and battle rewards become available only after the shared clear.
+Contested destinations use lower actor initiative then seeded ties. Friendly
+chains/swaps/cycles commit together at one common arrival deadline; unrelated
+moves keep their own timing. Opposing exchanges refuse atomically. A squad
+moving fromA at100 toB at130 is attackable only atA before130 and onlyB at130.
+No attack interrupts a committed step or creates partial source/transit claims.
 
-At a new attack select the closest in-range living deployed opponent, then the
-lowest target initiative, then a seeded exact tie. Melee requires distance one.
-Ranged units hold when anything is in range. Otherwise one integer BFS per
-actor scores all opponents by reachable attack-position steps, target initiative
-and a seeded exact tie. If none is reachable, legal static movement distance
-ranks blocked objectives. Every eligible action boundary reevaluates all targets;
-a retained objective has no priority over a newly shorter approach. Only the
-winning target gets a route. Equal shortest support goals prefer a friendly melee
-screen, then less used capacity, then a seeded anchor choice. Shortest-path
-predecessors reconstruct a simple route without searching for each opponent.
+Every living participant contributes X to one seeded primary and Y to every
+other pre-impact living participant in the locked target group. There is no
+victim cap or cross-hex splash, overkill redistribution or neighboring-group hit.
+Structures use separate damage, not a member pool. Losing a whole target group
+or physical range causes one miss with unchanged recovery. All valid same-tick
+unit/weapon/periodic contributions resolve before casualties. Fire/Venom/Frost
+follow actual positive-damage victims; healthy members contribute zero to the
+rounded-up mean squad chill sampled only when a new action commits.
 
-Exact local target and reservation observations invalidate a blocked decision;
-unrelated cities and nonlethal health changes preserve its key and scheduling
-rank. Temporary transit conflicts are checked at atomic move commit. Unchanged
-episodes retain their visited cells to avoid walking back through congestion;
-only repairing that winning episode may require one extra BFS. Changing the
-objective clears the old exclusions. Unchanged blocked retries preserve choices
-and wait for local changes. Rendering frames never trigger numerical decisions.
+Watchposts reset to50HP per living owner each wave and physically originate the
+existing2damage/second/range4 defender. Destruction stops it and applies one
+20% direct-damage reduction to owning participating squads for240ticks; it does
+not stop movement/attacks. Keeps retain100HP wounds across waves and are
+vulnerable in physical range while distant defenders live. Purchased weapons
+have independent physical origins/ranges and stop after Keep fall without
+invented tower destruction. Arrows are X-only; Catapult/Bombard use within-group
+X/Y. Tower locations matter geometrically.
 
-A move starting at tick 100 and ending at 130 locks its source, destination and
-transit conflicts together. Before tick 130 attacks see only the source; at 130
-arrival commits before impacts, so attacks see only the destination. No attack
-or route change occurs mid-step. Lower actor initiative wins conflicting moves;
-seeded ranks resolve equal initiative, while independent actions start together.
-Each tick expires retained deaths, completes arrivals and recoveries, resolves
-all due impacts against the same pre-damage view, applies checked accumulated
-damage, retains new deaths, admits queued arrivals and finally starts actions.
-An unsuccessful reservation commit leaves the actor waiting with no partial move.
+Member death immediately removes its contribution. The last participant's death
+releases the squad's logical source/transit claims on that tick. Cosmetic bodies
+retain frozen physical movement/facing while imported death clips advance to
+expiry, without collision or targets. Death at200 expires at248. Wave outcome
+does not wait for bodies, but next formation waits for bounded cosmetic cleanup.
+Pause/loss freezes playback; reconnect samples current elapsed bodies/actions
+without historical hits/shots/sounds. Session replacement releases all old state.
 
-An attack started at T impacts at T + windup and finishes at T + windup +
-recovery. The unit stays anchored through both intervals. All due unit/defense
-impacts share one snapshot and damage accumulator before deaths; initiative
-cannot cancel a simultaneous lethal exchange. Invalid locked targets cause
-misses with normal recovery. Mage splash has radius one hex and cap
-two, primary first, then distance/initiative/seeded ties. Tower footprints and
-cadences follow the [defense profiles](#defense-towers-on-army-plots), including
-the separate rapid-arrow and bombard upgrade paths. Friendly, queued and dying
-units are excluded. City damage is one primary hit. Defender and towers have
-independent positive windup/recovery, using the shared city distance anchor
-regardless of plot. Candidate defender damage is 2 per second; defense values
-are tuned separately from unit approach speed.
-Defender and tower identities are explicit. Every defense receives a complete
-frozen damage/windup/recovery/victim-cap/radius profile and uses the same pure
-attack-deadline and victim-selection rules as units. The default defender remains
-single-target (cap one, radius zero); configured splash applies to its actual
-impact rather than only its fingerprint.
+The non-secret seed and complete rules fingerprint cover actual shared geometry,
+profiles/status/economy/campaign/flow inputs. Protocol15/rules7/flow2 refuses
+legacy city-local size-budget/capped-splash projections. Seeded canonical inputs
+and ordered commands reproduce normalized claims/actions/victims regardless of
+storage traversal, session GUID or frame rate. Scenery never consumes combat RNG.
+No-health-progress3600ticks and wave18000ticks remain bounded; only actual
+member/structure health loss counts. All-Keeps-fallen defeat precedes simultaneous
+clear, and ordinary results precede BattleStalled. Stalled defeat retains health
+and is never accepted as a normal clear.
 
-Death immediately removes a unit from living counts, actions and targeting, but
-retains its full size claim until death end. A committed move atomically holds
-its full size at source and destination, counting each actor once per endpoint;
-only the source is attackable before arrival. Rejected moves hold no partial
-claims. Arrival releases source/transit while retaining destination. A transit
-death freezes route progress and
-retains both endpoint and transit locks. Death at tick 200 with duration 48
-releases space at tick 248. Wave completion is immediate; bounded cleanup can
-continue outside combat, and a ready next-wave preparation waits for that cleanup
-without extra income. Pause freezes the authority's action/death clock.
-Unexpired bodies remain in the separate current dying collection at their
-original battlefield during reinforcement transfer; they never transfer as
-living attackers. Expiry removes the body and all of its reservations together.
-Ending or replacing a session disposes those retained locks and events rather
-than carrying them into a fresh battlefield.
-
-A fight retains a non-secret 64-bit seed and immutable configuration fingerprint.
-Combat rules and decision-mixer versions are declared in
-[`CombatSettings`](../src/Game.Core/Combat/CombatConfiguration.cs) and
-[`SeededDecision`](../src/Game.Core/Combat/SeededDecision.cs).
-The size-budget rules and explicit boss size are fingerprinted. See
-[session compatibility](sessions.md) for the current protocol and admission contract. The same canonical setup, seed, rules/algorithm version and ordered accepted
-commands reproduce the same normalized trace. Version-one SplitMix decision
-keys separate targeting, movement ranks, route/goal, formation and splash choices.
-Credentials, session GUIDs and cosmetic randomness are separate. Core strategy
-acceptance samples seeds 0, 1 and 123; this finite sample is not universal balance
-or deadlock proof. Paired role tests demonstrate effective splash contribution, frontline protection
-and queued melee access; see the measured comparisons in `docs/verification.md`.
-
-The default no-health-progress allowance is 3,600 ticks per active city and the
-wave duration bound is 18,000 combat ticks. Only actual health reduction resets
-progress; walking, misses and admissions cannot extend it. Normal completion and
-all-cities-fallen defeat take precedence. An unresolved limit ends the match as
-`BattleStalled` defeat with unchanged surviving health. See [verification evidence](verification-history.md#authored-3d-migration-2026-10-05) for numerical lifecycle, limit and rendered checks, with their acceptance input boundaries.
-
-The [authored animation and equipment contract](assets.md#authored-animation-and-equipment-contract) owns rig, socket, clip and attack-marker details. Committed visual steps interpolate straight between their declared anchors on the common snapshot clock, using walking instead of sprinting. Transient visual crossings of other moving, standing or dying models are intentional; settled models remain at distinct anchors. None of these crossings changes numerical capacity, source attackability, reservations, route choice or arrival timing. Programmatic AnimationTrees sample bounded idle/walk, attack and filtered hit blends, with immediate terminal death precedence. Facing follows the shortest angle using combat-clock advancement and freezes with positions/poses on pause or transport loss. Admission reconstructs the current direction rather than playing a historical turn. These blends add no separate slow motion: all concurrent action deadlines and outcomes remain unchanged in simulated ticks, while wall-time playback follows the accepted [global combat speed](#preparation-and-battle-controls). Horizontal root motion is suppressed; authored attack poses map onto authoritative impact and recovery. Cosmetic effects never apply damage. The hex presentation migration aligns death clips and retained bodies to authoritative death intervals, including cleanup outside combat and reconnect. See the [migration report](authored-migration.md#retained-acceptance-evidence) for source/package checks, input boundaries and coverage limitations.
+The [authored animation and equipment contract](assets.md#authored-animation-and-equipment-contract) owns rig, socket, clip and attack-marker details. Committed visual steps interpolate straight between their declared anchors on the common snapshot clock, using walking instead of sprinting. Transient visual crossings of other moving, standing or dying models are intentional; settled members use distinct cosmetic formation slots around their squad's shared anchor. None of these crossings changes numerical capacity, source attackability, reservations, route choice or arrival timing. Programmatic AnimationTrees sample bounded idle/walk, attack and filtered hit blends, with immediate terminal death precedence. Facing follows the shortest angle using combat-clock advancement and freezes with positions/poses on pause or transport loss. Admission reconstructs the current direction rather than playing a historical turn. These blends add no separate slow motion: all concurrent action deadlines and outcomes remain unchanged in simulated ticks, while wall-time playback follows the accepted [global combat speed](#preparation-and-battle-controls). Horizontal root motion is suppressed; authored attack poses map onto authoritative impact and recovery. Cosmetic effects never apply damage. The hex presentation migration aligns death clips and retained bodies to authoritative death intervals, including cleanup outside combat and reconnect. See the [migration report](authored-migration.md#retained-acceptance-evidence) for source/package checks, input boundaries and coverage limitations.
 
 [Available substitutes and grounding](assets.md#available-substitutes-and-grounding) describe the current scenery and upgrade palette. Raised surfaces, building bounds and selection rings use per-plot heights. The combat approach stays flat. Level two adds distinct structures/props instead of enlarging the whole building. Procedural flags use restrained motion on the same presentation clock; the Bakery has no windmill animation.
 
@@ -345,35 +306,73 @@ The [documented stockpile substitutes](assets.md#available-substitutes-and-groun
 
 Accepted local construction/recruitment/research commands cue once by match and sequence; retries and rejections do not repeat success puffs. Battle sparks, projectiles and skeleton rattles use the buffered event cursor. Focus changes/reconnect/gaps discard historical effects. Effects cap at 64 and audio at eight voices, dropping cosmetic overload only. All cues route through Master; pause/loss stop voices, and session teardown removes them while the application music continues. Original sounds use 22,050 Hz mono signed 16-bit PCM, 0.12-second cubic decay, sine frequencies 110/220/330/440/660/880 Hz and fixed-seed noise transients. Village ambience is a restrained synthesized cue every 12 unpaused seconds. Silent Dummy-audio verification checks lifecycle/routing/mute state, not listening quality. Headless roles instantiate none of this presentation.
 
-A shared, bounded snapshot clock interpolates all bodies with the same fraction,
-without extrapolating beyond authority. A 120-tick, at-most-4096-record event
-history carries final casualty states. Initial admission, reconnect and detected
+`CombatPlayback` owns one shared snapshot clock, bounded to at most three ticks
+behind the latest accepted state and never extrapolating beyond authority. Its
+accepted-frame buffer retains the sampled baseline and distinct later frames
+until their admission, arrival, action-start and death boundaries mature, even
+when several newer revisions arrive first. Same-tick corrections replace that
+tick's frame; advancing the clock releases older frames. Models and squad
+membership/pose/HP summaries use this same member projection. Rally summaries
+sample the existing pending events at that clock, not the newest deadline.
+Pause snaps to the accepted tick and freezes advancement; admission/resume,
+event gaps and match replacement reset the buffer. `CombatPlaybackTests` and
+the native `arena` component cover consecutive boundaries, expiry and resets.
+A 120-tick, at-most-4096-record event history carries final casualty states. Initial admission, reconnect and detected
 history gaps baseline the event cursor at the current high-water mark: current
 living poses and unexpired dying bodies are reconstructed from complete state,
 without historical effects. Overlapping snapshots deduplicate effects;
 revision and match guards reject stale state. A fresh session clears all live/dead
 views, pose buffers and cursors.
 
-New entry visuals wait for their deployment snapshot’s common clock before appearing, preserving separation from interpolated neighbors. Surviving city-roster units retain their exact assignments and return to those homes only after all retained death claims release, including final victory. Stored units have no battlefield model or combat claim.
+New entry visuals wait for their deployment snapshot’s common clock before appearing, preserving separation from interpolated neighbors. Surviving city-roster units retain their exact assignments and return to those homes only after all retained cosmetic bodies expire, including final victory. Stored units have no battlefield model or combat claim.
 
-The isolated non-roster 32-vs-32 numerical fixtures verify legal occupancy every step, finite progress and identical serialized results with reversed entity storage, including all four friendly roles against mixed skeleton melee; they do not bypass the purchased-home limit in ordinary play. Ordinary strategy fixtures retain the real defender and default resources and record resources, recruits/casualties, city HP and bounded battle duration.
+The [coverage replacement ledger](testing-audit.md#coherent-admission-profile-and-compatibility-replacement-2026-10-13) owns the squad-era numerical fixture inventory. Arithmetic combat fixtures are not earned economy or paid campaign evidence; [paid squad baselines](paid-squad-baselines.md) record the ordinary-command strategies and their actual outcomes.
 
 
 The [historical four-phase campaign receipts](verification-history.md#simplified-building-economy-verification) own the finite strategy sample and paid policy transcripts; they do not qualify the current three-preparation spending windows.
 
 A producer upgrade adds one level-one output while saving a plot and gold compared with purchasing another plot and producer, but requires stone. At current rates, two turns of a level-one Metal Mine produce eight metal: selling five returns two gold and retains three metal, versus two gold from a level-one Gold Mine over the same turns; this consumes equipment stock and requires an additional paid Market. Markets and Gold Mines therefore have different land and supply costs. The receipt/action logs record stocks before/after commands, investment, individual army levels/health, forecast/actual rations, casualties, rewards, city health and per-wave ticks.
 
-Current paid progression and genuinely occupied-source admission are separate witnesses, as documented in the [reconstruction coverage owner](battle-flow-reconstruction-coverage.md#authorized-split-paid-progression-and-genuinely-occupied-production-admission). The Mage/Crossbowman role witness uses six ordinary screen units against six ordinary enemies at seed 123, identical identities and the shared live interval. Mage equipment is 3 cloth/1 gold and upkeep two; Crossbow equipment is one metal/two wood and upkeep one. Both clear normally; effective support damage is 6400 versus 4000 hundredths, clearance 253 versus 283 ticks, and surviving army HP 17500 versus 16000 hundredths. No inflated enemy HP, seeded clustering or altered default profiles are used.
+[Paid squad baselines](paid-squad-baselines.md) own current earned progression evidence; [shared-arena receiving and resume](shared-arena.md#eliminated-owner-receiving-and-resume) distinguishes it from controlled elimination and real transport. The former occupied-source admission experiment is retained only in the [historical reconstruction checkpoint](battle-flow-reconstruction-coverage.md#authorized-split-paid-progression-and-genuinely-occupied-production-admission). The historical pre-buff Mage/Crossbowman role witness used six ordinary screen units against six ordinary enemies at seed 123, identical identities and the shared live interval. Mage equipment is 3 cloth/1 gold and upkeep two; Crossbow equipment is one metal/two wood and upkeep one. Both clear normally; effective support damage is 6400 versus 4000 hundredths, clearance 253 versus 283 ticks, and surviving army HP 17500 versus 16000 hundredths. No inflated enemy HP, seeded clustering or altered default profiles are used.
 
 ## Purchased army homes and Town hall rotation
 
-Each city starts with **two physical homes**, each holding six size points: **six ordinary size-two units**, not twelve units. Click any of the four locked numbered army plots and accept its **Buy plot** quote for **5/8/12/18 gold** in purchase-count order, independent of city-building land or Town hall upgrades. Each purchase owns that specific physical six-size plot; it is not a second capacity charge. Six homes without towers give 36 size points, normally eighteen field units. The order is forward center/owner-left/owner-right, then the rear row in that order; each insertion uses the first fitting purchased tile and its forwardmost free anchor, then anchor ID. Free size in different tiles cannot be pooled. Existing assignments never repack automatically. All ordinary roles use this same insertion policy; enemies retain automatic class-based formation.
+Each city has six numbered homes, two initially purchased. One purchased
+tower-free home holds one homogeneous squad up to three members, including
+unfunded reserves. Eighteen members need all six homes. Buy any numbered locked
+army plot at5/8/12/18gold in purchase-count order; only that chosen plot unlocks,
+independently of city land and Hall upgrades. First-fit recruitment/return skips
+locked/full/tower homes and compatible partial squads retain their veterans.
 
-Recruitment pays the current equipment quote only if one home fits. Survivors keep identity, unit level, wounds and assignment. Death frees roster size but retained combat corpses still block spatial restoration until cleanup. There is no separate **Buy unit space** button. Select a physical army plot to purchase it through the same authoritative **Buy plot** interaction as city plots, or use **Details** to inspect occupied size in home order. Every army plot shows its stable number and meaningful state: locked/purchasable, owned-empty, unit-occupied with used size, or tower-occupied with all six spots. Locked plots retain a gold marker. Buying any locked plot updates only its ownership/state and marker; placement still first-fits in fixed plot order, never purchase order. Recruitment and Town hall Send skip locked, full and tower-occupied plots, including after snapshot load/reconnect. No client spending or ownership is applied before the authority acknowledges. Click an owned field unit for **Retire** (permanent, no refund or death animation), or select a destination **Town hall** in its dropdown and click **Send to Town hall**. Build the hall from the **Army** construction group; select it and open **Town hall roster** to inspect its reserve tiles and units. Transfers preserve identity, level, wounds and capabilities and are atomic: full/foreign/stale destinations reject without spending or losing the source unit. Send from a selected hall roster entry uses field first-fit, never overflow. Selection itself changes nothing. Controls are available only to the connected owner during unpaused, unready Building or Preparation; paused/disconnected inspection is read-only.
+Open **Squads** for per-owner member HP/equipment/service/status inspection,
+**Recruit new squad**, selected **Paid reinforcement**, compatible member transfer,
+**Store veteran**, **Return veteran** and **Retire · no refund**. Town Hall uses
+individual slots. Accepted snapshots alone change rosters; delayed acknowledgments
+and rejection create no optimistic member or spending. Native selection/focus
+survives ordinary revisions. Foreign cities and ready/paused/disconnected/combat/
+fallen owners remain read-only; full/foreign/stale destinations refuse atomically.
+
+**Deployment** shows the connected arena. Select an owned squad, close the panel,
+then click an available owned purchased home. Its complete home claim moves
+atomically; it remains that squad's preparation home independent of battle pose.
+Home labels/rings distinguish selected/available/occupied/locked/tower states with
+text plus color. Selection alone does not spend, move or enable foreign editing.
+Survivors return to those persistent homes after cosmetic cleanup without healing.
+During post-clear cleanup, accepted deployment, recruitment, regrouping, Hall
+storage/return, retirement and army-tower edits update persistent claims and
+rosters immediately. Home eligibility uses current purchases, tower sales and
+other squads' home claims, independently of retained battlefield footprints or
+a survivor physically passing through that home. Unchanged survivors keep their
+frozen source/transit/action until cleanup; new or reassigned members do not gain
+colliding physical claims. Removing or reassigning the final participant releases
+the squad's source/transit claims even if living reserves remain. Cleanup refreshes
+footprints and restores the current home assignments before a waiting final END
+settles production and starts battle. The compressed receiving cases in
+`SnapshotReceivingLifecycleTests` cover these edits and the three-settlement gate.
 
 ### Defense towers on army plots
 
-Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A unit-occupied plot cannot build a tower, even if it has unused size. A tower consumes all six persistent roster spots, not just one anchor, and no recruitment or Town hall Send can assign a unit there. Selling the tower removes its defense actor, retains purchased land and frees the whole footprint; it refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. This is persistent army capacity exclusion, not a new combat terrain/routing rule.
+Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A squad-occupied plot cannot build a tower, even with unused member capacity. A tower excludes that complete home and its physical arena footprint, and no recruitment or Hall return can assign members there. Selling the tower removes its defense actor, retains purchased land and immediately frees the persistent home for eligible recruitment, Hall return or deployment; during post-clear corpse cleanup its old physical footprint remains until the cleanup barrier described above. Sale refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. See [shared arena topology](shared-arena.md#numerical-ownership) for reserved weapon footprints and battle movement.
 
 Click a base Arrow tower to inspect its damage/timing and choose exactly one paid upgrade:
 
@@ -381,9 +380,14 @@ Click a base Arrow tower to inspect its damage/timing and choose exactly one pai
 | --- | --- | --- | --- | --- |
 | Base Arrow tower (L1) | Existing 4 gold + 3 wood construction | 5 HP | 12 / 60 | Single target, no splash |
 | Rapid arrow tower (L2) | 4 gold + 2 wood + 2 stone upgrade | 7 HP | 6 / 30 | Single target, no splash |
-| Bombard tower (L2 from base Arrow tower) | 4 gold + 2 wood + 2 stone + 1 metal upgrade | 8 HP | 30 / 120 | Primary plus at most two enemies within one hex of the primary |
+| Bombard tower (L2 from base Arrow tower) | 4 gold + 2 wood + 2 stone + 1 metal upgrade | 8 HP | 30 / 120 | 8X to one primary and 6Y to every other living member of the selected squad |
 
-The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its legacy L1/L2 profiles retain 6/8 HP damage, 30/120 timing, three-victim cap and zero-hex radius (same-cell splash). Its ordinary L2 upgrade uses the bombard upgrade payment in the table. The legacy scripted `upgrade` of `ArrowTower` also retains its L2 7 HP, 12/60, single-target profile. The new native paths create distinct `RapidArrowTower` and `BombardTower` L2 identities, so unchanged legacy towers are not silently accelerated or given a new radius. Both paths reuse frozen tower profiles and existing catalog upgrade costs, not a new tech tree. Arrows always resolve a single target, even with custom splash authoring. Bombard damage is authoritative, filtered to living targetable enemies in the owning city's battle; a dead/transferred primary misses entirely. Each selected victim is hit once, with existing deterministic ordering, resistance and tower/city attribution. Existing research-unit effects and Research Tower production are unchanged.
+The existing directly constructed `CatapultTower` (named Bombard tower in the UI) remains available at 6 gold + 4 wood + 3 stone + 2 metal. Its L1/L2 profiles retain 6/8X and 6Y at both levels, with 30/120 timing and every eligible secondary
+member of its selected group hit once. The ordinary L2 upgrade uses the bombard
+payment in the table. Legacy scripted ArrowTower L2 retains7X,12/60timing, X-only;
+native RapidArrowTower/BombardTower have their own frozen profiles and identities.
+Physical range/origin, landed group validity, simultaneous accumulation and
+miss/recovery apply to all. No radius/victim cap or city-isolated damage rule remains.
 
 Generation/level, price-count, ownership, phase, ready/pause and resource guards reject stale or conflicting intents before payment. Retry ledgers never charge again. Tower state, per-plot ownership/identity/investment and unit assignments survive the normal snapshot codec and credential resume. See [session compatibility](sessions.md) for command IDs, version admission, legacy actions, configuration/decision identities and the persistence boundary.
 
@@ -393,16 +397,16 @@ A Town hall occupies one purchased building plot. Its two independently quoted t
 
 | Track | Level 1 / 2 / 3 | Upgrade to level 2 | Upgrade to level 3 |
 | --- | --- | --- | --- |
-| Storage | 6 / 12 / 18 size points (3 / 6 / 9 ordinary units) | 8 G + 2 W + 2 S | 12 G + 2 W + 3 S |
+| Storage | 6 / 12 / 18 individual soldiers | 8 G + 2 W + 2 S | 12 G + 2 W + 3 S |
 | Healing | 5 / 10 / 15% current maximum HP per actual production | 6 G + 2 W + 2 S | 12 G + 2 W + 3 S |
 
-Storage uses separate six-size reserve tiles, not one pooled free-size total. Several halls each own their generation-specific inventory. Neither track purchases battlefield homes. Occupied-hall sale rejects; empty sale includes actual construction and both tracks' investments in the existing component-wise half refund. These tracks do not upgrade individual unit levels.
+Storage uses first-fit individual slots, independent of squad population or battlefield cells. Several halls each own their generation-specific inventory. Neither track purchases battlefield homes. Occupied-hall sale rejects; empty sale includes actual construction and both tracks' investments in the existing component-wise half refund. These tracks do not upgrade individual unit levels.
 
 Recovery requires that the **same living ID's food was funded in the most recently completed shared battle**. Field-funded survivors can rotate into storage with that eligibility. First-cycle storage and newly recruited IDs have no completed paid receipt; merely storing them grants no healing. Unfunded stored units cannot recover until funded through a subsequent completed battle. At each real production, heal only currently stored eligible units by `ceil(current maximum integer HP × percent / 100)`, capped at maximum; integer HP uses hundredths. A 40-HP unit at 5% gains 2 HP per production, at most 6 HP over the three-production cycle. Changed research maximums affect the calculation, not eligibility and never retroactively heal wounds.
 
 Health, resources and research preflight together before production commits. Editing during preparation, Ready/unready toggles before resolution, upgrades, transfers, selection, pause, reconnect, retries and elapsed wall time cannot create another heal; the three actual settlements follow [preparation timing](#preparation-and-battle-controls). Completed funding is separate from the current in-progress battle's payment receipt. Food-starved storage creates no damage, debt or automatic eviction.
 
-The paid `ArmyBalanceTests` comparison covers seeds 0/1/123, frontline versus reserve rotation and the selected **5/8/12/18** versus **5/8/16/24** control. Both curves support those twelve finite main campaigns. Reserve investment meaningfully reduces replacements while delaying field expansion; it is not compulsory to win. Initial-home-only and no-tier controls still lose. See [verification evidence](verification-history.md#army-homes-and-town-hall-2026-10-03) for per-wave costs, casualties, recovery and limitations. No enemy, AoE, boss, food-rate or release-version rebalance accompanies these choices.
+The historical four-edit paid `ArmyBalanceTests` comparison covered seeds 0/1/123, frontline versus reserve rotation and the selected **5/8/12/18** versus **5/8/16/24** control. Both curves support those twelve finite main campaigns. Reserve investment meaningfully reduces replacements while delaying field expansion; it is not compulsory to win. Initial-home-only and no-tier controls still lose. See [verification evidence](verification-history.md#army-homes-and-town-hall-2026-10-03) for per-wave costs, casualties, recovery and limitations. No enemy, AoE, boss, food-rate or release-version rebalance accompanies these choices.
 
 ## Personal research and temporary statuses
 
@@ -423,7 +427,7 @@ Every foundation adds 5% maximum health and direct damage to its class. A comple
 
 Open **Worldtree** to inspect and purchase research. [Worldtree integration](worldtree.md#reachable-game-feature) owns the native controls, structural/inactive sockets and the [village production offshoots](worldtree.md#bounded-node-design). Purchase descriptions identify the sibling lock; there is no confirmation dialog. Global purchases are available to an authenticated living owner in unpaused Building/Preparation while unready, independently of plot selection and tower ownership. Foreign inspection is read-only. The panel blocks world input without pausing the shared match. Commands use `research-tech <technology-id>`; the legacy rank command is rejected. ENet and Steam use the same [session compatibility contract](sessions.md).
 
-Only actual landed victims receive statuses, after simultaneous damage and only if they survive. Mage splash retains its authored radius/cap. Zero-damage attacks grant no periodic effect. Potency captures the source's resolved direct damage at application, rounded upward; removing the source does not change it.
+Only actual landed victims receive statuses, after simultaneous damage and only if they survive. Mage X/Y affects every eligible member of its locked group without a radius/cap. Zero-damage attacks grant no periodic effect. Potency captures the source's resolved direct damage at application, rounded upward; removing the source does not change it.
 
 - **Burn:** one stream, 60-tick period, 180-tick lifetime. Refresh keeps the greater potency, later expiry and existing next tick.
 - **Poison:** at most three independently timed stacks, 60-tick period, 360-tick lifetime. A fourth hit refreshes the earliest expiry, with stable application identity breaking ties; potency increases if stronger and the next tick stays fixed.

@@ -4,7 +4,16 @@ For the later authored-scene loop and its matched allocation/frame evidence, see
 [authored-era performance](authored-performance.md). Historical measurements below
 retain their original input and renderer scopes.
 
-The review separates authority work, public snapshot/codec work, client presentation
+**Shared-squad migration scope (2026-10-13):** the review/measurements below
+are historical individual-actor evidence, not a current squad benchmark. Current
+`LargeBattle` uses the production four-owner arena, at most six homogeneous field
+squads per owner, explicit synthetic stocks/paid homes and real queued enemy groups.
+It no longer authors a capacity-six stress board or corpse-blocked admission.
+Focused work-counter tests exercise its 128-member input and observation invariance;
+512/2048-member timing/stress qualification is not established by that pass. No old
+hash/timing/population golden was refreshed. See the [coverage replacement ledger](testing-audit.md#coherent-admission-profile-and-compatibility-replacement-2026-10-13).
+
+The historical review separates authority work, public snapshot/codec work, client presentation
 and verification overhead. A faster test suite does not establish a faster game.
 Source findings below describe the instrumented, unoptimized baseline; the selected
 remedies are implemented. [Measured results](#measured-results-2026-10-03) report

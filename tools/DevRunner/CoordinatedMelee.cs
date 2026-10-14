@@ -30,7 +30,7 @@ internal sealed partial class Runner
         }
         async Task<MatchSnapshot> Watch(MatchSnapshot battle)
         {
-            var board = new HexBoard(battle.Rules.Combat.Board);
+            var board = new HexBoard(battle.Arena!.Board);
             while (true)
             {
                 ownedWait.Token.ThrowIfCancellationRequested();

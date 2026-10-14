@@ -5,322 +5,97 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests;
 
-// Historical paid transcripts deliberately migrated to three end-of-preparation
-// settlements. Current commands/receipts own identities; historical ticks and
-// enemy IDs are not new friendly goldens. No gameplay setters or resource grants.
+// Tier A replacement of recovered individual-combat transcripts: earned command
+// inputs and explicit physical/individual outcomes, not refreshed tick/HP goldens.
+// Price, retry, authority and veteran negatives survive independently of victory.
 public sealed class EconomyArmyFixtureTests(ITestOutputHelper output)
 {
-    internal const ulong Seed = 14056307608042553509UL;
     [Fact]
-    public void RecoveredReconnectSeedNeedsAnAffordableHomeBeforeItsSeventhMixedRole()
+    public void PaidHomogeneousHomesRefuseSupportUntilARealPlotIsBoughtAndKeepLedgerRetries()
     {
-        using var match = new Match(combatSeed: 2723540745024433499UL); match.Join(); match.Join();
-        void Act(int p, EconomyAction plan) => Assert.True(match.Apply(p, plan.Command(match.Snapshot(), p)).Accepted);
-        void Ready() { Act(1, new("ready")); Act(2, new("ready")); }
-        Act(1, new("start"));
-        foreach (int p in new[] { 1, 2 })
-        {
-            Act(p, new("build", 0, Building.Farm)); Act(p, new("build", 1, Building.MetalMine)); Act(p, new("build", 4, Building.MetalMine));
-            Act(p, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery));
-        }
-        Ready(); Ready();
-        foreach (int p in new[] { 1, 2 }) Act(p, new("build", 2, Building.Barracks));
-        for (int i = 0; i < 4; i++) Act(2, new("recruit", 2));
-        for (int i = 0; i < 6; i++) Act(1, new("recruit", 2));
-        for (int i = 0; i < 2; i++) Act(2, new("recruit", 2));
-        Assert.All(match.Players.Values, c => { Assert.Equal(4, c.Metal); Assert.Equal(10, c.Food); }); Ready();
-        for (int i = 0; i < 3000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); i++) match.Step();
-        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(6, match.Players[1].Soldiers.Count);
-        Assert.Equal([1000, 2000, 2000, 4000, 4000, 2000], match.Players[1].Soldiers.Select(u => u.Health));
-        Act(1, new("sell", 4)); Act(1, new("build", 4, Building.ArcheryRange)); Ready(); Ready();
-        CityState before = match.Snapshot().Players[0]; Assert.Equal(new ResourceCost(20, 3, Food: 24, Metal: 20), before.Resources);
-        var ranged = new EconomyAction("recruit", 4, Unit: UnitType.Crossbowman);
-        string unchanged = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
-        Assert.False(match.Apply(1, ranged.Command(match.Snapshot(), 1)).Accepted);
-        Assert.Equal(unchanged, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
-        Act(1, new("buy-home")); Act(1, ranged);
-        CityState after = match.Snapshot().Players[0];
-        Assert.Equal(new ResourceCost(15, 1, Food: 24, Metal: 19), after.Resources);
-        Assert.Equal(3, after.Army!.PurchasedHomes); Assert.Equal(7, after.Soldiers.Length);
-        Assert.Equal(UnitType.Crossbowman, after.Soldiers[^1].Type);
-        Assert.Equal(after.Army.Homes[2].Cell, after.Soldiers[^1].Assignment!.Tile);
-        Assert.Equal(before.Soldiers.Select(u => (u.Id, u.Health, u.Assignment)), after.Soldiers.Take(6).Select(u => (u.Id, u.Health, u.Assignment)));
-    }
-
-    // Recovered network transcript: logs/20261004-050537-85a32d77.
-    // Same default paid opening and seed; tick 391 retains the captured cleanup.
-    [Fact]
-    public void RecoveredNetworkSeedPaysForRoomBeforeExplicitRangedRecruitAndKeepsRetries()
-    {
-        const ulong seed = 11669866211869037831UL;
-        using var flow = new SessionFlow(AuthorityPolicy.Dedicated, seed: seed);
+        using var flow = new SessionFlow(seed: 1);
         void Act(int player, EconomyAction action) => flow.Act(player, action);
         void Ready() { Act(1, new("ready")); Act(2, new("ready")); }
-        void Recruit(int player, int count) { for (int i = 0; i < count; i++) Act(player, new("recruit", 1)); }
-        CityState City() => flow.State.Players.Single(p => p.Id == 2);
-        string Frozen() => JsonSerializer.Serialize(flow.State, WireJson.Options);
         Act(1, new("start"));
+        for (int turn = 0; turn < 3; turn++)
+        {
+            foreach (var (player, action) in CampaignStrategy.RedistributionPreparation(flow.State, 1, 2)) Act(player, action);
+            Ready();
+        }
+        flow.StepUntil(s => s.Phase != Phase.Combat && s.DyingBodies.Length == 0, 4000);
+        Assert.Equal(Phase.Building, flow.State.Phase); Assert.Equal(2, flow.State.Wave);
         foreach (int player in new[] { 1, 2 })
         {
-            Act(player, new("build", 0, Building.Farm));
-            Act(player, new("build", 4, Building.MetalMine));
-            Act(player, new("build", 2, Building.MetalMine));
+            Act(player, new("sell", 4)); Act(player, new("build", 4, Building.Stonecutter));
+        }
+        // Edit at preparation 3 before its END, never after final production.
+        for (int turn = 0; turn < 2; turn++)
+        {
+            foreach (int player in new[] { 1, 2 })
+                while (flow.State.Players[player - 1].Soldiers.Length < 6 && flow.State.Players[player - 1].Metal > 0) Act(player, new("recruit", 1));
+            Ready();
         }
         foreach (int player in new[] { 1, 2 })
-        { Act(player, new("build", 3, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)); Act(player, new("ready")); }
-        Ready();
-        foreach (int player in new[] { 1, 2 }) { Act(player, new("build", 1, Building.Barracks)); Act(player, new("buy-plot", 5)); }
-        for (int batch = 0; batch < 3; batch++) { Recruit(1, 2); Recruit(2, 2); }
-        Ready();
-        flow.StepUntil(s => s.Phase == Phase.Building);
-        Assert.Equal(2, flow.State.Wave);
-        Act(2, new("sell", 4)); Act(2, new("buy-plot", 7)); Act(2, new("build", 7, Building.ArcheryRange));
-        Act(1, new("upgrade", 1)); Ready();
-        flow.StepUntil(s => s.Tick == 391);
-        Recruit(1, 1); Act(1, new("ready")); Recruit(2, 2); Act(2, new("ready"));
-        CityState before = City();
-        Assert.Equal(seed, flow.State.CombatSeed);
-        Assert.Equal(3, flow.State.Turn);
-        Assert.Equal(new ResourceCost(7, 3, Food: 24, Metal: 16), before.Resources);
-        Assert.Equal(2, before.Army!.PurchasedHomes);
-        Assert.Equal([6, 6], before.Army.Homes.Where(h => h.Purchased).Select(h => h.Used));
-        Assert.Equal([3, 7, 11, 12, 22, 23], before.Soldiers.Select(u => u.Id));
-        Assert.Equal([4000, 1000, 2000, 3000, 4000, 4000], before.Soldiers.Select(u => u.Health));
-        var ranged = new EconomyAction("recruit", 7, Unit: UnitType.Crossbowman);
-        Command rejected = flow.Command(2, ranged); string unchanged = Frozen();
-        CommandResult refusal = flow.Send(2, rejected);
-        Assert.False(refusal.Accepted);
-        Assert.Equal("Battlefield homes are full. Buy a home, store or retire a unit.", refusal.Message);
-        Assert.Equal(unchanged, Frozen());
-        Assert.Equal(refusal, flow.Send(2, rejected)); Assert.Equal(unchanged, Frozen());
-        Assert.Equal(5, before.Army.HomePrices[before.Army.PurchasedHomes - 2]);
-        long revision = flow.State.Revision;
-        Command purchase = flow.Act(2, new("buy-home"));
-        CityState expanded = City();
-        Assert.Equal(revision + 1, flow.State.Revision);
-        Assert.Equal(new ResourceCost(2, 3, Food: 24, Metal: 16), expanded.Resources);
-        Assert.Equal(3, expanded.Army!.PurchasedHomes);
-        unchanged = Frozen();
-        Assert.True(flow.Send(2, purchase).Accepted); Assert.Equal(unchanged, Frozen());
-        // Refused identities remain refused after capacity changes; a fresh request succeeds.
-        Assert.Equal(refusal, flow.Send(2, rejected)); Assert.Equal(unchanged, Frozen());
-        Command accepted = flow.Command(2, ranged);
-        CommandResult result = flow.Send(2, accepted); Assert.True(result.Accepted);
-        CityState after = City();
-        Assert.Equal(revision + 2, flow.State.Revision);
-        Assert.Equal(new ResourceCost(2, 1, Food: 24, Metal: 15), after.Resources);
-        Assert.Equal(7, after.Soldiers.Length);
-        Assert.Equal(before.Soldiers.Select(u => (u.Id, u.Health, u.Assignment)), after.Soldiers.Take(6).Select(u => (u.Id, u.Health, u.Assignment)));
-        UnitState recruited = after.Soldiers[^1];
-        Assert.Equal(UnitType.Crossbowman, recruited.Type);
-        Assert.Equal(after.Army!.Homes[2].Cell, recruited.Assignment!.Tile);
-        unchanged = Frozen(); Assert.Equal(result, flow.Send(2, accepted)); Assert.Equal(unchanged, Frozen());
-        string gameplay = SessionFlow.Gameplay(flow.State);
-        flow.Disconnect(2); flow.Rebind(2, 9);
-        Assert.Equal(result, flow.Send(2, accepted)); Assert.Equal(gameplay, SessionFlow.Gameplay(flow.State));
-        output.WriteLine(JsonSerializer.Serialize(new { seed, before.Resources, After = after.Resources, recruited.Id, Revision = revision + 2 }, WireJson.Options));
+            while (flow.State.Players[player - 1].Soldiers.Length < 6) Act(player, new("recruit", 1));
+        // Final END's timber is not spendable yet. Earn the missing equipment
+        // wood through the actual paid mine refund, never a fourth edit/grant.
+        Act(2, new("sell", 2));
+        Act(2, new("buy-plot", 5)); Act(2, new("build", 5, Building.ArcheryRange));
+        CityState before = flow.State.Players[1];
+        Assert.Equal([3, 3], before.Army!.Homes.Where(h => h.Purchased).Select(h => h.Used));
+        var recruit = new EconomyAction("recruit", 5, Unit: UnitType.Crossbowman);
+        Command blocked = flow.Command(2, recruit); string frozen = JsonSerializer.Serialize(flow.State, WireJson.Options);
+        CommandResult refusal = flow.Send(2, blocked); Assert.False(refusal.Accepted);
+        Assert.Equal(frozen, JsonSerializer.Serialize(flow.State, WireJson.Options));
+        Assert.Equal(refusal, flow.Send(2, blocked));
+        int price = before.Army.HomePrices[before.Army.PurchasedHomes - 2];
+        Command purchase = flow.Act(2, new("buy-home")); CityState room = flow.State.Players[1];
+        Assert.True(before.Resources.TryPay(new(price), out ResourceCost bought)); Assert.Equal(bought, room.Resources);
+        Assert.Equal(before.Soldiers.Select(Member), room.Soldiers.Select(Member));
+        frozen = JsonSerializer.Serialize(flow.State, WireJson.Options);
+        Assert.True(flow.Send(2, purchase).Accepted); Assert.Equal(refusal, flow.Send(2, blocked));
+        Assert.Equal(frozen, JsonSerializer.Serialize(flow.State, WireJson.Options));
+        Command paid = flow.Command(2, recruit); CommandResult result = flow.Send(2, paid); Assert.True(result.Accepted, result.Message);
+        CityState after = flow.State.Players[1];
+        RecruitmentQuote quote = room.RecruitmentQuotes.Single(q => q.Type == UnitType.Crossbowman && q.Level == 1);
+        Assert.True(room.Resources.TryPay(quote.Cost, out ResourceCost equipped)); Assert.Equal(equipped, after.Resources);
+        Assert.Equal(before.Soldiers.Select(Member), after.Soldiers.Take(6).Select(Member));
+        UnitState member = after.Soldiers[^1]; Assert.Equal(UnitType.Crossbowman, member.Type);
+        Assert.Equal(0, member.Experience); Assert.Equal(member.Profile.Health, member.Health); Assert.Equal(2, member.Assignment!.Tile);
+        PaidCampaignFixture.Legal(flow.State);
+        frozen = SessionFlow.Gameplay(flow.State); flow.Disconnect(2); flow.Rebind(2, 9);
+        Assert.Equal(result, flow.Send(2, paid)); Assert.Equal(frozen, SessionFlow.Gameplay(flow.State));
+        output.WriteLine($"PROVISIONAL current-phase paid room={price}, recruitment={quote.Cost}, veteran count={before.Soldiers.Length}");
     }
+    // Hall slot6, real healing/returned identity, overflow and independent paid
+    // upgrades are consolidated into PaidPreparationScheduleTests' earned Hall
+    // witness. An arbitrary reserve-W5 policy deadline was not that invariant.
+    private static object Member(UnitState u) => (u.Id, u.Health, u.Profile, u.Level, u.Experience, u.SquadId, u.FormationSlot, u.Assignment);
 
-    [Fact]
-    public void SameSeedOrdinaryCampaignPreparesAndClearsTheThirdWaveWithoutFixtureGrants()
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(123UL)]
+    public void ExtraEmptyLandIsNotAnArmyOrAHealAndCannotBeOccupiedByTwoActors(ulong seed)
     {
-        using var match = new Match(combatSeed: Seed); match.Join(); match.Join();
-        Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "start", 1)).Accepted);
-        MatchSnapshot? entry = null;
-        int ticks = 0;
-        while (match.Wave <= 3 && match.Phase is not (Phase.Defeat or Phase.Victory))
+        using Match match = PaidCampaignFixture.Opening(seed: seed); PaidCampaignFixture.Clear(match);
+        CityState before = match.Snapshot().Players[0];
+        PaidCampaignFixture.Apply(match, 1, new("buy-home")); CityState empty = match.Snapshot().Players[0];
+        Assert.Equal(before.Soldiers.Select(Member), empty.Soldiers.Select(Member)); Assert.Equal(0, empty.Army!.Homes[2].Used);
+        // A real clear may leave only one squad. Land itself created/healed
+        // nobody above; explicitly pay for a second actor before testing its
+        // rejection. Capacity3 guarantees two groups by four living members.
+        for (int recruited = 0; match.Snapshot().Squads.Count(s => s.Owner == 1 && s.Members.Length > 0) < 2; recruited++)
         {
-            if (match.Phase == Phase.Combat || match.Phase == Phase.Preparation && match.Combat.HasDeaths)
-            { Assert.True(ticks++ < 10000); match.Step(); continue; }
-            foreach (City city in match.Players.Values)
-            {
-                int actions = 0;
-                while (CampaignStrategy.Next(match.Snapshot(), city.Id) is EconomyAction plan)
-                { Assert.True(actions++ < 100); Assert.True(match.Apply(city.Id, plan.Command(match.Snapshot(), city.Id)).Accepted); }
-                MatchSnapshot current = match.Snapshot();
-                Assert.True(match.Apply(city.Id, new EconomyAction("ready").Command(current, city.Id)).Accepted);
-            }
-            if (match.Phase == Phase.Combat && match.Wave == 3) entry = match.Snapshot();
+            Assert.True(recruited < 4, "Paid two-squad occupancy source did not converge.");
+            PaidCampaignFixture.Apply(match, 1, new("recruit", 1));
         }
-        Assert.NotNull(entry); Assert.Equal(Phase.Building, match.Phase); Assert.Equal(4, match.Wave);
-        Assert.All(match.Players.Values, c => Assert.False(c.Eliminated));
-        output.WriteLine(JsonSerializer.Serialize(new { Seed, Entry = entry.Players.Select(p => new { p.Id, p.Resources, p.Army, Units = p.Soldiers.Select(u => new { u.Id, u.Level, u.Health, u.Assignment }), p.LastUpkeep }), Result = match.Phase.ToString(), match.Tick }, WireJson.Options));
-    }
-
-    private static readonly string[] Modes = ["old-arrow", "old-no-arrow", "home-only", "producer-only", "refill-only", "growth"];
-    private sealed record Experiment(string Mode, CityState Baseline, MatchSnapshot Preparation, MatchSnapshot Entry, MatchSnapshot Result);
-
-    // Tier A, six same-seed default-rule runs (~1s). Replaces obsolete transcript
-    // goldens with cross-intervention assertions, not six unrelated passing rows.
-    // No children, grants, gameplay setters or compensatory balance rules.
-    [Fact]
-    public void PaidPreparationSeparatesEmptyCapacityProductionRefillAndCooperativeGrowth()
-    {
-        Dictionary<string, Experiment> results = Modes.Select(RunExperiment).ToDictionary(e => e.Mode);
-        Experiment old = results["old-no-arrow"], home = results["home-only"], producer = results["producer-only"], refill = results["refill-only"], growth = results["growth"];
-        static string Army(CityState city) => JsonSerializer.Serialize(city.Soldiers, WireJson.Options);
-        static long Damage(CityState city) => city.Soldiers.Sum(u => (long)u.Profile.Damage);
-        // Empty purchased capacity is not equipment and does not repack veterans.
-        Assert.Equal(Army(old.Entry.Players[0]), Army(home.Entry.Players[0]));
-        Assert.Equal(Army(old.Entry.Players[1]), Army(home.Entry.Players[1]));
-        Assert.Equal(old.Result.Tick, home.Result.Tick);
-        Assert.Equal(old.Result.Players.Select(p => p.Health), home.Result.Players.Select(p => p.Health));
-        Assert.All(home.Entry.Players, p => Assert.Equal(3, p.Army!.PurchasedHomes));
-        Assert.All(old.Entry.Players, p => Assert.Equal(2, p.Army!.PurchasedHomes));
-        Assert.Equal(old.Preparation.Players[0].Gold - 5, home.Preparation.Players[0].Gold);
-        // Earlier investment funds the upgraded mine, but stock alone cannot
-        // defend. Later interventions share the exact same player-1 baseline.
-        Assert.Equal(Army(old.Baseline), Army(producer.Baseline));
-        Assert.True(producer.Baseline.Metal > old.Baseline.Metal);
-        Assert.Equal(producer.Baseline.Resources, refill.Baseline.Resources);
-        Assert.Equal(Army(producer.Baseline), Army(refill.Baseline));
-        Assert.Equal(refill.Baseline.Resources, growth.Baseline.Resources);
-        Assert.Equal(Army(refill.Baseline), Army(growth.Baseline));
-        Assert.Equal(4, producer.Entry.Players[0].Soldiers.Length);
-        Assert.Equal(6, refill.Entry.Players[0].Soldiers.Length);
-        Assert.All(growth.Entry.Players, p => { Assert.Equal(9, p.Soldiers.Length); Assert.Equal(3, p.Army!.PurchasedHomes); });
-        Assert.True(Damage(refill.Entry.Players[0]) > Damage(producer.Entry.Players[0]));
-        Assert.True(Damage(growth.Entry.Players[0]) > Damage(refill.Entry.Players[0]));
-        Assert.True(Damage(growth.Entry.Players[1]) > Damage(refill.Entry.Players[1]));
-        foreach (Experiment baseline in new[] { old, home, producer })
-        { Assert.Equal(Phase.Defeat, baseline.Result.Phase); Assert.Equal(DefeatReason.AllCitiesFallen, baseline.Result.DefeatReason); }
-        foreach (Experiment equipped in new[] { refill, growth })
-        {
-            Assert.Equal(Phase.Building, equipped.Result.Phase); Assert.Equal(4, equipped.Result.Wave);
-            Assert.All(equipped.Result.Players, p => { Assert.False(p.Eliminated); Assert.Equal(3, p.LastReward!.Wave); });
-        }
-        // Under new paid timing both interventions may clear; superiority is
-        // actual equipped strength plus damage/survivors, not forced elimination.
-        Assert.True(growth.Result.Players.Sum(p => p.Health) > refill.Result.Players.Sum(p => p.Health));
-        Assert.True(growth.Result.Players.Sum(p => p.Soldiers.Length) > refill.Result.Players.Sum(p => p.Soldiers.Length));
-        // Arrow branch remains a real paid structural intervention, not a name.
-        Experiment arrow = results["old-arrow"];
-        Assert.Contains(arrow.Entry.Players[1].Slots, s => s.Type == Building.ArrowTower);
-        Assert.Equal(Army(old.Entry.Players[0]), Army(arrow.Entry.Players[0]));
-        Assert.Equal(Army(old.Entry.Players[1]), Army(arrow.Entry.Players[1]));
-        Assert.Equal(Phase.Building, arrow.Result.Phase); Assert.Equal(4, arrow.Result.Wave);
-        Assert.True(arrow.Result.Players[0].Eliminated); Assert.False(arrow.Result.Players[1].Eliminated);
-        Assert.Empty(arrow.Result.Players[1].Soldiers);
-    }
-
-    private Experiment RunExperiment(string mode)
-    {
-        using var match = new Match(combatSeed: Seed); match.Join(); match.Join();
-        bool early = mode is "producer-only" or "refill-only" or "growth";
-        var payments = new List<object>();
-        var productions = new List<object>();
-        void Act(int player, string action, int slot = -1, Building building = Building.Empty, ConstructionPayment payment = ConstructionPayment.Standard)
-        {
-            MatchSnapshot before = match.Snapshot(); CityState city = before.Players.Single(p => p.Id == player);
-            ResourceCost quote = action switch
-            {
-                "build" => payment == ConstructionPayment.GoldRecovery ? before.BuildingCatalog.Single(b => b.Type == building).RecoveryConstruction!.Value : before.BuildingCatalog.Single(b => b.Type == building).Construction,
-                "upgrade" => city.Slots[slot].UpgradeQuote!.Value,
-                "recruit" => city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[slot].Level).Cost,
-                "buy-plot" => new(before.PlotPrices[city.Slots.Count(s => s.Purchased) - 5]),
-                "buy-home" => new(city.Army!.HomePrices[city.Army.PurchasedHomes - 2]),
-                _ => default
-            };
-            var decision = new EconomyAction(action, slot, building, Payment: payment);
-            CommandResult result = match.Apply(player, decision.Command(before, player));
-            Assert.True(result.Accepted, $"{mode} W{before.Wave} T{before.Turn} P{player}: {decision}: {result.Message}");
-            CityState after = match.Snapshot().Players.Single(p => p.Id == player);
-            if (action is not ("start" or "ready"))
-            {
-                Assert.True(city.Resources.TryPay(quote, out ResourceCost expected));
-                if (action == "sell") { Assert.True(expected.TryAdd(city.Slots[slot].Refund, out ResourceCost refunded)); expected = refunded; }
-                Assert.Equal(expected, after.Resources);
-                int[] born = after.Soldiers.Select(u => u.Id).Except(city.Soldiers.Select(u => u.Id)).ToArray();
-                if (action == "recruit") { Assert.Single(born); Assert.Equal(player, after.Soldiers.Single(u => u.Id == born[0]).Owner); }
-                payments.Add(new { before.Wave, before.Turn, Player = player, action, slot, building, payment, Quote = quote, Before = city.Resources, After = after.Resources, Born = born });
-            }
-        }
-        void Build(int p, int s, Building b) => Act(p, "build", s, b);
-        void Ready()
-        {
-            MatchSnapshot before = match.Snapshot(); Act(1, "ready"); Act(2, "ready"); MatchSnapshot after = match.Snapshot();
-            Assert.Equal(before.ProductionCount + 1, after.ProductionCount);
-            foreach (CityState city in before.Players)
-            {
-                CityState settled = after.Players.Single(p => p.Id == city.Id);
-                Assert.True(city.Resources.TryAdd(city.ProductionIncome!.Value, out ResourceCost balance));
-                if (after.Phase == Phase.Combat)
-                {
-                    Assert.Empty(settled.LastUpkeep!.Unfed);
-                    Assert.Equal(city.Soldiers.Select(u => u.Id).Order(), settled.LastUpkeep.Funded.Order());
-                    Assert.Equal(city.Soldiers.Length, settled.LastUpkeep.Paid);
-                    Assert.True(balance.TryPay(new(Food: city.Soldiers.Length), out ResourceCost paid)); balance = paid;
-                }
-                Assert.Equal(balance, settled.Resources);
-            }
-            productions.Add(new { before.Wave, before.Turn, after.ProductionCount, Before = before.Players.Select(p => new { p.Id, p.Resources }), After = after.Players.Select(p => new { p.Id, p.Resources, p.LastUpkeep }) });
-        }
-        void Recruit(int p, int count, int slot = 2) { for (int i = 0; i < count; i++) Act(p, "recruit", slot); }
-        void Fill(int p, int target, int slot = 2)
-        {
-            while (match.Players[p].Soldiers.Count < target)
-            {
-                CityState city = match.Snapshot().Players.Single(c => c.Id == p);
-                if (!city.Army!.Homes.Any(h => h.Purchased && h.Used + 2 <= 6)) Act(p, "buy-home");
-                Recruit(p, 1, slot);
-            }
-            Assert.Equal(target, match.Players[p].Soldiers.Count);
-        }
-        void Clear()
-        {
-            for (int i = 0; i < 10000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); i++) match.Step();
-            Assert.False(match.Combat.HasDeaths);
-        }
-        Act(1, "start");
-        foreach (int p in new[] { 1, 2 }) { Build(p, 0, Building.Farm); Build(p, 1, Building.MetalMine); Build(p, 2, Building.Barracks); }
-        Act(2, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
-        if (early) Act(1, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
-        Ready(); Recruit(2, 2); Ready();
-        if (early) Build(1, 4, Building.Stonecutter); else Act(1, "build", 3, Building.Lumbermill, ConstructionPayment.GoldRecovery);
-        Build(2, 4, Building.Stonecutter); Recruit(2, 2); Recruit(1, 4);
-        Assert.All(match.Players.Values, p => { Assert.Equal(4, p.Soldiers.Count); Assert.Equal(10, p.Food); Assert.Equal(0, p.Metal); Assert.Single(p.Slots, s => s.Type == Building.MetalMine); });
-        int[] openingIds = match.Players[1].Soldiers.Select(u => u.Id).ToArray(); Ready(); Clear();
-        Assert.Equal(Phase.Building, match.Phase);
-        Assert.All(match.Players[1].Soldiers, u => { Assert.Contains(u.Id, openingIds); Assert.Equal(1, u.Owner); Assert.True(u.RecoveryEligible); });
-        Assert.Contains(match.Players[1].Soldiers, u => u.Health < u.Profile.Health);
-        Assert.Equal(early ? 1 : 0, match.Players[1].Stone);
-        if (!early) Build(1, 4, Building.Stonecutter);
-        Ready(); if (early) Act(1, "upgrade", 1); Ready();
-        // Common, paid wave-2 refill from the existing mine after production 2.
-        Fill(2, 6); Act(2, "sell", 2); Build(2, 2, Building.CatapultTower); Fill(1, 6);
-        Ready(); Clear(); Assert.Equal(Phase.Building, match.Phase); Assert.Equal(3, match.Wave);
-        if (mode == "old-arrow") { Act(2, "buy-plot", 5); Build(2, 5, Building.ArrowTower); }
-        if (mode == "growth") { Act(2, "buy-plot", 5); Build(2, 5, Building.Barracks); }
-        Ready();
-        // Cooperative growth spends on a paid trainer instead of the optional
-        // Catapult upgrade. The arrow branch waits for production 2's wood.
-        if (mode == "growth") Act(2, "upgrade", 5);
-        Ready(); if (mode != "growth") Act(2, "upgrade", 2);
-        Act(1, "upgrade", 2); Recruit(1, 1);
-        CityState baseline = match.Snapshot().Players[0];
-        Assert.Contains(baseline.Soldiers, u => u.Level == 2);
-        Assert.Contains(baseline.Soldiers, u => u.Level == 1 && u.Health < u.Profile.Health);
-        if (mode == "home-only") { Act(1, "buy-home"); Act(2, "buy-home"); }
-        if (mode is "refill-only" or "growth") Fill(1, mode == "growth" ? 9 : 6);
-        if (mode == "growth") Fill(2, 9, 5);
-        MatchSnapshot preparation = match.Snapshot();
-        Assert.All(preparation.Players, p => Assert.All(p.Soldiers, u => Assert.Equal(u.Assignment!.Position, u.Hex!.Position)));
-        Ready(); MatchSnapshot entry = match.Snapshot();
-        Assert.All(entry.Enemies, u => Assert.Equal(1, u.Level));
-        Assert.All(entry.Players, p => { Assert.Equal(3, entry.Enemies.Count(u => u.Destination == p.Id && u.Type == UnitType.Swordsman)); Assert.Equal(2, entry.Enemies.Count(u => u.Destination == p.Id && u.Type == UnitType.Crossbowman)); });
-        Clear(); MatchSnapshot result = match.Snapshot();
-        output.WriteLine(JsonSerializer.Serialize(new
-        {
-            Mode = mode,
-            Seed,
-            Payments = payments,
-            Productions = productions,
-            Preparation = preparation.Players.Select(p => new { p.Id, p.Resources, p.Army, Units = p.Soldiers.Select(u => new { u.Id, u.Level, u.Health, u.Profile.Damage, u.Assignment }) }),
-            Outcome = result.Phase,
-            result.Tick,
-            Cities = result.Players.Select(p => new { p.Id, p.Health, Surviving = p.Soldiers.Select(u => u.Id) }),
-            Receipts = entry.Players.Select(p => p.LastUpkeep)
-        }, WireJson.Options));
-        return new(mode, baseline, preparation, entry, result);
+        var arena = new SharedArena(match.Players.Keys);
+        SquadState group = match.Snapshot().Squads.First(s => s.Owner == 1 && s.Members.Length > 0);
+        Command deploy = Command.FromSnapshot(match.Snapshot(), 1000, "deploy-squad", 1, squadId: group.Id, cell: arena.Deployment(1, 2));
+        Assert.True(match.Apply(1, deploy).Accepted); PaidCampaignFixture.Legal(match.Snapshot());
+        SquadState other = match.Snapshot().Squads.First(s => s.Owner == 1 && s.Id != group.Id && s.Members.Length > 0);
+        string frozen = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options);
+        Assert.False(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1001, "deploy-squad", 1, squadId: other.Id, cell: arena.Deployment(1, 2))).Accepted);
+        Assert.Equal(frozen, JsonSerializer.Serialize(match.Snapshot(), WireJson.Options));
     }
 }

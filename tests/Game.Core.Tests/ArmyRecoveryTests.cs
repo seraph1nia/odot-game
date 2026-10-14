@@ -98,7 +98,7 @@ public sealed class ArmyRecoveryTests
     }
 
     [Fact]
-    public void FinalVictoryRestoresHomesAndEliminationRemovesStoredIdentity()
+    public void FinalVictoryRestoresDeploymentAndEliminationRetainsInactiveStoredIdentity()
     {
         using (Match match = Start())
         {
@@ -108,7 +108,8 @@ public sealed class ArmyRecoveryTests
                 for (int i = 0; i < 3; i++) Act(match, "ready");
                 for (int ticks = 0; ticks < 2000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); ticks++) match.Step();
                 Assert.False(match.Combat.HasDeaths);
-                Assert.All(match.Players[1].Soldiers, u => Assert.Equal(u.Assignment!.Position, u.Hex!.Position));
+                var arena = new SharedArena([1]);
+                Assert.All(match.Players[1].Soldiers, u => Assert.Equal(new HexPosition(arena.Deployment(1, u.Assignment!.Tile), 1), u.Hex!.Position));
             }
             Assert.Equal(Phase.Victory, match.Phase); Assert.Equal(3, match.LastRewardedWave);
         }
@@ -119,14 +120,20 @@ public sealed class ArmyRecoveryTests
             for (int i = 0; i < 3; i++) Act(match, "ready");
             for (int ticks = 0; ticks < 2000 && match.Phase == Phase.Combat; ticks++) match.Step();
             Assert.Equal(Phase.Defeat, match.Phase); Assert.True(match.Players[1].Eliminated);
-            Assert.Empty(match.Players[1].Soldiers); Assert.DoesNotContain(match.Snapshot().DyingBodies, u => u.Id == id);
+            UnitState retained = Assert.Single(match.Players[1].Soldiers);
+            Assert.Equal(id, retained.Id); Assert.True(retained.Assignment!.Stored); Assert.False(retained.Participating);
+            Assert.DoesNotContain(match.Snapshot().DyingBodies, u => u.Id == id);
             Assert.Equal(6, match.Players[1].Snapshot().Army!.Halls.Single().Capacity);
-            Assert.DoesNotContain(match.Snapshot().Players.SelectMany(p => p.Soldiers), u => u.Id == id);
+            Assert.Contains(match.Snapshot().Players.SelectMany(p => p.Soldiers), u => u.Id == id);
+            string terminal = State(match);
+            Assert.False(match.Apply(1, Request(match, "recruit", 0)).Accepted);
+            Assert.False(match.Apply(1, Request(match, "send", 1, id)).Accepted);
+            match.Step(); Assert.Equal(terminal, State(match));
         }
     }
 
     [Fact]
-    public void SurvivorsReturnToExactHomesOnlyAfterDeathReservationsExpire()
+    public void SurvivorsKeepHomeClaimsAndReturnToDeploymentAfterCosmeticCleanup()
     {
         using Match match = Start();
         for (int i = 0; i < 6; i++) Act(match, "recruit", 0);
@@ -144,7 +151,9 @@ public sealed class ArmyRecoveryTests
             match.Step();
         }
         Assert.True(cleanupObserved); Assert.Equal(Phase.Building, match.Phase);
-        Assert.All(match.Players[1].Soldiers, u => { Assert.Equal(homes[u.Id], u.Assignment); Assert.Equal(homes[u.Id].Position, u.Hex!.Position); Assert.Null(u.Hex.FrozenTick); });
+        var arena = new SharedArena([1]);
+        Assert.All(match.Players[1].Soldiers, u => { Assert.Equal(homes[u.Id], u.Assignment); Assert.Equal(new HexPosition(arena.Deployment(1, homes[u.Id].Tile), 1), u.Hex!.Position); Assert.Null(u.Hex.FrozenTick); });
+        Assert.Equal(2, match.Snapshot().Reservations.Positions.Length);
         Assert.All(match.Combat.Events().Where(e => e.Type == CombatEventType.Death), e => Assert.DoesNotContain(match.Players[1].Soldiers, u => u.Id == e.Unit!.Id));
     }
 }

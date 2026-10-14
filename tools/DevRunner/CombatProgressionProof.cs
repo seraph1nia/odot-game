@@ -5,22 +5,14 @@ namespace DevRunner;
 // Live-node assertions complement pure timing tests; no competing child reader.
 internal static class CombatProgressionProof
 {
-    public static void Motion(UiObservation frame, HexBoard board)
+    public static void Motion(UiObservation frame, HexBoard board, int squadCapacity = 3)
     {
         foreach (UnitObservation unit in frame.Units.Where(u => u.Visible && u.Deployed && u.Hex is { HoldsTransit: true }))
         {
-            HexUnitState hex = unit.Hex!;
-            (double X, double Z) Anchor(HexPosition position)
-            {
-                HexCoordinate cell = board.Cell(position.Cell).Coordinate; HexAnchor anchor = board.Anchor(position.Anchor);
-                return ((unit.Destination - 1) * 40 + cell.Column * 3 + (Math.Abs(cell.R) % 2) * 1.5 + anchor.AnchorX / 1000d,
-                    cell.R * (1.1547005 * 1.5 * 1.5) + anchor.AnchorForward / 1000d);
-            }
-            var from = Anchor(hex.Position); var to = Anchor(hex.Destination);
-            double elapsed = unit.Dead ? hex.FrozenMoveTicks : (hex.FrozenTick ?? frame.CombatTick) - hex.StartTick;
-            double fraction = Math.Clamp(elapsed / Math.Max(1, hex.EndTick - hex.StartTick), 0, 1);
-            if (Math.Abs(unit.X - (from.X + (to.X - from.X) * fraction)) > .002
-                || Math.Abs(unit.Z - (from.Z + (to.Z - from.Z) * fraction)) > .002)
+            // Observe the shared production projection, not a second city-local
+            // anchor/interpolation model. Imported animation still needs tier B.
+            var expected = Game.SharedCombatProjection.Position(board, unit.Hex!, unit.FormationSlot, squadCapacity, unit.IsBoss, frame.CombatTick);
+            if (Math.Abs(unit.X - expected.X) > .002 || Math.Abs(unit.Z - expected.Z) > .002)
                 throw new InvalidOperationException("Rendered committed step detoured or used the wrong clock: " + unit.Id);
             if (!unit.Dead && unit.Clip == "walk" && (unit.WalkingBlend < 0 || unit.WalkingBlend > .8))
                 throw new InvalidOperationException("Committed walking selected a sprint blend: " + unit.Id);

@@ -7,7 +7,9 @@ public sealed record GameEvent(string Type, int PeerId = 0, MatchSnapshot? State
 
 public static class WireJson
 {
-    public const int ProtocolVersion = 14;
+    // Both independent predecessor branches used14 for incompatible schemas.
+    // Integrated shared squads + three-preparation forecasts require a fresh peer.
+    public const int ProtocolVersion = 15;
     public const string EventPrefix = "ODOT_EVENT ";
     public static readonly JsonSerializerOptions Options = new()
     {

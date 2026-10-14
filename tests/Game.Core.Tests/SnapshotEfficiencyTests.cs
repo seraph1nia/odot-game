@@ -56,33 +56,41 @@ public sealed class SnapshotEfficiencyTests
     }
 
     [Fact]
-    public void AdmissionRefreshesAfterPlacementAndFailedBandsReuseExactInputs()
+    public void QueuedGroupsEnterOnlyAfterARealExclusiveSourceBecomesFree()
     {
-        using Match match = Profiling.LargeBattle.Create(512, 1);
-        var work = new WorkCounters(); match.SetWorkCounters(work);
-        int queued = match.Combat.Units().Count(u => u.Location.Lifecycle == UnitLifecycle.Queued);
-        match.Combat.AdmitEntries();
-        Assert.Equal(queued, work.Snapshot()[WorkMetric.QueuedCandidates]);
-        Assert.True(work.Snapshot()[WorkMetric.OccupancyChecks] < queued * 32 * 6);
-        CombatUnit removed = match.Combat.Units().First(u => u.IsTargetable && u.Faction == Faction.Adventurers && match.Configuration.Board.Rear(u.Faction).Contains(u.Location.Position.Cell));
-        match.Combat.Remove(removed.Id);
-        match.Combat.AdmitEntries();
-        Assert.Equal(queued - 1, match.Combat.Units().Count(u => u.Location.Lifecycle == UnitLifecycle.Queued));
-        Assert.Contains(match.Combat.Units(), u => u.Id != removed.Id && u.Location.Position == removed.Location.Position && u.IsTargetable);
+        // Tier A: eight actual three-member groups compete for seven entries.
+        // Removes synthetic 512-unit/retired counter fixture; partial loss must
+        // not release a living group's cell, final removal must admit one group.
+        using var combat = new CombatSimulation(new(), seed: 1);
+        for (int origin = 1; origin <= 8; origin++)
+            for (int member = 0; member < 3; member++) combat.Create(UnitType.Crossbowman, 0, origin, 1, Faction.Skeletons);
+        combat.AdmitEntries();
+        SquadState queued = Assert.Single(combat.SquadSnapshots(), s => s.Hex.Lifecycle == UnitLifecycle.Queued);
+        SquadState released = combat.SquadSnapshots().First(s => s.Hex.Lifecycle == UnitLifecycle.Alive);
+        combat.Remove(released.Members[0]); combat.AdmitEntries();
+        Assert.Equal(UnitLifecycle.Queued, combat.SquadSnapshots().Single(s => s.Id == queued.Id).Hex.Lifecycle);
+        foreach (int id in released.Members.Skip(1)) combat.Remove(id);
+        combat.AdmitEntries();
+        SquadState arrived = combat.SquadSnapshots().Single(s => s.Id == queued.Id);
+        Assert.Equal(UnitLifecycle.Alive, arrived.Hex.Lifecycle); Assert.Equal(released.Hex.Position, arrived.Hex.Position);
+        Assert.Equal(queued.Members, arrived.Members);
+        Assert.Equal(7, combat.Reservations.Positions.Length);
+        Assert.All(combat.Reservations.Positions.GroupBy(p => p.Cell), claims => Assert.Single(claims));
     }
 
     [Fact]
-    public void ReturnedEventDecisionAndVictimArraysCannotChangeHistory()
+    public void ReturnedEventAndVictimArraysCannotChangeHistory()
     {
         using var combat = new CombatSimulation(new(), seed: 1);
-        int id = CombatDecisionRegressionTests.At(combat, Faction.Adventurers, 11);
-        CombatDecisionRegressionTests.At(combat, Faction.Skeletons, 8);
+        int id = CombatFixture.Group(combat, UnitType.Swordsman, 1, 1, Faction.Adventurers, 23)[0];
+        CombatFixture.Group(combat, UnitType.Crossbowman, 3, 0, Faction.Skeletons, 24);
         UnitState actor = combat.Read(id);
         combat.Seed(actor with { Decision = actor.Decision! with { Route = [new(11, 1)], Visited = [17] } });
-        for (int tick = 1; tick < 20; tick++) combat.Step(tick, []);
+        for (int tick = 1; tick < 25; tick++) combat.Step(tick, []);
         CombatEvent[] before = combat.Events(); string expected = Profiling.LargeBattle.Digest(before);
         Assert.Contains(before, e => e.Victims.Length > 0);
-        Assert.Contains(before, e => e.Unit?.Decision?.Route.Length > 0);
+        // Decision routes at a committed attack are deliberately cleared. Their
+        // detached nonempty projection is covered by the complete snapshot test.
         foreach (CombatEvent entry in combat.Events())
         {
             if (entry.Victims.Length > 0) entry.Victims[0] = 999;

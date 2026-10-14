@@ -1,6 +1,6 @@
 namespace DevRunner;
 
-internal sealed record InspectorObservation(int Id, string Name, string Description, int Level, int Health, int MaximumHealth, int Damage, int Size, bool IsBoss, string Preview)
+internal sealed record InspectorObservation(int Id, string Name, string Description, int Level, int Health, int MaximumHealth, int Damage, int SquadId, bool IsBoss, string Preview)
 {
     public string StatsText { get; init; } = "";
     public double Fraction { get; init; }
@@ -35,7 +35,7 @@ internal sealed partial class Runner
         InspectorObservation inspected = opened.InspectedUnit!;
         Game.Core.MatchSnapshot snapshot = Latest(client);
         Game.Core.UnitState unit = snapshot.Players.SelectMany(city => city.Soldiers).Concat(snapshot.Enemies).Single(unit => unit.Id == inspected.Id);
-        Require(inspected.Health == unit.Health && inspected.MaximumHealth == unit.Profile.Health && inspected.Damage == unit.Profile.Damage && inspected.Level == unit.Level && inspected.Size == unit.Size && inspected.IsBoss == unit.IsBoss && inspected.Description.Length > 0 && inspected.Preview.Length > 0, "inspector uses selected unit's authoritative profile and bundled preview");
+        Require(inspected.Health == unit.Health && inspected.MaximumHealth == unit.Profile.Health && inspected.Damage == unit.Profile.Damage && inspected.Level == unit.Level && inspected.SquadId == unit.SquadId && inspected.IsBoss == unit.IsBoss && inspected.Description.Length > 0 && inspected.Preview.Length > 0, "inspector uses selected unit's authoritative profile and bundled preview");
         Require(inspected.StatsText.Contains(Game.Core.HealthPoints.Format(unit.Health) + "/" + Game.Core.HealthPoints.Format(unit.Profile.Health), StringComparison.Ordinal) && Math.Abs(inspected.Fraction - Game.Core.PresentationLimits.HealthFraction(unit.Health, unit.Profile.Health)) < .00001, "actual inspection label and health fill match authoritative values");
         Require(opened.SelectedSlot == before.SelectedSlot && AckSequence(client) == acknowledgements, "unit selection retains plot and submits no command");
         await Click(client, "UnitInspector", token);
@@ -48,15 +48,23 @@ internal sealed partial class Runner
             UiObservation switched = await UiProtocol.Probe(client, options.StartupTimeout, token);
             if (switched.InspectedUnit is { } other && other.Id != inspected.Id) { Require(switched.SelectedSlot == before.SelectedSlot, "direct unit replacement retains plot"); break; }
         }
-        await Click(client, "Plot0", token);
-        UiObservation dismissed = await WaitUi(client, p => p.InspectedUnit is null && p.SelectedSlot == 0, "outside plot click dismisses inspector and selects once", token);
+        int expectedSlot;
+        if (interior.SharedArenaVisible)
+        {
+            // Settlement plots are hidden in the connected arena. An ordinary
+            // empty-world click dismisses without issuing a deployment command.
+            expectedSlot = before.SelectedSlot;
+            await FocusWorld(client, token);
+        }
+        else { expectedSlot = 0; await Click(client, "Plot0", token); }
+        UiObservation dismissed = await WaitUi(client, p => p.InspectedUnit is null && p.SelectedSlot == expectedSlot, "outside click dismisses inspector without duplicate world action", token);
         Require(AckSequence(client) == acknowledgements, "inspection and dismissal remain cosmetic");
         UiTarget unitTarget = dismissed.Targets.First(pair => pair.Key.StartsWith("Unit", StringComparison.Ordinal) && pair.Key != "UnitInspector" && pair.Value.Visible).Value;
         await client.Send(FormattableString.Invariant($"mouse-down {unitTarget.X} {unitTarget.Y}"));
         await client.Send(FormattableString.Invariant($"mouse-move {unitTarget.X + 40} {unitTarget.Y + 20}"));
         await client.Send(FormattableString.Invariant($"mouse-up {unitTarget.X + 40} {unitTarget.Y + 20}"));
         UiObservation dragged = await UiProtocol.Probe(client, options.StartupTimeout, token);
-        Require(dragged.InspectedUnit is null && dragged.SelectedSlot == 0, "drag over units suppresses unit and plot selection");
+        Require(dragged.InspectedUnit is null && dragged.SelectedSlot == expectedSlot, "drag over units suppresses unit and plot selection");
         await Click(client, "ResetView", token);
     }
     private static long AckSequence(Child client) => client.History().Where(entry => entry.Type == "ack").Select(entry => entry.Result!.Sequence).DefaultIfEmpty().Max();

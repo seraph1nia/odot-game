@@ -20,7 +20,12 @@ public sealed record BuildingDefinition(Building Type, ResourceCost Construction
 {
     public int Output(int level) => level switch { 1 => LevelOneOutput, 2 => LevelTwoOutput, _ => 0 };
 }
-public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks, int VictimCap, int SplashHexRadius);
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record TowerDefinition(Building Type, int Level, int Damage, int WindupTicks, int CadenceTicks)
+{
+    public int SecondaryDamage { get; init; }
+    public int HexRange { get; init; }
+}
 public sealed record UnitDefinition(UnitType Type, UnitClass Class, ResourceCost Recruitment, WeaponProfile Profile, int Upkeep = 1);
 public static class Catalogs
 {

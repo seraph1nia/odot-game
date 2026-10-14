@@ -6,6 +6,9 @@ using Xunit.Abstractions;
 
 namespace Game.Core.Tests;
 
+// Retained full-victory/economic acceptance on CURRENT source semantics. The
+// three Building END incomes plus fourth income-free Preparation edit are
+// provisional, not qualification of the unlanded three-preparation ship.
 internal static class CampaignAcceptance
 {
     public static object? Run(ITestOutputHelper output, string strategy, int players, ulong seed, Profiling.Measurements? measurement = null, WorkCounters? work = null, Profiling.CampaignTrace? trace = null)
@@ -44,9 +47,11 @@ internal static class CampaignAcceptance
                     MatchSnapshot before = match.Snapshot();
                     if (CampaignStrategy.Next(before, city.Id, strategy) is not EconomyAction decision) { state = before.Players.Single(p => p.Id == city.Id); break; }
                     Assert.True(actions++ < 100, "Economy policy did not reach a finite ready state.");
-                    Command command = decision.Command(before, city.Id);
+                    Command command = decision.Command(before, city.Id, before.Revision + 1);
                     if (trace is not null) { measurement?.Enter("evidence"); trace.Command(command); measurement?.Enter("preparation"); }
-                    CommandResult result = match.Apply(city.Id, command); Assert.True(result.Accepted, result.Message);
+                    // Same exact payment, veteran, homogeneous home, Hall and
+                    // typed claim guards as the detailed provisional baselines.
+                    _ = PaidCampaignFixture.Apply(match, city.Id, decision);
                     if (decision.Action == "recruit")
                     {
                         recruits++; recruitedRoles.Add(decision.Unit);

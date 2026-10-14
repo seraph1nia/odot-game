@@ -22,24 +22,7 @@ public sealed record HexEntryDefinition(Faction Faction, int[] RearCells, int[] 
 public sealed record HexBoardDefinition(string Id, int Version, int Capacity, HexCellDefinition[] Cells,
     HexAnchor[] Anchors, HexEntryDefinition[] Entries, int[] SiegeCells)
 {
-    public static HexBoardDefinition Default()
-    {
-        var cells = new List<HexCellDefinition>();
-        for (int row = -5; row <= 1; row++)
-            for (int column = -1; column <= 1; column++)
-                cells.Add(new(cells.Count + 1, HexCoordinate.FromOffset(column, row),
-                    row == -5 ? DeploymentAffinity.Skeletons : row == 1 ? DeploymentAffinity.Adventurers : DeploymentAffinity.Neutral, []));
-        HexCellDefinition[] graph = cells.Select(c => c with
-        { Neighbors = cells.Where(n => n.Id != c.Id && n.Coordinate.Distance(c.Coordinate) == 1).Select(n => n.Id).ToArray() }).ToArray();
-        // Six distinct render anchors accommodate up to six size-one actors.
-        // Anchors carry no size or geometry-based capacity rule.
-        int[] x = [-900, 0, 900, -900, 0, 900], forward = [-550, -550, -550, 550, 550, 550];
-        HexAnchor[] anchors = Enumerable.Range(0, 6).Select(i => new HexAnchor(i + 1, x[i], forward[i])).ToArray();
-        int[] Row(int row, bool reverse = false) => graph.Where(c => c.Coordinate.R == row).OrderBy(c => Math.Abs(c.Coordinate.Column))
-            .ThenBy(c => reverse ? -c.Coordinate.Column : c.Coordinate.Column).Select(c => c.Id).ToArray();
-        return new("village-hex", 2, 6, graph, anchors,
-            [new(Faction.Adventurers, Row(1), Row(0)), new(Faction.Skeletons, Row(-5, true), Row(-4, true))], Row(0));
-    }
+    public static HexBoardDefinition Default() => new SharedArena([1]).Board.Definition();
 }
 
 public sealed class HexCell
@@ -61,7 +44,6 @@ public sealed class HexBoard
     private readonly FrozenDictionary<int, HexCell> _cells;
     private readonly FrozenDictionary<int, HexAnchor> _anchors;
     private readonly FrozenDictionary<(int Source, int Destination), int> _distances;
-    private readonly FrozenDictionary<(Faction Faction, int Source, int Destination), int> _movementDistances;
     private readonly FrozenDictionary<(HexPosition Source, HexPosition Destination), HexTransition> _transitions;
     private readonly FrozenDictionary<Faction, (ReadOnlyCollection<int> Rear, ReadOnlyCollection<int> Front)> _entries;
     private readonly FrozenDictionary<int, int> _cityDistances;
@@ -80,8 +62,8 @@ public sealed class HexBoard
         ArgumentNullException.ThrowIfNull(definition);
         if (definition.Cells is null || definition.Anchors is null || definition.Entries is null || definition.SiegeCells is null)
             throw new ArgumentException("Missing board data.", nameof(definition));
-        if (string.IsNullOrWhiteSpace(definition.Id) || definition.Version < 1 || definition.Capacity != 6
-            || definition.Cells.Length is < 2 or > 256 || definition.Anchors.Length != 6)
+        if (string.IsNullOrWhiteSpace(definition.Id) || definition.Version < 1 || definition.Capacity is not (1 or 6)
+            || definition.Cells.Length is < 2 or > 256 || definition.Anchors.Length != definition.Capacity)
             throw new ArgumentException("Invalid board identity or bounded capacity/topology.", nameof(definition));
         Id = definition.Id; Version = definition.Version; Capacity = definition.Capacity;
         if (definition.Cells.Any(c => c is null || c.Neighbors is null || c.Id <= 0 || !Enum.IsDefined(c.Affinity)
@@ -108,9 +90,9 @@ public sealed class HexBoard
         }
         _distances = distances.ToFrozenDictionary(); Diameter = distances.Values.Max();
         if (definition.Anchors.Any(f => f is null || f.Id <= 0 || Math.Abs((long)f.AnchorX) > 10000 || Math.Abs((long)f.AnchorForward) > 10000)
-            || definition.Anchors.Select(f => f.Id).Distinct().Count() != 6
-            || definition.Anchors.Select(f => (f.AnchorX, f.AnchorForward)).Distinct().Count() != 6)
-            throw new ArgumentException("Six distinct bounded render anchors are required.", nameof(definition));
+            || definition.Anchors.Select(f => f.Id).Distinct().Count() != definition.Capacity
+            || definition.Anchors.Select(f => (f.AnchorX, f.AnchorForward)).Distinct().Count() != definition.Capacity)
+            throw new ArgumentException("Distinct bounded render anchors matching board capacity are required.", nameof(definition));
         Anchors = Array.AsReadOnly(definition.Anchors.OrderBy(f => f.Id).ToArray());
         _anchors = Anchors.ToFrozenDictionary(f => f.Id);
         if (definition.Entries.Length != 2 || definition.Entries.Any(e => e is null || e.RearCells is null || e.FrontCells is null)
@@ -128,14 +110,6 @@ public sealed class HexBoard
             entries.Add(entry.Faction, (Array.AsReadOnly(entry.RearCells.ToArray()), Array.AsReadOnly(entry.FrontCells.ToArray())));
         }
         _entries = entries.ToFrozenDictionary();
-        var movementDistances = new Dictionary<(Faction, int, int), int>();
-        foreach (Faction faction in Enum.GetValues<Faction>())
-            foreach (HexCell source in Cells.Where(c => Allows(faction, c.Id)))
-            {
-                var search = new HexReachability(this, source.Id, cell => Allows(faction, cell));
-                foreach ((int cell, int distance) in search.Distances) movementDistances.Add((faction, source.Id, cell), distance);
-            }
-        _movementDistances = movementDistances.ToFrozenDictionary();
         if (definition.SiegeCells.Length == 0 || definition.SiegeCells.Distinct().Count() != definition.SiegeCells.Length
             || definition.SiegeCells.Any(id => !_cells.ContainsKey(id) || Cell(id).Affinity != DeploymentAffinity.Neutral))
             throw new ArgumentException("City anchor requires neutral siege links.", nameof(definition));
@@ -171,9 +145,8 @@ public sealed class HexBoard
     public HexCell Cell(int id) => _cells[id];
     public HexAnchor Anchor(int id) => _anchors[id];
     public int Distance(int source, int destination) => _distances[(source, destination)];
-    public int MovementDistance(Faction faction, int source, int destination) => _movementDistances.GetValueOrDefault((faction, source, destination), int.MaxValue);
     public int CityDistance(int source) => _cityDistances[source];
-    public bool Allows(Faction faction, int cell) => Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
+    public bool Allows(Faction faction, int cell) => Capacity == 1 || Cell(cell).Affinity is DeploymentAffinity.Neutral || Cell(cell).Affinity == Affinity(faction);
     public ReadOnlyCollection<int> Rear(Faction faction) => _entries[faction].Rear;
     public ReadOnlyCollection<int> Front(Faction faction) => _entries[faction].Front;
     public HexTransition Transition(HexPosition source, HexPosition destination) => _transitions[(source, destination)];
