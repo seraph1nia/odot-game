@@ -73,7 +73,7 @@ public sealed class CampaignTests
         foreach (CampaignDefinition campaign in invalid) Assert.ThrowsAny<ArgumentException>(() => new Match(new Rules { Campaign = campaign }));
         Assert.Throws<OverflowException>(() => new Match(new Rules { Campaign = new([new(1, false, [new(UnitType.Swordsman, 100)], default)]) }));
         using Match supported = Start(rules: new Rules { Campaign = new([new(1, false, [new(UnitType.Swordsman, 6)], default)]) });
-        Begin(supported); Assert.Equal(6, Assert.Single(supported.Enemies).Level); Assert.Equal(17900, supported.Enemies[0].Profile.Health);
+        Begin(supported); Assert.Equal(6, Assert.Single(supported.Enemies).Level); Assert.Equal(13425, supported.Enemies[0].Profile.Health);
     }
 
     [Theory]
@@ -110,7 +110,7 @@ public sealed class CampaignTests
         }
         match.SetConnected(2, false); Begin(match);
         Assert.Equal(3, match.Enemies.Count); Assert.Equal(2, match.Enemies.Count(e => e.Destination == 1));
-        Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(1, e.Hex!.Size); Assert.Equal(58400, e.Profile.Health); });
+        Assert.All(match.Enemies, e => { Assert.True(e.IsBoss); Assert.Equal(3, e.Level); Assert.Equal(1, e.Hex!.Size); Assert.Equal(43800, e.Profile.Health); });
         UnitState inherited = Assert.Single(match.Enemies, e => e.Origin == 3); Assert.Equal(1, inherited.Destination);
         match.Combat.Seed(inherited with { Health = inherited.Health - 1000 }); inherited = match.Combat.Read(inherited.Id);
         string foodBefore = JsonSerializer.Serialize(match.Players[2].LastUpkeep); int food = match.Players[2].Food;

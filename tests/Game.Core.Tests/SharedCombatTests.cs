@@ -37,7 +37,7 @@ public sealed class SharedCombatTests
     [Fact]
     public void OverkillStaysOnPrimaryWhileOtherMembersKeepIndividualHealth()
     {
-        using var combat = new CombatSimulation(new() { SoldierDamage = 500 });
+        using var combat = new CombatSimulation(new() { EnemyPowerPercent = 100, SoldierDamage = 500 });
         Group(combat, UnitType.Swordsman, 1, 1, Faction.Adventurers, 17);
         int[] defenders = Group(combat, UnitType.Swordsman, 3, 0, Faction.Skeletons, 18);
         combat.StartActions([]); combat.Advance(12, []);
@@ -98,7 +98,7 @@ public sealed class SharedCombatTests
         match.Combat.Seed(match.Combat.Inspect(enemy) with { Location = new(UnitLifecycle.Alive, new(approach, 1)) });
         int injured = city.Soldiers[0].Id;
         match.Combat.Seed(match.Combat.Inspect(injured) with { Health = HealthPoints.FromWhole(33) });
-        city.Health = HealthPoints.FromWhole(5);
+        city.Health = match.Combat.Read(enemy).Profile.StructureDamage; // one actual enemy impact
         MatchSnapshot before = match.Snapshot();
         for (int tick = 0; tick < 20 && !city.Eliminated; tick++) { before = match.Snapshot(); match.Step(); }
         Assert.True(city.Eliminated); Assert.Equal(Phase.Combat, match.Phase);
@@ -208,7 +208,7 @@ public sealed class SharedCombatTests
     [Fact]
     public void WatchpostBreakDisruptsOnlyItsParticipatingOwnerOnceAndAppliesToCommittedDirectDamage()
     {
-        using var match = new Match(new() { MageDamage = 20, DefenderDamage = 0, Arena = new() { WatchpostHealth = 5 } }, combatSeed: 7);
+        using var match = new Match(new() { EnemyPowerPercent = 100, MageDamage = 20, DefenderDamage = 0, Arena = new() { WatchpostHealth = 5 } }, combatSeed: 7);
         match.Join(); match.Join(); City[] owners = match.Players.Values.ToArray(); var arena = new SharedArena([1, 2]);
         int[] affected = Group(match.Combat, UnitType.Mage, 3, 1, Faction.Adventurers, arena.Deployment(1, 0));
         int[] helper = Group(match.Combat, UnitType.Mage, 3, 2, Faction.Adventurers, arena.Deployment(2, 0), 2);
@@ -251,7 +251,7 @@ public sealed class SharedCombatTests
     [Fact]
     public void LastKeepAndLastEnemyDyingTogetherEndsInDefeatNotClearReward()
     {
-        using var match = new Match(new() { MageDamage = 60, DefenderDamage = 0, Combat = new() { MageWindupTicks = 12, MageRecoveryTicks = 78 } }, combatSeed: 9);
+        using var match = new Match(new() { EnemyPowerPercent = 100, MageDamage = 60, DefenderDamage = 0, Combat = new() { MageWindupTicks = 12, MageRecoveryTicks = 78 } }, combatSeed: 9);
         City city = match.Join()!; long sequence = 0;
         void Ready(string action) => Assert.True(match.Apply(1, Command.FromSnapshot(match.Snapshot(), ++sequence, action, 1)).Accepted);
         Ready("start"); while (match.Phase != Phase.Combat) Ready("ready");

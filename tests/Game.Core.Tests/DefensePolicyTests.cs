@@ -15,7 +15,7 @@ public sealed class DefensePolicyTests
     }
     private static Match PaidTower(Building type, int players = 1)
     {
-        var match = new Match(new() { StartingGold = 100, StartingWood = 100, RangedHealth = 100, Arena = new() { SquadCapacity = 5 } }, combatSeed: 123);
+        var match = new Match(new() { EnemyPowerPercent = 100, StartingGold = 100, StartingWood = 100, RangedHealth = 100, Arena = new() { SquadCapacity = 5 } }, combatSeed: 123);
         try
         {
             for (int player = 0; player < players; player++) match.Join();

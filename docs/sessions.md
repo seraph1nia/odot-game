@@ -115,7 +115,12 @@ profiles, geometry or the full authoritative configuration fingerprint.
 distinguishes numbered preparation semantics from legacy four-check snapshots.
 [The payload codec](../src/Game/SnapshotPayload.cs) rejects a missing or mismatched
 version, Building turns other than 1/2, Preparation turns other than 3, and invalid
-combat-speed values. Historical snapshots are not silently migrated or treated
+combat-speed values. Serialized rules must include `EnemyPowerPercent` (1–100);
+missing historical strength fields are refused. Full compatibility identity binds
+that value, and next-wave/member profiles are validated with their faction.
+Received profiles and wounded HP are preserved, not reduced again; see
+[the enemy-strength rule](wave-power.md#baseline-and-rule).
+Historical snapshots are not silently migrated or treated
 as game saves. `SessionFile`'s credential/sequence schema is unchanged; reconnect
 to the same matching running authority retains the selected pace and forecast.
 `Command.UnitId` targets retire/store/send and `regroup-member`.
@@ -142,9 +147,9 @@ combat rules declared in [`CombatSettings`](../src/Game.Core/Combat/CombatConfig
 and the actor decision fingerprint. Both combat fingerprints contain actual
 rules-v7 inputs; retired size, victim-cap and radius authoring fields are refused,
 not retained as hidden decision inputs. The base-actor namespace excludes the
-optional Rapid Arrow/Bombard profiles, so changing only their timing changes full
-compatibility identity without rerolling unchanged squads, defenders or base
-weapons. `CombatConfigurationTests` covers complete identity round-trips and
+optional Rapid Arrow/Bombard profiles and `EnemyPowerPercent`, so changing only
+those inputs changes full compatibility identity without rerolling unchanged
+squads, defenders or base weapons. `CombatConfigurationTests` covers complete identity round-trips and
 observation-invariant reconstructed squad decisions;
 `ArmyPlotTowerTests.BaseTowerSelectionIgnoresOptionalUpgradeTimingWithOneSaltCounterfactual`
 checks that isolation against a full-identity counterfactual. Snapshot codec/load

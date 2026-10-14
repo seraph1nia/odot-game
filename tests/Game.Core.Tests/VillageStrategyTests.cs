@@ -93,7 +93,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.True(Act(match, 1, "recruit", 0, unit: type).Accepted);
         Assert.Equal(HealthPoints.Ranked(old.Profile.Health, 1), city.Soldiers[^1].Health);
         using var combat = new CombatSimulation(new()); int skeleton = combat.Create(type, 0, 1, 1, Faction.Skeletons, capabilities: researched.Capabilities);
-        Assert.Equal(city.Soldiers[^1].Profile, combat.Read(skeleton).Profile);
+        Assert.Equal(WavePowerBaseline.Reduced(city.Soldiers[^1].Profile), combat.Read(skeleton).Profile);
     }
     [Theory]
     [InlineData(0UL)]

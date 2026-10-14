@@ -1976,3 +1976,83 @@ acknowledged dense overview label overlap; four-owner pixels, universal
 readability, GPU performance and terminal-freeze pixels are not claimed.
 Pure-Crossbow paid opening/progression stays explicitly deferred. No merge,
 archive or release was performed.
+
+## Wave power rebalance (2026-10-14)
+
+Baseline: shared-arena `4430c3ed1d2de402ae40f404d82404036e076959`, not
+reduced defaults. [Wave power](wave-power.md) preserves the coefficients,
+all twenty before/after compositions/powers and seven finite paid opening pairs.
+That reference owns the enemy-strength rule, additive score and its distinction
+from experiential difficulty; this section owns coverage and execution receipts.
+
+Coverage admission and fixture changes:
+
+- `WavePowerTests` is Tier A: real forecast/live/serialized rules, all20waves,
+  original rosters1..4 and all co-op widths with one controlled fallen owner.
+  It catches double application, faction cache collisions, changed players,
+  lost inherited pressure, profile/identity mismatch and missing strength fields.
+  Deterministic seed123,140 short transition boundaries, no child processes.
+  Existing catalog tests alone did not protect the new profile resolution seam.
+- `WavePowerEncounterTests` is explicit Tier E: seven baseline/current paid
+  opening pairs plus three selected baseline/current twenty-wave role horizons,
+  fixed seeds1/123, existing100000step/100decision bound and ordered event reader.
+  Strictly lower first-wave soldier HP loss, no extra deaths/Keep loss, unchanged
+  opening payment/army and retained progress are asserted. Melee/mixed retain
+  victory assertions; ranged losses are measured honestly, not relabeled wins.
+- Default faction-symmetry/HP goldens now assert independent75% expected profiles.
+  Synthetic exact-damage/timing/screen tests explicitly retain100% enemy inputs
+  where their purpose is symmetric arithmetic, not default-wave acceptance.
+  The historical paid three-city casualty/authority negative likewise retains its
+  original100% input; new75% paid co-op evidence is separate. No assertion, skip
+  policy, deadline or acceptance requirement is relaxed to make a test green.
+- Controlled receiving/active-fallen fixtures use one **actual enemy structural
+  impact** as the wounded Keep threshold (field3.75HP, stored2.25HP), not the old
+  five-HP constant. The100HP protected control, actual destruction/active-impact,
+  stored service, owner denial, claims, codec and same-host resume assertions stay.
+  The isolated Hall elimination test fixes its enemy pose beside the wounded
+  Keep, rather than relying on an approach-time winner. These remain controlled
+  numerical negatives, not earned injury or difficulty compensation.
+
+Selected later paired paid outcomes (seed1, solo, normal prices):
+
+| Policy | Baseline clear/outcome | Current clear/outcome | Combat ticks before→after | Casualties before→after |
+| --- | --- | --- | ---: | ---: |
+| Frontline | 20/Victory | 20/Victory | 4678→4139 | 41→29 |
+| Mixed | 20/Victory | 20/Victory | 3965→3626 | 39→24 |
+| Ranged | 2/Defeat | 20/Victory | 1755→3897 | 8→17 |
+
+The ranged casualty total rises because the current army fights eighteen more
+waves; it is not an equal-horizon attrition comparison. Baseline W3 loss remains
+recorded. Existing funded-support acceptance also wins all20waves at1/2/3/4
+owners, seed1:4139/4563/4773/4682combat ticks and29/55/85/109casualties.
+This finite sample is not every seed/strategy or a graphical playability proof.
+
+Execution receipts, all headless, local ignored evidence:
+
+| Selected coverage | Result | Evidence |
+| --- | --- | --- |
+| Locked restore, serial/no-server solution build, required analyzers, `dotnet format Odot.slnx --no-restore` | Passed | `logs/wave-power-{restore,build,format}.log` |
+| Targeted all-wave/faction/receipt coverage | 9 passed,20.22s phase | `logs/20261014-193328-31627648` |
+| Affected existing fast core assertions | 165 passed,20.04s phase | `logs/20261014-192516-4bbf7630` |
+| Paired paid opening/late encounters | 10 passed,26.70s phase | `logs/20261014-192908-58b850c9`; JSON pairs `logs/wave-power-paid/*-enemy{100,75}.json` |
+| Existing all-width funded support campaign acceptance | 4 passed,39.28s phase | `logs/20261014-193409-77030a24` |
+| Final broad fast core + runner | 737 core +651 runner passed,2 platform skips;59.50s/15.89s phases | `logs/20261014-193449-1a1a8cc6` |
+| Real ENet controlled active-fallen receiving/resume | Passed,23.11s scenario | `logs/20261014-192957-3108ed69` |
+| Real ENet stored eliminated-resume | Passed,52.65s scenario | `logs/20261014-193038-ac81d221` |
+
+Initial preparation failed with MSB4166 (restore child node exited), then
+CSharpFormattingAnalyzer AD0001/NullReferenceException in Game.Core; formatter
+also reported a Roslyn body-binding NullReferenceException, without a source
+file/line. Bounded diagnosis preserved the patch, built clean landed core under
+the same locked SDK, then changed core without/with the new score file; all
+isolated builds succeeded. Full formatter/solution build subsequently passed
+with required checks intact. No reproducible syntax trigger or SDK defect was
+established, and no analyzer was disabled. The original broad fast run exposed41
+expected old-strength assumptions; the repairs above preserve their meaningful
+arithmetic/authority outcomes. Final broad fast coverage is green.
+
+Unexecuted here: unfiltered deep/calibration/reference matrix, other transport
+selectors, Tier B native component suite, packages, native Windows checks,
+release/installer/Steam pairs, stress and every graphical test. The two runner
+platform skips are not claimed as executed. No install/global configuration,
+visual UI/asset changes, check waiver, merge, archive or release was performed.

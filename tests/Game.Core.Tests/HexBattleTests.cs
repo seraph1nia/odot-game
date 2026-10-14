@@ -33,7 +33,7 @@ public sealed class HexBattleTests
     [InlineData(130, false)]
     public void CommittedImpactUsesExclusiveSourceUntilExactSquadArrival(int impactTick, bool landed)
     {
-        using var combat = new CombatSimulation(new() { RangedHealth = 10, SoldierDamage = 4 });
+        using var combat = new CombatSimulation(new() { EnemyPowerPercent = 100, RangedHealth = 10, SoldierDamage = 4 });
         int[] group = CombatFixture.Group(combat, UnitType.Crossbowman, 3, 1, Faction.Adventurers, 17);
         int attacker = CombatFixture.Group(combat, UnitType.Swordsman, 1, 0, Faction.Skeletons, 18)[0];
         CombatUnit mover = combat.Inspect(group[0]);
@@ -164,7 +164,8 @@ public sealed class HexBattleTests
     {
         (int Health, int FirstTarget, int Screen, int Support, long FirstShot) Run(bool screened)
         {
-            using var combat = new CombatSimulation(new(), seed: 123);
+            // Fixed screen/exposed numerical control, not campaign balance.
+            using var combat = new CombatSimulation(new() { EnemyPowerPercent = 100 }, seed: 123);
             int enemy = CombatFixture.Group(combat, UnitType.Swordsman, 1, 0, Faction.Skeletons, 10)[0];
             int[] screen = CombatFixture.Group(combat, UnitType.Swordsman, 3, 1, Faction.Adventurers, 17);
             int support = CombatFixture.Group(combat, UnitType.Crossbowman, 1, 1, Faction.Adventurers, 24)[0];

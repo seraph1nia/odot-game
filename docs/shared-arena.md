@@ -121,7 +121,8 @@ The selected `test-network --scenario eliminated-resume` uses genuine headless
 ENet peers on the original playing host. Its ordinary paid prefix completes two
 waves with all Keeps alive and stores a served veteran. During W3 the
 `fallen-stored`/`protected-stored` fixture removes all but one enemy, relocates
-squads and sets the third Keep to 5 versus 100 HP. This is controlled elimination,
+squads and sets the third Keep to one actual enemy structural impact versus
+100 HP (see [`CombatReceivingEncounter`](../src/Game.Core/Combat/CombatReceivingEncounter.cs)). This is controlled elimination,
 not a default-paid eliminated-stored campaign witness. The next allocation is W4.
 
 The selector verifies accepted command accounting, exact paused roster/HP/injury/
@@ -138,7 +139,8 @@ eliminated-stored acceptance remains unestablished.
 **The ENet survivor is stored, not an actively fighting fallen-owner unit.** Active
 survivor continuation is separately covered by a controlled production
 `World.Step`/compressed-receiving encounter: paid IDs/formations plus explicit
-arithmetic poses, a wounded member and a five-HP Keep. Keep loss preserves current
+arithmetic poses, a wounded member and the one-impact Keep threshold described
+above. Keep loss preserves current
 source/action/claims and individual HP; a later fallen-owner strike lands, service
 persists, and its members become nonparticipating reserves next wave. The same-tick
 last-enemy/last-Keep codec witness still requires defeat, no reward and valid claims.
@@ -162,8 +164,8 @@ and native artistic acceptance remain separate.
 existing production playing-host/ENet/session/codec owners. Two identified
 six-member field rosters start through actual commands; the named owned fixture
 explicitly supplies synthetic tower materials, physical poses, a 33-HP member,
-one retained enemy and a 5-HP Keep. Its paired disconfirming control changes only
-that Keep to 100 HP. This is **controlled numerical/transport proof, not earned
+one retained enemy and the same one-impact Keep threshold. Its paired
+disconfirming control changes only that Keep to 100 HP. This is **controlled numerical/transport proof, not earned
 injury/economy/balance, full-game or complete network/reconnect acceptance**.
 The one-shot source-defined seam requires an owned supervised headless loopback
 playing host, seed1 and a named case; an owned guest is actually refused before
@@ -188,13 +190,12 @@ exactly three editable preparations/production settlements, final END immediatel
 entering combat, accepted global speed and authoritative next-wave preview.
 Historical ten-win/four-W1-loss diagnostics are not current-source acceptance.
 
-Recovery sets shared Crossbow40HP/12X and requires normal-profile six-member
-strength, not earned pure-ranged openings. Both retained full-six controls pass;
-actual three-member opening and later attrition losses remain deferred balance
-work by owner decision. Funded cooperative policies prioritize six paid early
-members before optional infrastructure. Exact current receipts, rescue attribution,
-late diagnostic losses and unexecuted boundaries remain in the linked baselines
-and testing audit rather than being hidden behind accounting passes.
+The linked baselines retain the pre-rebalance recovery decision: full-six
+Crossbow arithmetic survival was required, while paid pure-ranged progression
+was deferred. Those opening and attrition losses are historical, not outcomes
+under current enemy profiles. [Wave power](wave-power.md#headless-encounter-evidence)
+owns the current finite paired paid measurements and their limitations;
+rescue attribution and earlier diagnostics remain in the historical baselines.
 
 ## Native presentation
 

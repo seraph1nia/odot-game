@@ -13,6 +13,9 @@ public sealed record Rules
     public ArenaSettings Arena { get; init; } = new();
     public ResearchSettings Research { get; init; } = new();
     public ArmySettings Army { get; init; } = new();
+    // Enemy-only strength: counts, equipment levels and player profiles stay intact.
+    [System.Text.Json.Serialization.JsonRequired]
+    public int EnemyPowerPercent { get; init; } = 75;
     public int CityHealth { get; init; } = 100;
     public int StartingGold { get; init; } = 12;
     public int BaseGold { get; init; } = 2;
@@ -486,7 +489,7 @@ public sealed class Match : IDisposable
         int assigned = 0;
         void Add(int origin, int destination, SpawnEntry entry)
         {
-            WeaponProfile profile = _combat.Profile(entry.Type, entry.Rank, entry.IsBoss, entry.Level);
+            WeaponProfile profile = _combat.Profile(entry.Type, entry.Rank, entry.IsBoss, entry.Level, Faction.Skeletons);
             // Negative forecast identities cannot collide with allocated live IDs.
             int id = _nextPreviewId;
             _nextPreviewId = checked(_nextPreviewId - 1);

@@ -118,6 +118,7 @@ public sealed class ArmyRecoveryTests
             Act(match, "recruit", 0); int id = match.Players[1].Soldiers.Single().Id; Act(match, "store", 1, id);
             match.Players[1].Health = 1; // Isolated elimination boundary, not paid balance evidence.
             for (int i = 0; i < 3; i++) Act(match, "ready");
+            CombatFixture.AtCityEdge(match, resetRecovery: true); // defeat boundary, not an approach-time winner golden
             for (int ticks = 0; ticks < 2000 && match.Phase == Phase.Combat; ticks++) match.Step();
             Assert.Equal(Phase.Defeat, match.Phase); Assert.True(match.Players[1].Eliminated);
             UnitState retained = Assert.Single(match.Players[1].Soldiers);

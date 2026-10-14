@@ -181,9 +181,9 @@ internal static class PaidCampaignFixture
         Assert.Equal(state.Reservations.Positions, rebuilt.Positions); Assert.Equal(state.Reservations.Transit, rebuilt.Transit);
     }
     internal static Result Run(ITestOutputHelper output, string family, int players, ulong seed, int maximumHomes = 6, int maximumTier = 5,
-        bool hallUpgrades = true, int stopAfterWave = 20)
+        bool hallUpgrades = true, int stopAfterWave = 20, Rules? rules = null)
     {
-        using var match = new Match(combatSeed: seed);
+        using var match = new Match(rules, combatSeed: seed);
         for (int i = 0; i < players; i++) match.Join();
         var commands = new List<Receipt>(); var waves = new List<Wave>();
         int ticks = 0; long healed = 0; ResourceCost recovery = default;
@@ -301,7 +301,7 @@ internal static class PaidCampaignFixture
         if (directory is not null)
         {
             Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, $"{family}-{players}-{seed}-homes{maximumHomes}-tier{maximumTier}-hall{hallUpgrades}-horizon{stopAfterWave}.json"), json);
+            File.WriteAllText(Path.Combine(directory, $"{family}-{players}-{seed}-homes{maximumHomes}-tier{maximumTier}-hall{hallUpgrades}-horizon{stopAfterWave}-enemy{match.Rules.EnemyPowerPercent}.json"), json);
         }
         output.WriteLine(json);
         return result;
