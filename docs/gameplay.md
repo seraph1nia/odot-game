@@ -69,30 +69,7 @@ The top-right text table shows **Resource**, **Stock** and **Income/production**
 
 The small **Upkeep** table directly underneath shows **Next battle** food demand and **Food after payment**. On shortage it shows the exact number of soldiers that **will sit out** for a field-only army, or **Unfunded soldiers** when Town hall storage is present: stored units never fight, even when funded. In final preparation the forecast includes the imminent production before funding soldiers; stock remains unchanged until readiness resolves. Six Swordsmen with forecast availability 15 show demand 6 and balance 9. Missing income or resource overflow shows an unavailable forecast rather than invented funding. A shortage alone does not disable Ready. Details retains the projected payment and the [field-first food allocation](#deterministic-hex-combat). Combat shows **Paid this battle · WN** and the actual payment/reserve count; outcomes show **Last battle · WN**. Fresh sessions clear old receipts. Both tables block world click, zoom and drag initiation. Producer controls show complete cost and output per turn; upgrades show current → next output, and disabled quotes explain **Need N more resource** with its producer source.
 
-Enemy pressure uses an authored twenty-wave catalog per original player. Entries expand in their listed order with the stated level and rank zero. `S/B/C/M` mean Swordsman/Berserker/Crossbowman/Mage; `3 S2` means three level-two Swordsmen. Counts and levels are unchanged by the [25% wave-power reduction](wave-power.md): every enemy now has 75% of the original leveled HP and primary/secondary/structural damage, while players retain the base stats and prices. The linked per-wave table and finite paid encounters distinguish the balance score from experiential difficulty.
-
-| Wave | Per-original-player entries |
-| --- | --- |
-| 1 | 4 S1 |
-| 2 | 3 S1, 1 B1 |
-| 3 | 3 S1, 2 C1 |
-| 4 | 3 S1, 1 B1, 1 C1, 1 M1 |
-| 5 | 3 S2, 1 C1 |
-| 6 | 3 S2, 1 B2, 1 C1 |
-| 7 | 3 S2, 2 C2, 1 M1 |
-| 8 | 3 S2, 2 B2, 2 C2, 1 M2 |
-| 9 | 3 S3, 1 B2, 1 C2, 1 M2 |
-| 10 | 1 S3 boss |
-| 11 | 3 S3, 2 C2 |
-| 12 | 3 S3, 1 B3, 2 C3 |
-| 13 | 3 S3, 2 C3, 1 M3 |
-| 14 | 3 S3, 2 B3, 2 C3, 1 M3 |
-| 15 | 3 S4, 1 C3, 1 M3 |
-| 16 | 3 S4, 1 B4, 2 C4 |
-| 17 | 3 S4, 2 C4, 1 M4 |
-| 18 | 3 S4, 2 B4, 2 C4, 1 M4 |
-| 19 | 3 S5, 1 B4, 2 C4, 1 M4 |
-| 20 | 1 S5 boss |
+Enemy pressure uses an authored twenty-wave catalog per original player, expanding entries in their listed order with the stated level and rank zero. See [every configured wave](wave-power.md#every-configured-wave) for the compositions and [the enemy-strength rule](wave-power.md#baseline-and-rule) for profile scaling and the distinction between balance score and experiential difficulty.
 
 The built-in defender is the physical Watchpost weapon, with a two-damage shot every second outside the nine settlement plots. Unit and tower impacts share one simultaneous damage accumulator. Survivors retain identity, level and remaining health between waves; cities retain damage too. A normal shared clear awards each surviving city two gold, five food and one wood; boss clears double those values. Disconnected survivors receive rewards, fallen cities do not. Local clear gives nothing while other living or queued enemies remain. The final doubled reward is included in victory, without another production, upkeep payment or twenty-first wave. Total gross rewards are 44 gold, 110 food and 22 wood for a city surviving every default clear; net balances also include spending, upkeep and production. Rewards never supply stone, metal or cloth.
 
@@ -221,9 +198,8 @@ form homogeneous groups in canonical order; overflow retains identities until en
 | Crossbowman | 40 | 12 / 0 | 3 | 1 metal + 2 wood | 1 | 30 | 3 | 30 | 18 / 42 |
 | Mage | 25 | 12 / 4 | 4 | 3 cloth + 1 gold | 2 | 40 | 3 | 30 | 24 / 66 |
 
-These are player level-one bases; all death intervals are48ticks. Crossbow
-HP40/X12 remains the shared original base, but enemies now resolve 75% of HP
-and all damage channels after level/boss/rank scaling. Six Crossbowmen in two
+These are player level-one bases; all death intervals are48ticks. Enemy profiles
+follow [the wave-power rule](wave-power.md#baseline-and-rule) after level/boss/rank scaling. Six Crossbowmen in two
 full squads survive the default W1 encounter at seeds1/123 with normal player
 profiles. That equipment/food fixture is arithmetic, not an earned opening.
 Earlier pure-ranged paid losses remain in the [historical baselines](paid-squad-baselines.md);
@@ -234,8 +210,8 @@ New recruits capture trainer level1..5. Veterans retain their own levels/wounds.
 HP and X/Y/structure scale from original bases by1.35 per level, rounding nearest
 whole point with midpoint ties upward, then boss/research stages. Swordsman HP
 is40/54/73/98/133 and X10/14/18/25/33. Default bosses are L3/L5 Swordsmen with
-8x leveled HP and2x direct damage, without phases/escorts, followed once by the
-enemy-only 75% strength rule (boss HP438/798 and primary damage27/49.5).
+8x leveled HP and2x direct damage, without phases/escorts, before enemy scaling;
+see [resolved boss stats and rounding](wave-power.md#rounding-minimums-bosses-and-receipts).
 Equipment components
 scale by1.35 with positive midpoint-up rounding; zeros remain zero. Recruitment
 never spends food or heals veterans. Surviving funded field participants gain
@@ -330,14 +306,14 @@ views, pose buffers and cursors.
 
 New entry visuals wait for their deployment snapshot’s common clock before appearing, preserving separation from interpolated neighbors. Surviving city-roster units retain their exact assignments and return to those homes only after all retained cosmetic bodies expire, including final victory. Stored units have no battlefield model or combat claim.
 
-The [coverage replacement ledger](testing-audit.md#coherent-admission-profile-and-compatibility-replacement-2026-10-13) owns the squad-era numerical fixture inventory. Arithmetic combat fixtures are not earned economy or paid campaign evidence; [paid squad baselines](paid-squad-baselines.md) record the ordinary-command strategies and their actual outcomes.
+The [coverage replacement ledger](testing-audit.md#coherent-admission-profile-and-compatibility-replacement-2026-10-13) owns the squad-era numerical fixture inventory. Arithmetic combat fixtures are not earned economy or paid campaign evidence; [paid squad baselines](paid-squad-baselines.md) retain historical ordinary-command strategies and outcomes, while [wave power](wave-power.md#headless-encounter-evidence) owns current paired paid evidence.
 
 
 The [historical four-phase campaign receipts](verification-history.md#simplified-building-economy-verification) own the finite strategy sample and paid policy transcripts; they do not qualify the current three-preparation spending windows.
 
 A producer upgrade adds one level-one output while saving a plot and gold compared with purchasing another plot and producer, but requires stone. At current rates, two turns of a level-one Metal Mine produce eight metal: selling five returns two gold and retains three metal, versus two gold from a level-one Gold Mine over the same turns; this consumes equipment stock and requires an additional paid Market. Markets and Gold Mines therefore have different land and supply costs. The receipt/action logs record stocks before/after commands, investment, individual army levels/health, forecast/actual rations, casualties, rewards, city health and per-wave ticks.
 
-[Paid squad baselines](paid-squad-baselines.md) own current earned progression evidence; [shared-arena receiving and resume](shared-arena.md#eliminated-owner-receiving-and-resume) distinguishes it from controlled elimination and real transport. The former occupied-source admission experiment is retained only in the [historical reconstruction checkpoint](battle-flow-reconstruction-coverage.md#authorized-split-paid-progression-and-genuinely-occupied-production-admission). The historical pre-buff Mage/Crossbowman role witness used six ordinary screen units against six ordinary enemies at seed 123, identical identities and the shared live interval. Mage equipment is 3 cloth/1 gold and upkeep two; Crossbow equipment is one metal/two wood and upkeep one. Both clear normally; effective support damage is 6400 versus 4000 hundredths, clearance 253 versus 283 ticks, and surviving army HP 17500 versus 16000 hundredths. No inflated enemy HP, seeded clustering or altered default profiles are used.
+[Current paired paid evidence](wave-power.md#headless-encounter-evidence) and [historical paid squad baselines](paid-squad-baselines.md) distinguish the rebalance from earlier earned progression; [shared-arena receiving and resume](shared-arena.md#eliminated-owner-receiving-and-resume) distinguishes it from controlled elimination and real transport. The former occupied-source admission experiment is retained only in the [historical reconstruction checkpoint](battle-flow-reconstruction-coverage.md#authorized-split-paid-progression-and-genuinely-occupied-production-admission). The historical pre-buff Mage/Crossbowman role witness used six ordinary screen units against six ordinary enemies at seed 123, identical identities and the shared live interval. Mage equipment is 3 cloth/1 gold and upkeep two; Crossbow equipment is one metal/two wood and upkeep one. Both clear normally; effective support damage is 6400 versus 4000 hundredths, clearance 253 versus 283 ticks, and surviving army HP 17500 versus 16000 hundredths. No inflated enemy HP, seeded clustering or altered default profiles are used.
 
 ## Purchased army homes and Town hall rotation
 

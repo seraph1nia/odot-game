@@ -1982,10 +1982,8 @@ archive or release was performed.
 Baseline: shared-arena `4430c3ed1d2de402ae40f404d82404036e076959`, not
 reduced defaults. [Wave power](wave-power.md) preserves the coefficients,
 all twenty before/after compositions/powers and seven finite paid opening pairs.
-New enemy-only HP/all-damage strength75 keeps member counts, levels, rewards,
-player profiles and prices. The additive HP/primary-DPS score is exactly75% for
-every configured wave in rational arithmetic; HP×DPS would instead be56.25%.
-Those are distinct models, not an experiential difficulty equivalence.
+That reference owns the enemy-strength rule, additive score and its distinction
+from experiential difficulty; this section owns coverage and execution receipts.
 
 Coverage admission and fixture changes:
 

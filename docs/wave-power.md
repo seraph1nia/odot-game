@@ -110,12 +110,9 @@ health has a one-fixed-point minimum. Such custom inputs need not be exactly 75%
 in this model. All configured waves are rank zero and have no such error. Tiny
 repeating-decimal cadence arithmetic is not a gameplay rounding difference.
 
-Forecast and live creation share faction-aware profile resolution. Cache keys
-include faction; received wounded HP/profiles are preserved, not scaled again.
-Rules include the percentage in full compatibility identity but **not** actor
-random-choice identity, preserving deterministic seeded namespaces. Reloaded
-rules keep 75 rather than stacking another reduction. Missing historical
-strength fields are refused, not silently reinterpreted as a new default.
+Forecast and live creation share faction-aware profile resolution, with faction
+included in cache keys. [Session compatibility](sessions.md) owns required rule
+fields, fingerprint/actor-namespace separation and received-profile preservation.
 
 ## Headless encounter evidence
 

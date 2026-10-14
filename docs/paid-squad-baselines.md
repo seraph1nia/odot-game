@@ -1,13 +1,14 @@
 # Paid squad numerical baselines — provisional (2026-10-13)
 
-These are **numerical measurements, not final redesigned balance or delivery
-acceptance**. The landed three-preparation/speed/preview prerequisite is now
-integrated in the working tree. The current integrated measurements below
-supersede, but do not erase, the historical four-edit measurements.
+These are **historical numerical measurements, not current balance or delivery
+acceptance**. They precede the enemy-strength rebalance and use the original
+100% enemy profiles. The three-preparation measurements below supersede, but
+do not erase, the earlier four-edit measurements. See [wave power](wave-power.md#headless-encounter-evidence)
+for current paired paid encounters; the losses below remain historical evidence.
 
 ## Exact scope and economics dependency
 
-`PaidCampaignFixture` drives the production `Match` with default rules, ordinary
+`PaidCampaignFixture` drove the production `Match` with the then-default rules, ordinary
 accepted commands and fixed steps. It grants no money, materials, research,
 health, members or waves. Every investment checks the actual projected quote,
 resource delta, unchanged unrelated owners and persistent veteran identity/HP/
@@ -93,8 +94,8 @@ failure reason.
 | Purchased Arrow/Catapult towers | 1 | 123 | Victory W20 | 4,795 | 43 | 159 | 0 | 0 | 245 | 0 |
 
 The diagnostic matrix's **14 passing verification rows mean 12 actual victories
-and 2 actual defeats**, not fourteen winning campaigns. Pure ranged remains an
-unresolved paid-opening viability concern: even the real two-Lumbermill opening
+and 2 actual defeats**, not fourteen winning campaigns. Pure ranged was an
+unresolved paid-opening viability concern at this checkpoint: even the real two-Lumbermill opening
 fields only two Crossbowmen, loses both, then loses its Watchpost/Keep. The first
 attempt used the generic melee producer order, fielded no recruits and fell at
 764 ticks for both seeds. Its failure is retained rather than called ranged
@@ -221,7 +222,7 @@ then fallsW3/tick793 with only three paid replacements. No later full-six paid
 force was earned. These defeats are deferred balance work, never a landing win.
 
 
-## Funded cooperative recovery (2026-10-13)
+## Historical funded cooperative recovery (2026-10-13)
 
 The existing policy's `support` opening buys Farm0, MetalMines1/4 and explicit
 zero-wood4gold Lumbermill3. END1/2 earn16metal/10food/2wood. Before END3, sell
@@ -252,7 +253,7 @@ identity. This is earned help, separate from controlled active/stored ENet fixtu
 Final Keep survival is not substituted for that live impact predicate.
 
 
-### Final funded solo controls
+### Historical final funded solo controls
 
 The same ordinary six-member opening now precedes optional infrastructure for
 frontline/mixed/tower/research/reserve families. At seeds1/123 all ten controls

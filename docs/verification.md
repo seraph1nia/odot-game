@@ -143,11 +143,12 @@ final-head verification belongs to the outer validation phases.
 
 [Shared arena](shared-arena.md) owns current actors, objectives, native controls,
 woodland styling and protocol15/rules7/flow2. [Paid baselines](paid-squad-baselines.md)
-distinguish full-six Crossbow arithmetic survival from owner-deferred paid ranged
-openings, ten genuine solo wins and the finite1..4owner cooperative sample.
-The [audit](testing-audit.md#shared-arena-recovery-current-source-checkpoint-2026-10-13)
-records current-source receipts and intermediate failures; old four-edit or
-pre-trace receipts are historical. Compact native squad summaries expose each
+retain pre-rebalance full-six Crossbow arithmetic survival, the owner-deferred
+paid ranged openings, ten genuine solo wins and the finite1..4owner cooperative
+sample. [Wave power](wave-power.md#headless-encounter-evidence) owns the current
+paired paid measurements. The [audit](testing-audit.md#wave-power-rebalance-2026-10-14)
+records rebalance receipts and unexecuted coverage; earlier recovery, four-edit
+and pre-trace receipts remain historical. Compact native squad summaries expose each
 member's HP, while the inspector retains full individual details. Cosmetic
 death overlap grants no logical claim. Component/node correctness remains
 separate from explicitly authorized rendered combat and platform packages.
