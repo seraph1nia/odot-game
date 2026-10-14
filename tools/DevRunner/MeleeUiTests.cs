@@ -10,13 +10,17 @@ internal sealed partial class Runner
         await Pick(client, 0, token); await ClickAck(client, "Farm", token);
         await Pick(client, 2, token); await ClickAck(client, "MetalMine", token);
         await Action(client, "build 3 metalmine", token);
-        await Action(client, "build-recovery 4 lumbermill", token);
+        // Tier E fixture repair: the Plot 4 Lumbermill roof occludes the
+        // empty Plot 1 pick point in the real default camera. Core/animation
+        // checks cannot see native ray picking; swap the same paid buildings,
+        // not the input path, economy, army, seed or 12/65/70s proof bounds.
+        await Action(client, "build-recovery 1 lumbermill", token);
         for (int production = 1; production <= 2; production++)
         {
             await Action(client, "ready", token); MatchSnapshot resolved = State(await Action(observer, "ready", token));
             await Observe(client, s => s.Revision >= resolved.Revision && s.ProductionCount == production, "melee production synchronization", token);
         }
-        await Pick(client, 1, token); await ClickAck(client, "Barracks", token);
+        await Pick(client, 4, token); await ClickAck(client, "Barracks", token);
         for (int recruit = 0; recruit < 6; recruit++) await ClickAck(client, "Recruit", token);
         CityState army = Latest(client).Players.Single(c => c.Id == client.PlayerId);
         Require(army.Soldiers.Length == 6 && army.Soldiers.All(u => u.Type == UnitType.Swordsman)
@@ -179,8 +183,8 @@ internal sealed partial class Runner
                     {
                         if (state.Phase == Phase.Building)
                         {
-                            await Pick(client, 1, deadline.Token);
-                            ResourceCost cost = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[1].Level).Cost;
+                            await Pick(client, 4, deadline.Token);
+                            ResourceCost cost = city.RecruitmentQuotes.Single(q => q.Type == UnitType.Swordsman && q.Level == city.Slots[4].Level).Cost;
                             while (Latest(client).Players.Single(c => c.Id == client.PlayerId).Soldiers.Length < 6 && Latest(client).Players.Single(c => c.Id == client.PlayerId).Resources.TryPay(cost, out _)) await ClickAck(client, "Recruit", deadline.Token);
                         }
                         await Action(client, "ready", deadline.Token);
@@ -222,7 +226,11 @@ internal sealed partial class Runner
                     Require(frozen.CombatTick == close.CombatTick && JsonSerializer.Serialize(frozen.Units) == JsonSerializer.Serialize(close.Units),
                         "camera inspection does not change paused anchors, poses or actions");
                     await MeleeCapture(client, observer, "combat-melee-" + label + "-close", state, paused, phase, board, deadline.Token);
-                    await Click(client, "ResetView", deadline.Token); captures.Add(phase);
+                    // Each next milestone already resets and verifies overview
+                    // before acquisition. Do not spend the unchanged live bound
+                    // on a duplicate post-capture reset (especially after the
+                    // final proven close frame); shared resume remains required.
+                    captures.Add(phase);
                     if (phase == MeleeCoverage.Windup) firstSide = capturedSide;
                 }
                 await Action(observer, "resume", deadline.Token);

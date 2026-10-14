@@ -875,6 +875,12 @@ public partial class Main : Node, IGameSession
 
     private async Task DrainHostedPeer(MultiplayerPeer peer)
     {
+        // Guests only need the queued SessionEnded, not each other's departure.
+        // ENet can reset several peers before emitting the first disconnect;
+        // SceneMultiplayer's relay would then send to a zero-channel zombie.
+        SceneMultiplayer? scene = Multiplayer as SceneMultiplayer;
+        bool relay = scene?.ServerRelay == true;
+        if (scene is not null) scene.ServerRelay = false;
         ulong deadline = Time.GetTicksMsec() + (ulong)_connectionTimeout;
         do
         {
@@ -884,6 +890,7 @@ public partial class Main : Node, IGameSession
             && Multiplayer.GetPeers().Length != 0 && Time.GetTicksMsec() < deadline);
         ResetRpcNode();
         Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer(); peer.Close(); peer.Dispose();
+        if (scene is not null) scene.ServerRelay = relay;
         _drainingPeer = null;
         Action? next = _afterDrain; _afterDrain = null;
         if (_exiting) FinishExit(); else next?.Invoke();

@@ -12,7 +12,12 @@ internal sealed partial class Runner
     {
         Require(Math.Abs(frame.Camera.Zoom - 1) < 0.001 && Math.Abs(frame.Camera.PanX) < 0.001 && Math.Abs(frame.Camera.PanZ) < 0.001
             && Math.Abs(frame.Camera.BaseSize - frame.Camera.Size) < 0.001, "reset fitted overview");
-        Require(Enumerable.Range(0, 9).All(i => frame.Targets["Plot" + i].Visible), "all nine plots visible at overview");
+        // Tier E: the live melee capture resets the shared arena, where
+        // settlement plots are deliberately not pickable. Countryside below
+        // verifies every owner's arena cells/opaque coverage instead; retain
+        // the independent nine-plot contract for settlement camera checks.
+        if (!frame.SharedArenaVisible)
+            Require(Enumerable.Range(0, 9).All(i => frame.Targets["Plot" + i].Visible), "all nine plots visible at overview");
         WoodlandPresentation(frame);
         Countryside(frame);
     }

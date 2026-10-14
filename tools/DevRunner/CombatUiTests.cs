@@ -48,9 +48,13 @@ internal sealed partial class Runner
                     "melee connection follows the actual sampled target position");
             Require(strike.CueStyle == "physical-windup-local-strike" && strike.StrikeRadius is > 0 and <= .35f,
                 "melee uses physical windup and a bounded local strike rather than a spanning beam");
-            Require(actor.WeaponAttached && actor.EquipmentAligned && actor.AttackActive && actor.Clip == "attack"
+            // UnitView retains a brief hit observation while a committed attack
+            // still owns the attack blend. Accept that legal overlap globally;
+            // MeleeVisualProof still requires Clip=attack for earned coverage.
+            Require(actor.WeaponAttached && actor.EquipmentAligned && actor.AttackActive
+                && (actor.Clip == "attack" || actor.Clip == "hit" && actor.HitActive)
                 && (tick == actor.ActionStartTick || actor.AttackBlend > 0) && actor.BoneRotation.Length > 0,
-                "melee current action samples the attached weapon and imported attack pose");
+                "melee current action samples the attached weapon and imported attack pose or its current hit overlap");
             Require(tick < strike.ImpactTick ? strike.Phase == "intent" && !strike.StrikeVisible && !strike.ImpactVisible
                 : strike.Phase == (strike.AttackLanded == true ? "landed" : "miss") && strike.StrikeVisible,
                 "melee physical windup and local strike are separate current-action phases");

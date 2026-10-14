@@ -162,6 +162,25 @@ public sealed class MeleeVisualProofTests(ITestOutputHelper output)
         }) Assert.All(MeleeVisualProof.Inspect(broken, Board), w => Assert.Equal(MeleeCoverage.None, w.Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact | MeleeCoverage.Simultaneous)));
         Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(frame with { Strikes = frame.Strikes.Select(s => s with { StrikeRadius = 3 }).ToArray() }));
     }
+    // Tier A regression for the live checkpoint at tick 125: UnitView reports
+    // Clip=hit/HitActive on a still-committed Windup with AttackBlend=1. A global
+    // contact guard must not abort that legal frame; a flinch must not earn
+    // Windup/Impact coverage. Fixed paid W1, no native/rendered claim, <4000 ticks.
+    [Fact]
+    public void CurrentHitOverlapPreservesContactButCannotEarnAttackCoverage()
+    {
+        using Match match = Prepared(); Admit(match);
+        UiObservation frame = Frame(Windup(match));
+        int actor = frame.Strikes.First(s => s.Visible).Id;
+        UiObservation Overlap(bool hitting) => frame with
+        {
+            Units = frame.Units.Select(u => u.Id == actor ? u with { Clip = "hit", HitActive = hitting } : u).ToArray()
+        };
+        Runner.RenderedContact(Overlap(true));
+        Assert.Throws<InvalidOperationException>(() => Runner.RenderedContact(Overlap(false)));
+        Assert.All(MeleeVisualProof.Inspect(Overlap(true), Board).Where(w => w.Actor == actor),
+            w => Assert.Equal(MeleeCoverage.None, w.Coverage & (MeleeCoverage.Windup | MeleeCoverage.Impact | MeleeCoverage.Simultaneous)));
+    }
     [Fact]
     public void FreshHandoffPauseAndImmutablePersistenceKeepTheirOriginalGuards()
     {
