@@ -352,7 +352,7 @@ Survivors return to those persistent homes after cosmetic cleanup without healin
 
 ### Defense towers on army plots
 
-Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A squad-occupied plot cannot build a tower, even with unused member capacity. A tower excludes that complete home and its physical arena footprint, and no recruitment or Hall return can assign members there. Selling the tower removes its defense actor, retains purchased land and frees the whole footprint; it refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. This is persistent army capacity exclusion, not a new combat terrain/routing rule.
+Every empty owned army plot can hold a defense tower using the existing paid construction mechanism. A squad-occupied plot cannot build a tower, even with unused member capacity. A tower excludes that complete home and its physical arena footprint, and no recruitment or Hall return can assign members there. Selling the tower removes its defense actor, retains purchased land and frees the whole footprint; it refunds the existing component-wise half of actual construction and upgrade investment, never land. Existing city-plot towers remain clickable and use the same actions. See [shared arena topology](shared-arena.md#numerical-ownership) for reserved weapon footprints and battle movement.
 
 Click a base Arrow tower to inspect its damage/timing and choose exactly one paid upgrade:
 

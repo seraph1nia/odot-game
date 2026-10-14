@@ -650,7 +650,7 @@ public partial class Tabletop : Node3D
     }
     private void UpdateHealthBars()
     {
-        // Squad summaries own default health; individual HP is inspection-only.
+        // Squad summaries own default health overlays, including individual HP.
         ClearBars();
         _healthRoot.Size = new(_frameSize.X, Math.Max(0, _frameSize.Y - _panel.Size.Y));
         _healthRoot.MoveChild(_homeHealth, -1);

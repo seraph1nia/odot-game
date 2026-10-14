@@ -10,9 +10,9 @@ identities. `Match.ResolveReady` preflights resource/research/recovery and final
 upkeep/reward capacity before mutation.
 
 `Main` feeds physics delta to the existing `AuthoritySession.Advance` owner.
-`Match.Step` is still one deterministic 60-Hz simulated tick: damage, movement,
-projectile ordering, statuses and cadence are unchanged at equivalent simulated
-time. Each admitted wall slice is capped at 100 ms/six steps; idle and paused
+`Match.Step` is one deterministic 60-Hz simulated tick. The accepted pace changes
+wall-time admission, not simulated action/status deadlines or damage profiles.
+Each admitted wall slice is capped at 100 ms/six steps; idle and paused
 time create no debt. Death cleanup outside combat retains its prior rate.
 Verification acceleration remains a separate, owned harness-only multiplier.
 Delivered snapshots own selected state; input does not optimistically toggle an
@@ -41,8 +41,8 @@ receipts, rather than manufacturing expected stock by calling the projection.
 
 [Session compatibility](sessions.md) owns peer/version admission, battle-flow
 snapshot rejection and the credential-only persistence boundary.
-Shared-arena integration can consume these landed phase, snapshot and authority
-interfaces later; no unpublished squads architecture is imported here.
+[Shared arena combat](shared-arena.md) describes the integrated squad/arena
+consumers of these phase, snapshot and authority interfaces.
 
 ## Preservation-first rebuild custody
 

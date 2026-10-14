@@ -1445,7 +1445,7 @@ of already-passed stored/active ENet or receiving/animation follows automaticall
 The current unchanged-policy twenty-wave matrix is **13 verification passes /
 1 failure**, but **10 victories / 4 W1 defeats**. Cooperative seed123 lacks any
 foreign-origin impact; both cooperative policies and both ranged policies lose.
-See [paid baselines](paid-squad-baselines.md#integrated-default-price-matrix-incomplete-balance-qualification).
+See [paid baselines](paid-squad-baselines.md#historical-initial-three-preparation-matrix-before-recovery).
 Further earned policy/balance investigation, complete fast/deep/stress/package
 qualification, integration checkpoint and publication remain. No paid policy,
 seed, price, stat, spending gate or acceptance assertion was changed to hide it.

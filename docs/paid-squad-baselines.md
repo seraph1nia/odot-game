@@ -30,7 +30,7 @@ combat steps/run, 100 paid decisions/edit, three integrated readiness gates/wave
 existing runner selection/admission. Numerical encounters are explicitly
 arithmetic fixtures, not earned research or rendered proof.
 
-## Integrated default-price matrix: incomplete balance qualification
+## Historical initial three-preparation matrix (before recovery)
 
 `test-campaign --filter 'FullyQualifiedName~SquadCampaignBaselineTests'`,
 `logs/20261013-193823-db03264e`: **13 verification passes / 1 failure**, 35s
@@ -108,7 +108,7 @@ attacker `Impact` events and actual victim IDs; `Hit` projects the damaged membe
 and cannot supply attacker attribution. No graphical or actual spectator
 transport claim follows from this numerical result.
 
-## Paid investment controls
+## Historical four-edit paid investment controls
 
 Same seeds, default prices and the same legal command driver; controls impose
 choices rather than altering the simulator/economy.
@@ -127,7 +127,7 @@ choices rather than altering the simulator/economy.
 Normal melee victory, capacity bounds, actual equipment differences, no forbidden
 Hall upgrades, paid Hall investment, actual healing and no stall remain acceptance
 assertions. These controls demonstrate meaningful investment effects under
-current timing; they are not final price calibration. Upgraded Hall investment
+historical four-edit timing; they are not final price calibration. Upgraded Hall investment
 is 31 gold, 8 wood and 9 stone, versus the basic Hall's 5 gold, 2 wood and 2 stone.
 
 The old mixed target (10 Swordsmen plus 2 each of three other roles) would need
@@ -138,7 +138,7 @@ with **56 / 57 casualties**; new paid six-home targets won in **4,181 / 3,998 ti
 with **37 / 34 casualties**. Different investment/reinforcement transcripts mean
 this is a policy comparison, not a combat-engine speedup.
 
-## Focused role/research/recovery evidence
+## Initial role/research/recovery evidence (before recovery)
 
 - Same three-member numerical Swordsman group, 73 ticks, same equipment/food:
   Guardian leaves **6,600 vs 6,000 HP hundredths**, with **6 vs 6** enemy member
@@ -149,7 +149,8 @@ this is a policy comparison, not a combat-engine speedup.
 - Earned Fire witnesses retain real prerequisite/point payments, support priority
   only when compatible purchased homes and food fit, and locked Frost refusal.
   Two policy seeds record live burn by waves **8 / 7**, at production counts
-  **24 / 21**. This schedule is provisional on the unlanded phase flow.
+  **24 / 21**. This is the historical four-edit schedule, not the integrated
+  three-preparation qualification.
 - A first-clear wounded veteran at **2,000/4,000 HP hundredths** cannot initially
   buy its Hall: insufficient earned stone refuses without mutation. A real END
   earns the material; the paid Hall costs **5 gold / 2 wood / 2 stone**, stores the
@@ -170,13 +171,13 @@ healing/investment, structures, defaults and restricted choices. Earlier failure
 and inaccurate initial attacker-counter interpretation remain explicitly retained
 alongside the corrected receipt, not overwritten or used as final measurements.
 
-No final three-preparation/pace/preview qualification, complete deep suite,
-full-fast green, all-seed balance guarantee, new transport/package/native aiming/
-animation/resource check, graphical process, full pipeline or publication is
-claimed. Pure-ranged viability and cooperative Keep losses need explicit follow-up;
-final economics-sensitive calibration awaits the actually landed prerequisite.
+These initial receipts do not establish final integration or delivery acceptance.
+The recovery sections below own the later ranged, cooperative and solo policy
+outcomes; the [testing audit](testing-audit.md#shared-arena-recovery-current-source-checkpoint-2026-10-13)
+owns subsequent integration, native, transport, package and delivery receipts.
+Finite policy samples are not an all-seed balance guarantee.
 
-## Recovery ranged schedule (before execution, 2026-10-13)
+## Historical recovery ranged schedule (2026-10-13)
 
 The initial candidate was shared HP35/X11, preserving range3, cadence60,
 windup18, Y0, structural3 and equipment1metal/2wood/upkeep1. The ordinary
@@ -199,8 +200,8 @@ funds replacements only as available; trainer/upgrades wait until after W3.
 Initial HP35/X11 execution (`logs/20261013-214453-8ca9f539`) lost W1 at both
 seeds: three paid members, all casualties, Keep100HP lost, ticks1093/1274.
 The erroneous W2 six-member expectation was corrected to the ledger above,
-not counted as a win. One remaining bounded candidate, HP40/X12, is selected
-before execution, with all other profiles/costs/timing unchanged.
+not counted as a win. The second bounded candidate, HP40/X12, was then selected,
+with all other profiles/costs/timing unchanged; its results follow below.
 
 
 ### Owner-approved bounded ranged acceptance

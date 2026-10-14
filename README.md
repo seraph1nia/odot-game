@@ -142,7 +142,7 @@ filter syntax, preparation and cleanup. A filtered pass is partial coverage.
 | Numerical rules / subsystem | `mise run test-core --filter 'FullyQualifiedName~Research'` |
 | Runner ownership / cancellation | `mise run test-runner` |
 | Coherent implementation | `mise run test-fast`, formatting |
-| Godot controls / resources / animation | `mise run test-engine --scenario settings` (or `animation` / `assets` / `worldtree` / `receiving`) |
+| Godot controls / resources / animation | `mise run test-engine --scenario settings`; [component selectors](.agents/skills/testing-commands/SKILL.md#focused-headless-engine-and-bounded-transport) |
 | Real transport / session lifetime | `mise run test-network --scenario playing-host-lifecycle` |
 | Export/package boundary | `mise run ci-linux-package` / native Windows `ci-windows` |
 | Explicit campaign qualification | `mise run test-campaign` |
