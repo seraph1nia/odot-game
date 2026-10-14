@@ -210,17 +210,12 @@ select an owned squad, close the panel, then pick an empty highlighted purchased
 home. Combat presents all owners together, with local camera navigation only.
 
 `SharedArenaView` owns physical imported Keeps, Watchposts and purchased towers,
-owned tiles and health-only objective overlays. Each character member has one
-small text-free bar; grouped squads pack those bars into stable formation-slot
-rows rather than duplicating a squad summary above individual rigs. Names,
-levels, owners, counts, statuses and Rally details remain in panels/inspection,
-not floating over actors. Keep/Watchpost bars use meaningful authoritative
-health/max; purchased towers remain invulnerable, have no health bar and no
-floating text (their snapshot `1/1` is a sentinel, not damageable HP).
-Its camera derives
-bounds and travel from the complete arena, not old per-city framing. Formation
-slots persist in snapshots, while animation, member offsets and short melee
-lunges remain cosmetic. Melee windup uses the imported attack animation and
+owned tiles and objective overlays; `MemberHealthBars` owns member controls.
+Both consume `CombatPlayback` under the
+[health-overlay contract](../openspec/specs/game-feedback/spec.md#requirement-authoritative-overhead-unit-health-bars).
+The arena camera derives bounds and travel from the complete arena, not old
+per-city framing. Formation slots persist in snapshots, while animation, member
+offsets and short melee lunges remain cosmetic. Melee windup uses the imported attack animation and
 attached, aligned weapon/socket motion, not a dashed target guide. The local
 strike accent stays bounded near the attacker; target-side contact requires an
 actual landed impact. `StrikeAim` is detached observation of the squad-owned
@@ -247,11 +242,9 @@ formation/death/cleanup/stock resources, a real lethal-impact live-to-dead
 melee transition, terminal windup against a moving primary, and a real numerical
 committed-miss control. Member and objective bars consume the
 [shared playback projection](gameplay.md#deterministic-hex-combat), including
-consecutive pending member boundaries and effective damage. Objective ruins and
-bar removal follow the same buffered destruction tick; baseline/gap resets
-replace current health without replay. Rally remains buffered diagnostic and
-inspection state rather than overhead text. These are
-headless resource/node proofs, not pixels or choreography.
+consecutive pending member boundaries and effective damage. Rally remains
+buffered diagnostic and inspection state. These are headless resource/node
+proofs, not pixels or choreography.
 The opaque native base covers the projected safe camera
 boundary. Keep fall disables defenses without inventing tower destruction.
 
@@ -268,8 +261,8 @@ filtered checks remain partial.
 
 `SharedArenaView` batches the pinned DetailedGround Grass/Moss/Dirt meshes with
 their actual materials at the unchanged logical contact plane. Thin quiet hex
-outlines preserve exact picking; stronger owned home rings and text identify
-selected/available/occupied/locked/tower states during deployment. Far-edge
+outlines preserve exact picking; owned deployment home markers follow the
+[gameplay guidance](gameplay.md#purchased-army-homes-and-town-hall-rotation). Far-edge
 spiral trees and bounded low boulder/fern side clusters stay outside playable
 cells/objectives. An opaque green earth backstop covers the safe projected
 camera boundary; imported asset bytes/manifests are unchanged. No terrain
@@ -280,7 +273,7 @@ dressing survive ordinary revisions and deployment toggles, while fresh layout/
 session replacement releases them. Native arena proof covers1..4players,
 actual flat imported contacts, every home pick, overview/portrait/extreme-pan
 coverage, bounded resource reuse and four-player-to-solo cleanup. Objective
-health/fallen/inactive text and retained owner seals distinguish state; purchased
+bars, model/ruin visibility and retained owner seals distinguish state; purchased
 towers remain intact after Keep fall.
 
 Expanded native receiving proof exercises new recruitment, reinforcement,
@@ -299,11 +292,12 @@ availability before pressing them. A same-lobby join refreshes native arena
 width/physical footprints instead of retaining its first solo welcome geometry.
 The compact unwrapped speed strip retains accepted-only global speed semantics;
 it no longer stretches over the arena. Camera observation/picking follows the
-active arena rather than a hidden city. Squad headings use short weapon roles
-and larger glyphs while retaining separate member HP and full inspection.
+active arena rather than a hidden city. The earlier squad headings used short
+weapon roles and larger glyphs before the health-only overlay replacement.
 
 
-Authorized graphical `combat` acceptance passed on the finishing source
+Before that replacement, authorized graphical `combat` acceptance passed on the
+finishing source
 (`logs/20261013-225736-51c0ad8c`,150.25s). Retained real two-owner all-sector
 frames cover overview, movement/inspection, pause/camera/resize and casualties;
 actual live nodes demonstrate sword/axe/cast/hit, damage and corpse cleanup.

@@ -66,11 +66,11 @@ Graphical scenery SHALL include waving procedural flags and restrained environme
 
 ### Requirement: Authoritative overhead unit health bars
 
-Shared battle overview SHALL use compact squad summaries exposing living participating count and each member's authoritative current/max HP with owner/type/status context; it SHALL not imply pooled squad health. Detailed individual health/level/service SHALL remain available through member inspection and the roster. Native individual bars used for focused inspection SHALL compute their fraction from actual effective maximum HP, preserve human-readable integer-health scaling and remain input-transparent. Full and wounded members, enemies and one-member bosses SHALL use the same numerical source. Overview labels SHALL be restrained and readable against styled ground at supported sizes without adding independent soldier control.
+Characters, including next-wave forecast figures, SHALL use small text-free lifebars rather than floating names, owners, levels, counts or status text. Each sampled member SHALL own one input-transparent bar with a fraction computed from its authoritative current/effective maximum HP; grouped members SHALL occupy stable compact formation slots without a duplicate squad overlay or pooled HP. Full and wounded allies, enemies and one-member bosses SHALL use the same numerical source. Keep/Watchpost objectives, including the settlement home, SHALL use text-free bars for meaningful authoritative health/max. Purchased invulnerable towers SHALL have no floating text or lifebar; their sentinel health fields SHALL NOT imply damageability or change their mechanics. Panels, member inspection and rosters SHALL retain identity, level, ownership, count, service and status details with human-readable health scaling. Bars SHALL remain readable at supported sizes without adding independent soldier control.
 
 #### Scenario: Two differently wounded members
 - **WHEN** one squad contains members at 10/40 and 30/40 HP
-- **THEN** its summary/details expose both injuries rather than only an undifferentiated 40/80 pool
+- **THEN** its two member bars show one-quarter and three-quarter fill, with exact health available in inspection rather than an undifferentiated 40/80 pool
 
 #### Scenario: Effective maximum
 - **WHEN** inspection receives 525 current HP and 1050 effective maximum in hundredths
@@ -78,12 +78,12 @@ Shared battle overview SHALL use compact squad summaries exposing living partici
 
 #### Scenario: Observe a wounded ranked unit
 - **WHEN** a living member is first received with current525/max1050HP in hundredths
-- **THEN** its summary/focused health display shows half health
+- **THEN** its member bar shows half health
 - **AND** 525 is not treated as its maximum
 
 #### Scenario: Follow visible allies and enemies
 - **WHEN** all-owner living groups move and the viewport changes size
-- **THEN** compact health/count/status projections follow their current group/member anchors
+- **THEN** compact health bars follow their current group/member anchors
 - **AND** full-health members and individual levels remain accessible without a pooled-HP interpretation
 
 #### Scenario: Read a veteran's level
@@ -93,15 +93,15 @@ Shared battle overview SHALL use compact squad summaries exposing living partici
 
 ### Requirement: Health bar visibility and lifetime
 
-Only current visible living deployed participants SHALL appear in active arena health summaries. Stored/unfunded/queued members SHALL remain inspectable in rosters without combat health markers or walking bodies. Cosmetic deaths SHALL show no living health indicator. Pause/loss SHALL freeze received health and physical battle anchors while camera/layout changes reproject labels. Accepted reconnect/state replacement SHALL reconstruct current indicators without duplicate/historical damage effects. Session end SHALL release all prior summaries/bars; headless roles SHALL instantiate none.
+Only current visible living deployed participants SHALL have visible arena member bars. Stored/unfunded/queued members SHALL remain inspectable in rosters without combat health markers or walking bodies. Member/objective health and objective ruins SHALL follow the shared buffered presentation clock, not anticipate pending effective damage or destruction. Cosmetic deaths SHALL immediately hide their member bar at the sampled death boundary; hidden controls MAY remain until their sampled rig is removed. Destroyed or inactive objectives SHALL have no visible bar. Pause/loss SHALL freeze sampled health and physical battle anchors while camera/layout changes reproject bars within the world area. Accepted reconnect/state replacement and history-gap baselines SHALL reconstruct current indicators without duplicate/historical damage effects. Rig removal and session end SHALL release owned bars; headless application roles SHALL instantiate none.
 
 #### Scenario: Partial funding
 - **WHEN** a three-member roster squad enters with two funded field participants
-- **THEN** the battle summary counts two participants and roster inspection identifies the retained unfunded third
+- **THEN** only the two funded participants have battle bars and roster inspection identifies the retained unfunded third
 
 #### Scenario: Death and camera movement
 - **WHEN** a participant dies and the camera pans during its retained cosmetic interval
-- **THEN** no living bar remains on the body and the other current summaries reproject without advancing paused gameplay
+- **THEN** no visible bar remains on the body and the other current bars reproject without advancing paused gameplay
 
 #### Scenario: Pause after damage
 - **WHEN** a visible unit has lost health and the shared match pauses or transport is lost

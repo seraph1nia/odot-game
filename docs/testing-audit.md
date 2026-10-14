@@ -2059,21 +2059,12 @@ visual UI/asset changes, check waiver, merge, archive or release was performed.
 
 ## Health-only actor overlays (2026-10-14)
 
-Character/forecast rigs and Keep/Watchpost/purchased defense towers no longer
-create floating names, owners, levels, counts or statuses. The former squad
-label observations remain nonvisual diagnostics with empty text; graphical
-health detectors now consume real member controls instead of label strings.
-Panels and inspectors retain individual HP/max, equipment, ownership, statuses
-and Rally details. Other building titles and empty/locked plot labels remain.
-
-Each sampled member owns one input-transparent bar, packed into stable compact
-formation slots above its squad (individual forecast bars remain separate).
-Keep/Watchpost use the same woodland track/fill styles and actual authoritative
-health/max. Purchased towers are not damage targets: their `1/1` snapshot fields
-are sentinels, not meaningful HP. They lose their floating text but get no
-fabricated full-health bar or new destructibility. No rules/wire/asset locks or
-mechanics change. Buffered effective hits restore pre-impact health until the
-shared clock reaches damage; objective model/ruin visibility uses that clock too.
+The [health-overlay contract](../openspec/specs/game-feedback/spec.md#requirement-authoritative-overhead-unit-health-bars)
+owns presentation requirements; [native presentation](shared-arena.md#native-presentation)
+identifies the production control owners. The former squad-label observations
+remain nonvisual diagnostics with empty text; graphical health detectors now
+consume real member controls instead of label strings. Other building titles
+and empty/locked plot labels remain. No rules/wire/asset locks or mechanics change.
 
 Coverage admission/replacement:
 - Tier A extends `CombatPlaybackTests`: nonlethal member/objective damage,

@@ -250,8 +250,8 @@ internal sealed partial class SharedArenaView : Node3D
             if (!_squads.TryGetValue(id, out Node3D? label))
             { _squads[id] = label = new Node3D { Name = "SquadSummary" + id }; AddChild(label); }
             label.Position = _layout.SquadPosition(squad.Hex!, tick) - Position + new Vector3(0, squad.IsBoss ? 2.5f : 1.6f, 0);
-            // Nonvisual diagnostic anchor only. Each member's single compact
-            // bar follows its own rig; no duplicate squad health/text overlay.
+            // Nonvisual diagnostic anchor only. Member controls share the
+            // squad anchor in stable slots; no duplicate squad health/text overlay.
         }
     }
     internal object[] Observe(Camera3D camera, Transform2D screen, Rect2 world)
