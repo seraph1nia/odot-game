@@ -51,47 +51,9 @@ These are the remaining tasks from saved checkpoint `85ebbcc`, not a request to 
 - [x] 7.2 Hand back the non-draft integrated PR with its exact head and required green checks, concise behavioral/art changes, retained compatibility decisions and honest deferred balance/visual/platform limits; verify no release or merge is inferred from intermediate local passes, and archive only when implementation obligations are complete.
 
 
-Delivery receipts: PR25 was non-draft with source/Linux/Windows/CodeRabbit
-checks green at9b34f38b401e272e312d399da41ec006ebb09faf (owning run
-01M4VZ0HPTR2S73F9N9CKX3BWG, Actions38504242071). This records the earlier delivery; it does not certify the unresolved
-live-to-dead melee displacement defect discovered during later review. The late validation-boundary and peer
-barrier follow-up is recorded in docs/testing-audit.md and will receive a fresh
-owning pipeline/CI pass before final handoff; no future descendant is certified
-by this parent receipt. No merge, release or archive was performed.
-
-Task5.2 is requalified by the frozen melee-lunge repair and real native
-live-to-dead regression (logs/20261014-061538-dbc60c68); the pre-fix native
-assertion failed as expected. Task6.3 is requalified by locked zero-warning build/format and694core/651runner
-fast passes (two Windows-native skips on Linux; logs/20261014-061603-fc212b27).
-Tasks7.1/7.2 remained open at this historical checkpoint. On2026-10-14 the owner authorized cancellation of parked run
-01M4W85RTV5C0P3BG0AE0X7295, guarded recovery of all unpublished commits,
-caller repair and a fresh validation run; no failed acceptance was waived.
-
-Guarded recovery of failed infrastructure run01M4WGZYZ9MPFKHE1GTX0416TR
-retained fcefc923/09d737f7/b8b7f8ba. The expanded post-clear edit/retirement
-and buffered summary/Rally cases requalify5.1/5.2; zero-warning locked
-build/format and704core/651runner fast passes (two Windows-native skips onLinux,
-logs/20261014-081806-72aeae5e) requalify6.3. Tasks7.1/7.2 remained open after this infrastructure recovery.
-
-
-Final implementation delivery, 2026-10-14: owning run
-`01M4WR52S4MBC4C9SNTTX9HQ1C` returned `checks-passed` at
-`36dea87d862eae54c2e693ec7e06bece12c74cfd`, with no skipped phase or
-failed-Test override. PR [25](https://github.com/seraph1nia/odot-game/pull/25)
-is non-draft and unmerged. [Actions38553567582](https://github.com/seraph1nia/odot-game/actions/runs/38553567582)
-qualified that exact head: source, native Linux package and native Windows
-package passed; CodeRabbit also passed. Guarded sync adopted every pipeline
-fix into the clean caller workspace. This closes7.1/7.2 on actual delivered
-implementation evidence. The subsequent tracking-only commit requires its
-own delivery checks; this parent receipt does not certify future descendants.
-
-Final Review fixed sold-home eligibility while retaining physical cleanup
-footprints, consecutive buffered member transition boundaries, and immutable
-terminal primary poses. Test reproduced and fixed stale objective identity
-when retiring the final participant with reserves; the real ENet guest stayed
-connected through accepted cleanup edits and the third settlement's automatic
-next-wave transition. No fourth edit window, timing change or failed acceptance
-waiver was introduced. Exact receipts and limitations are in
-`docs/testing-audit.md`. Pure-Crossbow paid opening/progression remains the
-owner-approved deferral; dense overview label overlap and four-owner rendered
-acceptance remain disclosed. No merge, archive or release was performed.
+Tasks 7.1/7.2 close on the actual delivered implementation evidence in the
+[final shared-arena delivery receipt](../../../docs/testing-audit.md#final-shared-arena-implementation-delivery-2026-10-14).
+The audit owns the exact head, PR/CI results, recovered fixes, historical
+checkpoints and retained acceptance limits. Later tracking-only commits require
+their own delivery checks; the implementation receipt does not certify future
+descendants. No merge, archive or release was performed.
