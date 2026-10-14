@@ -9,7 +9,7 @@ public sealed class CombatPlayback
         get => _work;
         set { _work = value; value?.Support(WorkMetric.PlaybackIndexBuilds, WorkMetric.PlaybackEventVisits, WorkMetric.Sorts, WorkMetric.SortElements); }
     }
-    private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById);
+    private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById, Dictionary<int, long> RallyUntil);
     private AcceptedState? _previous, _current;
     private int[] _ids = [];
     private readonly Dictionary<int, int> _pendingDeaths = [];
@@ -73,6 +73,17 @@ public sealed class CombatPlayback
         if (_current is null) return [];
         return HexUnits();
     }
+    public IReadOnlyDictionary<int, long> RallyDisruptions()
+    {
+        var sampled = _current is null ? new Dictionary<int, long>() : new Dictionary<int, long>(_current.RallyUntil);
+        foreach (CombatEvent entry in _pending.Reverse())
+            if (entry.Tick > Tick)
+            {
+                if (entry.Type == CombatEventType.RallyRestored) sampled[entry.SquadId] = entry.Tick;
+                else if (entry.Type == CombatEventType.RallyDisrupted) sampled[entry.SquadId] = 0;
+            }
+        return sampled;
+    }
     private UnitState[] HexUnits()
     {
         var sampled = new List<UnitState>(_ids.Length);
@@ -105,7 +116,8 @@ public sealed class CombatPlayback
         UnitState[] ordered = WorkOrdering.Input(state.Players.SelectMany(p => p.Soldiers).Concat(state.Enemies).Concat(state.DyingBodies), _work)
             .OrderBy(u => u.Id).Select(u => CombatProjection.Detach(u)).ToArray();
         return new(state.MatchId, state.Revision, state.Tick, state.Paused,
-            state.Phase == Phase.Combat ? CombatSpeedRates.Factor(state.CombatSpeed) : 1, ordered, ordered.ToDictionary(u => u.Id));
+            state.Phase == Phase.Combat ? CombatSpeedRates.Factor(state.CombatSpeed) : 1, ordered, ordered.ToDictionary(u => u.Id),
+            state.Squads.ToDictionary(s => s.Id, s => s.RallyDisruptedUntil));
     }
     public bool AwaitingDeath(int id) => _pendingDeaths.ContainsKey(id);
     public static double DeathPose(UnitState unit, double tick, double clipLength)

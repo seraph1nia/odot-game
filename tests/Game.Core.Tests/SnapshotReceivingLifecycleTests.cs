@@ -187,10 +187,21 @@ public sealed class SnapshotReceivingLifecycleTests
         }
     }
 
-    [Fact]
-    public void RegroupingLastFrozenParticipantReleasesClaimsWithoutDeployingItsNewGroup()
+    [Theory]
+    [InlineData("regroup")]
+    [InlineData("retire-reinforced")]
+    [InlineData("retire-returned")]
+    [InlineData("retire-regrouped")]
+    public void RemovingLastFrozenParticipantReleasesClaimsWithoutDeployingItsNewGroup(string origin)
     {
         using Match match = PaidCampaignFixture.Opening(players: 1);
+        if (origin == "retire-returned")
+        {
+            ClearWithRetainedMove(match);
+            while (match.Combat.HasDeaths) match.Step();
+            Act(match, "build", 4, Building.Stonecutter); Act(match, "ready"); Act(match, "ready");
+            Act(match, "sell", 4); Act(match, "build", 4, Building.TownHall); Act(match, "ready");
+        }
         MatchSnapshot cleared = ClearWithRetainedMove(match, atHomes: true);
         SquadState mover = cleared.Squads.Single(s => s.Owner == 1 && s.Hex.Action == UnitActionKind.Moving);
         SquadState other = cleared.Squads.Single(s => s.Owner == 1 && s.Id != mover.Id);
@@ -203,16 +214,29 @@ public sealed class SnapshotReceivingLifecycleTests
             Assert.Equal(other.Hex, Receive(match).Squads.Single(s => s.Id == other.Id).Hex);
         }
         Edit("deploy-squad", squad: mover.Id, cell: arena.Deployment(1, 2));
-        foreach (int id in mover.Members.Skip(1)) Edit("retire", unit: id);
-        Edit("recruit", squad: mover.Id, slot: 1);
-        int recruit = match.Players[1].Soldiers[^1].Id;
-        Edit("regroup-member", unit: mover.Members[0], squad: -1);
+        if (origin == "retire-returned") Edit("store", unit: mover.Members[1], slot: 4);
+        foreach (int id in mover.Members.Skip(origin == "retire-returned" ? 2 : 1)) Edit("retire", unit: id);
+        int recruit;
+        if (origin == "retire-returned")
+        {
+            Edit("send", unit: mover.Members[1], squad: mover.Id, slot: 4); recruit = mover.Members[1];
+        }
+        else if (origin == "retire-regrouped")
+        {
+            Edit("regroup-member", unit: other.Members[0], squad: mover.Id); recruit = other.Members[0];
+        }
+        else
+        {
+            Edit("recruit", squad: mover.Id, slot: 1); recruit = match.Players[1].Soldiers[^1].Id;
+        }
+        Edit(origin == "regroup" ? "regroup-member" : "retire", unit: mover.Members[0], squad: -1);
         MatchSnapshot edited = Receive(match);
         SquadState reserve = edited.Squads.Single(s => s.Id == mover.Id);
         Assert.Equal(UnitLifecycle.Reserve, reserve.Hex.Lifecycle);
         Assert.False(reserve.Hex.HoldsTransit);
         Assert.Equal(UnitLifecycle.Reserve, edited.Players[0].Soldiers.Single(u => u.Id == recruit).Hex!.Lifecycle);
-        Assert.Equal(UnitLifecycle.Queued, edited.Players[0].Soldiers.Single(u => u.Id == mover.Members[0]).Hex!.Lifecycle);
+        if (origin == "regroup") Assert.Equal(UnitLifecycle.Queued, edited.Players[0].Soldiers.Single(u => u.Id == mover.Members[0]).Hex!.Lifecycle);
+        else Assert.DoesNotContain(edited.Players[0].Soldiers, u => u.Id == mover.Members[0]);
         Assert.DoesNotContain(edited.Reservations.Positions, p => p.UnitId == mover.Id);
         Assert.DoesNotContain(edited.Reservations.Transit, p => p.UnitId == mover.Id);
         long productions = edited.ProductionCount;
@@ -221,8 +245,48 @@ public sealed class SnapshotReceivingLifecycleTests
         MatchSnapshot entered = Receive(match);
         Assert.Equal(Phase.Combat, entered.Phase);
         Assert.Equal(productions + 3, entered.ProductionCount);
-        Assert.Equal(3, entered.Squads.Count(s => s.Owner == 1 && s.Hex.Lifecycle == UnitLifecycle.Alive));
+        Assert.Equal(origin == "regroup" ? 3 : 2, entered.Squads.Count(s => s.Owner == 1 && s.Hex.Lifecycle == UnitLifecycle.Alive));
         Assert.Equal(arena.Deployment(1, 2), entered.Squads.Single(s => s.Id == mover.Id).Hex.Position.Cell);
+    }
+
+    [Fact]
+    public void RetiringLastParticipantOfPaidUnfedSquadImmediatelyPublishesValidReleasedClaims()
+    {
+        using var match = new Match(new Rules
+        {
+            StartingGold = 100,
+            StartingWood = 100,
+            FarmOutput = 1,
+            DefenderDamage = 0,
+            Campaign = new([new(1, false, [new(UnitType.Swordsman, 1)], default), new(2, false, [new(UnitType.Swordsman, 1)], default)])
+        }, combatSeed: 1);
+        match.Join(); Act(match, "start"); Act(match, "build", 0, Building.Barracks); Act(match, "build", 2, Building.MetalMine);
+        Act(match, "ready"); Act(match, "ready"); Act(match, "build", 4, Building.Farm);
+        for (int i = 0; i < 3; i++) Act(match, "recruit", 0);
+        Act(match, "ready");
+        MatchSnapshot entered = Receive(match);
+        int participant = Assert.Single(entered.Players[0].LastUpkeep!.Participating);
+        Assert.Equal(2, entered.Players[0].LastUpkeep!.Unfed.Length);
+        int enemy = Assert.Single(entered.Enemies).Id;
+        int squadId = match.Combat.Read(participant).SquadId, enemySquad = match.Combat.Read(enemy).SquadId;
+        match.Combat.Seed(match.Combat.Inspect(enemy) with { Health = 1, Location = new(UnitLifecycle.Alive, new(18, 1)) });
+        foreach (UnitState member in entered.Players[0].Soldiers.OrderBy(u => u.Id == participant))
+            match.Combat.Seed(match.Combat.Inspect(member.Id) with
+            {
+                Location = new(member.Hex!.Lifecycle, new(17, 1)),
+                Action = new CombatAction.Windup(1, 1, 25, new(new(CombatTargetKind.Unit, enemySquad), 0, 1))
+            });
+        match.Step(); Assert.Equal(Phase.Building, match.Phase); Assert.True(match.Combat.HasDeaths);
+        Receive(match);
+        CommandResult retired = match.Apply(1, Command.FromSnapshot(match.Snapshot(), 2, "retire", 1) with { UnitId = participant });
+        Assert.True(retired.Accepted, retired.Message);
+        MatchSnapshot received = Receive(match);
+        Assert.Equal(UnitLifecycle.Reserve, received.Squads.Single(s => s.Id == squadId).Hex.Lifecycle);
+        Assert.Empty(received.Squads.Single(s => s.Id == squadId).ParticipatingMembers);
+        Assert.DoesNotContain(received.Reservations.Positions, p => p.UnitId == squadId);
+        Assert.DoesNotContain(received.Reservations.Transit, p => p.UnitId == squadId);
+        while (match.Combat.HasDeaths) { match.Step(); Receive(match); }
+        Assert.Equal(UnitLifecycle.Alive, Receive(match).Squads.Single(s => s.Id == squadId).Hex.Lifecycle);
     }
 
     [Fact]

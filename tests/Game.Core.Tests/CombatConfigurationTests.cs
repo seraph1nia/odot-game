@@ -72,7 +72,23 @@ public sealed class CombatConfigurationTests
         Assert.Throws<OverflowException>(() => new Match(new Rules { Combat = new() { MageWindupTicks = int.MaxValue } }));
         Assert.Throws<ArgumentException>(() => new Match(new Rules { SoldierDamage = 1000000 }));
         Assert.Throws<ArgumentException>(() => new Match(new Rules { RangedReach = 1.5 }));
+        Assert.Throws<ArgumentException>(() => new Match(new Rules { Arena = new() { CatapultSecondaryDamage = 20000000 } }));
     }
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(12)]
+    public void TowerSecondaryChannelsRespectTheSimultaneousConfigurationBoundary(int capacity)
+    {
+        int actors = SharedArena.SectorWidth * SharedArena.Depth * 4 * capacity + 4 * (ArmyConfiguration.TotalPlots + 1);
+        int safe = int.MaxValue / actors / HealthPoints.Scale;
+        var rules = new Rules { Arena = new() { SquadCapacity = capacity, CatapultSecondaryDamage = safe } };
+        var configuration = new CombatConfiguration(rules);
+        Assert.All(configuration.Towers.Where(t => t.Type is Building.CatapultTower or Building.BombardTower),
+            tower => Assert.Equal(HealthPoints.FromWhole(safe), tower.SecondaryDamage));
+        Assert.Throws<ArgumentException>(() => new CombatConfiguration(rules with { Arena = rules.Arena with { CatapultSecondaryDamage = safe + 1 } }));
+    }
+
     [Fact]
     public void FingerprintsAreCanonicalAndFreezeActualCombatInputs()
     {

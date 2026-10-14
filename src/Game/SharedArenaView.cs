@@ -210,9 +210,11 @@ internal sealed partial class SharedArenaView : Node3D
             NoDepthTest = false
         }; AddChild(label); return label;
     }
-    internal void Sample(double tick, IEnumerable<UnitState> units)
+    internal void Sample(CombatPlayback playback, IEnumerable<UnitState> units)
     {
         if (_state is null || _layout is null) return;
+        double tick = playback.Tick;
+        IReadOnlyDictionary<int, long> rally = playback.RallyDisruptions();
         _summaryMembers = units.Where(u => u.Hex?.Lifecycle == UnitLifecycle.Alive).GroupBy(u => u.SquadId).ToDictionary(g => g.Key, g => g.ToArray());
         foreach (int id in _squads.Keys.Except(_summaryMembers.Keys).ToArray()) { _squads[id].QueueFree(); _squads.Remove(id); }
         foreach ((int id, UnitState[] participating) in _summaryMembers)
@@ -225,7 +227,7 @@ internal sealed partial class SharedArenaView : Node3D
             string role = squad.Type switch { UnitType.Swordsman => "Sword", UnitType.Berserker => "Axe", UnitType.Crossbowman => "Bow", _ => "Mage" };
             label.Text = $"{(squad.Faction == Faction.Skeletons ? squad.IsBoss ? "BOSS" : "Enemy" : $"P{squad.Owner}")} {role} ×{participating.Length}\n"
                 + string.Join(' ', participating.Select(u => $"{HealthPoints.Format(u.Health)}/{HealthPoints.Format(u.Profile.Health)}"))
-                + (status.Length > 0 ? "\n" + status : "") + (tick < (_state.Squads.FirstOrDefault(s => s.Id == id)?.RallyDisruptedUntil ?? 0) ? "\nRally disrupted" : "");
+                + (status.Length > 0 ? "\n" + status : "") + (tick < rally.GetValueOrDefault(id) ? "\nRally disrupted" : "");
         }
     }
     internal object[] Observe(Camera3D camera, Transform2D screen, Rect2 world)

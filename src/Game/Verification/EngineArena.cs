@@ -22,7 +22,8 @@ public partial class EngineTests
                 for (int index = 0; index < players; index++) match.Join();
                 MatchSnapshot state = match.Snapshot();
                 var layout = new CombatLayout(new(state.Arena!.Board)) { Arena = state.Arena }; layout.Synchronize(state);
-                view.Synchronize(state, layout, true, 1); view.Sample(0, CombatPlayback.All(state));
+                var baseline = new CombatPlayback(); baseline.Accept(state);
+                view.Synchronize(state, layout, true, 1); view.Sample(baseline, CombatPlayback.All(state));
                 Check(view.FindChildren("ArenaCell*", "MeshInstance3D", true, false).Count == 63 * players, "native arena component contains every connected cell for " + players + " players");
                 Check(view.FindChildren("StructureHealth*", "Label3D", true, false).Count == players * 2, "each owner has a native Keep and Watchpost label");
                 MultiMeshInstance3D[] groundBatches = view.GetChildren().OfType<MultiMeshInstance3D>().ToArray();
@@ -110,6 +111,7 @@ public partial class EngineTests
             }
             await ArenaReceiving(view);
             await ArenaBufferedSummaries(view, camera);
+            await ArenaBufferedRally(view);
         }
         finally { RemoveChild(camera); camera.Free(); RemoveChild(view); view.Free(); }
     }
@@ -278,7 +280,7 @@ public partial class EngineTests
             {
                 layout.Synchronize(accepted); arenaView.Synchronize(accepted, layout, false, 1);
                 var units = playback.Units().ToDictionary(u => u.Id);
-                arenaView.Sample(playback.Tick, units.Values);
+                arenaView.Sample(playback, units.Values);
                 rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
                 await Frames();
                 Label3D? label = arenaView.GetNodeOrNull<Label3D>("SquadSummary" + squadId);
@@ -314,6 +316,64 @@ public partial class EngineTests
         }
         finally { RemoveChild(rig); rig.Free(); }
     }
+    private async Task ArenaBufferedRally(SharedArenaView arenaView)
+    {
+        using var match = new Match(new Rules { RangedDamage = 0, DefenderDamage = 0, Arena = new() { WatchpostHealth = 1, RallyDurationTicks = 6 } }, combatSeed: 1);
+        match.Join();
+        Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 1, "start", 1)).Accepted, "Rally component authority starts");
+        int memberId = match.Combat.Create(UnitType.Crossbowman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
+        match.Combat.RestoreHomes();
+        for (int gate = 0; gate < 3; gate++)
+            Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 2, "ready", 1)).Accepted, "Rally component settles an ordinary END");
+        var arena = new SharedArena([1]);
+        match.Combat.Seed(match.Combat.Inspect(memberId) with { Location = new(UnitLifecycle.Alive, new(17, 1)) });
+        int squadId = match.Combat.Read(memberId).SquadId;
+        int enemyId = match.Combat.Enemies()[0].Id;
+        foreach (UnitState extra in match.Combat.Enemies().Where(u => u.Id != enemyId)) match.Combat.Remove(extra.Id);
+        int approach = arena.Board.Cell(arena.Watchpost(1)).Neighbors.First(arena.CanOccupy);
+        match.Combat.Seed(match.Combat.Inspect(enemyId) with
+        {
+            Location = new(UnitLifecycle.Alive, new(approach, 1)),
+            Action = new CombatAction.Windup(1, 1, 30, new(new(CombatTargetKind.Watchpost, 1), 0, 3))
+        });
+        MatchSnapshot Receive() => SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot()));
+        MatchSnapshot accepted = Receive(); var playback = new CombatPlayback(); playback.Accept(accepted);
+        var layout = new CombatLayout(new(accepted.Arena!.Board));
+        var rig = new UnitView(accepted.Players[0].Soldiers.Single()); AddChild(rig);
+        double secondsPerTick = 1.0 / (Match.StepsPerSecond * CombatSpeedRates.Factor(accepted.CombatSpeed));
+        try
+        {
+            async Task Sample(bool disrupted)
+            {
+                layout.Synchronize(accepted); arenaView.Synchronize(accepted, layout, false, 1);
+                var units = playback.Units().ToDictionary(u => u.Id);
+                arenaView.Sample(playback, units.Values);
+                rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
+                await Frames();
+                Label3D label = arenaView.GetNode<Label3D>("SquadSummary" + squadId);
+                Check(rig.Visible && !rig.Dead && label.Text.Contains("Rally disrupted", StringComparison.Ordinal) == disrupted,
+                    "native Rally summary follows the shared model clock at " + playback.Tick);
+            }
+            for (int tick = 0; tick < 3; tick++) match.Step();
+            accepted = Receive(); Check(playback.Accept(accepted), "compressed Watchpost loss enters playback");
+            Check(accepted.CombatEvents.Any(e => e.Type == CombatEventType.RallyDisrupted && e.Tick == 3), "real Watchpost loss emits the Rally transition");
+            await Sample(false);
+            match.Step(); accepted = Receive(); playback.Accept(accepted); await Sample(false);
+            while (playback.Tick < 3) { playback.Advance(secondsPerTick, true); await Sample(playback.Tick >= 3); }
+            Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 3, "pause", 1)).Accepted, "Rally component pauses");
+            accepted = Receive(); playback.Accept(accepted); await Sample(true);
+            double pausedTick = playback.Tick; playback.Advance(1, true); await Sample(true);
+            Check(playback.Tick == pausedTick, "pause freezes Rally and model sampling together");
+            Check(match.Apply(1, Command.FromSnapshot(match.Snapshot(), 4, "resume", 1)).Accepted, "Rally component resumes");
+            accepted = Receive(); playback.Accept(accepted);
+            while (match.Tick < 9) match.Step();
+            accepted = Receive(); playback.Accept(accepted); await Sample(true);
+            match.Step(); accepted = Receive(); playback.Accept(accepted); await Sample(true);
+            while (playback.Tick < 9) { playback.Advance(secondsPerTick, true); await Sample(playback.Tick < 9); }
+            playback.Drain(); await Sample(false);
+        }
+        finally { RemoveChild(rig); rig.Free(); }
+    }
     private async Task ArenaModels(Match match, SharedArenaView arenaView)
     {
         match.Players[1].Stone = 100; // Explicit component tower materials, not a campaign earning proof.
@@ -334,7 +394,8 @@ public partial class EngineTests
         }
         MatchSnapshot roster = match.Snapshot(); var formation = new CombatLayout(new(roster.Arena!.Board)) { Arena = roster.Arena }; formation.Synchronize(roster);
         UnitState[] members = roster.Players[0].Soldiers; var byId = members.ToDictionary(u => u.Id);
-        arenaView.Synchronize(roster, formation, false, 1); arenaView.Sample(roster.Tick, members);
+        var baseline = new CombatPlayback(); baseline.Accept(roster);
+        arenaView.Synchronize(roster, formation, false, 1); arenaView.Sample(baseline, members);
         var summaries = System.Text.Json.JsonSerializer.SerializeToElement(arenaView.Observe(GetViewport().GetCamera3D(),
             GetViewport().GetFinalTransform(), GetViewport().GetVisibleRect()), WireJson.Options);
         Check(summaries.GetArrayLength() == 1 && summaries[0].GetProperty("Members").GetArrayLength() == members.Length,

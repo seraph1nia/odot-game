@@ -147,7 +147,7 @@ public sealed class CombatConfiguration
         // even if every deployed member plus all city/army defenses hit one victim.
         int maxActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 4 * (ArmyConfiguration.TotalPlots + 1));
         if (Units.Any(p => p.Researched(2).Damage > int.MaxValue / maxActors)
-            || Towers.Any(p => p.Damage > int.MaxValue / maxActors) || DefenderDamage > int.MaxValue / maxActors)
+            || Towers.Any(p => Math.Max(p.Damage, p.SecondaryDamage) > int.MaxValue / maxActors) || DefenderDamage > int.MaxValue / maxActors)
             throw new ArgumentException("Damage could overflow a simultaneous accumulator.", nameof(rules));
         long approachAllowance = (long)new SharedArena(Enumerable.Range(1, 4)).Board.Diameter * StatusPolicy.Duration(Units.Max(p => p.MoveTicks), 50)
             + Units.Max(p => (long)StatusPolicy.Duration(p.WindupTicks, 50) + StatusPolicy.Duration(p.RecoveryTicks, 50))

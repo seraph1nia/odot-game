@@ -223,7 +223,15 @@ internal sealed partial class CombatSimulation : IDisposable
     {
         if (!_entities.Remove(id, out Entity entity)) return;
         int squad = _world.Get<CombatUnit>(entity).SquadId; _world.Destroy(entity);
-        if (!Living().Any(u => u.SquadId == squad)) _squads.Remove(squad);
+        ReconcileSquad(squad);
+    }
+    private void ReconcileSquad(int id)
+    {
+        if (!_squads.TryGetValue(id, out CombatSquad? squad)) return;
+        CombatUnit[] members = Living().Where(u => u.SquadId == id).ToArray();
+        if (members.Length == 0) _squads.Remove(id);
+        else if (squad.Alive && members.All(u => u.Location.Lifecycle != UnitLifecycle.Alive))
+            _squads[id] = squad with { Location = squad.Location with { Lifecycle = UnitLifecycle.Reserve }, Action = CombatActions.Cancel(squad.Action, _tick) };
     }
     internal void Assign(int id, ArmyAssignment assignment)
     {
@@ -235,7 +243,7 @@ internal sealed partial class CombatSimulation : IDisposable
         int squad = FindSquad(member);
         int[] slots = Living().Where(u => u.SquadId == squad).Select(u => u.FormationSlot).ToArray();
         Unit(id) = member with { SquadId = squad, FormationSlot = Enumerable.Range(0, _configuration.Arena.SquadCapacity).First(slot => !slots.Contains(slot)) };
-        if (!Living().Any(u => u.SquadId == old)) _squads.Remove(old);
+        ReconcileSquad(old);
     }
     internal void RestoreHomes()
     {
@@ -249,8 +257,7 @@ internal sealed partial class CombatSimulation : IDisposable
             {
                 foreach (CombatUnit member in members.Where(u => u.Location.Lifecycle == UnitLifecycle.Queued))
                     Unit(member.Id) = member with { Location = member.Location with { Lifecycle = UnitLifecycle.Reserve } };
-                if (squad.Alive && members.All(u => u.Location.Lifecycle != UnitLifecycle.Alive))
-                    _squads[squad.Id] = squad with { Location = squad.Location with { Lifecycle = UnitLifecycle.Reserve }, Action = CombatActions.Cancel(squad.Action, _tick) };
+                ReconcileSquad(squad.Id);
                 continue;
             }
             CombatUnit first = members[0];
@@ -261,6 +268,7 @@ internal sealed partial class CombatSimulation : IDisposable
             UnitLifecycle lifecycle = stored ? UnitLifecycle.Stored : cleanup ? UnitLifecycle.Queued : UnitLifecycle.Alive;
             foreach (CombatUnit member in members)
                 Unit(member.Id) = member with { Location = new(lifecycle, default), Statuses = StatusState.Empty, StrikeAim = null };
+            if (squad.RallyDisruptedUntil > 0) EmitExtra(CombatEventType.RallyRestored, squad.Id);
             _squads[squad.Id] = squad with
             {
                 Location = new(lifecycle, stored ? default : new(deployment, 1)),
@@ -338,6 +346,7 @@ internal sealed partial class CombatSimulation : IDisposable
             bool enemy = squad.Faction == Faction.Skeletons;
             bool stored = all.All(u => u.Location.Lifecycle == UnitLifecycle.Stored);
             int cell = stored ? 0 : squad.DeploymentCell > 0 ? squad.DeploymentCell : _arena.Deployment(squad.Owner > 0 ? squad.Owner : 1, all[0].Assignment is null ? 0 : HomeIndex(all[0].Assignment!));
+            if (squad.RallyDisruptedUntil > 0) EmitExtra(CombatEventType.RallyRestored, squad.Id);
             _squads[squad.Id] = squad with
             {
                 Location = new(stored ? UnitLifecycle.Stored : enemy ? UnitLifecycle.Queued : all.Any(u => u.Location.Lifecycle == UnitLifecycle.Alive) ? UnitLifecycle.Alive : UnitLifecycle.Reserve, stored ? default : new(cell, 1)),
