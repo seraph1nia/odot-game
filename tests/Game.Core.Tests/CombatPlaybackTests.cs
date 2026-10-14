@@ -179,6 +179,86 @@ public sealed class CombatPlaybackTests
         if (transition == "pause") Assert.Single(playback.Drain());
         else { Assert.Empty(playback.Drain()); Assert.Equal(generation + 1, playback.Generation); }
     }
+    [Theory]
+    [InlineData("admission")]
+    [InlineData("arrival")]
+    [InlineData("action")]
+    public void DistinctAcceptedBoundariesRemainSampleableBeforeDeath(string transition)
+    {
+        UnitState before = new(1, 800, 0, 1, 1)
+        {
+            Deployed = transition != "admission",
+            Hex = new(1, 1, Faction.Skeletons, transition == "admission" ? UnitLifecycle.Queued : UnitLifecycle.Alive,
+                transition == "admission" ? default : new(11, 1), transition == "arrival" ? UnitActionKind.Moving : UnitActionKind.Recovery,
+                transition == "arrival" ? new(8, 1) : default, StartTick: 0, EndTick: 6)
+        };
+        UnitState between = before with
+        {
+            Deployed = true,
+            AttackSequence = transition == "action" ? 1 : 0,
+            Hex = before.Hex! with
+            {
+                Lifecycle = UnitLifecycle.Alive,
+                Position = new(8, 1),
+                Destination = default,
+                Action = transition == "action" ? UnitActionKind.Windup : UnitActionKind.Waiting,
+                StartTick = 6,
+                EndTick = 30,
+                AdmittedTick = transition == "admission" ? 6 : 0
+            }
+        };
+        UnitState dead = between with { Health = 0, Hex = between.Hex! with { Lifecycle = UnitLifecycle.Dying, DeathStartTick = 7, DeathEndTick = 55 } };
+        CombatEvent death = new(1, 7, CombatEventType.Death, dead);
+        var playback = new CombatPlayback(); playback.Accept(State(1, 3, 0) with { Enemies = [before] });
+        playback.Accept(State(2, 6, 0) with { Enemies = [between] });
+        playback.Accept(State(3, 7, 1, [death]) with { DyingBodies = [dead] });
+        playback.Accept(State(4, 7, 1, [death]) with { DyingBodies = [dead] });
+        Assert.Equal(4, playback.Tick); Assert.Equal(before, Assert.Single(playback.Units()));
+        Assert.Empty(playback.Drain());
+        playback.Advance(1 / 60.0, true); Assert.Equal(5, playback.Tick); Assert.Equal(before, Assert.Single(playback.Units()));
+        playback.Advance(1 / 60.0, true); Assert.Equal(6, playback.Tick); Assert.Equal(between, Assert.Single(playback.Units()));
+        Assert.Empty(playback.Drain()); Assert.True(playback.AwaitingDeath(1));
+        playback.Advance(1 / 60.0, true); Assert.Equal(7, playback.Tick); Assert.Equal(dead, Assert.Single(playback.Units()));
+        Assert.Single(playback.Drain()); Assert.False(playback.AwaitingDeath(1));
+        playback.Accept(State(5, 55, 1)); Assert.Equal(dead, Assert.Single(playback.Units()));
+        playback.Advance(3 / 60.0, true); Assert.Equal(55, playback.Tick); Assert.Empty(playback.Units());
+    }
+    [Fact]
+    public void EveryDistinctBoundaryWithinTheClockLagIsSampledAndSameTickCorrectionsReplaceTheirFrame()
+    {
+        UnitState queued = new(1, 800, 0, 1, 1) { Deployed = false, Hex = new(1, 1, Faction.Skeletons, UnitLifecycle.Queued, default) };
+        UnitState moving = queued with
+        {
+            Deployed = true,
+            Hex = queued.Hex! with
+            {
+                Lifecycle = UnitLifecycle.Alive,
+                Position = new(11, 1),
+                Action = UnitActionKind.Moving,
+                Destination = new(8, 1),
+                StartTick = 5,
+                EndTick = 6,
+                AdmittedTick = 5
+            }
+        };
+        UnitState attack = moving with { Hex = moving.Hex! with { Position = new(8, 1), Destination = default, Action = UnitActionKind.Windup, StartTick = 6, EndTick = 30 } };
+        UnitState nextAttack = attack with { AttackSequence = 2, Hex = attack.Hex! with { StartTick = 7 } };
+        UnitState dead = nextAttack with { Health = 0, Hex = nextAttack.Hex! with { Lifecycle = UnitLifecycle.Dying, DeathStartTick = 8, DeathEndTick = 56 } };
+        var playback = new CombatPlayback(); playback.Accept(State(1, 3, 0) with { Enemies = [queued] });
+        playback.Accept(State(2, 5, 0) with { Enemies = [moving] });
+        playback.Accept(State(3, 6, 0) with { Enemies = [attack] });
+        playback.Accept(State(4, 7, 0) with { Enemies = [nextAttack] });
+        playback.Accept(State(5, 8, 0) with { DyingBodies = [dead] });
+        Assert.Equal(5, playback.Tick); Assert.Equal(moving, Assert.Single(playback.Units()));
+        playback.Advance(1 / 60.0, true); Assert.Equal(6, playback.Tick); Assert.Equal(attack, Assert.Single(playback.Units()));
+        playback.Advance(1 / 60.0, true); Assert.Equal(7, playback.Tick); Assert.Equal(nextAttack, Assert.Single(playback.Units()));
+        playback.Advance(1 / 60.0, true); Assert.Equal(8, playback.Tick); Assert.Equal(dead, Assert.Single(playback.Units()));
+        UnitState corrected = dead with { Experience = 1 };
+        for (int revision = 6; revision < 1006; revision++)
+            playback.Accept(State(revision, 8, 0) with { DyingBodies = [corrected] });
+        Assert.Equal(corrected, Assert.Single(playback.Units()));
+        playback.Accept(State(1006, 56, 0)); playback.Advance(.05, true); Assert.Empty(playback.Units());
+    }
     private static UnitState Corpse() => new(1, 0, 0, 1, 1)
     {
         Type = UnitType.Crossbowman,

@@ -347,6 +347,101 @@ public partial class EngineTests
             await Sample(false);
         }
         finally { RemoveChild(rig); rig.Free(); RemoveChild(entryRig); entryRig.Free(); }
+        await ArenaBufferedBoundaries(arenaView, camera);
+    }
+    private async Task ArenaBufferedBoundaries(SharedArenaView arenaView, Camera3D camera)
+    {
+        foreach (string transition in new[] { "admission", "arrival", "action" })
+        {
+            using var match = new Match(new Rules { StartingGold = 100, StartingWood = 100, RangedHealth = 1, RangedDamage = 0, DefenderDamage = 0 }, combatSeed: 1);
+            match.Join(); match.Players[1].Metal = 100; match.Players[1].Food = 100;
+            long sequence = 0;
+            void Act(string action, int slot = -1, Building building = Building.Empty) => Check(match.Apply(1,
+                Command.FromSnapshot(match.Snapshot(), ++sequence, action, 1, slot, building, UnitType.Crossbowman)).Accepted, "native two-boundary fixture accepts " + action);
+            Act("start"); Act("build", 0, Building.ArcheryRange); Act("recruit", 0);
+            for (int gate = 0; gate < 3; gate++) Act("ready");
+            var arena = new SharedArena([1]);
+            int memberId = match.Players[1].Soldiers.Single().Id;
+            int squadId = match.Combat.Read(memberId).SquadId;
+            int enemyId = match.Combat.Enemies()[0].Id;
+            foreach (UnitState extra in match.Combat.Enemies().Where(u => u.Id != enemyId)) match.Combat.Remove(extra.Id);
+            HexTransition move = arena.Board.Transition(new(17, 1), new(18, 1));
+            int endpoint = transition == "admission" ? 1 : 18;
+            int enemyCell = transition == "admission" ? 2 : arena.Board.Cell(endpoint).Neighbors.First(c => c != 17 && arena.CanOccupy(c));
+            match.Combat.Seed(match.Combat.Inspect(enemyId) with
+            {
+                Location = new(UnitLifecycle.Alive, new(enemyCell, 1)),
+                Action = new CombatAction.Windup(1, 1, 30, new(new(CombatTargetKind.Unit, squadId), 0, 7))
+            });
+            match.Combat.Seed(match.Combat.Inspect(memberId) with
+            {
+                Location = new(transition == "admission" ? UnitLifecycle.Queued : UnitLifecycle.Alive,
+                    transition == "admission" ? default : transition == "arrival" ? move.Source : move.Destination),
+                Action = transition == "admission" ? new CombatAction.Waiting() : transition == "arrival"
+                    ? new CombatAction.Moving(1, move.Destination, move.Id, 0, 6) : new CombatAction.Recovery(1, 0, 6)
+            });
+            int entryBlocker = 0;
+            if (transition == "admission")
+                foreach (int cell in arena.EnemyCells(1).Where(c => c != enemyCell))
+                {
+                    int id = match.Combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons, isBoss: true);
+                    match.Combat.Seed(match.Combat.Inspect(id) with { Location = new(UnitLifecycle.Alive, new(cell, 1)), Action = new CombatAction.Recovery(1, 0, 100) });
+                    if (cell == endpoint) entryBlocker = id;
+                }
+            while (match.Tick < 3) match.Step();
+            MatchSnapshot Receive() => SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot()));
+            MatchSnapshot accepted = Receive();
+            UnitState initial = accepted.Players[0].Soldiers.Single();
+            var playback = new CombatPlayback(); playback.Accept(accepted);
+            var layout = new CombatLayout(new(accepted.Arena!.Board));
+            var rig = new UnitView(initial); AddChild(rig);
+            double secondsPerTick = 1.0 / (Match.StepsPerSecond * CombatSpeedRates.Factor(accepted.CombatSpeed));
+            try
+            {
+                async Task Sample(UnitState expected)
+                {
+                    layout.Synchronize(accepted); arenaView.Synchronize(accepted, layout, false, 1);
+                    var units = playback.Units().ToDictionary(u => u.Id);
+                    arenaView.Sample(playback, units.Values);
+                    rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
+                    await Frames();
+                    Check(rig.State.Hex == expected.Hex && rig.State.Health == expected.Health && rig.State.AttackSequence == expected.AttackSequence,
+                        "native " + transition + " model retains each accepted boundary at " + playback.Tick);
+                    bool alive = expected.Hex!.Lifecycle == UnitLifecycle.Alive;
+                    Label3D? label = arenaView.GetNodeOrNull<Label3D>("SquadSummary" + squadId);
+                    Check(rig.Visible == expected.Deployed && rig.Dead == (expected.Hex.Lifecycle == UnitLifecycle.Dying) && (label is not null) == alive,
+                        "native " + transition + " summary and model share membership at " + playback.Tick);
+                    if (!alive) return;
+                    System.Numerics.Vector3 formation = SharedCombatProjection.Formation(expected.FormationSlot, accepted.Rules.Arena.SquadCapacity, expected.IsBoss);
+                    Check(label!.GlobalPosition.IsEqualApprox(rig.Position - new Vector3(formation.X, formation.Y, formation.Z) + Vector3.Up * 1.6f),
+                        "native intermediate " + transition + " pose agrees with its summary anchor");
+                    var observed = System.Text.Json.JsonSerializer.SerializeToElement(arenaView.Observe(camera,
+                        GetViewport().GetFinalTransform(), GetViewport().GetVisibleRect()), WireJson.Options);
+                    Check(observed.EnumerateArray().Single(s => s.GetProperty("Id").GetInt32() == squadId).GetProperty("Members")[0].GetProperty("Health").GetInt32() == expected.Health,
+                        "native intermediate summary exposes the admitted living member's health");
+                }
+                await Sample(initial);
+                while (match.Tick < 5) match.Step();
+                if (entryBlocker > 0) match.Combat.Remove(entryBlocker);
+                match.Step(); accepted = Receive(); playback.Accept(accepted);
+                UnitState intermediate = accepted.Players[0].Soldiers.Single();
+                Check(intermediate.Hex!.Lifecycle == UnitLifecycle.Alive && intermediate.Hex.Position.Cell == endpoint
+                    && intermediate.Hex.Action == UnitActionKind.Windup && intermediate.Hex.StartTick == 6,
+                    "authority publishes genuine admission/arrival/action at six before lethal impact");
+                if (transition == "admission") Check(intermediate.Hex.AdmittedTick == 6, "authority admits the blocked queued member exactly at six");
+                match.Step(); accepted = Receive(); playback.Accept(accepted);
+                UnitState dead = accepted.DyingBodies.Single();
+                Check(dead.Id == memberId && dead.Hex!.DeathStartTick == 7 && playback.Tick == 4,
+                    "genuine compressed death at seven arrives before the intermediate boundary is sampled");
+                await Sample(initial);
+                playback.Advance(secondsPerTick, true); await Sample(initial);
+                playback.Advance(secondsPerTick, true); await Sample(intermediate);
+                Check(playback.Tick == 6 && !rig.Dead && rig.Visible, "native intermediate state is alive exactly at six");
+                playback.Advance(secondsPerTick, true); await Sample(dead);
+                Check(playback.Tick == 7 && rig.Clip == "death", "native intermediate member dies exactly at seven");
+            }
+            finally { RemoveChild(rig); rig.Free(); }
+        }
     }
     private async Task ArenaBufferedRally(SharedArenaView arenaView)
     {

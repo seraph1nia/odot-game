@@ -11,7 +11,7 @@ public sealed class CombatPlayback
     }
     private sealed record AcceptedState(string MatchId, long Revision, long Tick, bool Paused, double Pace, UnitState[] Units, Dictionary<int, UnitState> ById, Dictionary<int, long> RallyUntil);
     private AcceptedState? _current;
-    private Dictionary<int, UnitState>? _previous;
+    private readonly List<AcceptedState> _frames = [];
     private int[] _ids = [];
     private readonly Dictionary<int, int> _pendingDeaths = [];
     private readonly Queue<CombatEvent> _pending = new();
@@ -27,16 +27,19 @@ public sealed class CombatPlayback
         bool gap = !fresh && state.OldestEventSequence > _acceptedSequence + 1;
         if (fresh || baseline || gap)
         {
-            _pending.Clear(); _pendingDeaths.Clear(); _previous = null; _current = Index(state);
-            _ids = _current.Units.Select(u => u.Id).ToArray();
+            _pending.Clear(); _pendingDeaths.Clear(); _frames.Clear(); _current = Index(state);
+            _frames.Add(_current); _ids = _current.Units.Select(u => u.Id).ToArray();
             EventCursor = _acceptedSequence = state.EventSequence; Tick = state.Tick;
             if (fresh) VisualSeconds = 0;
             Generation++;
             return true;
         }
         Tick = state.Paused ? state.Tick : Math.Max(Tick, state.Tick - 3);
-        _previous = HexUnits().ToDictionary(u => u.Id); _current = Index(state);
-        _ids = WorkOrdering.Input(_previous.Keys.Concat(_current.ById.Keys).Distinct(), _work).Order().ToArray();
+        _current = Index(state);
+        if (_frames[^1].Tick == state.Tick) _frames[^1] = _current;
+        else _frames.Add(_current);
+        TrimFrames();
+        _ids = WorkOrdering.Input(_frames.SelectMany(frame => frame.ById.Keys).Distinct(), _work).Order().ToArray();
         _work?.Add(WorkMetric.PlaybackEventVisits, state.CombatEvents.Length);
         foreach (CombatEvent entry in WorkOrdering.Input(state.CombatEvents.Where(e => e.Sequence > _acceptedSequence), _work).OrderBy(e => e.Sequence))
         {
@@ -53,6 +56,15 @@ public sealed class CombatPlayback
         double elapsed = Math.Clamp(seconds, 0, 0.1) * _current.Pace;
         VisualSeconds += elapsed;
         Tick = Math.Min(_current.Tick, Tick + elapsed * Match.StepsPerSecond);
+        TrimFrames();
+    }
+    private void TrimFrames()
+    {
+        int matured = 0;
+        while (matured + 1 < _frames.Count && _frames[matured + 1].Tick <= Tick) matured++;
+        if (matured == 0) return;
+        _frames.RemoveRange(0, matured);
+        _ids = _ids.Where(id => _frames.Any(frame => frame.ById.ContainsKey(id))).ToArray();
     }
     public CombatEvent[] Drain()
     {
@@ -89,25 +101,25 @@ public sealed class CombatPlayback
         var sampled = new List<UnitState>(_ids.Length);
         foreach (int id in _ids)
         {
-            UnitState? old = _previous?.GetValueOrDefault(id);
-            if (!_current!.ById.TryGetValue(id, out UnitState? unit))
+            UnitState? selected = null;
+            foreach (AcceptedState frame in _frames)
             {
-                if (old?.Hex is { Lifecycle: UnitLifecycle.Dying } priorDeath && Tick < priorDeath.DeathEndTick) sampled.Add(CombatProjection.Detach(old));
-                continue;
+                if (!frame.ById.TryGetValue(id, out UnitState? unit))
+                {
+                    if (selected?.Hex is not { Lifecycle: UnitLifecycle.Dying } priorDeath || Tick >= priorDeath.DeathEndTick) selected = null;
+                    continue;
+                }
+                HexUnitState? hex = unit.Hex;
+                if (selected?.Hex is { } prior && hex is not null
+                    && (hex.Lifecycle == UnitLifecycle.Dying && Tick < hex.DeathStartTick
+                        || hex.Lifecycle == UnitLifecycle.Alive && prior.Lifecycle == UnitLifecycle.Queued && Tick < hex.AdmittedTick
+                        || prior.HoldsTransit && Tick < prior.EndTick && (hex.Action != UnitActionKind.Moving || hex.StartTick > Tick)
+                        || hex.StartTick > Tick && hex.Lifecycle != UnitLifecycle.Dying)) continue;
+                selected = unit;
             }
-            UnitState selected = unit; HexUnitState? hex = unit.Hex;
-            if (old?.Hex is { } prior && hex is not null)
-            {
-                if (hex.Lifecycle == UnitLifecycle.Dying && Tick < hex.DeathStartTick
-                    || hex.Lifecycle == UnitLifecycle.Alive && prior.Lifecycle == UnitLifecycle.Queued && Tick < hex.AdmittedTick
-                    || prior.HoldsTransit && Tick < prior.EndTick && (hex.Action != UnitActionKind.Moving || hex.StartTick > Tick)
-                    || hex.StartTick > Tick && hex.Lifecycle != UnitLifecycle.Dying) selected = old;
-            }
-            if (selected.Hex is not { Lifecycle: UnitLifecycle.Dying } death || Tick < death.DeathEndTick) sampled.Add(CombatProjection.Detach(selected));
+            if (selected is not null && (selected.Hex is not { Lifecycle: UnitLifecycle.Dying } death || Tick < death.DeathEndTick))
+                sampled.Add(CombatProjection.Detach(selected));
         }
-        // A snapshot can omit a death that expires up to three buffered ticks
-        // ahead of the presentation clock. Keep its previous current state only
-        // through the declared deadline, never recreate it from historical events.
         return sampled.ToArray();
     }
     private AcceptedState Index(MatchSnapshot state)
