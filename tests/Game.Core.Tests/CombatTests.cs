@@ -28,7 +28,9 @@ public sealed class CombatTests(Xunit.Abstractions.ITestOutputHelper output)
         => match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, action, 1, slot, SoldierType: type, ExpectedGeneration: slot is >= 0 and < 9 ? match.Players[1].Slots[slot].Generation : 0));
     private static CombatSimulation Duel(Rules? rules = null, UnitType type = UnitType.Swordsman)
     {
-        var combat = new CombatSimulation(rules ?? new Rules { SoldierHealth = 10, SoldierDamage = 4, RangedHealth = 8, RangedDamage = 3, DefenderDamage = 0 });
+        // Fixed symmetric numerical duel, not current-wave balance acceptance.
+        var inputs = rules ?? new Rules { SoldierHealth = 10, SoldierDamage = 4, RangedHealth = 8, RangedDamage = 3, DefenderDamage = 0 };
+        var combat = new CombatSimulation(inputs with { EnemyPowerPercent = 100 });
         int soldier = combat.Create(type, 1, 1, 1), enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons);
         combat.Seed(combat.Read(soldier) with { Hex = CombatFixture.At(combat.Read(soldier), 17, 1), Deployed = true });
         combat.Seed(combat.Read(enemy) with { Hex = CombatFixture.At(combat.Read(enemy), type == UnitType.Crossbowman ? 3 : 18, 1), Deployed = true });

@@ -53,7 +53,7 @@ public sealed class ArmyProgressionTests
     }
 
     [Fact]
-    public void EveryOrdinaryArchetypeHasFactionSymmetryBeyondTheRecruitCap()
+    public void EveryOrdinaryArchetypeHasEnemyOnlyReductionBeyondTheRecruitCap()
     {
         using var combat = new CombatSimulation(new());
         foreach (UnitType type in Enum.GetValues<UnitType>())
@@ -61,7 +61,7 @@ public sealed class ArmyProgressionTests
             {
                 int ally = combat.Create(type, 1, 1, 1, rank: 2, level: level);
                 int enemy = combat.Create(type, 0, 1, 1, Faction.Skeletons, rank: 2, level: level);
-                Assert.Equal(combat.Read(ally).Profile, combat.Read(enemy).Profile);
+                Assert.Equal(WavePowerBaseline.Reduced(combat.Read(ally).Profile), combat.Read(enemy).Profile);
                 Assert.Equal(1, combat.Read(ally).Hex!.Size); Assert.Equal(level, combat.Read(enemy).Level);
             }
     }
@@ -124,7 +124,7 @@ public sealed class ArmyProgressionTests
         string json = JsonSerializer.Serialize(transferred, WireJson.Options);
         Assert.Equal(json, JsonSerializer.Serialize(JsonSerializer.Deserialize<UnitState>(json, WireJson.Options), WireJson.Options));
         int enemy = combat.Create(UnitType.Swordsman, 0, 1, 1, Faction.Skeletons, rank: 1, isBoss: true, level: 5);
-        Assert.Equal(transferred.Profile, combat.Read(enemy).Profile);
+        Assert.Equal(WavePowerBaseline.Reduced(transferred.Profile), combat.Read(enemy).Profile);
     }
 
     [Fact]

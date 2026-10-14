@@ -17,7 +17,7 @@ public sealed class CombatConfigurationTests
         Assert.Equal(p with { Health = HealthPoints.Ranked(p.Health, 2), Damage = HealthPoints.Ranked(p.Damage, 2), SecondaryDamage = HealthPoints.Ranked(p.SecondaryDamage, 2) }, config.Unit(type, 2));
         using var combat = new CombatSimulation(new());
         int a = combat.Create(type, 1, 1, 1, rank: 2), b = combat.Create(type, 0, 1, 1, Faction.Skeletons, 2);
-        Assert.Equal(combat.Read(a).Profile, combat.Read(b).Profile);
+        Assert.Equal(WavePowerBaseline.Reduced(combat.Read(a).Profile), combat.Read(b).Profile);
         Assert.Equal(1, combat.Read(a).Hex!.Size); Assert.Equal(1, combat.Read(b).Hex!.Size);
         Assert.Throws<ArgumentOutOfRangeException>(() => config.Unit(type, 3));
     }

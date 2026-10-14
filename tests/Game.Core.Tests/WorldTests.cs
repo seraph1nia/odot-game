@@ -154,7 +154,7 @@ public sealed class WorldTests
         combat.Seed(ally with { Hex = CombatFixture.At(ally, arena.Deployment(1, 0), 1) });
         combat.Advance(13, [city]);
         CombatEvent impact = Assert.Single(combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == attacker);
-        Assert.True(impact.TargetCity); Assert.True(impact.Landed); Assert.Equal(9500, city.Health);
+        Assert.True(impact.TargetCity); Assert.True(impact.Landed); Assert.Equal(9625, city.Health);
         Assert.Equal(UnitActionKind.Recovery, combat.Read(attacker).Hex!.Action); Assert.Equal(61, combat.Read(attacker).ReadyTick);
         Assert.Equal(ally.Health, combat.Read(defender).Health);
     }

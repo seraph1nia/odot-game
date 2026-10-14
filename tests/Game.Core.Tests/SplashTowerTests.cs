@@ -16,7 +16,7 @@ public sealed class SplashTowerTests
     public void RankedXYStrikesAffectOnlyTheSelectedFiveMemberGroup(int x, int y)
     {
         using var combat = new CombatSimulation(new()
-        { RangedHealth = 8, MageDamage = x, Arena = new() { SquadCapacity = 5, MageSecondaryDamage = y } }, seed: 123);
+        { EnemyPowerPercent = 100, RangedHealth = 8, MageDamage = x, Arena = new() { SquadCapacity = 5, MageSecondaryDamage = y } }, seed: 123);
         int mage = CombatFixture.Group(combat, UnitType.Mage, 1, 1, Faction.Adventurers, 17, rank: 1)[0];
         int[] selected = CombatFixture.Group(combat, UnitType.Crossbowman, 5, 0, Faction.Skeletons, 18);
         int neighbor = CombatFixture.Group(combat, UnitType.Crossbowman, 1, 0, Faction.Skeletons, 19)[0];
@@ -84,7 +84,7 @@ public sealed class SplashTowerTests
     public void MovingTargetGroupUsesOneSourceAndNeverSplashesIntoOtherSquads(int impactTick, bool landed)
     {
         using var combat = new CombatSimulation(new()
-        { RangedHealth = 8, MageDamage = 4, Combat = new() { MageHexRange = 1 }, Arena = new() { MageSecondaryDamage = 1 } });
+        { EnemyPowerPercent = 100, RangedHealth = 8, MageDamage = 4, Combat = new() { MageHexRange = 1 }, Arena = new() { MageSecondaryDamage = 1 } });
         int mage = CombatFixture.Group(combat, UnitType.Mage, 1, 1, Faction.Adventurers, 18)[0];
         int[] selected = CombatFixture.Group(combat, UnitType.Crossbowman, 3, 0, Faction.Skeletons, 17);
         int neighbor = CombatFixture.Group(combat, UnitType.Crossbowman, 1, 0, Faction.Skeletons, 19)[0];

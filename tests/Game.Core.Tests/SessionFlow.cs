@@ -14,9 +14,9 @@ internal sealed class SessionFlow : IDisposable
     public ulong Time { get; private set; }
     public MatchSnapshot State => Session.Snapshot();
 
-    public SessionFlow(AuthorityPolicy policy = AuthorityPolicy.PlayingHost, int players = 2, ulong seed = 1)
+    public SessionFlow(AuthorityPolicy policy = AuthorityPolicy.PlayingHost, int players = 2, ulong seed = 1, Rules? rules = null)
     {
-        Session = new(policy, combatSeed: seed);
+        Session = new(policy, rules, combatSeed: seed);
         for (int index = policy == AuthorityPolicy.Dedicated ? 0 : 1; index < players; index++)
         {
             int peer = index + 2;

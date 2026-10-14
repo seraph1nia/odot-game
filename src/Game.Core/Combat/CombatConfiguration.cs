@@ -79,7 +79,7 @@ public sealed class CombatConfiguration
         get => _work;
         set { _work = value; value?.Support(WorkMetric.ProfileResolutions, WorkMetric.ProfileCacheMisses, WorkMetric.ProfileCacheHits); }
     }
-    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level, UnitCapabilities Capabilities), HexCombatProfile> _resolved = [];
+    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level, UnitCapabilities Capabilities, Faction Faction), HexCombatProfile> _resolved = [];
     internal int CachedProfiles => _resolved.Count;
     internal void ClearCache() { _resolved.Clear(); Work = null; }
     private readonly FrozenDictionary<UnitType, HexCombatProfile> _profiles;
@@ -94,6 +94,7 @@ public sealed class CombatConfiguration
     public DefenseTiming Defender { get; }
     public ReadOnlyCollection<TowerDefinition> Towers { get; }
     public int DefenderDamage { get; }
+    public int EnemyPowerPercent { get; }
     public int RetryTicks { get; }
     public int NoHealthProgressTicks { get; }
     public int MaximumWaveTicks { get; }
@@ -107,6 +108,8 @@ public sealed class CombatConfiguration
     public CombatConfiguration(Rules rules)
     {
         ArgumentNullException.ThrowIfNull(rules);
+        if (rules.EnemyPowerPercent is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(rules), "Enemy power must be 1..100 percent.");
+        EnemyPowerPercent = rules.EnemyPowerPercent;
         CombatSettings settings = rules.Combat;
         ArgumentNullException.ThrowIfNull(settings);
         Arena = rules.Arena; ArgumentNullException.ThrowIfNull(Arena);
@@ -162,11 +165,12 @@ public sealed class CombatConfiguration
         Fingerprint = ComputeFingerprint();
     }
 
-    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default)
+    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default, Faction faction = Faction.Adventurers)
     {
         Work?.Add(WorkMetric.ProfileResolutions);
         capabilities.Validate();
-        var key = (type, rank, isBoss, level, capabilities);
+        if (!Enum.IsDefined(faction)) throw new ArgumentOutOfRangeException(nameof(faction));
+        var key = (type, rank, isBoss, level, capabilities, faction);
         if (_resolved.TryGetValue(key, out HexCombatProfile? cached)) { Work?.Add(WorkMetric.ProfileCacheHits); return cached; }
         Work?.Add(WorkMetric.ProfileCacheMisses);
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
@@ -189,10 +193,22 @@ public sealed class CombatConfiguration
         }).Researched(rank);
         WeaponProfile modified = capabilities.Apply(resolved.Runtime());
         resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage };
+        // Resolve from the original leveled profile once, never from received HP.
+        // Fixed-point stats retain quarter-HP precision at the default 75%.
+        if (faction == Faction.Skeletons)
+            resolved = resolved with
+            {
+                Health = Math.Max(1, EnemyScale(resolved.Health)),
+                Damage = EnemyScale(resolved.Damage),
+                SecondaryDamage = EnemyScale(resolved.SecondaryDamage),
+                StructureDamage = EnemyScale(resolved.StructureDamage)
+            };
         int maximumActors = checked(SharedArena.SectorWidth * SharedArena.Depth * 4 * Arena.SquadCapacity + 4 * (ArmyConfiguration.TotalPlots + 1));
         if (UnitCapabilities.Scale(UnitCapabilities.Scale(Math.Max(Math.Max(resolved.Damage, resolved.SecondaryDamage), resolved.StructureDamage), 10), 20) > int.MaxValue / maximumActors) throw new ArgumentException("Leveled damage could overflow the simultaneous accumulator.", nameof(level));
         _resolved.Add(key, resolved); return resolved;
     }
+    private int EnemyScale(int amount) => checked((int)((long)amount * EnemyPowerPercent / 100));
+
     internal static HexCombatProfile Profile(Rules rules, UnitType type)
     {
         CombatSettings c = rules.Combat;
@@ -248,6 +264,8 @@ public sealed class CombatConfiguration
             // fixed order, explicit lengths, and no runtime object hashes.
             new ResearchCatalog().Write(writer, prices: false); Statuses.Write(writer);
             writer.Write(RulesVersion);
+            // Balance changes compatibility, not seeded actor-choice namespaces.
+            if (!actorNamespace) writer.Write(EnemyPowerPercent);
             writer.Write(SharedArena.SectorWidth); writer.Write(SharedArena.Depth); writer.Write(2); // squad arena plus optional army-plot weapons
             writer.Write(Arena.SquadCapacity); writer.Write(Arena.WatchpostHealth); writer.Write(Arena.RallyDamageReductionPercent); writer.Write(Arena.RallyDurationTicks);
             writer.Write(Arena.DefenderRange); writer.Write(Arena.ArrowRange); writer.Write(Arena.CatapultRange);

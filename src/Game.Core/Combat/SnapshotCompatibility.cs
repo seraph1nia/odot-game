@@ -60,7 +60,7 @@ public static class SnapshotCompatibility
             throw new ArgumentException("Combat configuration identity refused: received rules do not match the full authoritative fingerprint.", nameof(state));
         if (state.NextWave.Any(u => u.Profile.Health <= 0 || u.Statuses is not { Poison: not null } || u.Statuses.Poison.Any(p => p is null)
             || !state.Players.Any(p => p.Id == u.Origin) || !state.Players.Any(p => p.Id == u.Destination)
-            || u.Profile != configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level).Runtime()
+            || u.Profile != configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level, faction: Faction.Skeletons).Runtime()
             || u.Hex is not null || u.TargetCity || u.TargetId != 0 || u.TargetKind != SquadTargetKind.None
             || u.Decision is not null || u.Assignment is not null || u.SquadId != 0 || u.FormationSlot != 0
             || u.AttackSequence != 0 || u.ActionStartTick != 0 || u.ImpactTick != 0 || u.ReadyTick != 0
@@ -229,7 +229,7 @@ public static class SnapshotCompatibility
             throw new ArgumentException("Malformed combat member projection.", nameof(member));
         member.Capabilities.Validate();
         StatusPolicy.Validate(member.Statuses, configuration.Statuses);
-        if (member.Profile != configuration.Unit(member.Type, member.Rank, member.IsBoss, member.Level, member.Capabilities).Runtime())
+        if (member.Profile != configuration.Unit(member.Type, member.Rank, member.IsBoss, member.Level, member.Capabilities, member.Faction).Runtime())
             throw new ArgumentException("Invalid authoritative member profile.", nameof(member));
         if (member.TargetCity) RequireStructureTarget(member.TargetId, member.TargetKind, arena);
         if (member.Deployed || hex.HoldsTransit) RequirePose(new(hex.Position, hex.HoldsTransit ? hex.Destination : default,

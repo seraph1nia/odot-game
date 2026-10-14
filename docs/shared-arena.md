@@ -138,7 +138,8 @@ eliminated-stored acceptance remains unestablished.
 **The ENet survivor is stored, not an actively fighting fallen-owner unit.** Active
 survivor continuation is separately covered by a controlled production
 `World.Step`/compressed-receiving encounter: paid IDs/formations plus explicit
-arithmetic poses, a wounded member and a five-HP Keep. Keep loss preserves current
+arithmetic poses, a wounded member and a one-enemy-impact Keep threshold
+(currently 3.75 HP after the wave rebalance, previously five HP). Keep loss preserves current
 source/action/claims and individual HP; a later fallen-owner strike lands, service
 persists, and its members become nonparticipating reserves next wave. The same-tick
 last-enemy/last-Keep codec witness still requires defeat, no reward and valid claims.
@@ -162,7 +163,8 @@ and native artistic acceptance remain separate.
 existing production playing-host/ENet/session/codec owners. Two identified
 six-member field rosters start through actual commands; the named owned fixture
 explicitly supplies synthetic tower materials, physical poses, a 33-HP member,
-one retained enemy and a 5-HP Keep. Its paired disconfirming control changes only
+one retained enemy and a one-impact Keep threshold (currently 3.75 HP, previously
+5 HP). Its paired disconfirming control changes only
 that Keep to 100 HP. This is **controlled numerical/transport proof, not earned
 injury/economy/balance, full-game or complete network/reconnect acceptance**.
 The one-shot source-defined seam requires an owned supervised headless loopback

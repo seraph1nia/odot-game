@@ -77,7 +77,9 @@ public sealed class SessionFlowTests
     [Fact]
     public void SerializedPaidThreeCityFallAndTeamClearPreserveVeteransReceiptsAndFutureAllocation()
     {
-        using var flow = new SessionFlow(players: 3, seed: 8);
+        // Retain the exact pre-rebalance paid casualty input for this authority
+        // negative. Default 75% earned co-op openings are qualified separately.
+        using var flow = new SessionFlow(players: 3, seed: 8, rules: WavePowerBaseline.Rules());
         flow.Act(1, new("start"));
         foreach (int player in new[] { 1, 2 })
         {

@@ -69,7 +69,7 @@ The top-right text table shows **Resource**, **Stock** and **Income/production**
 
 The small **Upkeep** table directly underneath shows **Next battle** food demand and **Food after payment**. On shortage it shows the exact number of soldiers that **will sit out** for a field-only army, or **Unfunded soldiers** when Town hall storage is present: stored units never fight, even when funded. In final preparation the forecast includes the imminent production before funding soldiers; stock remains unchanged until readiness resolves. Six Swordsmen with forecast availability 15 show demand 6 and balance 9. Missing income or resource overflow shows an unavailable forecast rather than invented funding. A shortage alone does not disable Ready. Details retains the projected payment and the [field-first food allocation](#deterministic-hex-combat). Combat shows **Paid this battle · WN** and the actual payment/reserve count; outcomes show **Last battle · WN**. Fresh sessions clear old receipts. Both tables block world click, zoom and drag initiation. Producer controls show complete cost and output per turn; upgrades show current → next output, and disabled quotes explain **Need N more resource** with its producer source.
 
-Enemy pressure uses an authored twenty-wave catalog per original player. Entries expand in their listed order with the stated level and rank zero. `S/B/C/M` mean Swordsman/Berserker/Crossbowman/Mage; `3 S2` means three level-two Swordsmen. These ordinary compositions remain candidates for the balance gate.
+Enemy pressure uses an authored twenty-wave catalog per original player. Entries expand in their listed order with the stated level and rank zero. `S/B/C/M` mean Swordsman/Berserker/Crossbowman/Mage; `3 S2` means three level-two Swordsmen. Counts and levels are unchanged by the [25% wave-power reduction](wave-power.md): every enemy now has 75% of the original leveled HP and primary/secondary/structural damage, while players retain the base stats and prices. The linked per-wave table and finite paid encounters distinguish the balance score from experiential difficulty.
 
 | Wave | Per-original-player entries |
 | --- | --- |
@@ -221,18 +221,22 @@ form homogeneous groups in canonical order; overflow retains identities until en
 | Crossbowman | 40 | 12 / 0 | 3 | 1 metal + 2 wood | 1 | 30 | 3 | 30 | 18 / 42 |
 | Mage | 25 | 12 / 4 | 4 | 3 cloth + 1 gold | 2 | 40 | 3 | 30 | 24 / 66 |
 
-These are level-one bases; all death intervals are48ticks. The finishing change
-modestly raises Crossbow HP30->40 and X10->12, symmetrically for both factions.
-Six Crossbowmen in two full squads survive the default W1 encounter at seeds1/123
-with normal profiles. That equipment/food fixture is arithmetic, not an earned
-opening. Pure-ranged paid openings still lose and are owner-approved deferred
-balance work; see [actual baselines](paid-squad-baselines.md).
+These are player level-one bases; all death intervals are48ticks. Crossbow
+HP40/X12 remains the shared original base, but enemies now resolve 75% of HP
+and all damage channels after level/boss/rank scaling. Six Crossbowmen in two
+full squads survive the default W1 encounter at seeds1/123 with normal player
+profiles. That equipment/food fixture is arithmetic, not an earned opening.
+Earlier pure-ranged paid losses remain in the [historical baselines](paid-squad-baselines.md);
+[current finite paired paid evidence](wave-power.md#headless-encounter-evidence)
+shows easier openings without certifying every ranged strategy.
 
 New recruits capture trainer level1..5. Veterans retain their own levels/wounds.
 HP and X/Y/structure scale from original bases by1.35 per level, rounding nearest
 whole point with midpoint ties upward, then boss/research stages. Swordsman HP
 is40/54/73/98/133 and X10/14/18/25/33. Default bosses are L3/L5 Swordsmen with
-8x leveled HP and2x direct damage, without phases/escorts. Equipment components
+8x leveled HP and2x direct damage, without phases/escorts, followed once by the
+enemy-only 75% strength rule (boss HP438/798 and primary damage27/49.5).
+Equipment components
 scale by1.35 with positive midpoint-up rounding; zeros remain zero. Recruitment
 never spends food or heals veterans. Surviving funded field participants gain
 one service point per successful clear, including current-wave fallen-owner

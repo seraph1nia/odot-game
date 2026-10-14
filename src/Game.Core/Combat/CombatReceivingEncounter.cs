@@ -48,7 +48,9 @@ public sealed partial class AuthoritySession
             && arena.Board.Distance(c.Id, arena.Watchpost(3)) > range)
             .OrderBy(c => arena.Board.Distance(c.Id, arena.Keep(3))).ThenBy(c => c.Id).First().Id;
         _match.Combat.Seed(_match.Combat.Inspect(enemy) with { Location = new(UnitLifecycle.Alive, new(approach, 1)) });
-        _match.Players[3].Health = HealthPoints.FromWhole(protectedKeep ? 100 : 5);
+        // A one-impact numerical threshold follows the actual enemy profile;
+        // it is not an earned Keep injury or compensation in normal gameplay.
+        _match.Players[3].Health = protectedKeep ? HealthPoints.FromWhole(100) : _match.Combat.Read(enemy).Profile.StructureDamage;
         _receivingPlaced = true;
         return true;
     }
@@ -86,7 +88,7 @@ public sealed partial class AuthoritySession
         _match.Combat.Seed(_match.Combat.Inspect(enemy) with { Location = new(UnitLifecycle.Alive, new(approach, 1)) });
         int injured = _match.Players[2].Soldiers[0].Id;
         _match.Combat.Seed(_match.Combat.Inspect(injured) with { Health = HealthPoints.FromWhole(33) });
-        _match.Players[2].Health = HealthPoints.FromWhole(protectedKeep ? 100 : 5);
+        _match.Players[2].Health = protectedKeep ? HealthPoints.FromWhole(100) : _match.Combat.Read(enemy).Profile.StructureDamage;
         _receivingPlaced = true;
         return true;
     }

@@ -51,7 +51,8 @@ internal sealed partial class CombatSimulation : IDisposable
             return new TransitReservation(1, s.Location.Position.Cell, move.Destination.Cell,
                 _arena.Board.Transition(s.Location.Position, move.Destination).EdgeToken, s.Id, s.Action.Sequence);
         }).ToArray());
-    public WeaponProfile Profile(UnitType type, int rank = 0, bool isBoss = false, int level = 1) => _configuration.Unit(type, rank, isBoss, level).Runtime();
+    public WeaponProfile Profile(UnitType type, int rank = 0, bool isBoss = false, int level = 1, Faction faction = Faction.Adventurers)
+        => _configuration.Unit(type, rank, isBoss, level, faction: faction).Runtime();
     private ref CombatUnit Unit(int id) => ref _world.Get<CombatUnit>(_entities[id]);
     internal CombatUnit Inspect(int id) => ProjectMember(Unit(id));
     internal CombatUnit[] Units() => All().Select(ProjectMember).ToArray();
@@ -90,7 +91,7 @@ internal sealed partial class CombatSimulation : IDisposable
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (destination <= 0 || origin <= 0 || !Enum.IsDefined(faction)) throw new ArgumentException("Invalid member identity.");
-        WeaponProfile profile = _configuration.Unit(type, rank, isBoss, level, capabilities).Runtime();
+        WeaponProfile profile = _configuration.Unit(type, rank, isBoss, level, capabilities, faction).Runtime();
         int id = _nextId; _nextId = checked(_nextId + 1);
         var member = new CombatUnit(new(id, type, owner, origin, destination, faction, rank, isBoss, level), profile.Health, profile,
             new(assignment is { Stored: true } ? UnitLifecycle.Stored : UnitLifecycle.Queued, default), new CombatAction.Waiting(), NewDecision(id, destination, 0))
@@ -203,7 +204,7 @@ internal sealed partial class CombatSimulation : IDisposable
     internal UnitState Read(int id) => Project(Unit(id));
     internal void Seed(UnitState state)
     {
-        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank, state.IsBoss, state.Level);
+        WeaponProfile profile = state.Profile.Health > 0 ? state.Profile : Profile(state.Type, state.Rank, state.IsBoss, state.Level, state.Faction);
         Seed(CombatProjection.Restore(state, profile, state.Decision ?? NewDecision(state.Id, state.Destination, 0), _tick));
     }
     internal void Seed(CombatUnit member)
