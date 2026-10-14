@@ -90,6 +90,59 @@ public sealed class CombatLimitTests
         match.Step(); Assert.Equal(fallen ? Phase.Defeat : Phase.Building, match.Phase);
         Assert.Equal(fallen ? DefeatReason.AllCitiesFallen : DefeatReason.None, match.DefeatReason); Assert.Null(match.Stall);
     }
+    [Theory]
+    [InlineData("wave")]
+    [InlineData("progress")]
+    [InlineData("keeps")]
+    public void TerminalPendingMeleeCapturesItsMovingPrimaryAtTheExactStopTick(string reason)
+    {
+        using var match = new Match(new Rules
+        {
+            Campaign = CampaignFixture.Three(first: 1),
+            DefenderDamage = 0,
+            SoldierDamage = 0,
+            Arena = new() { SwordsmanStructureDamage = 0 },
+            Combat = new() { MaximumWaveTicks = reason == "wave" ? 10 : 18000 }
+        }, combatSeed: 1);
+        match.Join(); VillageStrategyTests.Act(match, 1, "start");
+        int actor = match.Combat.Create(UnitType.Swordsman, 1, 1, 1, assignment: new(-1, 0, 0, 1));
+        match.Players[1].Food = 1;
+        for (int gate = 0; gate < 3; gate++) Assert.True(VillageStrategyTests.Act(match, 1, "ready").Accepted);
+        int stop = reason == "progress" ? match.Configuration.NoHealthProgressTicks : 10;
+        CombatFixture.Steps(match, stop - 10);
+        int target = Assert.Single(match.Enemies).Id;
+        HexTransition move = match.Combat.Board.Transition(new(18, 1), new(11, 1));
+        match.Combat.Seed(match.Combat.Inspect(actor) with { Location = new(UnitLifecycle.Alive, new(17, 1)), Action = new CombatAction.Waiting() });
+        match.Combat.Seed(match.Combat.Inspect(target) with
+        {
+            Location = new(UnitLifecycle.Alive, move.Source),
+            Action = new CombatAction.Moving(1, move.Destination, move.Id, stop - 10, stop + 20)
+        });
+        match.Combat.StartActions(match.Players.Values);
+        CombatFixture.Steps(match, 9);
+        UnitState before = match.Combat.Read(actor);
+        Assert.True(before.PendingImpact); Assert.Equal(target, before.TargetId); Assert.Null(before.Hex!.FrozenAim);
+        Assert.True(before.ImpactTick > stop);
+        if (reason == "keeps") match.Players[1].Health = 0;
+        match.Step();
+        MatchSnapshot received = Game.SnapshotPayload.DecodeForReceiving(Game.SnapshotPayload.Encode(match.Snapshot()));
+        Assert.Equal(Phase.Defeat, received.Phase); Assert.Equal(stop, received.Tick);
+        if (reason == "keeps") Assert.Equal(DefeatReason.AllCitiesFallen, received.DefeatReason);
+        else Assert.Equal(reason == "wave" ? BattleLimit.WaveDuration : BattleLimit.NoHealthProgress, received.Stall!.Limit);
+        UnitState frozen = Assert.Single(received.Players[0].Soldiers);
+        HexPosePoint expected = new(move.Source, move.Destination, move.Id, 10, 30);
+        Assert.Equal(expected, frozen.Hex!.FrozenAim); Assert.Equal(stop, frozen.Hex.FrozenTick);
+        Assert.Equal((before.TargetId, before.AttackSequence, before.ActionStartTick, before.ImpactTick, before.ReadyTick, before.Health),
+            (frozen.TargetId, frozen.AttackSequence, frozen.ActionStartTick, frozen.ImpactTick, frozen.ReadyTick, frozen.Health));
+        Assert.Equal(before.Hex with { FrozenTick = stop, FrozenAim = expected }, frozen.Hex);
+        Assert.False(frozen.PendingImpact);
+        match.Combat.Seed(match.Combat.Inspect(target) with { Location = new(UnitLifecycle.Alive, new(25, 1)), Action = new CombatAction.Waiting() });
+        match.Combat.StopActions(match.Players.Values);
+        Assert.Equal(expected, match.Combat.Read(actor).Hex!.FrozenAim);
+        Assert.Equal(target, match.Combat.Read(actor).TargetId);
+        MatchSnapshot later = Game.SnapshotPayload.DecodeForReceiving(Game.SnapshotPayload.Encode(match.Snapshot()));
+        Assert.Equal(frozen.Hex, Assert.Single(later.Players[0].Soldiers).Hex);
+    }
     [Fact]
     public void TerminalMovePoseRemainsFrozenWhileRetainedDeathsCleanUp()
     {

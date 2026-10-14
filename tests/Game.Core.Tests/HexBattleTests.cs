@@ -91,6 +91,59 @@ public sealed class HexBattleTests
         Assert.Empty(combat.Reservations.Positions); Assert.Empty(combat.Reservations.Transit);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void StopCapturesTheExactPhysicalKeepOrWatchpostForWindupAndMovement(bool watchpost, bool moving)
+    {
+        using var combat = new CombatSimulation(new());
+        int structure = watchpost ? combat.Arena.Footprints.Single(f => f.Kind == ArenaStructureKind.Watchpost).Cell
+            : combat.Arena.Footprints.Single(f => f.Kind == ArenaStructureKind.Keep).Cell;
+        var arena = new SharedArena([1]);
+        int source = combat.Board.Cell(structure).Neighbors.First(arena.CanOccupy);
+        int actor = CombatFixture.Group(combat, UnitType.Swordsman, 1, 0, Faction.Skeletons, source)[0];
+        CombatUnit member = combat.Inspect(actor);
+        CombatAction action = moving ? CombatActions.Move(member.Action,
+            combat.Board.Transition(new(source, 1), new(combat.Board.Cell(source).Neighbors.First(arena.CanOccupy), 1)), 0, 30)
+            : CombatActions.Attack(member.Action, new(watchpost ? CombatTargetKind.Watchpost : CombatTargetKind.City, 1), 0, 12, 48);
+        combat.Seed(member with { Action = action, Decision = member.Decision with { ObjectiveId = 1, ObjectiveCity = true, ObjectiveCell = structure } });
+        combat.Advance(10, []); combat.StopActions([]);
+        UnitState stopped = combat.Read(actor);
+        Assert.Equal(new HexPosePoint(new(structure, 1)), stopped.Hex!.FrozenAim);
+        Assert.Equal(10, stopped.Hex.FrozenTick);
+        if (!moving) Assert.Equal(watchpost ? SquadTargetKind.Watchpost : SquadTargetKind.Keep, stopped.TargetKind);
+        combat.Cleanup(20); combat.StopActions([]);
+        Assert.Equal(stopped.Hex, combat.Read(actor).Hex);
+        Assert.Equal(stopped.TargetId, combat.Read(actor).TargetId);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StopRetainsTheSelectedDeadOrExpiredPrimaryInsteadOfAnotherLiveTarget(bool expired)
+    {
+        using var combat = new CombatSimulation(new() { MeleeWindupTicks = 120, AttackTicks = 180, SoldierDamage = 0, RangedDamage = 20 });
+        int actor = CombatFixture.Group(combat, UnitType.Swordsman, 1, 1, Faction.Adventurers, 17)[0];
+        CombatFixture.Group(combat, UnitType.Crossbowman, 1, 1, Faction.Adventurers, 10);
+        int target = CombatFixture.Group(combat, UnitType.Swordsman, 1, 0, Faction.Skeletons, 18)[0];
+        HexTransition move = combat.Board.Transition(new(18, 1), new(11, 1));
+        combat.Seed(combat.Inspect(target) with { Health = 100, Action = new CombatAction.Moving(1, move.Destination, move.Id, 0, 30) });
+        combat.StartActions([]); combat.Advance(18, []);
+        UnitState body = Assert.Single(combat.Dying()); Assert.Equal(target, body.Id);
+        HexPosePoint expected = new(move.Source, move.Destination, move.Id, 18, 30);
+        if (expired) combat.Cleanup(body.Hex!.DeathEndTick);
+        CombatFixture.Group(combat, UnitType.Mage, 1, 0, Faction.Skeletons, 18);
+        UnitState before = combat.Read(actor);
+        Assert.True(before.PendingImpact); Assert.Equal(target, before.TargetId);
+        combat.StopActions([]);
+        UnitState stopped = combat.Read(actor);
+        Assert.Equal(expected, stopped.Hex!.FrozenAim);
+        Assert.Equal((before.TargetId, before.AttackSequence, before.ImpactTick, before.ReadyTick),
+            (stopped.TargetId, stopped.AttackSequence, stopped.ImpactTick, stopped.ReadyTick));
+        combat.Cleanup(80); combat.StopActions([]);
+        Assert.Equal(stopped.Hex, combat.Read(actor).Hex);
+    }
     [Fact]
     public void LethalImpactAtRecoveryBoundaryCannotStartAnotherSquadCycle()
     {

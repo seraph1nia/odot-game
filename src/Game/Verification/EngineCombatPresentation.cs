@@ -8,13 +8,13 @@ public partial class EngineTests
 {
     // Tier B: A can prove damage/claims, not actual imported AnimationTree,
     // socket transforms, native projectile meshes, individual health controls
-    // or corpse animation/removal. Two fixed numerical encounters, no Main,
-    // world, peers, economy/campaign or rendered-art claim. Estimated <5s.
+    // or corpse animation/removal.
     private async Task CombatPresentation()
     {
         await GroupPresentation();
         await MeleeWindupPresentation();
         await MeleeCasualtyPresentation();
+        await TerminalMeleePresentation();
         await CommittedMissPresentation();
         await StockpilePresentation();
     }
@@ -228,6 +228,71 @@ public partial class EngineTests
             Check(!killed.Reservations.Positions.Any(p => p.UnitId == casualty.SquadId)
                 && !killed.Reservations.Transit.Any(p => p.UnitId == casualty.SquadId),
                 "frozen cosmetic lunge retains no logical squad claim");
+        }
+        finally { RemoveChild(rig); rig.Free(); }
+    }
+    private async Task TerminalMeleePresentation()
+    {
+        using var match = new Match(new()
+        {
+            StartingGold = 100,
+            StartingWood = 100,
+            SoldierDamage = 0,
+            DefenderDamage = 0,
+            Combat = new() { MaximumWaveTicks = 10 }
+        }, combatSeed: 1);
+        match.Join(); match.Players[1].Metal = 100; match.Players[1].Food = 100;
+        long sequence = 0;
+        void Act(string action, int slot = -1, Building building = Building.Empty) => Check(match.Apply(1,
+            Command.FromSnapshot(match.Snapshot(), ++sequence, action, 1, slot, building)).Accepted, "native terminal fixture accepts " + action);
+        Act("start"); Act("build", 0, Building.Barracks); Act("recruit", 0);
+        for (int gate = 0; gate < 3; gate++) Act("ready");
+        CombatSimulation combat = match.Combat;
+        int actor = match.Players[1].Soldiers.Single().Id;
+        int primary = combat.Enemies()[0].Id;
+        foreach (UnitState extra in combat.Enemies().Where(u => u.Id != primary)) combat.Remove(extra.Id);
+        HexTransition move = combat.Board.Transition(new(18, 1), new(11, 1));
+        combat.Seed(combat.Inspect(actor) with { Location = new(UnitLifecycle.Alive, new(17, 1)), Action = new CombatAction.Waiting() });
+        combat.Seed(combat.Inspect(primary) with
+        {
+            Location = new(UnitLifecycle.Alive, move.Source),
+            Action = new CombatAction.Moving(1, move.Destination, move.Id, 0, 30)
+        });
+        combat.StartActions(match.Players.Values);
+        while (match.Tick < 9) match.Step();
+        MatchSnapshot before = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot()));
+        var layout = new CombatLayout(new(before.Arena!.Board)); layout.Synchronize(before);
+        var units = before.Players[0].Soldiers.Concat(before.Enemies).ToDictionary(u => u.Id);
+        UnitState live = units[actor];
+        var rig = new UnitView(live); AddChild(rig);
+        try
+        {
+            Check(live.PendingImpact && live.TargetId == primary && live.ImpactTick > 10 && units[primary].Hex!.HoldsTransit,
+                "native terminal fixture has a genuine pending melee against an in-flight selected primary");
+            rig.Sample(live, 10, 10.0 / Match.StepsPerSecond, 0, layout, units); await Frames();
+            Vector3 root = rig.Position; float facing = layout.Facing(live, 10, units); float rotation = rig.Rotation.Y; double pose = rig.PoseSeconds;
+            Check(Math.Abs(root.DistanceTo(layout.Position(live, 10)) - .65f) < .00001f,
+                "pre-stop imported melee root retains its real lunge toward the primary's stop-time transit pose");
+            match.Step();
+            MatchSnapshot stopped = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot())); layout.Synchronize(stopped);
+            units = stopped.Players[0].Soldiers.Concat(stopped.Enemies).ToDictionary(u => u.Id);
+            UnitState frozen = units[actor];
+            Check(stopped.Tick == 10 && stopped.Phase == Phase.Defeat && stopped.Stall?.Limit == BattleLimit.WaveDuration,
+                "ordinary World.Step reaches the configured wave-duration terminal boundary before impact");
+            rig.Sample(frozen, 10, 10.0 / Match.StepsPerSecond, 0, layout, units); await Frames();
+            Console.WriteLine($"MEASURE native terminal melee: before={root}; after={rig.Position}; beforeFacing={facing}; afterFacing={layout.Facing(frozen, 10, units)}; aim={frozen.Hex!.FrozenAim}");
+            Check(rig.Position.IsEqualApprox(root) && Mathf.IsEqualApprox(layout.Facing(frozen, 10, units), facing)
+                && Mathf.IsEqualApprox(rig.Rotation.Y, rotation) && rig.PoseSeconds == pose && rig.Clip == UnitAssets.AttackClip(UnitType.Swordsman),
+                "terminal freeze preserves the imported melee root, lunge, aim, facing and mid-windup clip at the same tick");
+            Check(frozen.Hex!.FrozenAim == new HexPosePoint(move.Source, move.Destination, move.Id, 10, 30) && !frozen.PendingImpact,
+                "received terminal aim is the exact selected-primary pose at ten, without another committed impact");
+            combat.Seed(combat.Inspect(primary) with { Location = new(UnitLifecycle.Alive, new(25, 1)), Action = new CombatAction.Waiting() });
+            MatchSnapshot later = SnapshotPayload.DecodeForReceiving(SnapshotPayload.Encode(match.Snapshot())); layout.Synchronize(later);
+            units = later.Players[0].Soldiers.Concat(later.Enemies).ToDictionary(u => u.Id);
+            rig.Sample(units[actor], 20, 20.0 / Match.StepsPerSecond, 0, layout, units); await Frames();
+            Check(rig.Position.IsEqualApprox(root) && Mathf.IsEqualApprox(layout.Facing(units[actor], 20, units), facing)
+                && rig.PoseSeconds == pose && units[actor].Hex == frozen.Hex && units[actor].TargetId == primary,
+                "stopped imported root and immutable primary observation do not follow subsequent live-target movement");
         }
         finally { RemoveChild(rig); rig.Free(); }
     }

@@ -124,11 +124,10 @@ internal sealed partial class CombatSimulation : IDisposable
     private CombatUnit ProjectMember(CombatUnit member)
     {
         if (member.Location.Lifecycle == UnitLifecycle.Dying || !_squads.TryGetValue(member.SquadId, out CombatSquad? squad)) return member;
-        HexPosePoint? aim = squad.Location.FrozenAim;
-        if (member.StrikeAim is { } observed && observed.AttackSequence == squad.Action.AttackSequence
+        HexPosePoint? aim = squad.Location.FrozenTick is null ? squad.Location.FrozenAim : member.Location.FrozenAim;
+        if (squad.Location.FrozenTick is null && member.StrikeAim is { } observed && observed.AttackSequence == squad.Action.AttackSequence
             && squad.Action.Attack?.Target is { Kind: CombatTargetKind.Unit } target && observed.SquadId == target.Id
-            && (squad.Location.FrozenTick is not null || !_entities.TryGetValue(observed.MemberId, out Entity aimed)
-                || _world.Get<CombatUnit>(aimed).Health <= 0)) aim = observed.Pose;
+            && (!_entities.TryGetValue(observed.MemberId, out Entity aimed) || _world.Get<CombatUnit>(aimed).Health <= 0)) aim = observed.Pose;
         // Live targets already have received poses. Do not repeat an unused
         // FrozenAim in every event/member payload and inflate bounded history.
         return member with
@@ -650,8 +649,16 @@ internal sealed partial class CombatSimulation : IDisposable
     public void Step(long tick, IEnumerable<City> cities) { City[] values = cities.ToArray(); Advance(tick, values); AdmitEntries(); StartActions(values); }
     public void StopActions(IEnumerable<City> cities)
     {
-        foreach (CombatSquad squad in _squads.Values.ToArray()) _squads[squad.Id] = squad with { Location = squad.Location with { FrozenTick = _tick } };
-        foreach (CombatUnit member in Living()) Unit(member.Id) = member with { Statuses = StatusState.Empty };
+        foreach (CombatUnit member in Living())
+        {
+            CombatUnit projected = ProjectMember(member);
+            Unit(member.Id) = member with
+            {
+                Location = member.Location with { FrozenAim = projected.Location.FrozenTick is null ? TargetPose(projected) : projected.Location.FrozenAim },
+                Statuses = StatusState.Empty
+            };
+        }
+        foreach (CombatSquad squad in _squads.Values.ToArray()) _squads[squad.Id] = squad with { Location = squad.Location with { FrozenTick = squad.Location.FrozenTick ?? _tick } };
         foreach (City city in cities)
         { city.Defender = city.Defender with { PendingImpact = false }; foreach (TowerState tower in city.Towers.Values.ToArray()) city.Towers[tower.Slot] = tower with { PendingImpact = false }; }
     }
