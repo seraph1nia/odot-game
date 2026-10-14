@@ -30,6 +30,8 @@ public sealed class SnapshotReceivingLifecycleTests
         Assert.Equal(2, squads.Length);
         int requested = arena.Deployment(1, 2);
         long tick = match.Tick;
+        int enemy = match.Combat.Enemies()[0].Id;
+        int enemySquad = match.Combat.Read(enemy).SquadId;
         HexTransition transition = atHomes
             ? arena.Board.Transition(new(arena.Deployment(1, 0), 1), new(arena.Deployment(1, 1), 1))
             : arena.Board.Transition(new(17, 1), new(18, 1));
@@ -37,18 +39,19 @@ public sealed class SnapshotReceivingLifecycleTests
             match.Combat.Seed(match.Combat.Inspect(id) with
             {
                 Location = new(UnitLifecycle.Alive, transition.Source),
-                Action = new CombatAction.Moving(1, transition.Destination, transition.Id, tick, tick + 30)
+                Action = new CombatAction.Moving(1, transition.Destination, transition.Id, tick, tick + 30),
+                // Real moving actors retain their selected objective through the clear.
+                Decision = match.Combat.Inspect(id).Decision with { ObjectiveId = enemySquad }
             });
-        int enemy = match.Combat.Enemies()[0].Id;
         foreach (UnitState extra in match.Combat.Enemies().Where(u => u.Id != enemy)) match.Combat.Remove(extra.Id);
         int neighbor = arena.Board.Cell(requested).Neighbors.First(c => arena.CanOccupy(c) && c != transition.Source.Cell && c != transition.Destination.Cell);
         match.Combat.Seed(match.Combat.Inspect(enemy) with { Health = 1, Location = new(UnitLifecycle.Alive, new(neighbor, 1)) });
-        int enemySquad = match.Combat.Read(enemy).SquadId;
         foreach (int id in squads[1].Members)
             match.Combat.Seed(match.Combat.Inspect(id) with
             {
                 Location = new(UnitLifecycle.Alive, new(requested, 1)),
-                Action = new CombatAction.Windup(1, 1, tick + 25, new(new(CombatTargetKind.Unit, enemySquad), tick, tick + 1))
+                Action = new CombatAction.Windup(1, 1, tick + 25, new(new(CombatTargetKind.Unit, enemySquad), tick, tick + 1)),
+                Decision = match.Combat.Inspect(id).Decision with { ObjectiveId = enemySquad }
             });
         Receive(match);
         match.Step();
@@ -231,11 +234,15 @@ public sealed class SnapshotReceivingLifecycleTests
     }
 
     [Theory]
-    [InlineData("regroup")]
-    [InlineData("retire-reinforced")]
-    [InlineData("retire-returned")]
-    [InlineData("retire-regrouped")]
-    public void RemovingLastFrozenParticipantReleasesClaimsWithoutDeployingItsNewGroup(string origin)
+    [InlineData("regroup", false)]
+    [InlineData("retire-reinforced", false)]
+    [InlineData("retire-returned", false)]
+    [InlineData("retire-regrouped", false)]
+    [InlineData("regroup", true)]
+    [InlineData("retire-reinforced", true)]
+    [InlineData("retire-returned", true)]
+    [InlineData("retire-regrouped", true)]
+    public void RemovingLastFrozenParticipantReleasesClaimsWithoutDeployingItsNewGroup(string origin, bool recovering)
     {
         using Match match = PaidCampaignFixture.Opening(players: 1);
         if (origin == "retire-returned")
@@ -246,7 +253,7 @@ public sealed class SnapshotReceivingLifecycleTests
             Act(match, "sell", 4); Act(match, "build", 4, Building.TownHall); Act(match, "ready");
         }
         MatchSnapshot cleared = ClearWithRetainedMove(match, atHomes: true);
-        SquadState mover = cleared.Squads.Single(s => s.Owner == 1 && s.Hex.Action == UnitActionKind.Moving);
+        SquadState mover = cleared.Squads.Single(s => s.Owner == 1 && s.Hex.Action == (recovering ? UnitActionKind.Recovery : UnitActionKind.Moving));
         SquadState other = cleared.Squads.Single(s => s.Owner == 1 && s.Id != mover.Id);
         var arena = new SharedArena([1]);
         Act(match, "buy-home", ArmyConfiguration.PlotOffset + 2);
@@ -272,12 +279,28 @@ public sealed class SnapshotReceivingLifecycleTests
         {
             Edit("recruit", squad: mover.Id, slot: 1); recruit = match.Players[1].Soldiers[^1].Id;
         }
+        // Tier A codec regression: the earlier synthetic move had no objective,
+        // missing the accepted retirement that disconnects real receiving peers.
+        // All reserve origins share this bounded paid setup and removal owner.
+        Assert.True(Receive(match).Squads.Single(s => s.Id == mover.Id).Decision.ObjectiveId > 0);
         Edit(origin == "regroup" ? "regroup-member" : "retire", unit: mover.Members[0], squad: -1);
         MatchSnapshot edited = Receive(match);
         SquadState reserve = edited.Squads.Single(s => s.Id == mover.Id);
         Assert.Equal(UnitLifecycle.Reserve, reserve.Hex.Lifecycle);
         Assert.False(reserve.Hex.HoldsTransit);
-        Assert.Equal(UnitLifecycle.Reserve, edited.Players[0].Soldiers.Single(u => u.Id == recruit).Hex!.Lifecycle);
+        Assert.Equal(mover.Hex.Position, reserve.Hex.Position);
+        Assert.Equal(mover.Hex.FrozenTick, reserve.Hex.FrozenTick);
+        Assert.Equal(mover.ReadyTick, reserve.ReadyTick);
+        Assert.Equal(0, reserve.Decision.ObjectiveId);
+        Assert.False(reserve.Decision.ObjectiveCity);
+        Assert.Equal(0, reserve.Decision.ObjectiveCell);
+        Assert.Empty(reserve.Decision.Route);
+        Assert.Empty(reserve.Decision.Visited);
+        UnitState remaining = edited.Players[0].Soldiers.Single(u => u.Id == recruit);
+        Assert.Equal(UnitLifecycle.Reserve, remaining.Hex!.Lifecycle);
+        Assert.Equal(0, remaining.TargetId);
+        Assert.Equal(SquadTargetKind.None, remaining.TargetKind);
+        Assert.Equal(reserve.Decision, remaining.Decision);
         if (origin == "regroup") Assert.Equal(UnitLifecycle.Queued, edited.Players[0].Soldiers.Single(u => u.Id == mover.Members[0]).Hex!.Lifecycle);
         else Assert.DoesNotContain(edited.Players[0].Soldiers, u => u.Id == mover.Members[0]);
         Assert.DoesNotContain(edited.Reservations.Positions, p => p.UnitId == mover.Id);
@@ -317,7 +340,8 @@ public sealed class SnapshotReceivingLifecycleTests
             match.Combat.Seed(match.Combat.Inspect(member.Id) with
             {
                 Location = new(member.Hex!.Lifecycle, new(17, 1)),
-                Action = new CombatAction.Windup(1, 1, 25, new(new(CombatTargetKind.Unit, enemySquad), 0, 1))
+                Action = new CombatAction.Windup(1, 1, 25, new(new(CombatTargetKind.Unit, enemySquad), 0, 1)),
+                Decision = match.Combat.Inspect(member.Id).Decision with { ObjectiveId = enemySquad }
             });
         match.Step(); Assert.Equal(Phase.Building, match.Phase); Assert.True(match.Combat.HasDeaths);
         Receive(match);

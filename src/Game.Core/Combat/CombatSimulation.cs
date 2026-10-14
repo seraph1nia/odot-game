@@ -230,7 +230,12 @@ internal sealed partial class CombatSimulation : IDisposable
         CombatUnit[] members = Living().Where(u => u.SquadId == id).ToArray();
         if (members.Length == 0) _squads.Remove(id);
         else if (squad.Alive && members.All(u => u.Location.Lifecycle != UnitLifecycle.Alive))
-            _squads[id] = squad with { Location = squad.Location with { Lifecycle = UnitLifecycle.Reserve }, Action = CombatActions.Cancel(squad.Action, _tick) };
+            _squads[id] = squad with
+            {
+                Location = squad.Location with { Lifecycle = UnitLifecycle.Reserve },
+                Action = CombatActions.Cancel(squad.Action, _tick),
+                Decision = NewDecision(squad.Id, squad.Destination, squad.Decision.Sequence)
+            };
     }
     internal void Assign(int id, ArmyAssignment assignment)
     {
