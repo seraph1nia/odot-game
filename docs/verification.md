@@ -62,14 +62,10 @@ phases, not historical component receipts.
 
 ## Vivid assets and ambient playback evidence
 
-The [immutable import/runtime receipt](vivid-ambient-import.md#executed-receipts-linux-locked-net-100401--godot-net-472)
-records the 57-export refresh, exact map closure, actual native building/water
-playback and focused preservation components. Broad fast coverage passed 738 core
-and 652 runner cases (two Windows-only skips); native `assets`, `animation`,
-`arena`, `receiving` and `worldtree` passed. Rendered in-game vividness/aesthetic
-and readability acceptance remains unexecuted under headless-only authorization;
-standalone source evidence is not game-view acceptance. These are implementation
-receipts, not substitutes for subsequent final-head pipeline/CI qualification.
+The [import/runtime report](vivid-ambient-import.md#verification-boundary) owns
+executed building/water playback coverage and its limitations. It separates the
+initial vivid-pin receipts from optimized-successor verification; neither is a
+substitute for final-head pipeline/CI qualification.
 
 ## Framing, renderer and Worldtree evidence
 

@@ -2,10 +2,12 @@
 
 ## Pin and selection
 
-This is resource migration ahead of Dreaming Forest game styling, not a theme,
-terrain, renderer/effect/settings redesign or Ledger UI migration. Canonical
-source is `https://github.com/seraph1nia/odot-game-assets.git`, actual inspected
-revision **`12bc5ef02765c1d4b725013791f7420918aacd64`**. The accepted forest
+This report records the earlier resource migration ahead of Dreaming Forest game
+styling, not a theme, terrain, renderer/effect/settings redesign or Ledger UI
+migration. Its export/map byte comparisons and counts are historical; the
+[vivid/ambient successor report](vivid-ambient-import.md) owns the later refresh.
+Canonical source was `https://github.com/seraph1nia/odot-game-assets.git`, inspected
+at revision **`12bc5ef02765c1d4b725013791f7420918aacd64`**. The accepted forest
 publication is `cc723f4de0b988c32c9a38178cb9ded580dd28b8`, landed through
 https://github.com/seraph1nia/odot-game-assets/pull/6. These are different
 revision identities: the later clone includes unrelated UI work. Actual forest
@@ -55,9 +57,9 @@ bindings and source provenance remain intact. All 36 refreshed embedded-map
 import sidecars explicitly generate mipmaps, preserving the selected GLBs'
 authored `LINEAR_MIPMAP_LINEAR` minification through headless imports and exports.
 
-The whole existing inventory is now **57 GLBs / 327 derived PNGs**, plus four
-standalone textures. The map refresh introduces 36 image paths, removes 31
-obsolete extraction paths and their import sidecars, and leaves all surviving
+The inventory after this import was **57 GLBs / 327 derived PNGs**, plus four
+standalone textures. The map refresh introduced 36 image paths, removed 31
+obsolete extraction paths and their import sidecars, and left all surviving
 image-path bytes unchanged. Existing GLB import UIDs are retained; Godot supplies
 new map UID sidecars. Growth is **224,696 GLB bytes + 223,186 derived-map bytes**.
 These are storage counts, not GPU-memory, batching or performance measurements.

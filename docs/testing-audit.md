@@ -2108,8 +2108,7 @@ Coverage admission/replacement:
   source timing and absence of unit rigs. Existing exact GLB/map provenance checks
   now admit source image indices so five valid duplicate image names cannot
   overwrite or misattribute their distinct bytes. Full canonical building/unit
-  mappings and six unit clips remain covered. Cost: 15 targeted cases in 3.13s
-  including test-process overhead after final engine import.
+  mappings and six unit clips remain covered.
 - Existing Tier B `animation` executes production building placement and native
   stream/river resource loading, actual idle-frame playback advancement,
   imported-name/loop lookup, changing localized targets, unchanged structural
@@ -2117,7 +2116,7 @@ Coverage admission/replacement:
   use its real direct-mesh tracks, packed material bindings and eight-triangle
   interior detail; the production landscape verifies native consumers, fixed
   home/defender playback, no duplicate cover owners and shadowless water geometry.
-  The fixture owns its nodes in the existing minimal child. Component cost: 6.18s.
+  The fixture owns its nodes in the existing minimal child.
 - Static consolidation remains forbidden on animated/skinned hierarchies. The
   former static stream/surface-water consolidation assessment is replaced by
   native animated rendering, plus detached cached rest meshes for contact/port
@@ -2125,10 +2124,10 @@ Coverage admission/replacement:
   orientations, full neighboring profiles and bridge-deck transforms, and retain
   corrupt-normal/UV/winding/material/geometry rejection and forest PBR/mipmap
   checks. It does not flatten active animation just to satisfy static coverage.
-- Existing `arena`, `receiving` and `worldtree` passed their lifebar/invulnerable
+- Existing `arena`, `receiving` and `worldtree` cover lifebar/invulnerable
   tower/shared-squad, ledger/battle-flow and living-tree preservation boundaries.
-  Broad fast passed 738 core + 652 runner, with two Windows-only skips; deep
-  campaign tests were not selected. Source preparation mutations were sequential.
+  Executed results, costs and source-revision boundaries belong to the
+  [import/runtime receipts](vivid-ambient-import.md#verification-boundary).
 
 No full-game journey or supervisor was added. Rendered **in-game** vividness,
 aesthetic/readability acceptance and GPU cost remain unexecuted under headless-only
@@ -2137,10 +2136,9 @@ receipts do not replace subsequent final-head pipeline/CI qualification.
 
 ### Optimized successor review fixes
 
-The approved successor pin is `133c7cdeb368cada408d1c95c9414e08488371a9`.
-The initial vivid-pin receipts above are historical, not evidence for these bytes.
-The [current import report](vivid-ambient-import.md) records the accepted GLB-size
-tradeoff and preserved map/animation contracts.
+The [current import report](vivid-ambient-import.md) owns the approved successor,
+accepted GLB-size tradeoff, preserved map/animation contracts and its focused
+verification receipts; initial vivid-pin results do not qualify successor bytes.
 
 Coverage admission:
 - Tier A adds deserialization failures for omitted/null image indices and calls
