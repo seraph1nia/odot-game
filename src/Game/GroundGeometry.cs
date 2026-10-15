@@ -68,7 +68,8 @@ internal static class GroundGeometry
             .Where(Recessed).ToArray();
         if (recessed.Length != 5) throw new InvalidOperationException("Pinned bridge recessed component inventory changed.");
         foreach (Node3D node in recessed) { node.GetParent().RemoveChild(node); node.Free(); }
-        MeshInstance3D grass = bridge.FindChildren("Fine*scattered*woodland*grasses", "MeshInstance3D", true, false).OfType<MeshInstance3D>().Single();
+        MeshInstance3D grass = bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
+            .Single(mesh => mesh.Mesh.GetSurfaceCount() == 1 && mesh.GetActiveMaterial(0).ResourceName == "forest_leaf_light");
         grass.GetParent().RemoveChild(grass); grass.Free();
         return recessed.Length;
     }

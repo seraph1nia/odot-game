@@ -60,6 +60,13 @@ consolidation into the existing minimal settings engine case, and
 owns selection and supervision. Current-head gates belong to the outer validation
 phases, not historical component receipts.
 
+## Vivid assets and ambient playback evidence
+
+The [import/runtime report](vivid-ambient-import.md#verification-boundary) owns
+executed building/water playback coverage and its limitations. It separates the
+initial vivid-pin receipts from optimized-successor verification; neither is a
+substitute for final-head pipeline/CI qualification.
+
 ## Framing, renderer and Worldtree evidence
 
 [Batch findings and local evidence](view-renderer-worldtree.md) distinguish native

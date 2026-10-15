@@ -27,12 +27,14 @@ internal sealed class LandscapeAssets
             Engine.GetVersionInfo()["string"].AsString(), RenderingServer.GetCurrentRenderingMethod());
     }
 
-    internal Node3D Native(Node3D parent, string path, Vector3 position, float scale, float rotation = 0)
+    internal Node3D Native(Node3D parent, string path, Vector3 position, float scale, float rotation = 0, bool ambient = true)
     {
         Node3D node = Scene(path).Instantiate<Node3D>();
         node.Position = position; node.Scale = Vector3.One * scale; node.RotationDegrees = new(0, rotation, 0);
         node.SetMeta("asset", path);
-        parent.AddChild(node); return node;
+        parent.AddChild(node);
+        if (ambient) PlayAmbient(node, path);
+        return node;
     }
     private PackedScene Scene(string path)
     {
@@ -68,6 +70,7 @@ internal sealed class LandscapeAssets
         model.Scale *= factor; model.Position -= geometry.Foot * factor;
         wrapper.SetMeta("asset", path); wrapper.SetMeta("foot", geometry.Foot); wrapper.SetMeta("bounds", geometry.Bounds);
         if (atmosphere) WoodlandMotion.Foliage(wrapper, path);
+        PlayAmbient(model, path);
         return wrapper;
     }
     // Reuse each original imported part, including its nonuniform local basis.
@@ -102,11 +105,36 @@ internal sealed class LandscapeAssets
     internal static Aabb Bounds(Node3D wrapper) => wrapper.Transform * wrapper.GetChild<Node3D>(0).Transform * wrapper.GetMeta("bounds").AsAabb();
     internal static Vector3 Contact(Node3D wrapper) => wrapper.Transform * wrapper.GetChild<Node3D>(0).Transform * wrapper.GetMeta("foot").AsVector3();
     internal static float TowerDeck(Node3D wrapper) => Bounds(wrapper).End.Y;
+    internal static bool AmbientWater(string path) => path.StartsWith("environment/hex_river_overlay_", StringComparison.Ordinal);
+
+    // Ordinary imported object clips, independent of combat ticks/speed. glTF
+    // extras.loop is not Godot's loop policy. Do not touch unit action clips.
+    internal static void PlayAmbient(Node3D model, string path)
+    {
+        if (!path.StartsWith("buildings/", StringComparison.Ordinal) && !AmbientWater(path) && path is not (AssetCatalog.Stream or AssetCatalog.Bridge)) return;
+        var clips = model.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>()
+            .SelectMany(player => player.GetAnimationList().Where(name => name == "ambient" || name.EndsWith("/ambient", StringComparison.Ordinal))
+                .Select(name => (Player: player, Name: name))).ToArray();
+        if (clips.Length != 1) throw new InvalidOperationException("Expected one imported ambient clip: " + path);
+        var (player, name) = clips[0];
+        player.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
+        player.SpeedScale = 1;
+        player.Play(name);
+    }
+
+    // Contact/connector queries need a rest-pose mesh, not a frozen visual
+    // substitute. Animated water is rendered by its original native hierarchy.
+    internal static StaticGeometry.Snapshot RestGeometry(Node3D template)
+    {
+        foreach (AnimationPlayer player in template.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>())
+        { player.GetParent().RemoveChild(player); player.Free(); }
+        return StaticGeometry.Capture(template);
+    }
     internal ArrayMesh Terrain(string path)
     {
         if (_meshes.TryGetValue(path, out ArrayMesh? cached)) return cached;
         Node3D template = Scene(path).Instantiate<Node3D>();
-        try { return _meshes[path] = StaticGeometry.Consolidate(StaticGeometry.Capture(template)); }
+        try { return _meshes[path] = StaticGeometry.Consolidate(AmbientWater(path) ? RestGeometry(template) : StaticGeometry.Capture(template)); }
         finally { template.Free(); }
     }
 }

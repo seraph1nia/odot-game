@@ -9,7 +9,9 @@ separates pre-review acceptance from changed review inputs.
 Sections below retain historical causal evidence, not current execution permissions.
 Both disabled instancing/batching experiments and their native diagnostic branches
 have been retired from compiled gameplay into ignored audit scratch. Source-authoring
-recommendations below are superseded by the current game-side-only scope.
+recommendations below describe that earlier investigation; the
+[vivid/ambient import report](vivid-ambient-import.md#optimized-representation-and-tradeoff)
+owns the current upstream-optimized representation.
 
 ## Decision: defer optional scene consolidation
 
@@ -17,11 +19,13 @@ Buildings and individually placed props retain their original imported authored
 hierarchies rather than undergoing optional scene consolidation. The fuller
 woodland uses the [shared-mesh scatter consumer](rich-background.md#shared-rendering-and-executable-checks),
 not scene flattening. Live terrain and the timber walk
-use fidelity-validated imported-buffer consolidation; terrain uses chunked
-instances. [Detailed-ground integration](detailed-ground.md#placement-and-recessed-water-boundary)
+use fidelity-validated imported-buffer consolidation; static terrain uses chunked
+instances. Animated water instead follows the
+[native playback contract](vivid-ambient-import.md#actual-runtime-owners).
+[Detailed-ground integration](detailed-ground.md#placement-and-recessed-water-boundary)
 owns the current floor/overlay placement and bridge consumer adaptation.
 This is not a legacy fallback: all required geometry remains authored content.
-No original GLB bytes or frozen numerical references were changed.
+That consolidation decision changed neither source GLB bytes nor frozen numerical references.
 
 The proposed `0.0001` bounds waiver was removed. Two failed graphical starts are
 retained at `logs/20261004-203745-7e2ec128/` and

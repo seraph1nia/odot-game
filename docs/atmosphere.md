@@ -226,11 +226,11 @@ existing plant assets. `WoodlandMotion` caches derived lit materials and retains
 original-resource links, albedo/PBR/normal textures, channel selection and UV
 transforms. Bark, trunks, roots, luminous seeds, buildings, units and equipment
 never sway. The shared shader bounds selected foliage to five centimetres laterally and two
-centimetres in depth in world space, with a small culling margin. River material motion only adjusts
-roughness/normal on cool water-colored pixels: no moving shoreline, UV scroll or
-terrain displacement. Source/imported resources remain immutable; geometry is
-reused. Only three shared shader uniforms are uploaded per frame; diagnostics
-retain the last uploaded wind value rather than performing a forbidden runtime
+centimetres in depth in world space, with a small culling margin. Live river
+motion is now owned by [imported ambient playback](vivid-ambient-import.md#actual-runtime-owners),
+not the former roughness/normal-only water shader adaptation. Source/imported
+resources remain immutable; geometry is reused. Only three shared shader uniforms
+are uploaded per frame; diagnostics retain the last uploaded wind value rather than performing a forbidden runtime
 global-uniform/GPU readback. Automatic weather progression is intentionally outside this implementation.
 The later [forest art pass](forest-art.md) layers themes and optional magic on
 this owner without changing authored art or weather ownership.

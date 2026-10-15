@@ -16,6 +16,12 @@ records the subsequent freshness correction's verification status. See [runtime 
 [guest service/observer handoff](enet-guest-cadence.md) for measured costs and the
 integration correction; neither rejected optimization candidate ships.
 
+## Vivid overgrown refresh and ambient playback
+
+See the [current import and runtime report](vivid-ambient-import.md) for the
+optimized vivid/overgrown refresh, indexed map admission, building/surface-water
+playback, accepted storage tradeoff and headless-only acceptance boundary.
+
 ## Source and permission
 
 Selected authored exports under `src/Game/Assets/Authored/` are copied byte-for-byte

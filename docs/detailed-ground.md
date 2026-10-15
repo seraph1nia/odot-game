@@ -2,16 +2,17 @@
 
 ## Inventory and provenance
 
-The suite is copied byte-for-byte from `odot-game-assets` at
+The suite was introduced byte-for-byte from `odot-game-assets` at
 `ae7f76a28f7bdd8471aeacb8bb40596aec758bfe`, landed through
 https://github.com/seraph1nia/odot-game-assets/pull/3. The existing
-[manifest](../src/Game/Assets/Authored/manifest.json) is the canonical ID,
-source-relative export path, destination-relative path, SHA-256, byte count and
-embedded dependency inventory. All 44 previously bundled GLBs also match this
-pin without changing their bytes. No Blender sources or reference art are copied.
+[manifest](../src/Game/Assets/Authored/manifest.json) owns the current revision,
+IDs, source/destination paths, hashes, byte counts and embedded dependencies;
+the [vivid/ambient refresh](vivid-ambient-import.md) records the successor import.
+At introduction, all 44 previously bundled GLBs also matched that pin without
+changing their bytes. No Blender sources or reference art are copied.
 Owner permission and its limitations remain in the [notice](../src/Game/Assets/Authored/NOTICE.md).
 
-New GLBs, under `src/Game/Assets/Authored/environment/`:
+Suite GLBs, under `src/Game/Assets/Authored/environment/`:
 
 - `hex_ground_moss.glb`
 - `hex_ground_grass.glb`
@@ -27,18 +28,20 @@ New GLBs, under `src/Game/Assets/Authored/environment/`:
 - `hex_river_overlay_turn_60.glb`
 - `hex_river_overlay_end.glb`
 
-Only their 54 embedded PNG dependencies are extracted, following the existing
-Godot `gltf/embedded_image_handling=1` packaging convention. The manifest's
-`derived` records name each file and bind it to its parent GLB/image and exact
-embedded bytes. Import sidecars and source UID sidecars are tracked; `.godot`,
-compiled output, exports and evidence remain ignored. No source map regeneration,
+At introduction, their 54 embedded PNG dependencies were extracted using
+Godot `gltf/embedded_image_handling=1`. The manifest's `derived` records own
+current extracted-map identities and exact embedded bytes. Import sidecars and
+source UID sidecars are tracked; `.godot`, compiled output, exports and evidence
+remain ignored. No source map regeneration,
 new image encoding, external texture download or export-byte editing occurs.
 
 ## Live presentation
 
 `AssetCatalog` registers the suite; `LandscapeAssets` loads and fidelity-checks
-its imported static buffers; `VillageLandscape` batches the actual floor and
-ribbon meshes. Menu and every city use this same consumer, not a review-only scene.
+its imported buffers. `VillageLandscape` batches floors and path ribbons;
+[ambient water playback](vivid-ambient-import.md#actual-runtime-owners) owns the
+native animated river consumers and detached rest-pose query meshes. Menu and
+every city use this same consumer, not a review-only scene.
 `DetailedGround` is a cosmetic coordinate/connector projection, not authority
 terrain or a procedural river generator. The follow-up
 [rich background composition](rich-background.md) records the current authored
@@ -87,7 +90,7 @@ neighbors, bounded floor selection, protected combat receivers, complete adjacen
 non-intersecting flat routes, and stable varied scatter with route clearances.
 
 `mise run test-assets` extends the existing owned headless Godot fidelity probe.
-It checks actual imported native-root versus batched rotations, **42 distinct
+It checks actual imported native-root versus derived rest-geometry rotations, **42 distinct
 pair/end placements**, **72 full-profile neighbor joins**, all **40** canonical
 base/overlay stacks, normal opaque depth testing and the bridge adaptation/deck
 clearance. These are consumer rendering buffers, not source-grep assertions or

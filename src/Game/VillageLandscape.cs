@@ -15,6 +15,7 @@ internal sealed partial class VillageLandscape : Node3D
     private readonly List<Node3D> _static = [];
     private readonly Dictionary<(string Kind, int X, int Z), MultiMeshInstance3D> _terrain = [];
     private readonly Dictionary<string, Mesh> _meshes = [];
+    private readonly Dictionary<(string Asset, int Column, int Row), Node3D> _water = [];
     private sealed record ScatterGroup(LandscapeAssets.SceneryPart[] Parts, Aabb Bounds, MultiMeshInstance3D[] Batches)
     {
         internal readonly List<Transform3D> Placements = [];
@@ -87,7 +88,7 @@ internal sealed partial class VillageLandscape : Node3D
         // Only this consumer's bridge loses its recessed stream/foam/fall and
         // substrate. The new same-origin floor + surface stream continues below
         // the unchanged timber deck; no old/new water interface is joined.
-        _bridge = assets.Native(this, AssetCatalog.Bridge, VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow), VillageLayout.TerrainScale, 90);
+        _bridge = assets.Native(this, AssetCatalog.Bridge, VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow), VillageLayout.TerrainScale, 90, ambient: false);
         _bridgeSubstratesRemoved = GroundGeometry.AdaptBridge(_bridge);
         for (int slot = 0; slot < 9; slot++) PlotOutline(slot);
         ComposeVillage();
@@ -250,10 +251,10 @@ internal sealed partial class VillageLandscape : Node3D
     private float[][] DeckLandings()
     {
         var points = new List<Vector3>();
-        foreach (MeshInstance3D plank in _bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
-            .Where(n => n.Name.ToString().Contains("bridge", StringComparison.OrdinalIgnoreCase) && n.Name.ToString().Contains("plank", StringComparison.OrdinalIgnoreCase)))
+        foreach (MeshInstance3D plank in _bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
             for (int surface = 0; surface < plank.Mesh.GetSurfaceCount(); surface++)
-                points.AddRange(plank.Mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(p => ToLocal(plank.GlobalTransform * p)));
+                if (plank.GetActiveMaterial(surface).ResourceName == "wood_light.004")
+                    points.AddRange(plank.Mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(p => ToLocal(plank.GlobalTransform * p)));
         if (points.Count == 0) throw new InvalidOperationException("Missing authored bridge deck geometry.");
         return new[] { points.Min(p => p.Z), points.Max(p => p.Z) }.Select(z =>
         {
@@ -342,6 +343,7 @@ internal sealed partial class VillageLandscape : Node3D
         foreach (var (column, row) in _tiles.Keys)
             foreach (GroundDecoration detail in DetailedGround.Scatter(column, row))
                 if (_battlefieldInner is null || _battlefieldInner.Value.Grow(-2).HasPoint(new(detail.X, detail.Z))) Scatter(detail, column, row);
+        foreach (var key in _water.Keys.Where(k => !_tiles.ContainsKey((k.Column, k.Row))).ToArray()) _water.Remove(key);
         RebuildTerrain();
         RebuildScatter();
     }
@@ -351,14 +353,28 @@ internal sealed partial class VillageLandscape : Node3D
         var placements = _tiles.Keys.Select(k => (Kind: DetailedGround.Base(k.Column, k.Row), k.Column, k.Row, Turns: DetailedGround.FloorTurns(k.Column, k.Row)))
             .Concat(DetailedGround.Watercourse().Concat(DetailedGround.BankTrail()).Concat(DetailedGround.WoodlandTrail())
                 .Where(p => _tiles.ContainsKey((p.Column, p.Row))).Select(p => (Kind: p.Connector.Asset, p.Column, p.Row, p.Connector.Turns)));
-        foreach (var group in placements.GroupBy(k => (k.Kind, X: (int)Math.Floor(k.Column / 8.0), Z: (int)Math.Floor(k.Row / 8.0))))
+        // Only the short watercourse needs native object playback. Floors and
+        // trails retain batching; never flatten away the source shimmer pivot.
+        var installed = placements.ToArray();
+        foreach (var water in installed.Where(p => LandscapeAssets.AmbientWater(p.Kind)))
+        {
+            var key = (water.Kind, water.Column, water.Row);
+            if (_water.ContainsKey(key)) continue;
+            Node3D node = _assets.Native(_tiles[(water.Column, water.Row)], water.Kind, Vector3.Zero, 1);
+            foreach (GeometryInstance3D geometry in node.FindChildren("*", "GeometryInstance3D", true, false).OfType<GeometryInstance3D>())
+                geometry.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+            node.Transform = new Transform3D(Basis.Identity, -_tiles[(water.Column, water.Row)].Position)
+                * VillageLayout.GroundTransform(water.Column, water.Row, water.Turns);
+            _water.Add(key, node);
+        }
+        foreach (var group in installed.Where(p => !LandscapeAssets.AmbientWater(p.Kind))
+            .GroupBy(k => (k.Kind, X: (int)Math.Floor(k.Column / 8.0), Z: (int)Math.Floor(k.Row / 8.0))))
         {
             if (!_terrain.TryGetValue(group.Key, out MultiMeshInstance3D? batch))
             {
                 if (!_meshes.TryGetValue(group.Key.Kind, out Mesh? imported))
                 {
                     ArrayMesh terrain = _assets.Terrain(group.Key.Kind);
-                    WoodlandMotion.Water(terrain, group.Key.Kind);
                     _meshes[group.Key.Kind] = imported = terrain;
                 }
                 batch = new MultiMeshInstance3D
@@ -377,6 +393,7 @@ internal sealed partial class VillageLandscape : Node3D
         // Count floor cells once, not overlay layers or the timber-only bridge.
         _renderedCells = _tiles.Values.Select(n => n.Position).ToArray();
         _coreTerrain = _terrain.SelectMany(p => Enumerable.Range(0, p.Value.Multimesh.InstanceCount).Select(i => (p.Key.Kind, Transform: p.Value.Multimesh.GetInstanceTransform(i))))
+            .Concat(_water.Select(p => (Kind: p.Key.Asset, Transform: _tiles[(p.Key.Column, p.Key.Row)].Transform * p.Value.Transform)))
             .Where(p => Math.Abs(p.Transform.Origin.X) <= 10.5f && Math.Abs(p.Transform.Origin.Z) <= 13.1f)
             .Select(p => FormattableString.Invariant($"{p.Kind}:{p.Transform.Origin.X:F3}:{p.Transform.Origin.Y:F3}:{p.Transform.Origin.Z:F3}:{p.Transform.Basis.X.X:F3}:{p.Transform.Basis.X.Z:F3}"))
             .Order(StringComparer.Ordinal).ToArray();
@@ -413,20 +430,21 @@ internal sealed partial class VillageLandscape : Node3D
     }
     // Read-only native ownership seam for the owned fixed-view counterfactual.
     internal IEnumerable<MultiMeshInstance3D> NativeGrassOwners() => _terrain.Where(p => p.Key.Kind == DetailedGround.Grass).Select(p => p.Value);
-    private IEnumerable<(string Asset, MultiMesh Instances, Transform3D Transform)> Installed(string asset) => _terrain.Where(p => p.Key.Kind == asset)
-        .SelectMany(p => Enumerable.Range(0, p.Value.Multimesh.InstanceCount).Select(i => (asset, p.Value.Multimesh, p.Value.Multimesh.GetInstanceTransform(i))));
+    private IEnumerable<(string Asset, Mesh Mesh, Transform3D Transform)> Installed(string asset) => _terrain.Where(p => p.Key.Kind == asset)
+        .SelectMany(p => Enumerable.Range(0, p.Value.Multimesh.InstanceCount).Select(i => (asset, p.Value.Multimesh.Mesh, p.Value.Multimesh.GetInstanceTransform(i))))
+        .Concat(_water.Where(p => p.Key.Asset == asset).Select(p => (asset, (Mesh)_assets.Terrain(asset), _tiles[(p.Key.Column, p.Key.Row)].Transform * p.Value.Transform)));
     private object[] ObserveRoute(IEnumerable<(int Column, int Row, GroundConnector Connector)> route) => route.SelectMany(p => Installed(p.Connector.Asset)
         .Where(n => n.Transform.Origin.IsEqualApprox(VillageLayout.GroundTransform(p.Column, p.Row).Origin)).Select(n => new
         {
             n.Asset,
             p.Column,
             p.Row,
-            Ports = p.Connector.Edges.Select(e => GroundGeometry.Port(n.Instances.Mesh, n.Transform, (e - p.Connector.Turns + 6) % 6))
+            Ports = p.Connector.Edges.Select(e => GroundGeometry.Port(n.Mesh, n.Transform, (e - p.Connector.Turns + 6) % 6))
                 .Select(v => new[] { v.X, v.Y, v.Z }).ToArray(),
-            Profiles = p.Connector.Edges.Select(e => GroundGeometry.Profile(n.Instances.Mesh, (e - p.Connector.Turns + 6) % 6)
+            Profiles = p.Connector.Edges.Select(e => GroundGeometry.Profile(n.Mesh, (e - p.Connector.Turns + 6) % 6)
                 .Select(v => n.Transform * v).Select(v => new[] { v.X, v.Y, v.Z }).ToArray()).ToArray(),
             Floor = DetailedGround.Base(p.Column, p.Row),
-            Clearance = (n.Transform * new Vector3(0, n.Instances.Mesh.GetAabb().Position.Y, 0)).Y - n.Transform.Origin.Y
+            Clearance = (n.Transform * new Vector3(0, n.Mesh.GetAabb().Position.Y, 0)).Y - n.Transform.Origin.Y
         }).Cast<object>()).ToArray();
     internal object Observe(Camera3D camera, Rect2 area)
     {
@@ -479,7 +497,8 @@ internal sealed partial class VillageLandscape : Node3D
             ForestView = Viewpoint(-3, 2),
             FloorCells = DetailedGround.Bases.Sum(b => Installed(b).Count()),
             BridgeSubstratesRemoved = _bridgeSubstratesRemoved,
-            BridgeRecessedMeshes = _bridge.FindChildren("*", "MeshInstance3D", true, false).Count(n => n.Name.ToString().Contains("river", StringComparison.OrdinalIgnoreCase) || n.Name.ToString().Contains("waterfall", StringComparison.OrdinalIgnoreCase) || n.Name.ToString().Contains("foam", StringComparison.OrdinalIgnoreCase)),
+            BridgeRecessedMeshes = _bridge.FindChildren("*", "Node3D", true, false).Where(GroundGeometry.Recessed)
+                .Sum(n => n.FindChildren("*", "MeshInstance3D", true, false).Count),
             CoreTerrain = _coreTerrain,
             BridgeLandings = _bridgeLandings,
             Paths = _paths.Select(p =>

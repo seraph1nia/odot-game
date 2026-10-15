@@ -9,6 +9,7 @@ internal static class AssetFidelityProbe
 {
     internal static Task Run(Node owner)
     {
+        int exitCode = 0;
         try
         {
             var pacing = new VerificationPacing(System.Environment.GetEnvironmentVariable("ODOT_OWNED_DATA"),
@@ -16,14 +17,19 @@ internal static class AssetFidelityProbe
             if (DisplayServer.GetName() != "headless" || !pacing.Owned) throw new InvalidOperationException("Asset fidelity requires an owned headless verification process.");
             RunGeometry(owner);
         }
-        catch (Exception error) { Main.Emit(new GameEvent("error", Message: error.Message)); owner.GetTree().Quit(1); }
+        catch (Exception error) { Main.Emit(new GameEvent("error", Message: error.Message)); exitCode = 1; }
+        // Geometry/art scopes have returned and freed their node owners. Drain
+        // remaining resource wrappers while native services are still alive;
+        // their finalizers must not race C# binding teardown on either exit.
+        GC.Collect(); GC.WaitForPendingFinalizers();
+        owner.GetTree().Quit(exitCode);
         return Task.CompletedTask;
     }
     private static void RunGeometry(Node owner)
     {
         RunGlyphDuplicateRegression();
         object detailedGround = GroundPlacementProof.Run(owner);
-        static bool Batched(string path) => path is AssetCatalog.Meadow or AssetCatalog.Stream || DetailedGround.Paths.Contains(path, StringComparer.Ordinal);
+        static bool Batched(string path) => !LandscapeAssets.AmbientWater(path) && (path == AssetCatalog.Meadow || DetailedGround.Paths.Contains(path, StringComparer.Ordinal));
         var reports = new List<object>();
         foreach (string path in AssetCatalog.RequiredPaths.Where(p => !p.StartsWith("characters/", StringComparison.Ordinal)))
         {
@@ -152,7 +158,6 @@ internal static class AssetFidelityProbe
         object forestResources = ForestResources();
         object forestArt = Verification.ForestArtProof.Run(owner);
         Main.Emit(new GameEvent("asset-fidelity", Message: JsonSerializer.Serialize(new { Reports = reports, Regressions = regressions, FramePersistence = framePersistence, DetailedGround = detailedGround, ForestResources = forestResources, ForestArt = forestArt }, WireJson.Options)));
-        owner.GetTree().Quit();
     }
     private static object ForestResources()
     {
