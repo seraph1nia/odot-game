@@ -73,7 +73,7 @@ public sealed class EconomyConfiguration
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(2); Write(writer, StartingResources); Write(writer, BaseProduction);
+            writer.Write(3); writer.Write(rules.SeededEncounterOrder); Write(writer, StartingResources); Write(writer, BaseProduction);
             foreach (BuildingDefinition b in _buildings.Values.OrderBy(b => b.Type))
             {
                 writer.Write((int)b.Type); Write(writer, b.Construction); Write(writer, b.Upgrade);
@@ -103,10 +103,14 @@ public sealed class EconomyConfiguration
     }
 
     private static BuildingDefinition Copy(BuildingDefinition definition) => definition with { Recruits = definition.Recruits?.ToArray() };
-    public ResourceCost Recruitment(UnitType type, int level = 1) => _recruitment[(type, level)];
+    public ResourceCost Recruitment(UnitType type, int level = 1, RunState? run = null) => RunEffects.Recruitment(_recruitment[(type, level)], run, type);
     public int Upkeep(UnitType type) => _upkeep[type];
-    public RecruitmentQuote[] RecruitmentQuotes(CombatConfiguration configuration, ResearchState research = default)
+    public int Upkeep(UnitType type, RunState? run) => RunEffects.Upkeep(_upkeep[type], run, type);
+    public RecruitmentQuote[] RecruitmentQuotes(CombatConfiguration configuration, ResearchState research = default, RunState? run = null)
     {
+        if (run is { Started: true }) return _recruitmentOrder.Select(p => new RecruitmentQuote(p.Key.Type, p.Key.Level,
+            Recruitment(p.Key.Type, p.Key.Level, run), Upkeep(p.Key.Type, run), configuration.Unit(p.Key.Type, level: p.Key.Level,
+                capabilities: RunEffects.Capabilities(Research.Capabilities(research, p.Key.Type), run, p.Key.Type)).Runtime())).ToArray();
         if (!ReferenceEquals(_quoteConfiguration, configuration)) { _quotes.Clear(); _quoteConfiguration = configuration; }
         if (!_quotes.TryGetValue(research.Owned, out RecruitmentQuote[]? quotes))
         {
@@ -145,23 +149,30 @@ public sealed class EconomyConfiguration
     public static int ProducerOutput(BuildingDefinition building, int level, ResearchState research, IEnumerable<TechnologyDefinition> technologies)
         => checked(building.Output(level) + technologies.Where(n => research.Has(n.Id) && n.Production is { } benefit
             && benefit.Building == building.Type && benefit.Resource == building.Produces).Sum(n => n.Production!.ExtraPerProducer));
-    public ResourceCost Production(IEnumerable<SlotState> slots, ResearchState research = default)
+    public ResourceCost Production(IEnumerable<SlotState> slots, ResearchState research = default, RunState? run = null)
     {
         Research.ValidateState(research);
         TechnologyDefinition[] technologies = Research.Definitions();
         ResourceCost total = BaseProduction;
-        foreach (SlotState slot in slots)
+        SlotState[] owned = slots.ToArray();
+        foreach (SlotState slot in owned)
         {
             if (!_buildings.TryGetValue(slot.Type, out BuildingDefinition? building) || building.Produces is not Resource resource) continue;
-            ResourceCost output = new ResourceCost().With(resource, ProducerOutput(building, slot.Level, research, technologies));
+            int extra = RunEffects.ProducerCard(slot.Type) is { } card ? RunCatalog.Amount(run, card) : 0;
+            ResourceCost output = new ResourceCost().With(resource, checked(ProducerOutput(building, slot.Level, research, technologies) + extra));
             if (!total.TryAdd(output, out ResourceCost next)) throw new OverflowException("Production exceeds whole-resource bounds.");
             total = next;
         }
+        if (run is { Started: true } && RunCatalog.Doctrine(run.Doctrine).Grovekeeper)
+        {
+            ResourceCost extra = new(Wood: owned.Any(s => s.Type == Game.Core.Building.Lumbermill) ? 1 : 0, Food: owned.Any(s => s.Type == Game.Core.Building.Farm) ? 1 : 0);
+            if (!total.TryAdd(extra, out total)) throw new OverflowException();
+        }
         return total;
     }
-    public ResourceCost? ProjectedProduction(IEnumerable<SlotState> slots, ResearchState research = default)
+    public ResourceCost? ProjectedProduction(IEnumerable<SlotState> slots, ResearchState research = default, RunState? run = null)
     {
-        try { return Production(slots, research); }
+        try { return Production(slots, research, run); }
         catch (OverflowException) { return null; }
     }
     public MarketRate[] MarketRates() => _marketCatalog.ToArray();
@@ -181,6 +192,7 @@ public sealed class EconomyConfiguration
 // identical combat. The match's published identity includes all frozen parts.
 public static class RulesIdentity
 {
+    private static readonly CombatFingerprint RunIdentity = Hash(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { RunCatalog.Doctrines, RunCatalog.Cards }));
     public static CombatFingerprint Resolve(Rules rules)
     {
         var combat = new CombatConfiguration(rules);
@@ -191,9 +203,9 @@ public static class RulesIdentity
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(2);
+            writer.Write(3);
             writer.Write(MatchSnapshot.CurrentBattleFlowVersion);
-            foreach (CombatFingerprint part in new[] { combat, economy, campaign })
+            foreach (CombatFingerprint part in new[] { combat, economy, campaign, RunIdentity })
             { writer.Write(part.A); writer.Write(part.B); writer.Write(part.C); writer.Write(part.D); }
         }
         return Hash(stream.ToArray());

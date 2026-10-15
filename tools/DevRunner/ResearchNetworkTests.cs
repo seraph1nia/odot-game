@@ -5,6 +5,11 @@ namespace DevRunner;
 
 internal sealed partial class Runner
 {
+    // Passive Ember/Ashen applications cannot stand in for this journey's
+    // point-funded Fire branch. Bind potency to a currently received owned Mage.
+    internal static bool ResearchBurn(MatchSnapshot state, UnitState enemy, int owner)
+        => BurnAdmission.Active(state, enemy) && state.Players.Single(p => p.Id == owner).Research.Has(TechnologyId.Fire)
+            && state.Players.Single(p => p.Id == owner).Soldiers.Any(u => u.Type == UnitType.Mage && u.Id == enemy.Statuses.Burn!.PotencySourceId);
     private async Task<Child> TransportedResearch(Child a, Child b, Child server, int port, string sessionPath, CancellationToken token)
     {
         Console.WriteLine("Research transport risk: typed tower-independent purchases and retries, complete active captured status deadlines and paused current-state resume. Reuses authority-resume-victory peers and ordinary early-match investment; bounded at wave ten/120s, no extra scenario or full campaign.");
@@ -18,10 +23,11 @@ internal sealed partial class Runner
             if (state.Phase is Phase.Victory or Phase.Defeat || state.Wave > 10) throw new InvalidOperationException("Research transport opening exceeded wave ten or ended without a status witness.");
             if (state.Phase == Phase.Combat)
             {
-                MatchSnapshot settled = await ObserveCurrent(a, s => s.Revision >= state.Revision && (s.Phase != Phase.Combat || s.Enemies.Any(u => BurnAdmission.Active(s, u))), "shared clear or real burn", token);
-                if (settled.Enemies.Any(u => BurnAdmission.Active(settled, u))) break;
+                MatchSnapshot settled = await ObserveCurrent(a, s => s.Revision >= state.Revision && (s.Phase != Phase.Combat || s.Enemies.Any(u => ResearchBurn(s, u, a.PlayerId))), "shared clear or real burn", token);
+                if (settled.Enemies.Any(u => ResearchBurn(settled, u, a.PlayerId))) break;
                 await Observe(b, s => s.Revision >= settled.Revision && s.Phase == settled.Phase, "ordinary research stage agreement", token); continue;
             }
+            if (state.Phase == Phase.RewardDraft) { await ResolveRewards([a, b], token); continue; }
             foreach (Child child in new[] { a, b })
             {
                 for (int n = 0; n < 100; n++)
@@ -45,11 +51,11 @@ internal sealed partial class Runner
             foreach (Child child in new[] { a, b })
                 await Observe(child, s => ResearchReadyBarrier.Resolved(state, barrier, s), "research stage actually resolves after readiness/cleanup", token);
         }
-        var capture = await PauseBurn(a, null, token);
+        var capture = await PauseBurn(a, null, token, researchOwner: a.PlayerId);
         MatchSnapshot frozen = State(capture.Receipt);
         MatchSnapshot seen = await ObserveCurrent(b, s => s.MatchId == frozen.MatchId && s.Revision >= frozen.Revision && s.Paused && s.Tick == frozen.Tick,
             "same current paused active status receipt", token);
-        Require(frozen.Enemies.Any(u => u.Statuses.Burn is not null), "paused authority retains active captured burn deadlines");
+        Require(frozen.Enemies.Any(u => ResearchBurn(frozen, u, a.PlayerId)), "paused authority retains active owned research-Mage burn deadlines");
         Require(Gameplay(frozen) == Gameplay(seen), "peers agree on complete research and captured status deadlines");
         Require(frozen.Players.Single(p => p.Id == a.PlayerId).Research.Has(TechnologyId.Fire)
             && !frozen.Players.Single(p => p.Id == a.PlayerId).Technologies.Single(t => t.Id == TechnologyId.Frost).Available, "transported personal Fire choice and Frost lock");
@@ -63,7 +69,8 @@ internal sealed partial class Runner
         Child recovered = StartGame("test-research-resumed", false, true, port, null, "--automated", "--session-file", sessionPath);
         GameEvent resumed = await recovered.WaitFor(e => e.Type == "connected" && e.PeerId != oldPeer, "paused active research/status resume", options.StartupTimeout, token);
         Require(resumed.PlayerId == player && Gameplay(State(resumed)) == Gameplay(frozen), "resume retains points, choices and active deadlines without regrant");
-        Require(frozen.Players.Where(c => !c.Eliminated).All(c => c.LastReward is { Research: 1 }), "latest shared clear research receipt is exactly one");
+        Require(frozen.Players.Where(c => !c.Eliminated).All(c => c.LastReward is { Research: 1 }
+            || c.LastReward is { Research: 2 } && c.Run.Stacks("R05") == 1), "latest shared clear research receipt is one baseline plus only a possible acquired Codex bonus");
         return recovered;
     }
 }

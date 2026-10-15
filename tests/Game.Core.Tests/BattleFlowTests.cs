@@ -41,7 +41,7 @@ public sealed class BattleFlowTests
             Assert.False(match.Apply(1, old).Accepted);
         }
         Assert.Equal(Phase.Combat, match.Phase);
-        Assert.Equal(3, match.ProductionCount); Assert.Equal(18, match.Players[1].Gold); Assert.Equal(15, match.Players[1].Food);
+        Assert.Equal(3, match.ProductionCount); Assert.Equal(16, match.Players[1].Gold); Assert.Equal(15, match.Players[1].Food);
         Assert.Equal(["  Preparation 1", "  Preparation 2", "  Preparation 3", "> Combat"], ProgressionPresentation.PhaseRows(match.Snapshot()));
     }
 
@@ -82,14 +82,14 @@ public sealed class BattleFlowTests
             Assert.Equal(preparation, flow.State.ProductionCount);
         }
         flow.Act(2, new("build", 1, Building.Stonecutter));
-        Assert.Equal(0, flow.State.Players[1].Stone);
+        Assert.Equal(2, flow.State.Players[1].Stone);
         flow.Disconnect(2); flow.Rebind(2, 12);
         Assert.Equal(2, SessionFlow.RoundTrip(flow.State).ProductionCount);
         flow.Act(1, new("ready"));
         Command final = flow.Act(2, new("ready"));
         MatchSnapshot entered = SessionFlow.RoundTrip(flow.State);
         Assert.Equal(Phase.Combat, entered.Phase); Assert.Equal(3, entered.ProductionCount);
-        Assert.Equal(1, entered.Players[1].Stone);
+        Assert.Equal(3, entered.Players[1].Stone);
         Assert.True(flow.Send(2, final).Accepted);
         flow.Disconnect(2); flow.Rebind(2, 13);
         Assert.True(flow.Send(2, final).Accepted);

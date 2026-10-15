@@ -69,6 +69,7 @@ internal static class PaidCampaignFixture
     internal static void Clear(Match match)
     {
         for (int tick = 0; tick < 4000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); tick++) match.Step();
+        RewardFixture.Resolve(match);
         Assert.Equal(Phase.Building, match.Phase); Assert.False(match.Combat.HasDeaths);
         if (match.Wave == 2)
             foreach (City city in match.Players.Values.Where(c => !c.Eliminated && c.Slots[4].Type == Building.Empty))
@@ -91,6 +92,17 @@ internal static class PaidCampaignFixture
     internal static void AssertPaidTransition(MatchSnapshot before, MatchSnapshot after, int player, EconomyAction action)
     {
         CityState city = before.Players.Single(c => c.Id == player);
+        if (action.Action == "start")
+        {
+            foreach (CityState owner in after.Players) Assert.Equal(RunPresentation.Starting(after.Rules, RunCatalog.Doctrine(owner.Run.Doctrine)), owner.Resources);
+            return;
+        }
+        if (action.Action.StartsWith("reward:", StringComparison.Ordinal))
+        {
+            string id = action.Action[7..]; Assert.Contains(id, city.Run.Offers);
+            Assert.Equal(city.Run.Stacks(id) + 1, after.Players.Single(c => c.Id == player).Run.Stacks(id));
+            Assert.Equal(before.ProductionCount, after.ProductionCount); return;
+        }
         ResourceCost cost = action.Action switch
         {
             "build" => action.Payment == ConstructionPayment.GoldRecovery
@@ -193,6 +205,9 @@ internal static class PaidCampaignFixture
         {
             // Cleanup is finite and owns no production; investment must not race
             // restoration of persistent homes after cosmetic death expiry.
+            if (match.Phase == Phase.RewardDraft)
+                foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated && c.Run.Choice is null))
+                    commands.Add(Apply(match, city.Id, new("reward:" + CampaignStrategy.RewardChoice(city.Run))));
             for (int cleanup = 0; cleanup < 120 && match.Combat.HasDeaths; cleanup++) match.Step();
             Assert.False(match.Combat.HasDeaths);
             for (int preparation = 0; preparation < 3 && match.Phase is Phase.Building or Phase.Preparation; preparation++)

@@ -192,7 +192,7 @@ public sealed class CombatConfiguration
             StructureDamage = HealthPoints.FromWhole(structural)
         }).Researched(rank);
         WeaponProfile modified = capabilities.Apply(resolved.Runtime());
-        resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage };
+        resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage, HexRange = modified.HexRange };
         // Resolve from the original leveled profile once, never from received HP.
         // Fixed-point stats retain quarter-HP precision at the default 75%.
         if (faction == Faction.Skeletons)

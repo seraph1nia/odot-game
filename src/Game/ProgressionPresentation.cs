@@ -36,13 +36,14 @@ public static class ProgressionPresentation
             : $"Need {cost.Amount(r) - stocks.Amount(r)} more {r.ToString().ToLowerInvariant()} · " + (r switch
             { Resource.Gold => "production, Gold mine or Market", Resource.Wood => AssetCatalog.BuildingName(Building.Lumbermill), Resource.Food => AssetCatalog.BuildingName(Building.Farm), Resource.Stone => AssetCatalog.BuildingName(Building.Stonecutter), Resource.Metal => AssetCatalog.BuildingName(Building.MetalMine), _ => AssetCatalog.BuildingName(Building.Weaver) })));
     public static string ProducerBenefit(BuildingDefinition definition, int level = 1, bool upgrade = false,
-        ResearchState research = default, IEnumerable<TechnologyDefinition>? technologies = null)
+        ResearchState research = default, IEnumerable<TechnologyDefinition>? technologies = null, RunState? run = null)
     {
         if (definition.Produces is not Resource resource) return "";
         try
         {
-            int output = EconomyConfiguration.ProducerOutput(definition, level, research, technologies ?? []);
-            return upgrade ? $"{output} → {EconomyConfiguration.ProducerOutput(definition, level + 1, research, technologies ?? [])} {resource.ToString().ToLowerInvariant()}/turn"
+            int extra = RunEffects.ProducerCard(definition.Type) is { } card ? RunCatalog.Amount(run, card) : 0;
+            int output = checked(EconomyConfiguration.ProducerOutput(definition, level, research, technologies ?? []) + extra);
+            return upgrade ? $"{output} → {checked(EconomyConfiguration.ProducerOutput(definition, level + 1, research, technologies ?? []) + extra)} {resource.ToString().ToLowerInvariant()}/turn"
                 : $"+{output} {resource.ToString().ToLowerInvariant()}/turn";
         }
         catch (OverflowException) { return "Unavailable"; }

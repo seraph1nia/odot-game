@@ -157,7 +157,7 @@ public sealed class BuildingTransactionTests
         CityState result = session.Snapshot().Players.Single(p => p.Id == player);
         Assert.True(result.Slots[8].Purchased); Assert.Equal(Building.Empty, result.Slots[1].Type);
         Assert.Equal(2, session.Snapshot().ProductionCount);
-        Assert.Equal(1, result.Stone); // two income - two construction + one refund, no final income yet.
+        Assert.Equal(3, result.Stone); // Warden's two stone plus two income - two construction + one refund, no final income yet.
     }
 
     [Fact]

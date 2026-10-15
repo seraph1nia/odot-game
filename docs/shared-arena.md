@@ -73,7 +73,7 @@ Town Hall capacity and healing remain individual-soldier rules, independent of
 squad population. Food funds members in the existing field-first, veteran-first,
 stable-ID order; an empty-funded squad creates no combat occupancy.
 
-Wire protocol **15 / combat rules 7 / battle flow 2** refuses older peers with
+Wire protocol **16 / combat rules 7 / battle flow 3** refuses older peers with
 the existing protocol-mismatch response. Both independently advanced predecessor
 branches used protocol14 for incompatible schemas; numeric equality was not
 compatibility and neither predecessor is silently admitted. Snapshots carry the connected arena, squads, individual

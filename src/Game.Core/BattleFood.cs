@@ -16,7 +16,7 @@ public static class BattleFood
     public static BattleFoodForecast? Project(CityState city, bool settleProduction, MarketRate? sale = null)
     {
         if (!city.Resources.TryPay(sale is null ? default : new ResourceCost().With(sale.Resource, sale.Units), out ResourceCost balance)
-            || sale is not null && !balance.TryAdd(new(Gold: sale.Gold), out balance)) return null;
+            || sale is not null && !balance.TryAdd(new(Gold: checked(sale.Gold + city.MarketSaleBonus)), out balance)) return null;
         if (settleProduction && (city.ProductionIncome is not ResourceCost income || !balance.TryAdd(income, out balance))) return null;
         return Forecast(city.Soldiers, balance.Food, city.RecruitmentQuotes);
     }

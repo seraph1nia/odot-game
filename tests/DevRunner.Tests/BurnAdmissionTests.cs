@@ -17,6 +17,21 @@ public sealed class BurnAdmissionTests(Xunit.Abstractions.ITestOutputHelper outp
         return new("research", revision, tick, Phase.Combat, paused, 8, 3, 40, new(), [], [enemy]);
     }
 
+    [Fact]
+    public void ResearchWitnessCannotUsePassiveBurnOrAnotherOwnersPotency()
+    {
+        // Harness predicate only; actual authority/transport owns feature proof.
+        MatchSnapshot state = Burning(); UnitState mage = new(132, 100) { Type = UnitType.Mage, Owner = 1 };
+        var city = new CityState(1, true, false, 0, 0, 100, [], [mage], 0);
+        state = state with { Players = [city] }; Assert.False(Runner.ResearchBurn(state, state.Enemies[0], 1));
+        var catalog = new ResearchCatalog(new ResearchSettings());
+        ResearchState researched = new ResearchState(100).Purchase(TechnologyId.MagicFoundation, catalog).Purchase(TechnologyId.Fire, catalog);
+        state = state with { Players = [city with { Research = researched }] }; Assert.True(Runner.ResearchBurn(state, state.Enemies[0], 1));
+        state = state with { Players = [city with { Research = researched, Soldiers = [mage with { Id = 133 }] }] };
+        Assert.False(Runner.ResearchBurn(state, state.Enemies[0], 1));
+        state = state with { Players = [city with { Research = researched, Soldiers = [mage with { Type = UnitType.Crossbowman }] }] };
+        Assert.False(Runner.ResearchBurn(state, state.Enemies[0], 1));
+    }
     private static GameEvent Ack(MatchSnapshot state, long sequence = 11)
         => new("ack", State: state, Result: new(sequence, true, "ordinary control"));
 
@@ -139,6 +154,8 @@ public sealed class BurnAdmissionTests(Xunit.Abstractions.ITestOutputHelper outp
         // Earn research, pay for the army and reach a live burn through ordinary waves.
         for (int steps = 0; steps < 30000 && match.Wave <= 10 && match.Phase is not (Phase.Victory or Phase.Defeat); steps++)
         {
+            if (match.Phase == Phase.RewardDraft)
+                foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated && c.Run.Choice is null)) Act(city.Id, "reward:" + CampaignStrategy.RewardChoice(city.Run));
             if (match.Phase == Phase.Combat)
             {
                 if (match.Enemies.Any(u => BurnAdmission.Active(match.Snapshot(), u))) break;
@@ -200,7 +217,7 @@ public sealed class BurnAdmissionTests(Xunit.Abstractions.ITestOutputHelper outp
                 if (advanceBeforeRequest)
                 {
                     for (int ticks = 0; ticks < 6000 && match.Phase == Phase.Combat; ticks++) match.Step();
-                    Assert.Equal(Phase.Building, match.Phase);
+                    Assert.Equal(Phase.RewardDraft, match.Phase);
                     Assert.Equal(origin.TurnSerial + 1, match.TurnSerial);
                 }
                 MatchSnapshot before = match.Snapshot();

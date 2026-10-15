@@ -27,9 +27,20 @@ internal static class CampaignAcceptance
         ResourceCost commandSpending = default, commandIncome = default;
         var recruitedRoles = new HashSet<UnitType>(); var waveTicks = new Dictionary<int, int>();
         int firstLevelFiveBattle = 0, laterMetalRecruits = 0, laterClothRecruits = 0; bool upgradedProducer = false, expandedFullLand = false;
-        Assert.All(match.Players.Values, c => { Assert.Equal(0, c.Metal); Assert.Equal(0, c.Cloth); Assert.Equal(0, c.Stone); });
-        while (match.Phase is Phase.Building or Phase.Preparation or Phase.Combat)
+        Assert.All(match.Players.Values, c => { Assert.Equal(0, c.Metal); Assert.Equal(0, c.Cloth); Assert.Equal(2, c.Stone); });
+        while (match.Phase is Phase.Building or Phase.Preparation or Phase.Combat or Phase.RewardDraft)
         {
+            if (match.Phase == Phase.RewardDraft)
+            {
+                foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated && c.Run.Choice is null))
+                {
+                    EconomyAction choice = new("reward:" + CampaignStrategy.RewardChoice(city.Run));
+                    trace?.Command(choice.Command(match.Snapshot(), city.Id, match.Revision + 1));
+                    PaidCampaignFixture.Receipt receipt = PaidCampaignFixture.Apply(match, city.Id, choice);
+                    diagnostics.Record(() => $"reward P{city.Id} W{city.Run.DraftWave}: {choice.Action}; before={receipt.Before}; after={receipt.After}");
+                }
+                continue;
+            }
             measurement?.Enter(match.Phase == Phase.Combat ? "assertion" : "preparation");
             if (match.Phase == Phase.Combat)
             {

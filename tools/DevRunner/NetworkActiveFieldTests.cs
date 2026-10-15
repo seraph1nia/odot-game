@@ -109,8 +109,9 @@ internal sealed partial class Runner
             {
                 Require(receiving.History().Where(e => e.State is not null).SelectMany(e => e.State!.CombatEvents)
                     .All(e => e.Tick <= loss || e.Type != CombatEventType.Impact || e.Tower?.City != 2), "no received post-fall owner weapon impact (same-tick simultaneous effects are allowed)");
-                MatchSnapshot clear = await Observe(receiving, s => s.Phase == Phase.Building && s.Wave == 2 && s.DyingBodies.Length == 0,
+                MatchSnapshot clear = await Observe(receiving, s => s.Phase == Phase.RewardDraft && s.Wave == 2 && s.DyingBodies.Length == 0,
                     "living owner actually clears continuing battle and physical cleanup", token);
+                await ResolveRewards([host, receiving], token);
                 await Observe(host, s => s.Revision >= clear.Revision && s.DyingBodies.Length == 0, "authority clear received", token);
                 foreach (string text in new[] { "ready", "build 0 farm", "recruit 1", $"retire {injured}", "research-tech melee-foundation" })
                 {

@@ -9,7 +9,8 @@ internal static class BurnAdmission
 
     internal static async Task<(GameEvent Receipt, int TargetId)> Pause(MatchSnapshot origin, int? city, long sequenceFloor,
         Func<MatchSnapshot> latest, Func<long, CancellationToken, Task> wait,
-        Func<string, CancellationToken, Task<GameEvent>> action, CancellationToken token)
+        Func<string, CancellationToken, Task<GameEvent>> action, CancellationToken token,
+        Func<MatchSnapshot, UnitState, bool>? eligible = null)
     {
         long floor = origin.Revision - 1;
         int attempts = 0;
@@ -18,7 +19,7 @@ internal static class BurnAdmission
             token.ThrowIfCancellationRequested();
             MatchSnapshot quote = latest();
             Identity(origin, quote);
-            UnitState? target = quote.Enemies.FirstOrDefault(u => (city is null || u.Destination == city) && Active(quote, u));
+            UnitState? target = quote.Enemies.FirstOrDefault(u => (city is null || u.Destination == city) && Active(quote, u) && (eligible?.Invoke(quote, u) ?? true));
             if (quote.Revision <= floor || quote.Paused || target is null)
             {
                 floor = Math.Max(floor, quote.Revision);
@@ -39,7 +40,7 @@ internal static class BurnAdmission
             if (captured != actual)
                 throw new InvalidOperationException("Research burn target changed after the accepted frozen receipt.");
             // Bind the observed target/effect, never another burn in the receipt.
-            if (captured is not null && Active(frozen, captured) && captured.Destination == target.Destination
+            if (captured is not null && Active(frozen, captured) && (eligible?.Invoke(frozen, captured) ?? true) && captured.Destination == target.Destination
                 && captured.Statuses.Burn!.Identity == target.Statuses.Burn!.Identity)
                 return (pause, target.Id);
 

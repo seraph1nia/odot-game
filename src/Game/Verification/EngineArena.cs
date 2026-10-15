@@ -487,7 +487,7 @@ public partial class EngineTests
                 rig.Sample(units[memberId], playback.Tick, playback.VisualSeconds, 0, layout, units);
                 arenaView.UpdateHealthBars(bars, camera, new Rect2(-100000, -100000, 200000, 200000));
                 UnitHealthBar post = bars.GetNode<UnitHealthBar>("StructureHealth_1_Watchpost_-1");
-                Check(post.Current == (playback.Tick < 3 ? HealthPoints.FromWhole(1) : 0) && post.Maximum == HealthPoints.FromWhole(1)
+                Check(post.Current == (playback.Tick < 3 ? 125 : 0) && post.Maximum == 125 // Warden: 1 base HP +25%.
                     && post.Visible == (playback.Tick < 3), "actual objective bar waits for buffered damage/death and never lingers over the ruin");
                 Check(bars.GetChildCount() == 2 && accepted.Structures.Length == 3,
                     "only meaningful Keep/Watchpost HP creates bars; the purchased 1/1 sentinel never fabricates health");

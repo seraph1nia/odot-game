@@ -68,6 +68,8 @@ public sealed class ArmyCommandTests
         foreach (int player in new[] { 1, 2 }) for (int i = 0; i < 6; i++) Act(player, "recruit", 0);
         Ready();
         for (int tick = 0; tick < 2000 && (authority.Phase == Phase.Combat || authority.Snapshot().DyingBodies.Length > 0); tick++) authority.Step();
+        Assert.Equal(Phase.RewardDraft, authority.Phase);
+        foreach (int player in new[] { 1, 2 }) Act(player, "reward:" + RewardFixture.Choose(authority.Snapshot().Players.Single(p => p.Id == player).Run));
         Assert.Equal(Phase.Building, authority.Phase);
         CityState Guest() => authority.Snapshot().Players.Single(p => p.Id == 2);
         UnitState veteran = Guest().Soldiers.First(u => u.Health < u.Profile.Health);

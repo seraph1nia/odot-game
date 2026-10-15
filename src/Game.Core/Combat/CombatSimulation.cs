@@ -99,14 +99,18 @@ internal sealed partial class CombatSimulation : IDisposable
         int squad = FindSquad(member);
         int[] slots = Living().Where(u => u.SquadId == squad).Select(u => u.FormationSlot).ToArray();
         member = member with { SquadId = squad, FormationSlot = Enumerable.Range(0, isBoss ? 1 : _configuration.Arena.SquadCapacity).First(slot => !slots.Contains(slot)) };
-        _entities.Add(id, _world.Create(member)); return id;
+        _entities.Add(id, _world.Create(member)); _memberOwners[id] = faction == Faction.Adventurers ? owner : 0; return id;
     }
-    public void Research(int city, ResearchState research, ResearchCatalog catalog)
+    private readonly Dictionary<int, int> _memberOwners = [];
+    private readonly Dictionary<int, City> _owners = [];
+    public void Research(int city, ResearchState research, ResearchCatalog catalog, RunState? run = null)
     {
         var updates = Living().Where(u => u.Owner == city && u.Faction == Faction.Adventurers).Select(unit =>
         {
-            UnitCapabilities capabilities = catalog.Capabilities(research, unit.Type);
-            return unit with { Capabilities = capabilities, Profile = _configuration.Unit(unit.Type, unit.Identity.Rank, unit.Identity.IsBoss, unit.Identity.Level, capabilities).Runtime() };
+            UnitCapabilities capabilities = RunEffects.Capabilities(catalog.Capabilities(research, unit.Type), run, unit.Type);
+            WeaponProfile profile = _configuration.Unit(unit.Type, unit.Identity.Rank, unit.Identity.IsBoss, unit.Identity.Level, capabilities).Runtime();
+            int health = Math.Min(unit.Health, profile.Health);
+            return unit with { Health = health, Capabilities = capabilities, Profile = profile };
         }).ToArray();
         foreach (CombatUnit unit in updates) Unit(unit.Id) = unit;
     }
@@ -189,7 +193,7 @@ internal sealed partial class CombatSimulation : IDisposable
     {
         var structures = new List<StructureState> { new(city.Id, ArenaStructureKind.Keep, -1, _arena.Keep(city.Id), city.Health, HealthPoints.FromWhole(_cityHealth)) { Active = !city.Eliminated } };
         if (_watchposts.TryGetValue(city.Id, out StructureState? watchpost)) structures.Add(watchpost with { Active = !city.Eliminated });
-        else structures.Add(new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth)) { Active = !city.Eliminated });
+        else structures.Add(new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), city.Run), RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), city.Run)) { Active = !city.Eliminated });
         structures.AddRange(city.Towers.Values.Where(t => !ArmyConfiguration.IsArmyPlot(t.Slot)
             || _arena.Footprints.Any(f => f.Owner == city.Id && f.Slot == t.Slot)).OrderBy(t => t.Slot).Select(t => new StructureState(city.Id,
             t.Type is Building.CatapultTower or Building.BombardTower ? ArenaStructureKind.CatapultTower : ArenaStructureKind.ArrowTower, t.Slot, _arena.Tower(city.Id, t.Slot), 1, 1, t.Level)
@@ -199,7 +203,7 @@ internal sealed partial class CombatSimulation : IDisposable
     private int _cityHealth = 100;
     internal void SetCityHealth(int health) => _cityHealth = health;
     public CombatEvent[] Events() => _events.Select(e => e with { Unit = e.Unit is null ? null : CombatProjection.Detach(e.Unit, _work), Victims = e.Victims.ToArray(), Periodic = e.Periodic.ToArray() }).ToArray();
-    internal BattleFoodForecast FoodForecast(int city, int food, EconomyConfiguration economy) => BattleFood.Forecast(SoldierMembership(city), food, economy);
+    internal BattleFoodForecast FoodForecast(int city, int food, EconomyConfiguration economy, RunState? run = null) => BattleFood.Forecast(Soldiers(city), food, economy.RecruitmentQuotes(_configuration, run: run));
     public long OldestEventSequence => _events.Count == 0 ? EventSequence + 1 : _events[0].Sequence;
     internal UnitState Read(int id) => Project(Unit(id));
     internal void Seed(UnitState state)
@@ -217,7 +221,7 @@ internal sealed partial class CombatSimulation : IDisposable
         _nextSquadId = Math.Max(_nextSquadId, checked(squadId + 1));
         _squads[squadId] = _squads[squadId] with { Location = member.Location, Action = member.Action, Decision = member.Decision };
         if (_entities.Remove(member.Id, out Entity prior)) _world.Destroy(prior);
-        _entities.Add(member.Id, _world.Create(member with { SquadId = squadId })); _nextId = Math.Max(_nextId, checked(member.Id + 1));
+        _entities.Add(member.Id, _world.Create(member with { SquadId = squadId })); _memberOwners[member.Id] = member.Faction == Faction.Adventurers ? member.Owner : 0; _nextId = Math.Max(_nextId, checked(member.Id + 1));
     }
     internal void Remove(int id)
     {
@@ -332,9 +336,14 @@ internal sealed partial class CombatSimulation : IDisposable
         var reserves = (unfed ?? []).ToHashSet(); City[] owners = cities.ToArray();
         if (owners.Length > 0) _arena = new(owners.Select(c => c.Id), ArmyWeapons(owners));
         _wave = wave; _events.Clear();
+        foreach (City city in owners)
+        {
+            _owners[city.Id] = city;
+            city.Run = city.Run with { EnemyKills = 0, FirstAttackSquads = [], WarhornSquads = [] };
+        }
         foreach (int owner in _watchposts.Keys.Except(owners.Select(c => c.Id)).ToArray()) _watchposts.Remove(owner);
         foreach (City city in owners.Where(c => !c.Eliminated))
-            _watchposts[city.Id] = new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth));
+            _watchposts[city.Id] = new(city.Id, ArenaStructureKind.Watchpost, -1, _arena.Watchpost(city.Id), RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), city.Run), RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), city.Run));
         foreach (CombatUnit member in Living())
             Unit(member.Id) = member with
             {
@@ -384,6 +393,7 @@ internal sealed partial class CombatSimulation : IDisposable
     public void Advance(long tick, IEnumerable<City> cities)
     {
         Cleanup(tick); _healthProgress.Clear(); City[] owners = cities.OrderBy(c => c.Id).ToArray();
+        foreach (City city in owners) _owners[city.Id] = city;
         foreach (CombatSquad squad in _squads.Values.Where(s => s.Alive).ToArray())
         {
             if (squad.Action is CombatAction.Moving move && tick >= move.EndTick)
@@ -396,7 +406,9 @@ internal sealed partial class CombatSimulation : IDisposable
         CombatUnit[] before = All();
         var damage = new SortedDictionary<int, int>(); var cityDamage = new SortedDictionary<int, int>(); var postDamage = new SortedDictionary<int, int>();
         var applications = new List<StatusApplication>();
+        var credits = new List<(int Victim, int Attacker, int Damage)>();
         Dictionary<int, StatusState> statuses = GatherPeriodic(before, tick, damage);
+        foreach (var periodic in _periodic) foreach (PeriodicContribution contribution in periodic.Value) credits.Add((periodic.Key, contribution.SourceId, contribution.Damage));
         // Gather all committed contributors against pre-impact health. Deaths are
         // applied only after squad, structure and defense strikes are gathered.
         foreach (CombatSquad squad in _squads.Values.Where(s => s.Alive && s.Action is CombatAction.Windup a && tick >= a.Attack!.ImpactTick).ToArray())
@@ -410,7 +422,11 @@ internal sealed partial class CombatSimulation : IDisposable
                 CombatUnit[] defenders = valid ? Members(defending!) : [];
                 var profiles = attackers.Select(m =>
                 {
-                    GroupDamageProfile p = new(m.Profile.Damage, m.Profile.SecondaryDamage);
+                    RunState? run = _owners.GetValueOrDefault(squad.Owner)?.Run;
+                    bool horn = run?.WarhornSquads.Contains(squad.Id) == true;
+                    bool afflicted = defenders.Any(d => d.Statuses.ChillAt(tick) > 0 || d.Statuses.Burn is { ExpiresTick: var expiry } && expiry >= tick || d.Statuses.Poison.Any(p => p.ExpiresTick >= tick));
+                    int first = horn ? RunCatalog.Amount(run, "R01") : 0;
+                    GroupDamageProfile p = new(RunEffects.Scale(m.Profile.Damage, first + (afflicted ? RunCatalog.Amount(run, "M06") : 0)), RunEffects.Scale(m.Profile.SecondaryDamage, first));
                     if (tick < squad.RallyDisruptedUntil) p = new(Rally(p.Primary), Rally(p.Secondary));
                     return new MemberStrike(m.Id, p);
                 }).ToArray();
@@ -429,8 +445,8 @@ internal sealed partial class CombatSimulation : IDisposable
                     foreach (MemberDamage hit in contribution.Damage.Where(d => d.Damage > 0))
                     {
                         CombatUnit defender = defenders.Single(m => m.Id == hit.MemberId); int amount = defender.Capabilities.Reduce(hit.Damage);
-                        Accumulate(damage, hit.MemberId, amount);
-                        if (amount > 0) GatherApplications(attacker, hit.MemberId, tick, applications, hit.Damage, action.AttackSequence);
+                        Accumulate(damage, hit.MemberId, amount); credits.Add((hit.MemberId, attacker.Id, amount));
+                        if (amount > 0) GatherApplications(attacker, hit.MemberId, tick, applications, hit.Damage, action.AttackSequence, Math.Min(amount, defender.Health));
                     }
                     Emit(CombatEventType.Impact, ProjectMember(attacker), contribution.PrimaryMemberId, damage: contribution.Damage.Sum(d => d.Damage), landed: valid,
                         primary: defenders.FirstOrDefault(m => m.Id == contribution.PrimaryMemberId), victims: contribution.Damage.Where(d => d.Damage > 0).Select(d => d.MemberId).ToArray());
@@ -447,17 +463,27 @@ internal sealed partial class CombatSimulation : IDisposable
                 foreach (CombatUnit attacker in attackers) Emit(CombatEventType.Impact, ProjectMember(attacker), target.Id, true, attacker.Profile.StructureDamage, valid);
             }
             _squads[squad.Id] = squad with { Action = CombatActions.Impact(action, tick, valid) };
+            if (_owners.TryGetValue(squad.Owner, out City? attackingCity) && attackingCity.Run.WarhornSquads.Contains(squad.Id))
+                attackingCity.Run = attackingCity.Run with { WarhornSquads = attackingCity.Run.WarhornSquads.Where(id => id != squad.Id).ToArray() };
         }
         foreach (City city in owners.Where(c => !c.Eliminated))
-            foreach (DefenseActor defense in Defenses(city)) ResolveDefense(city, defense, damage);
+            foreach (DefenseActor defense in Defenses(city)) ResolveDefense(city, defense, damage, credits);
         foreach ((int id, int amount) in damage)
         {
             CombatUnit member = Unit(id); int effective = Math.Min(member.Health, amount); Unit(id) = member with { Health = member.Health - effective };
+            if (effective == member.Health && effective > 0 && member.Faction == Faction.Skeletons)
+            {
+                int attacker = KillAttribution.Winner(effective, credits.Where(c => c.Victim == id).Select(c => (c.Attacker, c.Damage)));
+                if (_memberOwners.TryGetValue(attacker, out int owner) && _owners.TryGetValue(owner, out City? killer)) killer.Run = killer.Run with { EnemyKills = checked(killer.Run.EnemyKills + 1) };
+            }
             if (effective > 0) { _healthProgress.Add(member.Destination); Emit(CombatEventType.Hit, ProjectMember(Unit(id)), damage: effective, landed: true); }
         }
         foreach (City city in owners)
         {
-            int amount = Math.Min(city.Health, cityDamage.GetValueOrDefault(city.Id));
+            int structural = cityDamage.GetValueOrDefault(city.Id);
+            // Same-tick post destruction ceases protection immediately.
+            bool protectedKeep = _watchposts.TryGetValue(city.Id, out StructureState? guardian) && guardian.Health > postDamage.GetValueOrDefault(city.Id);
+            int amount = Math.Min(city.Health, protectedKeep ? RunEffects.Scale(structural, -RunCatalog.Amount(city.Run, "R06")) : structural);
             if (amount > 0)
             {
                 city.Health -= amount; _healthProgress.Add(city.Id);
@@ -477,34 +503,56 @@ internal sealed partial class CombatSimulation : IDisposable
         foreach (CombatUnit member in before.Where(u => u.Location.Lifecycle != UnitLifecycle.Dying)) if (_entities.ContainsKey(member.Id) && Unit(member.Id).Health <= 0) Kill(Unit(member.Id));
         TrimHistory();
     }
+    internal void FieldSurgeons(int owner, int percent)
+    {
+        foreach (CombatUnit member in Living().Where(m => m.Faction == Faction.Adventurers && m.Owner == owner))
+            Unit(member.Id) = member with { Health = Math.Min(member.Profile.Health, checked(member.Health + RunEffects.Portion(member.Profile.Health - member.Health, percent))) };
+    }
+    internal void UpdateWatchpost(City city)
+    {
+        if (!_watchposts.TryGetValue(city.Id, out StructureState? post)) return;
+        int maximum = RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), city.Run);
+        _watchposts[city.Id] = post with { MaximumHealth = maximum, Health = post.Health == 0 ? 0 : Math.Clamp(checked(post.Health + maximum - post.MaximumHealth), 1, maximum) };
+    }
     private int Rally(int damage) => checked((int)((long)damage * (100 - _configuration.Arena.RallyDamageReductionPercent) / 100));
     private bool InRange(CombatSquad squad, int cell) => Board.Distance(squad.Location.Position.Cell, cell) <= Members(squad).Select(m => m.Profile.HexRange).DefaultIfEmpty(1).Min();
     private IEnumerable<DefenseActor> Defenses(City city)
     {
         if (!_watchposts.TryGetValue(city.Id, out StructureState? post) || !post.Destroyed) yield return new(DefenseIdentity.Defender(city.Id), city.Defender, _configuration.BuiltInDefense);
-        foreach (TowerState tower in city.Towers.Values.OrderBy(t => t.Slot)) yield return new(DefenseIdentity.Tower(city.Id, tower.Slot), tower, _configuration.Tower(tower.Type, tower.Level));
+        foreach (TowerState tower in city.Towers.Values.OrderBy(t => t.Slot)) yield return new(DefenseIdentity.Tower(city.Id, tower.Slot), tower, RunDefense(tower.Type, tower.Level, city.Run));
     }
     private int DefenseCell(DefenseActor defense) => defense.Identity.Kind == CombatActorKind.Defender ? _arena.Watchpost(defense.State.City) : _arena.Tower(defense.State.City, defense.State.Slot);
     private int DefenseRange(DefenseActor defense) => defense.Identity.Kind == CombatActorKind.Defender ? _configuration.Arena.DefenderRange
-        : defense.State.Type is Building.CatapultTower or Building.BombardTower ? _configuration.Arena.CatapultRange : _configuration.Arena.ArrowRange;
+        : defense.State.Type is Building.CatapultTower or Building.BombardTower ? _configuration.Arena.CatapultRange : _configuration.Arena.ArrowRange + RunCatalog.Amount(_owners.GetValueOrDefault(defense.State.City)?.Run, "T04");
+    private DefenseProfile RunDefense(Building type, int level, RunState run)
+    {
+        TowerDefinition tower = RunEffects.Tower(_configuration.Towers.Single(t => t.Type == type && t.Level == level), run);
+        return new(tower.Damage, tower.WindupTicks, tower.CadenceTicks - tower.WindupTicks);
+    }
     private static void Accumulate(SortedDictionary<int, int> damage, int id, int amount) => damage[id] = checked(damage.GetValueOrDefault(id) + amount);
-    private void ResolveDefense(City city, DefenseActor defense, SortedDictionary<int, int> damage)
+    private void ResolveDefense(City city, DefenseActor defense, SortedDictionary<int, int> damage, List<(int Victim, int Attacker, int Damage)> credits)
     {
         TowerState tower = defense.State;
         if (!tower.PendingImpact || _tick < tower.ImpactTick) return;
         CombatSquad? target = _squads.GetValueOrDefault(tower.TargetId);
         bool valid = target is { Alive: true, Faction: Faction.Skeletons } && Board.Distance(DefenseCell(defense), target.Location.Position.Cell) <= DefenseRange(defense);
         CombatUnit[] victims = valid ? Members(target!) : [];
-        int y = tower.Type is Building.CatapultTower or Building.BombardTower ? HealthPoints.FromWhole(_configuration.Arena.CatapultSecondaryDamage) : 0;
+        int y = tower.Type is Building.CatapultTower or Building.BombardTower ? RunEffects.Scale(HealthPoints.FromWhole(_configuration.Arena.CatapultSecondaryDamage), RunCatalog.Amount(city.Run, "T03")) : 0;
         StrikeContribution[] strikes = SquadDamage.Contributions([new(defense.Identity.KeyId, new(defense.Profile.Damage, y))], victims.Select(m => m.Id), Key(defense.Identity.KeyId, city.Id, tower.AttackSequence, 0, CombatPurpose.Splash, defense.Identity.Kind));
-        foreach (MemberDamage hit in SquadDamage.Accumulate(strikes)) Accumulate(damage, hit.MemberId, Unit(hit.MemberId).Capabilities.Reduce(hit.Damage));
+        foreach (MemberDamage hit in SquadDamage.Accumulate(strikes))
+        {
+            int amount = Unit(hit.MemberId).Capabilities.Reduce(hit.Damage); Accumulate(damage, hit.MemberId, amount);
+            credits.Add((hit.MemberId, int.MaxValue - city.Id * 32 - (defense.Identity.Kind == CombatActorKind.Defender ? 0 : tower.Slot + 1), amount));
+        }
         EmitTower(CombatEventType.Impact, tower, victims.FirstOrDefault(m => strikes.Any(s => s.PrimaryMemberId == m.Id)), defense.Profile.Damage, valid,
             strikes.SelectMany(s => s.Damage).Where(d => d.Damage > 0).Select(d => d.MemberId).Distinct().ToArray());
         defense.Commit(city, tower with { PendingImpact = false });
     }
     public void StartActions(IEnumerable<City> cities)
     {
-        City[] owners = cities.OrderBy(c => c.Id).ToArray(); CombatSquad[] alive = _squads.Values.Where(s => s.Alive && s.Location.FrozenTick is null).ToArray();
+        City[] owners = cities.OrderBy(c => c.Id).ToArray();
+        foreach (City city in owners) _owners[city.Id] = city;
+        CombatSquad[] alive = _squads.Values.Where(s => s.Alive && s.Location.FrozenTick is null).ToArray();
         var moves = new List<SquadMoveRequest>(); var occupied = alive.ToDictionary(s => s.Location.Position.Cell);
         var pending = alive.Select(s => s.Action).OfType<CombatAction.Moving>().Select(m => m.Destination.Cell).ToHashSet();
         foreach (CombatSquad squad in alive.Where(s => s.Action is CombatAction.Waiting && _tick >= s.Action.ReadyTick))
@@ -559,6 +607,8 @@ internal sealed partial class CombatSimulation : IDisposable
     private void StartAttack(CombatSquad squad, CombatTarget target)
     {
         CombatUnit[] members = Members(squad);
+        if (_owners.TryGetValue(squad.Owner, out City? owner) && !owner.Run.FirstAttackSquads.Contains(squad.Id))
+            owner.Run = owner.Run with { FirstAttackSquads = owner.Run.FirstAttackSquads.Append(squad.Id).Order().ToArray(), WarhornSquads = owner.Run.WarhornSquads.Append(squad.Id).Order().ToArray() };
         int windup = StatusPolicy.Duration(members.Max(m => m.Profile.WindupTicks), Chill(squad));
         int recovery = StatusPolicy.Duration(members.Max(m => m.Profile.CadenceTicks - m.Profile.WindupTicks), Chill(squad));
         int cell = target.Kind == CombatTargetKind.Unit ? _squads[target.Id].Location.Position.Cell

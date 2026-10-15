@@ -94,10 +94,12 @@ internal static class CampaignStrategy
         }
         return null;
     }
+    internal static string RewardChoice(RunState run) => run.Offers.OrderBy(id => RunCatalog.Card(id).Multiplied || id is "F04" or "F05" ? 2 : id.StartsWith('E') ? 1 : 0).ThenBy(id => id, StringComparer.Ordinal).First();
     public static EconomyAction? Next(MatchSnapshot state, int player, string family = "frontline", int maximumHomes = 6, int maximumTier = 5, bool hallUpgrades = true)
     {
         if (maximumHomes is < 2 or > 6 || maximumTier is < 1 or > 5) throw new ArgumentOutOfRangeException(nameof(maximumHomes));
         CityState city = state.Players.Single(p => p.Id == player);
+        if (state.Phase == Phase.RewardDraft && !city.Eliminated && city.Connected && !state.Paused && city.Run.Choice is null) return new("reward:" + RewardChoice(city.Run));
         if (city.Eliminated || !city.Connected || city.Ready || state.Phase is not (Phase.Building or Phase.Preparation) || state.Paused) return null;
         if (family == "support")
         {

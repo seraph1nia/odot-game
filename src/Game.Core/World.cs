@@ -5,7 +5,7 @@ namespace Game.Core;
 
 // Serialized enum meanings remain stable. Building covers preparations 1/2;
 // Preparation is the final preparation 3 (formerly phase 4).
-public enum Phase { Lobby, Building, Preparation, Combat, Victory, Defeat }
+public enum Phase { Lobby, Building, Preparation, Combat, Victory, Defeat, RewardDraft }
 public enum Building { Empty, Mine, Farm, Barracks, Lumbermill, ArcheryRange, Arcanum, ResearchTower = 7, ArrowTower, CatapultTower, Stonecutter, MetalMine, Weaver, Market, TownHall, RapidArrowTower, BombardTower }
 public sealed record Rules
 {
@@ -16,6 +16,8 @@ public sealed record Rules
     // Enemy-only strength: counts, equipment levels and player profiles stay intact.
     [System.Text.Json.Serialization.JsonRequired]
     public int EnemyPowerPercent { get; init; } = 75;
+    [System.Text.Json.Serialization.JsonRequired]
+    public bool SeededEncounterOrder { get; init; } = true;
     public int CityHealth { get; init; } = 100;
     public int StartingGold { get; init; } = 12;
     public int BaseGold { get; init; } = 2;
@@ -105,6 +107,8 @@ public sealed record UnitState(int Id, int Health, int Cooldown = 0, int Origin 
 }
 public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int Food, int Health, SlotState[] Slots, UnitState[] Soldiers, int DefenderCooldown)
 {
+    [System.Text.Json.Serialization.JsonRequired]
+    public RunState Run { get; init; } = new();
     public TowerState? Defender { get; init; }
     public int Wood { get; init; }
     public int Stone { get; init; }
@@ -112,6 +116,7 @@ public sealed record CityState(int Id, bool Connected, bool Ready, int Gold, int
     public int Cloth { get; init; }
     public ResourceCost Resources => new(Gold, Wood, Food, Stone, Metal, Cloth);
     public ResourceCost? ProductionIncome { get; init; }
+    public int MarketSaleBonus { get; init; }
     public ResearchState Research { get; init; }
     public TechnologyEligibility[] Technologies { get; init; } = [];
     public RecruitmentQuote[] RecruitmentQuotes { get; init; } = [];
@@ -128,7 +133,7 @@ public sealed record MatchSnapshot(string MatchId, long Revision, long Tick, Pha
     public ArenaState? Arena { get; init; }
     public SquadState[] Squads { get; init; } = [];
     public StructureState[] Structures { get; init; } = [];
-    public const int CurrentBattleFlowVersion = 2;
+    public const int CurrentBattleFlowVersion = 3;
     // Missing on historical snapshots => 0; never silently read a fourth
     // preparation as one of the new three phases.
     public int BattleFlowVersion { get; init; }
@@ -199,6 +204,8 @@ public sealed class City
         Defender = new(id, -1, Building.Empty, 1);
     }
     public int Id { get; }
+    public RunState Run { get; internal set; } = new();
+    internal int CurrentWave { get; set; } = 1;
     public bool Connected { get; set; } = true;
     public bool Ready { get; set; }
     public int Gold { get; set; }
@@ -237,11 +244,32 @@ public sealed class City
     public IReadOnlyList<UnitState> Soldiers => _combat.Soldiers(Id);
     public int DefenderCooldown { get; set; }
     public TowerState Defender { get; set; }
+    internal bool CanApplyRun(RunState run)
+    {
+        try
+        {
+            _ = _economy.Production(Slots, Research, run);
+            _ = _economy.RecruitmentQuotes(_configuration, Research, run);
+            int first = RunCatalog.Amount(run, "R01"), primary = first + RunCatalog.Amount(run, "M06");
+            void Safe(HexCombatProfile profile) { _ = RunEffects.Scale(profile.Damage, primary); _ = RunEffects.Scale(profile.SecondaryDamage, first); }
+            foreach (UnitState soldier in Soldiers) Safe(_configuration.Unit(soldier.Type, soldier.Rank, soldier.IsBoss, soldier.Level,
+                RunEffects.Capabilities(_economy.Research.Capabilities(Research, soldier.Type), run, soldier.Type)));
+            // Unlock-dependent cards also promise safe future recruitment, not
+            // just today's roster. Maximum recruit tier/service rank bounds it.
+            foreach (UnitType type in Enum.GetValues<UnitType>()) Safe(_configuration.Unit(type, rank: 2, level: 5,
+                capabilities: RunEffects.Capabilities(_economy.Research.Capabilities(Research, type), run, type)));
+            foreach (TowerDefinition tower in _configuration.Towers) _ = RunEffects.Tower(tower, run);
+            _ = RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), run);
+            return true;
+        }
+        catch (OverflowException) { return false; }
+        catch (ArgumentException) { return false; }
+    }
     public CityState Snapshot() => Snapshot(_combat.Soldiers(Id));
     internal CityState Snapshot(UnitState[] soldiers, bool terminal = false, bool settleProduction = false)
     {
         var state = new CityState(Id, Connected, Ready, Gold, Food, Health, Slots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray(), soldiers, DefenderCooldown)
-        { Army = _army.Snapshot(soldiers, PurchasedHomes, Slots, ArmyPlots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray()), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
+        { Run = Run.Detach(), MarketSaleBonus = RunEffects.MerchantBonus(Run, CurrentWave), Army = _army.Snapshot(soldiers, PurchasedHomes, Slots, ArmyPlots.Select(s => s with { UpgradeQuote = _economy.TryUpgrade(s.Type, s.Level, out ResourceCost quote) ? quote : null }).ToArray()), ProductionIncome = terminal || Eliminated ? default(ResourceCost) : _economy.ProjectedProduction(Slots, Research, Run), Wood = Wood, Stone = Stone, Metal = Metal, Cloth = Cloth, Research = Research, Technologies = _economy.Research.Definitions().Select(n => _economy.Research.Eligibility(Research, n.Id)).ToArray(), RecruitmentQuotes = _economy.RecruitmentQuotes(_configuration, Research, Run), LastReward = LastReward, LastUpkeep = LastUpkeep is null ? null : LastUpkeep with { Participating = LastUpkeep.Participating.ToArray(), Unfed = LastUpkeep.Unfed.ToArray(), Funded = LastUpkeep.Funded.ToArray() }, Defender = Defender, Towers = Towers.Values.OrderBy(t => t.Slot).ToArray() };
         return state with { FoodForecast = terminal ? null : BattleFood.Project(state, settleProduction) };
     }
 }
@@ -328,7 +356,7 @@ public sealed class Match : IDisposable
     {
         if (!Players.TryGetValue(id, out City? city) || city.Connected == connected) return;
         city.Connected = connected; city.Ready = false; Revision++;
-        ResolveReady();
+        ResolveDraft(); ResolveReady();
     }
     public MatchSnapshot Snapshot()
     {
@@ -343,7 +371,7 @@ public sealed class Match : IDisposable
             Structures = _combat.StructureSnapshots(Players.Values),
             BattleFlowVersion = MatchSnapshot.CurrentBattleFlowVersion,
             CombatSpeed = CombatSpeed,
-            NextWave = Phase is Phase.Building or Phase.Preparation ? _nextWave.ToArray() : [],
+            NextWave = Phase is Phase.Building or Phase.Preparation or Phase.RewardDraft ? _nextWave.ToArray() : [],
             TotalWaves = Campaign.TotalWaves,
             LastRewardedWave = LastRewardedWave,
             WaveCatalog = Campaign.Definition().Waves,
@@ -376,6 +404,7 @@ public sealed class Match : IDisposable
         if (command.MatchId != Id || command.ExpectedPhase != Phase || command.TurnSerial != TurnSerial) return Reject("Stale match, phase or turn.");
         if (command.City != 0 && command.City != sender) return Reject("You do not own this city.");
         if (Phase is Phase.Victory or Phase.Defeat) return Reject("Match finished. Restart the server for a new match.");
+        if (string.IsNullOrWhiteSpace(command.Action)) return Reject("Malformed command action.");
         if (!Enum.IsDefined(command.Payment) || command.Payment != ConstructionPayment.Standard && command.Action != "build") return Reject("Invalid construction payment choice.");
         if (CombatSpeedRates.TryAction(command.Action, out CombatSpeed speed))
         {
@@ -387,14 +416,44 @@ public sealed class Match : IDisposable
         {
             if (Phase == Phase.Lobby) return Reject("Start the match first.");
             bool paused = command.Action == "pause";
-            if (Paused != paused) { Paused = paused; Revision++; if (!paused) ResolveReady(); }
+            if (Paused != paused) { Paused = paused; Revision++; if (!paused) { ResolveDraft(); ResolveReady(); } }
             return new(command.Sequence, true, paused ? $"Player {sender} paused the match." : $"Player {sender} resumed the match.");
         }
         if (Paused) return Reject("Match paused.");
+        if (command.Action.StartsWith("doctrine:", StringComparison.Ordinal))
+        {
+            string id = command.Action[9..];
+            if (Phase != Phase.Lobby || !RunCatalog.Doctrines.Any(d => d.Id == id)) return Reject("Doctrine is invalid or locked after start.");
+            city.Run = city.Run with { Doctrine = id }; Revision++;
+            return new(command.Sequence, true, "Doctrine selected.");
+        }
+        if (command.Action.StartsWith("reward:", StringComparison.Ordinal))
+        {
+            string id = command.Action[7..];
+            if (Phase != Phase.RewardDraft || city.Eliminated || city.Run.Choice is not null || !city.Run.Offers.Contains(id)
+                || !RunCatalog.Cards.Any(c => c.Id == id) || !RunEffects.Eligible(city, RunCatalog.Card(id), city.Run.DraftWave, HealthPoints.FromWhole(Rules.CityHealth))) return Reject("Invalid, unavailable or already selected reward.");
+            ApplyReward(city, id); Revision++; ResolveDraft();
+            return new(command.Sequence, true, "Reward selected.");
+        }
         if (command.Action == "start")
         {
             if (Phase != Phase.Lobby) return Reject("Match already started.");
             foreach (int absent in Players.Values.Where(p => !p.Connected).Select(p => p.Id).ToArray()) Players.Remove(absent);
+            var allocations = new Dictionary<int, ResourceCost>();
+            foreach (City player in Players.Values.Where(p => !p.Run.Started))
+            {
+                DoctrineDefinition d = RunCatalog.Doctrine(player.Run.Doctrine);
+                if (!player.Resources.TryAdd(d.StartingBonus, out ResourceCost allocated) || !allocated.TryPay(d.StartingPenalty, out allocated)) return Reject("Starting doctrine resources exceed configured bounds.");
+                if (!player.CanApplyRun(player.Run with { Started = true })) return Reject("Starting doctrine effects exceed configured bounds.");
+                try { _ = player.Research.Income(points: d.Research); } catch (OverflowException) { return Reject("Starting doctrine research exceeds configured bounds."); }
+                allocations.Add(player.Id, allocated);
+            }
+            foreach ((int id, ResourceCost allocated) in allocations)
+            {
+                City player = Players[id]; player.Resources = allocated;
+                player.Research = player.Research.Income(points: RunCatalog.Doctrine(player.Run.Doctrine).Research);
+                player.Run = player.Run with { Started = true }; _combat.Research(player.Id, player.Research, Economy.Research, player.Run);
+            }
             _roster = Players.Keys.ToArray(); _combat.ConfigureArena(_roster); Phase = Phase.Building; PlanWave(); Revision++;
             return new(command.Sequence, true, "Match started.");
         }
@@ -431,7 +490,7 @@ public sealed class Match : IDisposable
         {
             foreach (City city in Players.Values.Where(p => !p.Eliminated))
             {
-                ResourceCost income = Economy.Production(city.Slots, city.Research);
+                ResourceCost income = Economy.Production(city.Slots, city.Research, city.Run);
                 if (!city.Resources.TryAdd(income, out ResourceCost balance)) return false;
                 balances.Add(city.Id, balance);
                 research.Add(city.Id, city.Research.Income(progress: Economy.ResearchProduction(city.Slots)));
@@ -445,9 +504,12 @@ public sealed class Match : IDisposable
             foreach (City city in Players.Values.Where(c => !c.Eliminated))
             {
                 ResourceCost balance = balances[city.Id];
-                BattleFoodForecast forecast = _combat.FoodForecast(city.Id, balance.Food, Economy);
-                try { _ = research[city.Id].Income(points: 1); } catch (OverflowException) { return false; }
-                if (!balance.TryPay(new(Food: forecast.Paid), out ResourceCost afterFood) || !afterFood.TryAdd(reward, out _)) return false;
+                BattleFoodForecast forecast = _combat.FoodForecast(city.Id, balance.Food, Economy, city.Run);
+                int points = 1 + (city.Run.Stacks("R05") > 0 && (city.Run.CodexClears + 1) % RunCatalog.Card("R05").Amount == 0 ? 1 : 0);
+                int harvestBound = city.Run.Stacks("R03") > 0 ? Math.Min(5, Campaign.WaveRule(Wave).Entries.Sum(e => e.Count) * Players.Count / 3) : 0;
+                try { _ = research[city.Id].Income(points: points); } catch (OverflowException) { return false; }
+                if (!reward.TryAdd(new(Metal: harvestBound), out ResourceCost maximumReward)
+                    || !balance.TryPay(new(Food: forecast.Paid), out ResourceCost afterFood) || !afterFood.TryAdd(maximumReward, out _)) return false;
             }
         }
         foreach (City city in Players.Values) city.Ready = false;
@@ -464,7 +526,7 @@ public sealed class Match : IDisposable
     {
         Phase = Phase.Combat; WaveStartedTick = Tick; _engagements.Clear();
         City[] living = Players.Values.Where(p => !p.Eliminated).ToArray();
-        var food = living.ToDictionary(c => c.Id, c => _combat.FoodForecast(c.Id, c.Food, Economy));
+        var food = living.ToDictionary(c => c.Id, c => _combat.FoodForecast(c.Id, c.Food, Economy, c.Run));
         foreach (City city in living)
         {
             BattleFoodForecast forecast = food[city.Id];
@@ -484,6 +546,7 @@ public sealed class Match : IDisposable
     }
     private void PlanWave()
     {
+        foreach (City city in Players.Values) city.CurrentWave = Wave;
         var planned = new List<UnitState>();
         int[] living = _roster.Where(id => !Players[id].Eliminated).ToArray();
         int assigned = 0;
@@ -504,10 +567,10 @@ public sealed class Match : IDisposable
             });
         }
         foreach (int city in living)
-            foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
+            foreach (SpawnEntry entry in EncounterEntries(city))
                 for (int n = 0; n < entry.Count; n++) Add(city, city, entry);
         foreach (int dead in _roster.Where(id => Players[id].Eliminated))
-            foreach (SpawnEntry entry in Campaign.WaveRule(Wave).Entries)
+            foreach (SpawnEntry entry in EncounterEntries(dead))
                 for (int n = 0; n < entry.Count; n++) Add(dead, living[assigned++ % living.Length], entry);
         _nextWave = planned.ToArray();
     }
@@ -521,7 +584,7 @@ public sealed class Match : IDisposable
             _combat.Cleanup(Tick);
             // Defeated actors keep their frozen battlefield pose after the last
             // cosmetic body expires. Preparation and victory retain roster restoration.
-            if (!_combat.HasDeaths && Phase is Phase.Building or Phase.Preparation or Phase.Victory) RestoreHomes();
+            if (!_combat.HasDeaths && Phase is Phase.Building or Phase.Preparation or Phase.RewardDraft or Phase.Victory) RestoreHomes();
             ResolveReady(); return;
         }
         _combat.Advance(Tick, Players.Values);
@@ -552,14 +615,22 @@ public sealed class Match : IDisposable
         if (LastRewardedWave < Wave)
         {
             WaveDefinition completed = Campaign.WaveRule(Wave);
-            var awards = new Dictionary<int, ResourceCost>();
+            var awards = new Dictionary<int, (ResourceCost Balance, ResourceCost Gain, ResearchState Research, RunState Run, int Points)>();
             foreach (City city in survivors)
             {
-                if (!city.Resources.TryAdd(completed.Reward, out ResourceCost balance)) throw new InvalidOperationException("Previously validated clear reward exceeds resource bounds.");
-                _ = city.Research.Income(points: 1); awards.Add(city.Id, balance);
+                int points = 1; RunState run = city.Run;
+                if (run.Stacks("R05") > 0)
+                { run = run with { CodexClears = checked(run.CodexClears + 1) }; if (run.CodexClears % RunCatalog.Card("R05").Amount == 0) points++; }
+                int metal = run.Stacks("R03") > 0 ? Math.Min(5, run.EnemyKills / RunCatalog.Card("R03").Amount) : 0;
+                if (!completed.Reward.TryAdd(new(Metal: metal), out ResourceCost gain) || !city.Resources.TryAdd(gain, out ResourceCost balance))
+                    throw new InvalidOperationException("Previously validated clear reward exceeds resource bounds.");
+                awards.Add(city.Id, (balance, gain, city.Research.Income(points: points), run, points));
             }
             foreach (City city in survivors)
-            { city.Resources = awards[city.Id]; city.Research = city.Research.Income(points: 1); city.LastReward = new(Wave, completed.IsBoss, completed.Reward) { Research = 1 }; }
+            {
+                var award = awards[city.Id]; city.Resources = award.Balance; city.Run = award.Run; city.Research = award.Research;
+                city.LastReward = new(Wave, completed.IsBoss, award.Gain) { Research = award.Points };
+            }
             // Battle service belongs to each living paid participant, including
             // fallen-owner survivors of this wave. Equipment tier stays fixed.
             _combat.AwardExperience(Players.Values.Where(c => c.LastUpkeep?.Wave == Wave).SelectMany(c => c.LastUpkeep!.Participating));
@@ -568,7 +639,43 @@ public sealed class Match : IDisposable
         }
         if (!_combat.HasDeaths) RestoreHomes();
         if (Wave == Campaign.TotalWaves) Phase = Phase.Victory;
-        else { Wave++; Turn = 1; TurnSerial++; Phase = Phase.Building; PlanWave(); }
+        else
+        {
+            int cleared = Wave; Wave++; Turn = 1; TurnSerial++; Phase = Phase.RewardDraft; PlanWave();
+            foreach (City survivor in survivors)
+            {
+                ulong seed = RunEffects.Seed(CombatSeed, RunEffects.RewardStream, cleared, survivor.Id);
+                survivor.Run = survivor.Run with { DraftWave = cleared, OfferSeed = seed, Offers = RunEffects.Offers(survivor, cleared, seed, HealthPoints.FromWhole(Rules.CityHealth)), Choice = null };
+            }
+            ResolveDraft();
+        }
+    }
+    // Roster/levels/counts and bosses are untouched: only bounded canonical
+    // entry ordering varies, changing existing formation placement at equal budget.
+    private SpawnEntry[] EncounterEntries(int origin) => !Rules.SeededEncounterOrder ? Campaign.WaveRule(Wave).Entries.ToArray() : Campaign.WaveRule(Wave).Entries
+        .Select((entry, index) => (entry, index, rank: RunEffects.Seed(CombatSeed, RunEffects.EncounterStream, Wave, origin ^ (index << 8))))
+        .OrderBy(e => e.rank).ThenBy(e => e.index).Select(e => e.entry).ToArray();
+    private void ApplyReward(City city, string id)
+    {
+        RewardCard card = RunCatalog.Card(id);
+        if (!card.Resources.TryMultiply(card.Multiplied ? RunEffects.Multiplier(city.Run.DraftWave) : 1, out ResourceCost gain) || !city.Resources.TryAdd(gain, out ResourceCost balance)) throw new InvalidOperationException("Ineligible reward.");
+        city.Resources = balance;
+        if (id == "F05") city.Research = city.Research.Income(points: card.Amount);
+        if (id == "F04") { city.Health = checked((int)Math.Min(HealthPoints.FromWhole(Rules.CityHealth), (long)city.Health + HealthPoints.FromWhole(10))); _combat.FieldSurgeons(city.Id, card.Amount); }
+        city.Run = RunEffects.Acquire(city.Run, id);
+        _combat.Research(city.Id, city.Research, Economy.Research, city.Run); _combat.UpdateWatchpost(city);
+    }
+    private void ResolveDraft()
+    {
+        if (Paused || Phase != Phase.RewardDraft) return;
+        City[] survivors = Players.Values.Where(c => !c.Eliminated).ToArray();
+        if (survivors.Any(c => c.Connected && c.Run.Choice is null)) return;
+        foreach (City city in survivors.Where(c => c.Run.Choice is null))
+        {
+            string id = city.Run.Offers.First(c => RunEffects.Eligible(city, RunCatalog.Card(c), city.Run.DraftWave, HealthPoints.FromWhole(Rules.CityHealth)));
+            ApplyReward(city, id);
+        }
+        Phase = Phase.Building; Revision++;
     }
     private void UpdateEngagements(int[] healthProgress, CombatUnit[]? enemies = null)
     {

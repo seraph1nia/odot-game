@@ -14,6 +14,62 @@ One owner per topic, rather than competing copied policies:
 - [Historical receipts](verification-history.md): old measured runs, not current policy.
 - [Historical battle-flow reconstruction coverage](battle-flow-reconstruction-coverage.md): pre-squad paid/occupied witness mapping and local receipts; current replacements are in the audit.
 
+## Roguelite milestone 1 evidence (2026-10-15)
+
+Implementation scope and exact rules are in [roguelite](roguelite.md); the
+[ownership map](roguelite-plan.md) identifies the canonical seams. Protocol is
+now **16 / combat rules 7 / battle flow 3**. The native dialog is a production
+woodland `UiDialog`/Button consumer, not a verification-only screen. This receipt
+qualifies numerical, component and selected transport boundaries, **not rendered
+appearance, physical controller usability, GPU, real Steam or Windows acceptance**.
+
+| Check | Executed coverage | Evidence / result |
+| --- | --- | --- |
+| `dotnet format Odot.slnx --no-restore`; `dotnet build Odot.slnx --no-restore` | Changed C# formatted; entire solution, locked prepared dependencies | Zero warnings/errors |
+| prepared `DevRunner.dll test-fast` | All fast core + runner; excludes `Tier=Deep` | `logs/20261015-222823-2b653edd`: **795 core + 663 runner passed**; 2 existing Windows-native argument tests skipped on Linux; 66.54s |
+| `mise run test-engine --scenario receiving` | Real six-card doctrine and three-card reward Controls, normal intent/ack bridge, close neutrality, locked state; existing ledger/Worldtree/army/forecast consumers | `logs/20261015-222931-f7d5b759`: passed, 23.69s component / 28.23s total |
+| `mise run test-engine --scenario arena` | Existing shared arena rigs, buffered member/objective bars, Rally, physical bought towers and cleanup with Warden-adjusted Watchpost maximum | `logs/20261015-220200-08b29ae6`: passed, 6.78s component / 13.86s total |
+| `mise run test-network` | Default bounded real ENet `failure-cases`, `solo-session`, `playing-host-lifecycle`; extended existing lifecycle earns a clear, drafts, retries, resumes and disconnect-only fallback | `logs/20261015-215844-7787b258`: all three passed, 17.73s total |
+| `mise run test-network --scenario authority-resume-victory` | Selected deeper ENet paid typed recruitment/retry, combat pause/restart, reward-aware ordinary progression, point-funded Fire and owned Mage potency, exact active status resume | `logs/20261015-221945-b9276eb7`: passed, 38.99s scenario / 44.66s total; **not** a new full twenty-wave process qualification despite the historical selector name |
+| prepared `test-campaign --filter 'FullyQualifiedName~FrontlineCampaignTests\|FullyQualifiedName~SessionCampaignTests'` | Three ordinary twenty-wave solo seeds 0/1/123 plus serialized two-city authority including both bosses, nineteen drafts and terminal reward | `logs/20261015-220221-1565c68b`: 4 passed, 6.73s |
+| prepared `test-campaign --filter 'FullyQualifiedName~MixedCampaignTests\|FullyQualifiedName~TowersCampaignTests\|FullyQualifiedName~ResearchCampaignTests\|FullyQualifiedName~CooperativeCampaignTests'` | Mixed/tower/research solo and 2/3/4-player cooperative complete ordinary campaigns at seeds 0/1/123 | `logs/20261015-220245-6b33d0e6`: 18 passed, 80.22s; selected deep coverage, not the entire deep suite |
+
+The 57 focused Core cases cover catalog/caps and all six starting allocations,
+additive per-building production with actual Worldtree offshoots, profile/status
+stacking, quotes/upkeep, all multiplier/rarity boundaries, eight bounded 19-draft
+eligibility walks, all nineteen real Match draft transitions/sixty settlements,
+negative ownership/stale/paused/duplicate/null-action guards, bounded doctrine
+preview and atomic rejected-start allocation, zero-connected
+fallback, detached/malformed codec states, independent/reproducible seed streams,
+exact authored encounter budget and optional ordering disable. Controlled combat
+poses test one-action Warhorn, pre-impact Conduit/within-squad splash, actual-hit
+Ashen/Poison coexistence, lethal simultaneous and refreshed periodic potency
+credit after source death, Keep Roots at actual same-tick Watchpost destruction,
+noncompounding HP, living stored/reserve Surgeons, and all four tower variants'
+full cadence/range/damage. Immediate reward and Codex/Harvest clear effects include
+bounded preflight and actual receipt assertions. Controlled-result cases are
+explicitly **not earned balance evidence**; the 22 complete paid campaigns and
+real transport journeys supply the narrower earned evidence above.
+
+Preserved diagnostic failures under ignored `logs/roguelite-*.txt` distinguish
+stale pre-doctrine stocks/phase assertions from product boundaries. The receiving
+first-open empty-card binding was fixed. Inherited generated Godot import data
+was archived under `logs/roguelite-inherited-import-cache/` and rebuilt, without
+changing tracked assets. The selected research process driver originally used a
+three-building shortcut inconsistent with its cheap paid-opening fixture; it now
+shares the ordinary SupportOpening and reserves one normal settlement's stocks
+for its typed purchase, without extra income/windows. New passive Burn initially
+satisfied the old research witness too early; admission now requires purchased
+Fire plus owned Mage potency, with a focused driver regression. No deadlines,
+retry counts, production count, enemy tuning, locks or graphical CI gates changed.
+
+Unexecuted for this milestone: unfiltered deep qualification, the other retained
+specialist network scenarios, package/export/installed acceptance, graphical
+screenshots/controller journeys, native GPU, Windows/macOS and multi-account
+Steam invitations. Updated specialist progression drivers are not passes merely
+because they compile. Existing historical evidence below remains scoped to its
+original source, rules and inputs.
+
 ## CI coverage
 
 `Verify and build` retains the existing `source`, `linux-package`,

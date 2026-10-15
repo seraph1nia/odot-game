@@ -54,7 +54,7 @@ public sealed class SnapshotReceivingLifecycleTests
                 Decision = match.Combat.Inspect(id).Decision with { ObjectiveId = enemySquad }
             });
         Receive(match);
-        match.Step();
+        match.Step(); RewardFixture.Resolve(match);
         MatchSnapshot cleared = Receive(match);
         Assert.Equal(Phase.Building, cleared.Phase);
         return cleared;
@@ -343,7 +343,7 @@ public sealed class SnapshotReceivingLifecycleTests
                 Action = new CombatAction.Windup(1, 1, 25, new(new(CombatTargetKind.Unit, enemySquad), 0, 1)),
                 Decision = match.Combat.Inspect(member.Id).Decision with { ObjectiveId = enemySquad }
             });
-        match.Step(); Assert.Equal(Phase.Building, match.Phase); Assert.True(match.Combat.HasDeaths);
+        match.Step(); RewardFixture.Resolve(match); Assert.Equal(Phase.Building, match.Phase); Assert.True(match.Combat.HasDeaths);
         Receive(match);
         CommandResult retired = match.Apply(1, Command.FromSnapshot(match.Snapshot(), 2, "retire", 1) with { UnitId = participant });
         Assert.True(retired.Accepted, retired.Message);

@@ -105,9 +105,9 @@ recovery eligibility. City command IDs remain 0–8; army IDs are 9–14, displa
 as Army 1–6. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
 and their optional catalog benefits, and the distinct rapid-arrow/bombard tower
 profiles, synchronized combat speed and the authoritative next-wave manifest.
-Integrated protocol **15** rejects older peers before sending a snapshot,
+Integrated protocol **16** rejects older peers before sending a snapshot,
 including both incompatible predecessor protocol14 schemas. Steam lobby matching
-uses the same version boundary. Combat rules7 and battle-flow version2 are also
+uses the same version boundary. Combat rules7 and battle-flow version3 are also
 validated explicitly; matching a protocol integer alone cannot validate actors,
 profiles, geometry or the full authoritative configuration fingerprint.
 

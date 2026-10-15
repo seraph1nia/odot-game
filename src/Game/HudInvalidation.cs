@@ -22,10 +22,10 @@ internal sealed class HudInvalidation
         object?[] Common() => [state?.MatchId, state?.Phase, state?.Paused];
         result[HudSection.Status] = [.. Common(), connected, status, feedback, state?.DefeatReason, state?.TotalWaves];
         var roster = new List<object?> { state?.MatchId, state?.Phase, focus, player, host };
-        Add(roster, state?.Players.Select(p => (object)(p.Id, p.Connected, p.Ready, p.Eliminated)));
+        Add(roster, state?.Players.Select(p => (object)(p.Id, p.Connected, p.Ready, p.Eliminated, p.Run.Doctrine)));
         result[HudSection.Roster] = roster.ToArray();
         List<object?> economy = [.. Common(), focus, state?.Wave, state?.Turn, state?.TotalWaves, state?.DefeatReason, connected, city?.Eliminated, city?.ProductionIncome,
-            state?.WaveCatalog.FirstOrDefault(w => w.Number == state.Wave)?.IsBoss, city?.Resources, city?.LastReward];
+            state?.WaveCatalog.FirstOrDefault(w => w.Number == state.Wave)?.IsBoss, city?.Resources, city?.LastReward, city?.Run.Doctrine, string.Join('|', city?.Run.Cards.Select(c => c.Id + ":" + c.Count) ?? [])];
         Add(economy, city?.Slots.Select(s => (object)(s.Type, s.Level, s.Purchased)));
         if (city?.FoodForecast is { } forecast)
         {
@@ -48,7 +48,8 @@ internal sealed class HudInvalidation
         }
         if (city?.Soldiers.Any(u => u.Statuses.Active) == true || enemies.Any(u => u.Statuses.Active)) economy.Add(state?.Tick);
         result[HudSection.Economy] = economy.ToArray();
-        List<object?> context = [.. Common(), connected, focus, slot, group, player, city?.Resources, city?.Research, me?.Resources, me?.Ready, me?.Eliminated];
+        List<object?> context = [.. Common(), connected, focus, slot, group, player, city?.Resources, city?.Research, me?.Resources, me?.Ready, me?.Eliminated, city?.Run.Doctrine, city?.MarketSaleBonus,
+            string.Join('|', city?.Run.Cards.Select(c => c.Id + ":" + c.Count) ?? [])];
         context.Add(city?.Army?.PurchasedHomes); Add(context, city?.Army?.HomePrices.Cast<object>());
         Add(context, city?.Army?.Homes.Cast<object>());
         Add(context, city?.Soldiers.Select(u => (object)(u.Id, u.SquadId, u.Type, u.IsBoss, u.Assignment)));

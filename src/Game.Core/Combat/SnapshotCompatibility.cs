@@ -169,9 +169,10 @@ public static class SnapshotCompatibility
     }
     private static void RequireCity(CityState city, Phase phase, CombatConfiguration combat, EconomyConfiguration economy, ArmyConfiguration army)
     {
+        RequireRun(city.Run, phase);
         economy.Research.ValidateState(city.Research);
         if (!city.Resources.IsValid || city.Soldiers.Any(u => !Enum.IsDefined(u.Type))
-            || city.RecruitmentQuotes is null || !city.RecruitmentQuotes.SequenceEqual(economy.RecruitmentQuotes(combat, city.Research))
+            || city.RecruitmentQuotes is null || !city.RecruitmentQuotes.SequenceEqual(economy.RecruitmentQuotes(combat, city.Research, city.Run))
             || city.Technologies is null || !city.Technologies.SequenceEqual(economy.Research.Definitions().Select(n => economy.Research.Eligibility(city.Research, n.Id))))
             throw new ArgumentException("Malformed city recruitment or research projection.", nameof(city));
         BuildingDefinition[] buildings = economy.Buildings();
@@ -191,7 +192,7 @@ public static class SnapshotCompatibility
         TownHallState[] halls = army.Snapshot(city.Soldiers, city.Army!.PurchasedHomes, city.Slots).Halls;
         if (!city.Army.Halls.SequenceEqual(halls))
             throw new ArgumentException("Malformed Town Hall projection.", nameof(city));
-        ResourceCost? production = phase is Phase.Victory or Phase.Defeat || city.Eliminated ? default(ResourceCost) : economy.ProjectedProduction(city.Slots, city.Research);
+        ResourceCost? production = phase is Phase.Victory or Phase.Defeat || city.Eliminated ? default(ResourceCost) : economy.ProjectedProduction(city.Slots, city.Research, city.Run);
         if (city.ProductionIncome != production)
             throw new ArgumentException("Malformed production projection.", nameof(city));
         BattleFoodForecast? expected = phase is Phase.Victory or Phase.Defeat ? null : BattleFood.Project(city, phase == Phase.Preparation);
@@ -206,6 +207,23 @@ public static class SnapshotCompatibility
             || receipt.Unfed.Distinct().Count() != receipt.Unfed.Length || receipt.Participating.Any(id => !receipt.Funded.Contains(id))
             || receipt.Participating.Distinct().Count() != receipt.Participating.Length))
             throw new ArgumentException("Malformed upkeep receipt projection.", nameof(city));
+    }
+    private static void RequireRun(RunState run, Phase phase)
+    {
+        if (run is null || !RunCatalog.Doctrines.Any(d => d.Id == run.Doctrine) || run.Cards is null || run.Offers is null
+            || run.FirstAttackSquads is null || run.WarhornSquads is null || run.DraftWave is < 0 or > 19
+            || run.CodexClears is < 0 or > 20 || run.EnemyKills < 0 || run.MerchantWave is < 0 or > 20
+            || run.Started == (phase == Phase.Lobby) || !run.Started && (run.Cards.Length > 0 || run.DraftWave != 0 || run.Choice is not null)
+            || run.FirstAttackSquads.Any(s => s <= 0) || run.FirstAttackSquads.Distinct().Count() != run.FirstAttackSquads.Length
+            || run.WarhornSquads.Distinct().Count() != run.WarhornSquads.Length
+            || run.Cards.Any(c => c is null || !RunCatalog.Cards.Any(d => d.Id == c.Id && c.Count > 0 && c.Count <= d.MaxStacks))
+            || run.Cards.Select(c => c.Id).Distinct().Count() != run.Cards.Length
+            || run.Cards.Count(c => RunCatalog.Card(c.Id).Rarity == CardRarity.Relic) > 2
+            || run.Offers.Length != (run.DraftWave == 0 ? 0 : 3) || run.Offers.Distinct().Count() != run.Offers.Length
+            || run.Offers.Any(id => !RunCatalog.Cards.Any(c => c.Id == id)) || run.Choice is not null && !run.Offers.Contains(run.Choice)
+            || run.Choice is not null && run.Stacks(run.Choice) == 0
+            || run.DraftWave < 7 && run.Offers.Any(id => RunCatalog.Card(id).Rarity == CardRarity.Relic)
+            || run.WarhornSquads.Any(s => !run.FirstAttackSquads.Contains(s))) throw new ArgumentException("Malformed authoritative run state.");
     }
     private static void RequireProjection(UnitState member, SharedArena arena, CombatConfiguration configuration)
     {

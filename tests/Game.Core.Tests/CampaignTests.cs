@@ -12,6 +12,7 @@ public sealed class CampaignTests
     }
     private static void Begin(Match match)
     {
+        RewardFixture.Resolve(match);
         while (match.Phase is Phase.Building or Phase.Preparation)
         {
             foreach (City city in match.Players.Values.Where(c => c.Connected && !c.Eliminated && !c.Ready))
@@ -81,7 +82,7 @@ public sealed class CampaignTests
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
-    public void DefaultAllocationIsPerOriginalRosterWithStableAuthoredOrder(int players)
+    public void DefaultAllocationIsPerOriginalRosterWithStableSeededManifest(int players)
     {
         using Match match = Start(players); Begin(match);
         Assert.Equal(players * 4, match.Enemies.Count);
@@ -92,9 +93,10 @@ public sealed class CampaignTests
         }
         Clear(match); Begin(match);
         foreach (City city in match.Players.Values)
-            Assert.Collection(match.Enemies.Where(e => e.Origin == city.Id),
-                e => Assert.Equal(UnitType.Swordsman, e.Type), e => Assert.Equal(UnitType.Swordsman, e.Type),
-                e => Assert.Equal(UnitType.Swordsman, e.Type), e => Assert.Equal(UnitType.Berserker, e.Type));
+        {
+            Assert.Equal(3, match.Enemies.Count(e => e.Origin == city.Id && e.Type == UnitType.Swordsman));
+            Assert.Single(match.Enemies, e => e.Origin == city.Id && e.Type == UnitType.Berserker);
+        }
     }
 
     [Fact]
@@ -149,15 +151,24 @@ public sealed class CampaignTests
     {
         // Deliberate enemy removal isolates transitions; it is not campaign balance evidence.
         using Match match = Start();
+        ResourceCost cardResources = default;
         for (int wave = 1; wave <= 20; wave++)
         {
             Begin(match); Assert.Equal(wave, match.Wave); Assert.Equal(wave, match.Players[1].LastUpkeep!.Wave); Assert.Equal(0, match.Players[1].LastUpkeep!.Paid);
             if (wave is 10 or 20) Assert.True(Assert.Single(match.Enemies).IsBoss);
-            Clear(match); Assert.Equal(wave, match.LastRewardedWave); Assert.Equal(wave, match.Players[1].LastReward!.Wave); Assert.Equal(1, match.Players[1].LastReward!.Research); Assert.Equal(wave, match.Players[1].Research.Points);
-            Assert.Equal(wave == 20 ? Phase.Victory : Phase.Building, match.Phase);
+            ResourceCost beforeClear = match.Players[1].Resources;
+            Clear(match); Assert.Equal(wave, match.LastRewardedWave); Assert.Equal(wave, match.Players[1].LastReward!.Wave);
+            Assert.True(beforeClear.TryAdd(match.Campaign.Wave(wave).Reward, out ResourceCost guaranteed));
+            Assert.Equal(guaranteed, match.Players[1].Resources);
+            Assert.Equal(wave == 20 ? Phase.Victory : Phase.RewardDraft, match.Phase);
+            ResourceCost beforeCard = match.Players[1].Resources;
+            RewardFixture.Resolve(match);
+            ResourceCost afterCard = match.Players[1].Resources;
+            Assert.True(afterCard.TryPay(beforeCard, out ResourceCost gained)); Assert.True(cardResources.TryAdd(gained, out cardResources));
         }
         Assert.Equal(20, match.Wave); Assert.Equal(60, match.ProductionCount);
-        Assert.Equal(new ResourceCost(176, 28, 110), match.Players[1].Resources);
+        Assert.True(new ResourceCost(174, 28, 110, Stone: 2).TryAdd(cardResources, out ResourceCost finalResources));
+        Assert.Equal(finalResources, match.Players[1].Resources);
         Assert.Null(match.Snapshot().Players[0].FoodForecast); Assert.Empty(match.Enemies);
         Assert.Equal(default(ResourceCost), match.Snapshot().Players[0].ProductionIncome);
         string final = JsonSerializer.Serialize(match.Snapshot(), WireJson.Options); for (int step = 0; step < 10; step++) match.Step();

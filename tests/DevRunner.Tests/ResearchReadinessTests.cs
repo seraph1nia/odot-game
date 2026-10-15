@@ -30,6 +30,8 @@ public sealed class ResearchReadinessTests
         }
         foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "ready").Accepted);
         for (int step = 0; step < 3600 && match.Phase == Phase.Combat; step++) match.Step();
+        Assert.Equal(Phase.RewardDraft, match.Phase);
+        foreach (int player in new[] { 1, 2 }) Assert.True(Act(match, player, "reward:" + CampaignStrategy.RewardChoice(match.Players[player].Run)).Accepted);
         Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave);
         Assert.NotEmpty(match.Snapshot().DyingBodies);
         if (finishCleanup) for (int step = 0; step < 120 && match.Snapshot().DyingBodies.Length > 0; step++) match.Step();

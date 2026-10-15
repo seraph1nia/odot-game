@@ -86,7 +86,7 @@ public sealed class SquadCampaignBaselineTests(ITestOutputHelper output)
     {
         Assert.Equal(20, result.Final.TotalWaves); Assert.NotEmpty(result.Waves); Assert.NotEmpty(result.Commands);
         if (result.RequestedHorizon == 20) Assert.True(result.Outcome is Phase.Victory or Phase.Defeat);
-        else Assert.True(result.Outcome is Phase.Building or Phase.Victory or Phase.Defeat);
+        else Assert.True(result.Outcome is Phase.RewardDraft or Phase.Victory or Phase.Defeat);
         Assert.Equal(result.Commands.Count(c => c.Command.Action == "recruit") - result.Commands.Count(c => c.Command.Action == "retire")
             - result.Final.Players.Sum(c => c.Soldiers.Length), result.Waves.Sum(w => w.Casualties));
         if (result.Outcome == Phase.Victory) Assert.Equal(20, result.Final.LastRewardedWave);

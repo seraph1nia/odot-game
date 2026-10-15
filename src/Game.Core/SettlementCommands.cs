@@ -17,7 +17,7 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             catch (ArgumentException) { return Reject("Invalid research state."); }
             if (!eligibility.Available) return Reject(eligibility.Reason);
             ResearchState next = city.Research.Purchase(command.Technology, economy.Research);
-            try { combat.Research(city.Id, next, economy.Research); }
+            try { combat.Research(city.Id, next, economy.Research, city.Run); }
             catch (Exception e) when (e is OverflowException or ArgumentException) { return Reject("Unsafe technology profile."); }
             city.Research = next;
             return Accept();
@@ -100,9 +100,12 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             case "trade":
                 if (slot.Type != Building.Market) return Reject("Select your Market.");
                 if (!economy.TryMarketQuote(command.Resource, command.Bundles, out ResourceCost stock, out ResourceCost proceeds)) return Reject("Choose a valid resource and positive whole bundles.");
+                bool merchantBonus = RunEffects.MerchantBonus(city.Run, city.CurrentWave) > 0;
+                if (merchantBonus && !proceeds.TryAdd(new(Gold: 1), out proceeds)) return Reject("Trade would overflow.");
                 if (!city.Resources.TryPay(stock, out ResourceCost afterStock)) return Reject("Not enough stock.");
                 if (!afterStock.TryAdd(proceeds, out ResourceCost traded)) return Reject("Trade would overflow resource balances.");
                 city.Resources = traded;
+                if (merchantBonus) city.Run = city.Run with { MerchantWave = city.CurrentWave };
                 break;
             case "build":
                 BuildingDefinition? construction = economy.BuildingRule(command.Building);
@@ -163,11 +166,11 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
                 break;
             case "recruit":
                 if (definition?.Recruits?.Contains(command.SoldierType) != true) return Reject("This building cannot recruit that role.");
-                ResourceCost cost = economy.Recruitment(command.SoldierType, slot.Level);
+                ResourceCost cost = economy.Recruitment(command.SoldierType, slot.Level, city.Run);
                 if (!CanPay(cost)) return Reject("Not enough resources.");
                 ArmyAssignment? home = army.Find(city.Soldiers, city.PurchasedHomes, plots: city.ArmyPlots, type: command.SoldierType, squadId: command.SquadId);
                 if (home is null) return Reject("No compatible squad space. Reinforce a matching squad, buy a plot, store or retire a member.");
-                Pay(cost); combat.Create(command.SoldierType, city.Id, city.Id, city.Id, level: slot.Level, capabilities: economy.Research.Capabilities(city.Research, command.SoldierType), assignment: home); combat.RestoreHomes();
+                Pay(cost); combat.Create(command.SoldierType, city.Id, city.Id, city.Id, level: slot.Level, capabilities: RunEffects.Capabilities(economy.Research.Capabilities(city.Research, command.SoldierType), city.Run, command.SoldierType), assignment: home); combat.RestoreHomes();
                 break;
             default: return Reject("Unknown action.");
         }

@@ -87,7 +87,7 @@ public sealed class CombatLimitTests
     {
         using Match match = Start(); CombatFixture.Steps(match, 499); CombatFixture.ClearEnemies(match);
         if (fallen) match.Players[1].Health = 0;
-        match.Step(); Assert.Equal(fallen ? Phase.Defeat : Phase.Building, match.Phase);
+        match.Step(); Assert.Equal(fallen ? Phase.Defeat : Phase.RewardDraft, match.Phase);
         Assert.Equal(fallen ? DefeatReason.AllCitiesFallen : DefeatReason.None, match.DefeatReason); Assert.Null(match.Stall);
     }
     [Theory]

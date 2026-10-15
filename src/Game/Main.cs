@@ -247,7 +247,9 @@ public partial class Main : Node, IGameSession
         _authority = new(AuthorityPolicy.Solo, combatSeed: _combatSeed);
         Multiplayer.MultiplayerPeer = new OfflineMultiplayerPeer();
         BindLocalPlayer();
-        SendAction("start");
+        // Native solo also has a lobby so doctrine choice precedes allocation.
+        // Unattended/headless clients deliberately use the default Warden.
+        if (DisplayServer.GetName() == "headless") SendAction("start");
     }
 
     public void StartPlayingHost(string bind = "127.0.0.1", int port = 7000) => StartEnetAuthority(AuthorityPolicy.PlayingHost, bind, port);
