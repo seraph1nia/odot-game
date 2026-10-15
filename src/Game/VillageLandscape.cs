@@ -251,10 +251,10 @@ internal sealed partial class VillageLandscape : Node3D
     private float[][] DeckLandings()
     {
         var points = new List<Vector3>();
-        foreach (MeshInstance3D plank in _bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
-            .Where(n => n.Name.ToString().Contains("bridge", StringComparison.OrdinalIgnoreCase) && n.Name.ToString().Contains("plank", StringComparison.OrdinalIgnoreCase)))
+        foreach (MeshInstance3D plank in _bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
             for (int surface = 0; surface < plank.Mesh.GetSurfaceCount(); surface++)
-                points.AddRange(plank.Mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(p => ToLocal(plank.GlobalTransform * p)));
+                if (plank.GetActiveMaterial(surface).ResourceName == "wood_light.004")
+                    points.AddRange(plank.Mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(p => ToLocal(plank.GlobalTransform * p)));
         if (points.Count == 0) throw new InvalidOperationException("Missing authored bridge deck geometry.");
         return new[] { points.Min(p => p.Z), points.Max(p => p.Z) }.Select(z =>
         {
@@ -497,7 +497,8 @@ internal sealed partial class VillageLandscape : Node3D
             ForestView = Viewpoint(-3, 2),
             FloorCells = DetailedGround.Bases.Sum(b => Installed(b).Count()),
             BridgeSubstratesRemoved = _bridgeSubstratesRemoved,
-            BridgeRecessedMeshes = _bridge.FindChildren("*", "MeshInstance3D", true, false).Count(n => n.Name.ToString().Contains("river", StringComparison.OrdinalIgnoreCase) || n.Name.ToString().Contains("waterfall", StringComparison.OrdinalIgnoreCase) || n.Name.ToString().Contains("foam", StringComparison.OrdinalIgnoreCase)),
+            BridgeRecessedMeshes = _bridge.FindChildren("*", "Node3D", true, false).Where(GroundGeometry.Recessed)
+                .Sum(n => n.FindChildren("*", "MeshInstance3D", true, false).Count),
             CoreTerrain = _coreTerrain,
             BridgeLandings = _bridgeLandings,
             Paths = _paths.Select(p =>

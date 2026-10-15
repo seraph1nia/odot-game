@@ -184,6 +184,55 @@ public sealed class AuthoredAssetTests
         finally { Directory.Delete(temporary, true); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ManifestReaderRequiresNonNullImageIndex(bool explicitNull)
+    {
+        var manifest = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(DirectoryPath, "manifest.json")))!;
+        var image = manifest["derived"]![0]!.AsObject();
+        if (explicitNull) image["imageIndex"] = null;
+        else image.Remove("imageIndex");
+        string temporary = Path.Combine(DirectoryPath, "..", "..", "..", "..", ".test-runtime", "indexed-manifest-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            File.WriteAllText(Path.Combine(temporary, "manifest.json"), manifest.ToJsonString());
+            Assert.Throws<System.Text.Json.JsonException>(() => AuthoredAssets.ReadManifest(temporary));
+        }
+        finally { Directory.Delete(temporary, true); }
+    }
+
+    [Theory]
+    [InlineData("negative-index")]
+    [InlineData("past-end-index")]
+    [InlineData("wrong-name")]
+    [InlineData("other-duplicate")]
+    [InlineData("missing-suffix")]
+    [InlineData("wrong-hash")]
+    [InlineData("wrong-size")]
+    public void IndexedMapAdmissionPreservesDuplicatePayloadsAndRejectsMismatches(string corruption)
+    {
+        AuthoredDerivedFile[] duplicates = AuthoredAssets.ReadManifest(DirectoryPath).Derived
+            .GroupBy(d => (d.Parent, d.ImageName)).First(g => g.Count() == 2).OrderBy(d => d.ImageIndex).ToArray();
+        byte[] glb = File.ReadAllBytes(Path.Combine(DirectoryPath, duplicates[0].Parent));
+        Assert.NotEqual(duplicates[0].Sha256, duplicates[1].Sha256);
+        Assert.All(duplicates, image => AuthoredAssets.ValidateDerivedFile(DirectoryPath, glb, image));
+        AuthoredDerivedFile second = duplicates[1];
+        AuthoredDerivedFile changed = corruption switch
+        {
+            "negative-index" => second with { ImageIndex = -1 },
+            "past-end-index" => second with { ImageIndex = int.MaxValue },
+            "wrong-name" => second with { ImageName = "not-the-indexed-image" },
+            "other-duplicate" => second with { ImageIndex = duplicates[0].ImageIndex },
+            "missing-suffix" => second with { Path = duplicates[0].Path },
+            "wrong-hash" => second with { Sha256 = duplicates[0].Sha256 },
+            "wrong-size" => second with { Bytes = second.Bytes + 1 },
+            _ => throw new ArgumentException(corruption)
+        };
+        Assert.Throws<InvalidDataException>(() => AuthoredAssets.ValidateDerivedFile(DirectoryPath, glb, changed));
+    }
+
     [Fact]
     public void ExportReaderRejectsTruncationPointersAndWrongContainerVersion()
     {

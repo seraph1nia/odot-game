@@ -17,11 +17,26 @@ public partial class EngineTests
         try
         {
             var paths = Enum.GetValues<Building>().Where(b => b != Building.Empty).Select(b => AssetCatalog.Building(b).Path)
-                .Concat(new[] { AssetCatalog.Home, AssetCatalog.Defender, AssetCatalog.Stream })
+                .Concat(new[] { AssetCatalog.Home, AssetCatalog.Defender, AssetCatalog.Stream, AssetCatalog.Bridge })
                 .Concat(DetailedGround.Paths.Where(LandscapeAssets.AmbientWater)).Distinct(StringComparer.Ordinal).ToArray();
-            var consumers = paths.Select(path => (Path: path, Node: path.StartsWith("buildings/", StringComparison.Ordinal)
-                ? assets.Place(holder, path, Vector3.Zero, 1.9f)
-                : assets.Native(holder, path, Vector3.Zero, VillageLayout.TerrainScale))).ToArray();
+            var consumers = paths.Select(path =>
+            {
+                long placedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+                bool building = path.StartsWith("buildings/", StringComparison.Ordinal);
+                Node3D node = building ? assets.Place(holder, path, Vector3.Zero, 1.9f)
+                    : assets.Native(holder, path, Vector3.Zero, VillageLayout.TerrainScale);
+                double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(placedAt).TotalMilliseconds;
+                MeshInstance3D[] meshes = node.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>().ToArray();
+                int nodes = node.FindChildren("*", "", true, false).Count + 1;
+                int surfaces = meshes.Sum(m => m.Mesh.GetSurfaceCount());
+                if (building || path == AssetCatalog.Bridge)
+                {
+                    Check(meshes.Length is > 0 && meshes.Length <= (building ? 64 : 90), "optimized native mesh-node work bound: " + path);
+                    Check(surfaces <= (building ? 64 : 90) && nodes <= (building ? 72 : 140), "optimized native surface/hierarchy work bound: " + path);
+                }
+                Console.WriteLine($"MEASURE ambient placement: {path}; nodes={nodes}; meshes={meshes.Length}; surfaces={surfaces}; load_measure_add_play_ms={elapsed:R}");
+                return (Path: path, Node: node);
+            }).ToArray();
             var players = consumers.Select(c => c.Node.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single()).ToArray();
             double start = players[0].CurrentAnimationPosition;
             // A real idle-frame advance, not just calling Advance in the test.

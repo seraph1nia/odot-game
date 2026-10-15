@@ -66,8 +66,9 @@ internal static class GroundPlacementProof
         var holder = new Node3D(); owner.AddChild(holder);
         try
         {
-            Node3D bridge = assets.Native(holder, AssetCatalog.Bridge, VillageLayout.Hex(1, 5), VillageLayout.TerrainScale, 90);
-            MeshInstance3D[] deck = bridge.FindChildren("Bridge*deck*plank*", "MeshInstance3D", true, false).OfType<MeshInstance3D>().ToArray();
+            Node3D bridge = assets.Native(holder, AssetCatalog.Bridge, VillageLayout.Hex(1, 5), VillageLayout.TerrainScale, 90, ambient: false);
+            MeshInstance3D[] deck = bridge.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
+                .Where(n => n.Mesh.GetSurfaceCount() == 1 && n.GetActiveMaterial(0).ResourceName == "wood_light.004").ToArray();
             Transform3D[] before = deck.Select(n => n.GlobalTransform).ToArray();
             Require(deck.Length > 0 && GroundGeometry.AdaptBridge(bridge) == 5, "consumer bridge adaptation");
             Require(before.SequenceEqual(deck.Select(n => n.GlobalTransform)), "bridge deck unchanged");

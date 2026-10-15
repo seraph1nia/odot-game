@@ -2134,3 +2134,33 @@ No full-game journey or supervisor was added. Rendered **in-game** vividness,
 aesthetic/readability acceptance and GPU cost remain unexecuted under headless-only
 policy; source standalone evidence is not a substitute. These implementation
 receipts do not replace subsequent final-head pipeline/CI qualification.
+
+### Optimized successor review fixes
+
+The approved successor pin is `133c7cdeb368cada408d1c95c9414e08488371a9`.
+The initial vivid-pin receipts above are historical, not evidence for these bytes.
+The [current import report](vivid-ambient-import.md) records the accepted GLB-size
+tradeoff and preserved map/animation contracts.
+
+Coverage admission:
+- Tier A adds deserialization failures for omitted/null image indices and calls
+  the production indexed-map validator with both real duplicate-name payloads,
+  invalid indices, wrong name/index/suffix and incorrect hash/size. The previous
+  positive distribution test could not catch the unnecessary name-only fallback.
+  Inputs are immutable imported GLBs/maps; only disposable manifest mutations use
+  an owned worktree `.test-runtime` directory with awaited synchronous cleanup.
+  Expected cost is subsecond per case, with no engine or new dependency.
+- Existing Tier B `animation` adds actual imported building/bridge mesh, surface
+  and native-node work bounds, reports production load/measurement/add/play cost,
+  and includes the original bridge's animated targets alongside all selected
+  buildings, stream and river overlays. Existing motion, seam, material and
+  production-landscape checks remain. Metadata alone cannot prove Godot preserved
+  the optimized hierarchy or that playback survives mesh-to-owner conversion.
+- Existing Tier B `assets` retains its native bridge-deck preservation and
+  depth checks, now resolving actual material bindings rather than obsolete
+  static submesh names. The live consumer still removes only its incompatible
+  recessed components and grass; complete source bridge playback is tested
+  independently. No broader journey or runtime batching subsystem is added.
+
+This is a bounded review-fix verification selection, not full test/lint, transport,
+package, native Windows, memory or rendered-performance qualification.

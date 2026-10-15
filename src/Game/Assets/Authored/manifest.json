@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/seraph1nia/odot-game-assets.git",
-  "revision": "9a69b514e9fd7b101bf75d358e202da822bbe2c0",
+  "revision": "133c7cdeb368cada408d1c95c9414e08488371a9",
   "permission": "the repo is my own work, so yes, use it",
   "permissionScope": "Required authored game-ready exports, embedded maps and four standalone forest decal textures for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
   "files": [
     {
       "path": "buildings/archery_range.glb",
       "sourcePath": "exports/buildings/archery_range.glb",
-      "sha256": "851fad1ec3b310163d40c090b1b51b17eea539e041af299ccd30611e04af3106",
-      "bytes": 7979912,
+      "sha256": "c6bedd11449586116abbdc74405f742f668be7fa249a4bb95116ffb55288595c",
+      "bytes": 14875208,
       "embeddedImages": 36,
-      "materials": 46,
+      "materials": 42,
       "animationNames": [
         "ambient"
       ]
@@ -19,10 +19,10 @@
     {
       "path": "buildings/arrow_tower.glb",
       "sourcePath": "exports/buildings/arrow_tower.glb",
-      "sha256": "7734a3dcd5deb492d9eb6537707507b9cd3600afed0d185dae22522f1a3f9c82",
-      "bytes": 3544476,
+      "sha256": "e5dd348375fe2e74a2ff4b0eacccd52de81194a8348909efc2d6297513f80f35",
+      "bytes": 8355696,
       "embeddedImages": 10,
-      "materials": 44,
+      "materials": 30,
       "animationNames": [
         "ambient"
       ]
@@ -30,8 +30,8 @@
     {
       "path": "buildings/bakery.glb",
       "sourcePath": "exports/buildings/bakery.glb",
-      "sha256": "cc49074b879a1b03ab9b52135d8d93e467a0f07c355466ea4ee02890b7638e66",
-      "bytes": 3471496,
+      "sha256": "ed10e186da56609154c4f0d01b96df394d802d0ca33d5bd23a4b366d25d2eb82",
+      "bytes": 4238172,
       "embeddedImages": 14,
       "materials": 22,
       "animationNames": [
@@ -41,10 +41,10 @@
     {
       "path": "buildings/barracks.glb",
       "sourcePath": "exports/buildings/barracks.glb",
-      "sha256": "8755cd7db358bb0f4518b05dc3de7f4781d0d4aa5212beca710e40009c6f27c7",
-      "bytes": 4438192,
+      "sha256": "4965440253350354f49be062b61f2945c7c2924663c2496bc1bfbeba90b19d0a",
+      "bytes": 12216796,
       "embeddedImages": 10,
-      "materials": 45,
+      "materials": 34,
       "animationNames": [
         "ambient"
       ]
@@ -52,10 +52,10 @@
     {
       "path": "buildings/bombarding_tower.glb",
       "sourcePath": "exports/buildings/bombarding_tower.glb",
-      "sha256": "68e4c0df67ed7d54d0ee904e129073e8252e8393b1b90a38df6ebcb32c99555d",
-      "bytes": 3707636,
+      "sha256": "0e744fe969141821f426ac3b007ec9f23724bd367df02fa28b806c75148fb371",
+      "bytes": 10055956,
       "embeddedImages": 10,
-      "materials": 37,
+      "materials": 26,
       "animationNames": [
         "ambient"
       ]
@@ -63,8 +63,8 @@
     {
       "path": "buildings/gold_mine.glb",
       "sourcePath": "exports/buildings/gold_mine.glb",
-      "sha256": "5efe302a4a62d23c301c787410d58a3fe7013c54931362664aa997f441233d3b",
-      "bytes": 1804216,
+      "sha256": "40d7ed138c0610ea488f7561790c93cf31af932d01a815dd6f27feb9abdafb95",
+      "bytes": 2313808,
       "embeddedImages": 9,
       "materials": 19,
       "animationNames": [
@@ -74,10 +74,10 @@
     {
       "path": "buildings/magic_academy.glb",
       "sourcePath": "exports/buildings/magic_academy.glb",
-      "sha256": "7fee44b3b088347689553accc8027cb03e5a441d0dfdfc8201365564b9bb62ca",
-      "bytes": 5402740,
+      "sha256": "3d4eea8b41984a020321d9064cb9c9f0d8ec0c499f2a8b3f25acb527ea1b72e9",
+      "bytes": 16186332,
       "embeddedImages": 13,
-      "materials": 42,
+      "materials": 36,
       "animationNames": [
         "ambient"
       ]
@@ -85,10 +85,10 @@
     {
       "path": "buildings/metal_mine.glb",
       "sourcePath": "exports/buildings/metal_mine.glb",
-      "sha256": "ce0ccecf59d0fa2a8ab326f7eeca29495c643999e8e6bdaf133b5eb99bb7f198",
-      "bytes": 7102128,
+      "sha256": "170d08f9cde4f62d95a0051be7bb4baa4b8c3915cf10f57f0b07ae15984017cc",
+      "bytes": 10074036,
       "embeddedImages": 38,
-      "materials": 43,
+      "materials": 42,
       "animationNames": [
         "ambient"
       ]
@@ -96,10 +96,10 @@
     {
       "path": "buildings/research_tower.glb",
       "sourcePath": "exports/buildings/research_tower.glb",
-      "sha256": "b38a8ed0e9d0cea91e8548811159e3f432d1e2377b6ff63db923513e1536af80",
-      "bytes": 7521640,
+      "sha256": "6d7dee79f6ddc45c965cd509a3166aa9870ef9ba1198c717952732af3e4d6bb0",
+      "bytes": 10853324,
       "embeddedImages": 38,
-      "materials": 44,
+      "materials": 40,
       "animationNames": [
         "ambient"
       ]
@@ -107,10 +107,10 @@
     {
       "path": "buildings/stone_cutter.glb",
       "sourcePath": "exports/buildings/stone_cutter.glb",
-      "sha256": "3d6fd9d045843fb19f6b60da624dbd8dd182e43e6c9e2c9f69ebaa6e09084515",
-      "bytes": 3350668,
+      "sha256": "1593d697b353734de60c884c07bf1b2a8c192556e92c0524b6249678ffc5c5c1",
+      "bytes": 7338200,
       "embeddedImages": 12,
-      "materials": 34,
+      "materials": 29,
       "animationNames": [
         "ambient"
       ]
@@ -118,10 +118,10 @@
     {
       "path": "buildings/town_hall.glb",
       "sourcePath": "exports/buildings/town_hall.glb",
-      "sha256": "6b10ca5a42080e686e41717cef4283cf05c63299061d1728b441dbb5b435cf07",
-      "bytes": 12036144,
+      "sha256": "8d801728b4c863c51819a698775b1c0b187f6f0c467a4445216375f3a98b108f",
+      "bytes": 20811552,
       "embeddedImages": 36,
-      "materials": 40,
+      "materials": 39,
       "animationNames": [
         "ambient"
       ]
@@ -129,10 +129,10 @@
     {
       "path": "buildings/trade_market.glb",
       "sourcePath": "exports/buildings/trade_market.glb",
-      "sha256": "d6ecffd6ff4312f494c0e72a6365cf35e7a9230f69ca3a34527051ab46aaae11",
-      "bytes": 3467968,
+      "sha256": "f7a8ddf71f791b1a379eb8ae92b1a491fe9ea87ef0dfed0fe538be4e18f7ece2",
+      "bytes": 7308496,
       "embeddedImages": 12,
-      "materials": 39,
+      "materials": 30,
       "animationNames": [
         "ambient"
       ]
@@ -140,8 +140,8 @@
     {
       "path": "buildings/tree_house.glb",
       "sourcePath": "exports/buildings/tree_house.glb",
-      "sha256": "273dd115d53250ffa3f2cb14dab55392655d2a8212ed3e1c5b36cc81a8117267",
-      "bytes": 1963044,
+      "sha256": "737ff1fda84fd0ca738343f82f74656dc997f29ddc66c0b955b89f82a0acb9a8",
+      "bytes": 2368296,
       "embeddedImages": 10,
       "materials": 20,
       "animationNames": [
@@ -151,10 +151,10 @@
     {
       "path": "buildings/weaver.glb",
       "sourcePath": "exports/buildings/weaver.glb",
-      "sha256": "373a6349226cf3ab7878b7f17404f8e262c03b39aa2981a226e841a2cb69812a",
-      "bytes": 7345348,
+      "sha256": "20d91874be2faa0faa487ec40960d0efecdff6fb8b3fb24497d2bd4c6e7d0d82",
+      "bytes": 10724148,
       "embeddedImages": 38,
-      "materials": 44,
+      "materials": 42,
       "animationNames": [
         "ambient"
       ]
@@ -162,8 +162,8 @@
     {
       "path": "buildings/woodcutter_hut.glb",
       "sourcePath": "exports/buildings/woodcutter_hut.glb",
-      "sha256": "6bf55306adc772d9ed09232da5fe40f06fb0bda7e1dc2a58807cc3ed3e74c9bd",
-      "bytes": 3535952,
+      "sha256": "42e904f52d670ecaf7752b7da7753dade466f721ba3ccb3b443e42fa19b06da0",
+      "bytes": 4330596,
       "embeddedImages": 13,
       "materials": 25,
       "animationNames": [
@@ -527,10 +527,10 @@
     {
       "path": "environment/hex_woodland_bridge.glb",
       "sourcePath": "exports/environment/hex_woodland_bridge.glb",
-      "sha256": "d5cfc873b80093cf746038e403ca2223fc8301b966d3d0a052fbe250e2440f3e",
-      "bytes": 9963684,
+      "sha256": "e4fc60abb81b8d91dd1f9224e4a1967e16343b7682e6d2c6c1e4c206fa9cc00c",
+      "bytes": 13563028,
       "embeddedImages": 54,
-      "materials": 60,
+      "materials": 53,
       "animationNames": [
         "ambient"
       ]

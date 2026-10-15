@@ -19,8 +19,10 @@ integration correction; neither rejected optimization candidate ships.
 ## Vivid overgrown refresh and ambient playback
 
 The [current import and runtime report](vivid-ambient-import.md) records the
-immutable `9a69b514e9fd7b101bf75d358e202da822bbe2c0` refresh of all 57 selected
-GLBs, exact extracted-map closure and actual building/surface-water playback.
+immutable optimized pin `133c7cdeb368cada408d1c95c9414e08488371a9` for all 57
+selected GLBs, mandatory indexed extracted-map closure and actual
+building/surface-water playback. Its upstream stationary material batches retain
+the localized loops; the larger GLB-size tradeoff is explicitly accepted.
 Selection IDs, owner-permission notices and the separate Worldtree/UI pin remain
 unchanged. Rendered in-game aesthetic/readability acceptance is unexecuted under
 the headless-only policy; standalone asset evidence is not game-view acceptance.
