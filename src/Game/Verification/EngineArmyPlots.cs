@@ -25,6 +25,7 @@ public partial class EngineTests
         AddChild(camera);
         var assets = new LandscapeAssets();
         ArmyPlotView? receiver = null;
+        var arena = new SharedArenaView(); AddChild(arena);
         var dialogs = new List<UiDialog>();
         try
         {
@@ -40,6 +41,20 @@ public partial class EngineTests
                 if (receiver is not null) { RemoveChild(receiver); receiver.Free(); }
                 receiver = new ArmyPlotView(session.State.Players[0], session.State, assets); AddChild(receiver);
                 hud.ReceiveArmyPlotBounds(1, receiver);
+                // The settlement's roof receiver must describe the art actually
+                // displayed in the shared arena, not a hidden larger substitute.
+                var layout = new CombatLayout(new(session.State.Arena!.Board)); layout.Synchronize(session.State);
+                arena.Synchronize(session.State, layout, true, 1);
+                foreach (StructureState tower in session.State.Structures.Where(s => s.Owner == 1 && ArmyConfiguration.IsArmyPlot(s.Slot)))
+                {
+                    Node3D footprint = arena.GetNode<Node3D>($"{tower.Kind}_{tower.Owner}_{tower.Slot}");
+                    Aabb actual = footprint.GetChildren().OfType<Node3D>().Where(n => n.HasMeta("bounds"))
+                        .Select(n => footprint.Transform * LandscapeAssets.Bounds(n)).Aggregate((a, b) => a.Merge(b));
+                    actual.Position += CombatLayout.ArenaOrigin - CombatLayout.DistrictOrigin(session.State);
+                    Aabb expected = receiver.Bounds[tower.Slot - ArmyConfiguration.PlotOffset]!.Value;
+                    Check(actual.Position.IsEqualApprox(expected.Position) && actual.Size.IsEqualApprox(expected.Size),
+                        "native purchased-tower art and production roof-picking bounds match exactly in both views");
+                }
             }
             void Pick(int id, bool roof = false)
             {
@@ -185,6 +200,7 @@ public partial class EngineTests
         finally
         {
             if (receiver is not null) { RemoveChild(receiver); receiver.Free(); }
+            RemoveChild(arena); arena.Free(); WoodlandMotion.ReleaseDerivedMaterials();
             RemoveChild(camera); camera.Free(); RemoveChild(host); host.Free(); hud.Free();
         }
     }

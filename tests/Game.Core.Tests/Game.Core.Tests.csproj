@@ -13,6 +13,8 @@
     <Compile Include="../../src/Game/WorldtreeProjection.cs" Link="WorldtreeProjection.cs" />
     <Compile Include="../../src/Game/AssetCatalog.cs" Link="AssetCatalog.cs" />
     <Compile Include="../../src/Game/DetailedGround.cs" Link="DetailedGround.cs" />
+    <Compile Include="../../src/Game/SharedCombatProjection.cs" Link="SharedCombatProjection.cs" />
+    <Compile Include="../../src/Game/CombatVisualTiming.cs" Link="CombatVisualTiming.cs" />
     <Compile Include="../../src/Game/HudInvalidation.cs" Link="Presentation/HudInvalidation.cs" />
     <Compile Include="../../tools/DevRunner/CampaignStrategy.cs" Link="Verification/CampaignStrategy.cs" />
     <Compile Include="../../tools/DevRunner/CombatReplayFixture.cs" Link="Verification/CombatReplayFixture.cs" />

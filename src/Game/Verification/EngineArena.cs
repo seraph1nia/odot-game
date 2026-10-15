@@ -68,6 +68,8 @@ public partial class EngineTests
                     BattlefieldFrame.FitCamera(camera, content, CombatLayout.ArenaOrigin, viewport.Size, hud);
                     Rect2 ground = BattlefieldFrame.GroundRect(content); ground.Position += new Vector2(CombatLayout.ArenaOrigin.X, CombatLayout.ArenaOrigin.Z);
                     navigation.Fit(ground, viewport, sharedArena: true); navigation.Reset(); view.CoverBoundary(navigation.Boundary);
+                    Check(view.GetNode<BattlefieldPerimeter>("ArenaCloudPerimeter").GetChildren().OfType<MeshInstance3D>().Count(n => n.Mesh is BoxMesh) == 4,
+                        "arena keeps continuous cloud banks on every edge without changing global atmosphere");
                     Check(BattlefieldFrame.GroundRect(view.OpaqueBounds).Encloses(navigation.Boundary), "opaque native arena mesh covers the complete projected pan/zoom/portrait safe boundary");
                     foreach (int corner in Enumerable.Range(0, 8))
                         Check(new Rect2(Vector2.Zero, new(viewport.Size.X - 240, viewport.Size.Y - hud)).Grow(1).HasPoint(camera.UnprojectPosition(content.GetEndpoint(corner) + CombatLayout.ArenaOrigin)), "default native projection frames complete arena at " + dimensions);
@@ -109,6 +111,7 @@ public partial class EngineTests
                 Check(oldGround.All(n => !GodotObject.IsInstanceValid(n)) && view.FindChildren("ArenaCell*", "MeshInstance3D", true, false).Count == 63,
                     "fresh four-player-to-solo replacement releases previous static geometry and markers");
             }
+            await HorizontalBoard(view, camera);
             await ArenaReceiving(view);
             await ArenaBufferedSummaries(view, camera);
             await ArenaBufferedRally(view, camera);

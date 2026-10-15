@@ -1,5 +1,20 @@
 # Testing overhaul audit and coverage ledger (2026-10-11)
 
+## Horizontal board and combat-start projection admission (2026-10-15)
+
+The existing Tier B `arena`/`receiving` fixtures now compare actual authoritative
+entry at the same tick against preview formation/native transforms and exposed
+rig picking, and check measured HUD-safe camera bounds, the imported river/bridge
+and continuous cloud resources. This strengthens allocation-count-only coverage;
+it does not replace transport, pixels or a complete game journey. Tier A
+`BattleDeploymentTests` covers 1..4-owner topology/projection, custom ordered
+mixed/overflow and boss manifests, funding/research/storage/home reassignment,
+fallen-origin redistribution and no-mutating preview consumption. Numerical
+supplies and controlled loss are not earned campaign evidence. No suite was
+removed or made graphical. Exact costs, baseline mismatch/counterfactuals,
+failures, successful receipts and remaining unexecuted qualification are in
+[horizontal-board verification](horizontal-board.md).
+
 ## Inputs and limits
 
 Audited baseline `d7f1728`, equal to actual `origin/main` at task start (not the

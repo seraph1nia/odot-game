@@ -67,11 +67,16 @@ public partial class EngineTests
                 "disconnected speed input is disabled and retains synchronized selection");
             session.Connected = true; hud.RefreshHud(1, -1);
 
-            UnitState[] manifest = match.Snapshot().NextWave;
-            var layout = new CombatLayout(match.Configuration.Board); layout.SetPreview(manifest);
-            Aabb content = BattlefieldFrame.Content(match.Snapshot(), []);
-            Dictionary<int, Vector3> formation = NextWaveFormation.Positions(manifest);
-            Check(manifest.All(u => content.HasPoint(formation[u.Id] - CombatLayout.Center(u.Destination))),
+            MatchSnapshot prepared = match.Snapshot();
+            UnitState[] manifest = BattleDeployment.Preview(prepared).Where(u => u.Id < 0).ToArray();
+            var layout = new CombatLayout(new(prepared.Arena!.Board)); layout.Synchronize(prepared);
+            Aabb content = BattlefieldFrame.Content(prepared, []);
+            Dictionary<int, Vector3> formation = manifest.ToDictionary(u => u.Id, u => layout.Position(u, prepared.Tick));
+            Rect2 ledger = root.GetNode<Control>("ResourceTable").GetGlobalRect();
+            Rect2 bottom = root.GetNode<Control>("BottomPanel").GetGlobalRect();
+            float lane = Math.Max(240, GetViewport().GetVisibleRect().Size.X - ledger.Position.X + 12);
+            BattlefieldFrame.FitCamera(camera, content, CombatLayout.DistrictOrigin(prepared), GetViewport().GetVisibleRect().Size, bottom.Size.Y, lane);
+            Check(manifest.All(u => content.HasPoint(formation[u.Id] - CombatLayout.DistrictOrigin(prepared))),
                 "landed content-derived framing includes every authoritative forecast position");
             var states = manifest.ToDictionary(u => u.Id);
             var views = new List<UnitView>();
@@ -84,9 +89,18 @@ public partial class EngineTests
             Check(views.All(v => v.Visible && v.Clip == "idle" && v.StatusBadge.Length == 0 && v.FindChildren("*", "Label3D", true, false).Count == 0)
                 && views.Select(v => v.Position).Distinct().Count() == views.Count,
                 "actual imported enemy rigs form distinct idle read-only next-wave figures");
+            Check(views.All(v => Enumerable.Range(0, 8).Select(i => camera.UnprojectPosition(v.PickingBounds().GetEndpoint(i)))
+                .All(p => !ledger.HasPoint(p) && !bottom.HasPoint(p) && p.Y >= 64)),
+                "actual native forecast rig silhouettes avoid the measured resource ledger and bottom/top chrome, not a guessed narrow lane");
             UnitView first = views[0];
-            Vector2 point = camera.UnprojectPosition(first.PickingBounds().GetCenter());
+            Aabb pickBounds = first.PickingBounds();
+            Vector2 centerPoint = camera.UnprojectPosition(pickBounds.GetCenter());
+            // A back member's body center can be behind a front member at the
+            // low tabletop pitch. Its exposed roof/head remains selectable;
+            // nearest-ray picking must not prefer a hidden body through a rig.
+            Vector2 point = camera.UnprojectPosition(new(pickBounds.GetCenter().X, pickBounds.End.Y - .02f, pickBounds.GetCenter().Z));
             UnitView? picked = UnitPicking.Pick(views, camera, point);
+            Console.WriteLine($"MEASURE forecast pick center={UnitPicking.Pick(views, camera, centerPoint)?.State.Id} exposed={picked?.State.Id} expected={first.State.Id}");
             Check(picked?.State.Id == first.State.Id, "production unit ray picker selects actual forecast rig bounds");
             var inspector = new UnitInspector(session, () => true); root.AddChild(inspector);
             inspector.Select(picked!.State); inspector.ConfigureActions(match.Snapshot().Players[0], true, match.Army);
@@ -117,6 +131,16 @@ public partial class EngineTests
             Check(match.Players[1].Stone == 3, "final Stonecutter contributes before component combat entry");
             Check(match.Phase == Phase.Combat && match.Snapshot().NextWave.Length == 0 && match.Enemies.Count == manifest.Length,
                 "combat transition consumes exactly the inspected forecast allocation");
+            var actualLayout = new CombatLayout(new(match.Snapshot().Arena!.Board)); actualLayout.Synchronize(match.Snapshot());
+            var liveStates = match.Enemies.ToDictionary(u => u.Id);
+            for (int i = 0; i < manifest.Length; i++)
+            {
+                UnitState live = match.Enemies[i];
+                Check(manifest[i].FormationSlot == live.FormationSlot && manifest[i].Hex!.Position == live.Hex!.Position
+                    && formation[manifest[i].Id].IsEqualApprox(actualLayout.Position(live, match.Tick))
+                    && Mathf.IsEqualApprox(layout.Facing(manifest[i], prepared.Tick, states), actualLayout.Facing(live, match.Tick, liveStates)),
+                    "same authoritative inputs give identical preview/live member formation, native transform and facing before any combat tick");
+            }
             inspector.Close();
             foreach (UnitView view in views) { figures.RemoveChild(view); view.Free(); }
             views.Clear();

@@ -8,12 +8,13 @@ namespace Game;
 internal sealed partial class ArmyPlotView : Node3D
 {
     internal Aabb?[] Bounds { get; } = new Aabb?[ArmyConfiguration.PlotCount];
-    internal static Vector3 PlotPosition(MatchSnapshot state, int id)
+    internal static Vector3 PlotPosition(MatchSnapshot state, int id, int owner = 0)
     {
-        _ = state; // Persistent home indexes are not shared arena cell IDs.
         int index = id - ArmyConfiguration.PlotOffset;
         if (index is < 0 or >= ArmyConfiguration.PlotCount) throw new ArgumentOutOfRangeException(nameof(id));
-        return VillageLayout.Hex(index % 3 - 1, 6 + index / 3);
+        ArenaSector sector = owner == 0 ? state.Arena!.Sectors[0] : state.Arena!.Sectors.Single(s => s.Owner == owner);
+        System.Numerics.Vector3 point = SharedCombatProjection.CellPosition(state.Arena!.Board, sector.DeploymentCells[index]);
+        return CombatLayout.ArenaOrigin + new Vector3(point.X, point.Y, point.Z) - CombatLayout.DistrictOrigin(state);
     }
     internal static string Title(ArmyHomeState home) => $"Army {home.Number} · " + (home.State switch
     {
@@ -28,7 +29,7 @@ internal sealed partial class ArmyPlotView : Node3D
         foreach (ArmyHomeState home in city.Army?.Homes ?? [])
         {
             int index = home.PlotId - ArmyConfiguration.PlotOffset;
-            Vector3 point = PlotPosition(state, home.PlotId);
+            Vector3 point = PlotPosition(state, home.PlotId, city.Id);
             if (!ArmyConfiguration.IsTower(home.Plot.Type) && home.State != ArmyPlotStatus.UnitOccupied) AddChild(new Label3D
             {
                 Name = "Home" + index,
@@ -50,6 +51,8 @@ internal sealed partial class ArmyPlotView : Node3D
             };
             AddChild(footprint);
             if (!home.Purchased) AddChild(new Sprite3D { Name = "LockedHome" + index, Position = point + new Vector3(0, .35f, 0), Texture = UiAssets.Icon("Gold"), PixelSize = .014f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Shaded = false });
+            // Physical weapon art belongs to SharedArenaView in preparation too;
+            // retain these bounds for ordinary building-panel roof selection.
             if (!ArmyConfiguration.IsTower(home.Plot.Type)) continue;
             BuildingVisual visual = AssetCatalog.Building(home.Plot.Type);
             Node3D model = assets.Place(this, visual.Path, point, 1.9f); model.Name = "Tower" + home.PlotId;
