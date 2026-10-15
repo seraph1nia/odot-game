@@ -14,14 +14,19 @@ internal static class BattlefieldFrame
         points.AddRange(Enumerable.Range(0, 9).Select(VillageLayout.Slot));
         if (state is not null)
             points.AddRange(Enumerable.Range(ArmyConfiguration.PlotOffset, ArmyConfiguration.PlotCount).Select(id => ArmyPlotView.PlotPosition(state, id)));
-        // Forecast art lives outside combat occupancy. Include the actual display
-        // formation in the same content-derived framing owner, including custom
-        // allocation sizes; never assume the old approach bounds happen to fit.
-        if (state?.NextWave is { Length: > 0 } manifest)
+        if (state?.Arena is { } arena)
         {
-            Dictionary<int, Vector3> positions = NextWaveFormation.Positions(manifest);
-            points.AddRange(manifest.Select(u => positions[u.Id] - CombatLayout.Center(u.Destination)));
-            points.Add(new(0, 0, -14)); // next-wave heading
+            Vector3 origin = CombatLayout.ArenaOrigin - CombatLayout.DistrictOrigin(state);
+            // All actionable homes/objectives plus actual forecast bodies. Empty
+            // outer battle cells remain in the shared arena and its overview;
+            // they need not force the settlement camera away from its controls.
+            int[] cells = arena.Sectors.SelectMany(s => s.DeploymentCells).Concat(state.Structures.Select(s => s.Cell))
+                .Concat(BattleDeployment.Preview(state).Where(u => u.Deployed).Select(u => u.Hex!.Position.Cell)).Distinct().ToArray();
+            points.AddRange(cells.Select(id =>
+            {
+                System.Numerics.Vector3 p = SharedCombatProjection.CellPosition(arena.Board, id);
+                return origin + new Vector3(p.X, p.Y, p.Z);
+            }));
         }
         // Complete persistent settlement/forecast silhouettes, not live combat
         // positions: SharedArenaView owns the independent complete arena bounds.
@@ -32,9 +37,9 @@ internal static class BattlefieldFrame
         foreach (Aabb building in buildings) bounds = bounds.Merge(building);
         return bounds;
     }
-    internal static void FitCamera(Camera3D camera, Aabb content, Vector3 center, Vector2 size, float hud)
+    internal static void FitCamera(Camera3D camera, Aabb content, Vector3 center, Vector2 size, float hud, float rightLane = 240)
     {
-        float pitch = Mathf.DegToRad(34), azimuth = Mathf.DegToRad(28);
+        float pitch = Mathf.DegToRad(32), azimuth = 0;
         Vector3 direction = new(Mathf.Sin(azimuth) * Mathf.Cos(pitch), Mathf.Sin(pitch), Mathf.Cos(azimuth) * Mathf.Cos(pitch));
         Vector3 target = center;
         camera.Position = target + direction * 45; camera.LookAt(target);
@@ -42,9 +47,10 @@ internal static class BattlefieldFrame
         Vector3[] corners = Enumerable.Range(0, 8).Select(content.GetEndpoint).ToArray();
         float minX = corners.Min(p => p.Dot(right)), maxX = corners.Max(p => p.Dot(right));
         float minY = corners.Min(p => p.Dot(up)), maxY = corners.Max(p => p.Dot(up));
-        float usable = Math.Max(1, size.Y - hud), width = Math.Max(1, size.X - 240);
+        const float chrome = 64;
+        float usable = Math.Max(1, size.Y - hud - chrome), width = Math.Max(1, size.X - rightLane);
         camera.Size = Math.Max((maxY - minY + 1.2f) * size.Y / usable, (maxX - minX + 1.2f) * size.Y / width);
-        target = center + right * ((minX + maxX) / 2 + camera.Size * 120 / size.Y) + up * ((minY + maxY) / 2 - camera.Size * hud / size.Y / 2);
+        target = center + right * ((minX + maxX) / 2 + camera.Size * rightLane / 2 / size.Y) + up * ((minY + maxY) / 2 + camera.Size * (chrome - hud) / size.Y / 2);
         camera.Position = target + direction * 45; camera.LookAt(target);
     }
     internal static Rect2 GroundRect(Aabb box) => new(new Vector2(box.Position.X, box.Position.Z), new Vector2(box.Size.X, box.Size.Z));

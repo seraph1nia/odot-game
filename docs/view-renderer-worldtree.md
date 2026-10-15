@@ -2,6 +2,12 @@
 
 ## Battlefield framing
 
+The current [horizontal-board framing and combat-start parity](horizontal-board.md)
+extends this content-fitting seam: the focused district is left of a river and the
+same physical arena used by its preview, with horizontal pointy-top rows and a
+measured resource-ledger safe lane. The receipts below describe the earlier
+compact-frame/renderer implementation, not final qualification of the new layout.
+
 Settlement framing uses `BattlefieldFrame` to fit the nine buildable plots,
 army homes, next-wave preview, home/defender silhouettes and actual building
 bounds, retaining upgraded-roof allowance. This content box replaces the former

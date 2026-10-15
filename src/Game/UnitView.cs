@@ -105,8 +105,9 @@ internal sealed partial class UnitView(UnitState initial) : Node3D
     }
     internal WorkCounters? Work { get; set; }
     internal void Synchronize(UnitState state) => State = state;
-    public void Sample(UnitState? current, double tick, double seconds, int focus, CombatLayout layout, IReadOnlyDictionary<int, UnitState> units)
+    public void Sample(UnitState? current, double tick, double seconds, int focus, CombatLayout layout, IReadOnlyDictionary<int, UnitState> units, bool deployment = false)
     {
+        if (deployment) { _facingTick = null; _hitAt = -1; }
         if (current is not null) State = current;
         UnitState state = State;
         // FrozenTick freezes physical motion/facing, not the corpse's death

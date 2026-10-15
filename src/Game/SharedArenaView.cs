@@ -22,6 +22,7 @@ internal sealed partial class SharedArenaView : Node3D
     private readonly StandardMaterial3D _selected = new() { AlbedoColor = new("f2dfac"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
     private readonly StandardMaterial3D _locked = new() { AlbedoColor = new("665f55"), Roughness = 1 };
     private MeshInstance3D? _diorama;
+    private BattlefieldPerimeter? _perimeter;
     private MatchSnapshot? _state;
     private CombatLayout? _layout;
     private string _identity = "";
@@ -55,6 +56,7 @@ internal sealed partial class SharedArenaView : Node3D
                 Mesh = new BoxMesh { Size = new(Content.Size.X + 24, 1.8f, Content.Size.Z + 24) },
                 MaterialOverride = new StandardMaterial3D { AlbedoColor = new("374735"), Roughness = 1 }
             }; AddChild(_diorama);
+            _perimeter = new BattlefieldPerimeter { Name = "ArenaCloudPerimeter" }; AddChild(_perimeter);
             BuildGround(arena, layout);
             DressBoundary();
             foreach (ArenaSector sector in arena.Sectors)
@@ -101,7 +103,8 @@ internal sealed partial class SharedArenaView : Node3D
                     _ => AssetCatalog.Building(Building.ArrowTower).Path
                 };
                 var footprint = new Node3D { Name = $"{structure.Kind}_{structure.Owner}_{structure.Slot}", Position = layout.CellPosition(structure.Cell) }; AddChild(footprint);
-                Node3D model = _assets.Place(footprint, path, Vector3.Zero, structure.Kind == ArenaStructureKind.Keep ? 2.4f : 1.8f);
+                // Army-panel roof bounds use the same purchased-home art scale.
+                Node3D model = _assets.Place(footprint, path, Vector3.Zero, structure.Kind == ArenaStructureKind.Keep ? 2.4f : ArmyConfiguration.IsArmyPlot(structure.Slot) ? 1.9f : 1.8f);
                 if (structure.Level >= 2 && structure.Slot >= 0)
                 {
                     Node3D plinth = _assets.Place(footprint, AssetCatalog.Plinth, Vector3.Zero, 1.9f);
@@ -127,7 +130,7 @@ internal sealed partial class SharedArenaView : Node3D
     private static ImmediateMesh CellOutline()
     {
         var mesh = new ImmediateMesh(); mesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
-        Vector3 Point(int corner, float radius) => new(Mathf.Cos(Mathf.Pi / 6 + corner * Mathf.Pi / 3) * radius, 0, Mathf.Sin(Mathf.Pi / 6 + corner * Mathf.Pi / 3) * radius);
+        Vector3 Point(int corner, float radius) => VillageLayout.Corner(corner, radius / VillageLayout.Radius);
         for (int edge = 0; edge < 6; edge++)
         {
             Vector3 a = Point(edge, VillageLayout.Radius * .99f), b = Point(edge + 1, VillageLayout.Radius * .99f);
@@ -202,7 +205,7 @@ internal sealed partial class SharedArenaView : Node3D
             bar.Sample(structure.Health, structure.MaximumHealth, anchor, IsVisibleInTree() && !structure.Destroyed && structure.Active, camera, world);
         }
     }
-    internal void CoverBoundary(Rect2 worldBoundary)
+    internal void CoverBoundary(Rect2 worldBoundary, Rect2? worldContent = null)
     {
         if (_diorama?.Mesh is not BoxMesh mesh) return;
         // Match the native projected safe footprint, including HUD/portrait
@@ -210,6 +213,10 @@ internal sealed partial class SharedArenaView : Node3D
         Vector2 center = worldBoundary.GetCenter() - new Vector2(Position.X, Position.Z);
         _diorama.Position = new(center.X, -1.02f, center.Y);
         mesh.Size = new(worldBoundary.Size.X + 2, 1.8f, worldBoundary.Size.Y + 2);
+        Vector2 offset = new(Position.X, Position.Z);
+        Rect2 inner = worldContent ?? new Rect2(BattlefieldFrame.GroundRect(Content).Position + offset, BattlefieldFrame.GroundRect(Content).Size);
+        _perimeter?.Cover(new Rect2(inner.Position - offset, inner.Size).Grow(BattlefieldFrame.Margin),
+            new Rect2(worldBoundary.Position - offset, worldBoundary.Size));
     }
     private StandardMaterial3D OwnerMaterial(int owner)
     {
@@ -235,7 +242,7 @@ internal sealed partial class SharedArenaView : Node3D
         if (_state is null || _layout is null) return;
         double tick = playback.Tick;
         _rally = playback.RallyDisruptions();
-        _sampledStructures = playback.Structures();
+        _sampledStructures = _state.Phase is Phase.Building or Phase.Preparation ? BattleDeployment.Structures(_state) : playback.Structures();
         foreach (StructureState structure in _sampledStructures)
         {
             if (!_structures.TryGetValue((structure.Owner, structure.Kind, structure.Slot), out var view)) continue;
@@ -298,7 +305,7 @@ internal sealed partial class SharedArenaView : Node3D
         if (distance < 0) return 0;
         Vector3 point = origin + direction * distance - Position;
         return _state.Arena.Board.Cells.Select(c => (c.Id, Delta: point - _layout.CellPosition(c.Id)))
-            .Where(c => Math.Abs(c.Delta.X) <= VillageLayout.HalfWidth && Math.Abs(c.Delta.Z) <= VillageLayout.Radius - Math.Abs(c.Delta.X) / Mathf.Sqrt(3))
+            .Where(c => VillageLayout.ContainsPoint(Vector3.Zero, c.Delta))
             .OrderBy(c => c.Delta.LengthSquared()).Select(c => c.Id).FirstOrDefault();
     }
     internal Vector3? WeaponOrigin(TowerState tower)

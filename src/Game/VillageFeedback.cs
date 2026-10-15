@@ -48,10 +48,10 @@ internal sealed partial class VillageFeedback : Node3D
         node.Position = from; node.Scale = Vector3.One; node.Visible = true;
         _active.Add(new(node, from, to, time, duration, projectile));
     }
-    public void Action(Command request, int focus, double seconds, bool audible, Vector3? plotPosition = null)
+    public void Action(Command request, int focus, double seconds, bool audible, Vector3? plotPosition = null, Vector3? origin = null)
     {
         if (request.City != focus || request.Action != "research-tech" && request.Slot is < 0 or >= ArmyConfiguration.TotalPlots) return;
-        Vector3 point = new((focus - 1) * 40, 0, 0);
+        Vector3 point = origin ?? new Vector3((focus - 1) * 40, 0, 0);
         point += (request.Action == "research-tech" ? VillageLandscape.Defender : plotPosition ?? VillageLayout.Slot(request.Slot)) + new Vector3(0, .6f, 0);
         for (int n = 0; n < 5; n++) Spawn(point, point + new Vector3((n - 2) * .18f, .7f, (n % 2) * .2f), seconds, .5, false);
         Sound(request.Action == "research-tech" ? 1 : 0, audible);

@@ -104,11 +104,11 @@ public partial class Tabletop
     private void UpdateArmyMarkers(Node3D board, CityState city, MatchSnapshot state)
     {
         if (city.Army is not { } army) return;
-        string key = string.Join('|', army.Homes.Select(h => $"{h.PlotId}:{h.Cell}:{h.Purchased}:{h.Used}:{h.Plot.Type}:{h.Plot.Level}:{h.Plot.Generation}"));
+        string key = state.Arena!.Board.Cells.Length + ":" + string.Join('|', army.Homes.Select(h => $"{h.PlotId}:{h.Cell}:{h.Purchased}:{h.Used}:{h.Plot.Type}:{h.Plot.Level}:{h.Plot.Generation}"));
         Node3D? old = board.GetNodeOrNull<Node3D>("ArmyHomes");
         if (old is not null && old.GetMeta("key").AsString() == key) return;
         if (old is not null) { board.RemoveChild(old); old.QueueFree(); }
-        var markers = new ArmyPlotView(city, state, _landscapeAssets); markers.SetMeta("key", key); board.AddChild(markers);
+        var markers = new ArmyPlotView(city, state, _landscapeAssets) { Visible = false }; markers.SetMeta("key", key); board.AddChild(markers);
         ReceiveArmyPlotBounds(city.Id, markers);
     }
     internal void ReceiveArmyPlotBounds(int city, ArmyPlotView view)
