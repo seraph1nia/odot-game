@@ -16,6 +16,15 @@ records the subsequent freshness correction's verification status. See [runtime 
 [guest service/observer handoff](enet-guest-cadence.md) for measured costs and the
 integration correction; neither rejected optimization candidate ships.
 
+## Vivid overgrown refresh and ambient playback
+
+The [current import and runtime report](vivid-ambient-import.md) records the
+immutable `9a69b514e9fd7b101bf75d358e202da822bbe2c0` refresh of all 57 selected
+GLBs, exact extracted-map closure and actual building/surface-water playback.
+Selection IDs, owner-permission notices and the separate Worldtree/UI pin remain
+unchanged. Rendered in-game aesthetic/readability acceptance is unexecuted under
+the headless-only policy; standalone asset evidence is not game-view acceptance.
+
 ## Source and permission
 
 Selected authored exports under `src/Game/Assets/Authored/` are copied byte-for-byte

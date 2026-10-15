@@ -6,7 +6,7 @@ using Game;
 namespace DevRunner;
 
 internal sealed record AuthoredAssetFile(string Path, string SourcePath, string Sha256, long Bytes, int EmbeddedImages, int Materials, string[] AnimationNames);
-internal sealed record AuthoredDerivedFile(string Path, string Parent, string ImageName, string Sha256, long Bytes);
+internal sealed record AuthoredDerivedFile(string Path, string Parent, string ImageName, string Sha256, long Bytes, int? ImageIndex = null);
 internal sealed record AuthoredTextureFile(string Path, string SourcePath, string Sha256, long Bytes);
 internal sealed record AuthoredAssetManifest(int SchemaVersion, string Source, string Revision, string Permission, string PermissionScope, AuthoredAssetFile[] Files, AuthoredDerivedFile[] Derived, AuthoredTextureFile[]? Textures = null);
 internal sealed record GlbSummary(int Meshes, int Materials, int Images, string[] Clips, IReadOnlyDictionary<string, double> ClipLengths,
@@ -68,13 +68,23 @@ internal static class AuthoredAssets
             throw new InvalidDataException("Authored map/texture inventory differs from provenance.");
         foreach (AuthoredDerivedFile image in manifest.Derived)
         {
-            if (!originals.TryGetValue(image.Parent, out byte[]? glb)
-                || image.Path != image.Parent[..^4] + "_" + image.ImageName + ".png")
+            if (!originals.TryGetValue(image.Parent, out byte[]? glb))
                 throw new InvalidDataException("Invalid extracted authored map parent/path.");
             int jsonLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(glb.AsSpan(12)));
             using JsonDocument document = JsonDocument.Parse(glb.AsMemory(20, jsonLength));
             JsonElement root = document.RootElement;
-            JsonElement embedded = root.GetProperty("images").EnumerateArray().Single(i => i.GetProperty("name").GetString() == image.ImageName);
+            JsonElement[] embeddedImages = root.GetProperty("images").EnumerateArray().ToArray();
+            if (image.ImageIndex is int invalid && (invalid < 0 || invalid >= embeddedImages.Length))
+                throw new InvalidDataException("Invalid embedded image index: " + image.Path);
+            JsonElement embedded = image.ImageIndex is int index ? embeddedImages[index]
+                : embeddedImages.Single(i => i.GetProperty("name").GetString() == image.ImageName);
+            // glTF image names need not be unique. The locked Godot importer
+            // appends the source image index to later collisions; retain both
+            // distinct embedded payloads, never silently overwrite a map.
+            string suffix = image.ImageIndex is int numbered && embeddedImages.Take(numbered).Any(i => i.GetProperty("name").GetString() == image.ImageName)
+                ? "_" + numbered.ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
+            if (embedded.GetProperty("name").GetString() != image.ImageName || image.Path != image.Parent[..^4] + "_" + image.ImageName + suffix + ".png")
+                throw new InvalidDataException("Invalid extracted authored map identity/path: " + image.Path);
             JsonElement view = root.GetProperty("bufferViews")[embedded.GetProperty("bufferView").GetInt32()];
             int offset = view.TryGetProperty("byteOffset", out JsonElement value) ? value.GetInt32() : 0;
             ReadOnlySpan<byte> original = glb.AsSpan(28 + jsonLength + offset, view.GetProperty("byteLength").GetInt32());

@@ -202,7 +202,7 @@ After a client exits, relaunch its exact client command to recover the city. A d
 
 The runner assigns different temporary paths to each `dev` run's A/B windows and uses isolated temporary paths for network tests. The direct game accepts `--session-file`; its default is endpoint-scoped under Godot's user data directory, so two direct clients must specify different files. Private session files contain a credential and next command sequence, are written atomically, and must not be committed. Credentials never appear in shared snapshots or event logs. A sequence is reserved before sending; retries preserve identity, rejected identities cannot be repurposed, and new actions reserve new identities. ENet uses possession-based resume credentials. Steam credentials also require the SDK-authenticated account, original host, application and lobby/match namespace.
 
-See [asset provenance and mapping](docs/assets.md). Assets are available from a clean checkout; runtime never downloads them. All six resources are gameplay balances; bundled props and explicit labels distinguish their producers.
+See [asset provenance and mapping](docs/assets.md) and the [vivid overgrown refresh with in-game building/water loops](docs/vivid-ambient-import.md). Assets are available from a clean checkout; runtime never downloads them. All six resources are gameplay balances; bundled props and explicit labels distinguish their producers.
 
 
 ## Steam development and acceptance

@@ -30,7 +30,7 @@ public partial class EngineTests : Node
                 case "settings": await Settings(); await CameraBoundaries(); await UiComponents(); PrepareRendererRestart(0); break;
                 case "renderer-forward": RendererStartup("forward_plus"); PrepareRendererRestart(1); break;
                 case "renderer-compatibility": RendererStartup("gl_compatibility"); break;
-                case "animation": Animation(); await CombatPresentation(); break;
+                case "animation": Animation(); await Ambient(); await CombatPresentation(); break;
                 case "worldtree": await Worldtree(); break;
                 case "receiving": await Receiving(); await BattleFlow(); break;
                 case "arena": await Arena(); break;

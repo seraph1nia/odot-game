@@ -98,6 +98,24 @@ public sealed class AuthoredAssetTests
         Assert.Throws<ArgumentOutOfRangeException>(() => AssetCatalog.Building((Building)999));
         Assert.Throws<ArgumentOutOfRangeException>(() => AssetCatalog.Unit((UnitType)999, Faction.Adventurers));
     }
+    // Tier A catches stale selected exports/clip contracts cheaply. Actual
+    // imported looping, hierarchy motion and material binding belong to Tier B.
+    [Fact]
+    public void SelectedBuildingsAndWaterContainTheirSourceAmbientLoopWithoutUnitRigs()
+    {
+        var paths = AssetCatalog.RequiredPaths.Where(p => p.StartsWith("buildings/", StringComparison.Ordinal)
+            || p.StartsWith("environment/hex_river_overlay_", StringComparison.Ordinal)
+            || p is AssetCatalog.Stream or AssetCatalog.Bridge);
+        foreach (string path in paths)
+        {
+            GlbSummary model = Models.Value[path];
+            Assert.Equal(["ambient"], model.Clips);
+            Assert.Empty(model.Joints);
+            Assert.Equal(1 / 24.0, model.ClipStarts["ambient"], 8);
+            Assert.Equal(97 / 24.0, model.ClipLengths["ambient"], 8);
+        }
+    }
+
     [Fact]
     public void EightExportedRigsContainRequiredClipsAndActualEquippedSocketChildren()
     {

@@ -2095,3 +2095,42 @@ PR/CI acceptance. Rendered readability/overlap, actual-game graphical journeys,
 GPU/native display, deep campaigns, transport and package qualification are
 **unexecuted for this overlay change**; older rendered squad-label receipts do not
 qualify the new bars. No graphical permission, check waiver, release or merge.
+
+## Vivid overgrown assets and native ambient loops (2026-10-15)
+
+[Import/runtime receipts](vivid-ambient-import.md) own the exact immutable source
+revision, selected inventory, retained failures and successful local evidence.
+The changed boundary is imported object animation in real production building and
+water owners, not numerical state or a standalone asset preview.
+
+Coverage admission/replacement:
+- Tier A extends existing authored-byte tests with selected ambient clip names,
+  source timing and absence of unit rigs. Existing exact GLB/map provenance checks
+  now admit source image indices so five valid duplicate image names cannot
+  overwrite or misattribute their distinct bytes. Full canonical building/unit
+  mappings and six unit clips remain covered. Cost: 15 targeted cases in 3.13s
+  including test-process overhead after final engine import.
+- Existing Tier B `animation` executes production building placement and native
+  stream/river resource loading, actual idle-frame playback advancement,
+  imported-name/loop lookup, changing localized targets, unchanged structural
+  local transforms, actual zero/end seams and repeat playback. Water assertions
+  use its real direct-mesh tracks, packed material bindings and eight-triangle
+  interior detail; the production landscape verifies native consumers, fixed
+  home/defender playback, no duplicate cover owners and shadowless water geometry.
+  The fixture owns its nodes in the existing minimal child. Component cost: 6.18s.
+- Static consolidation remains forbidden on animated/skinned hierarchies. The
+  former static stream/surface-water consolidation assessment is replaced by
+  native animated rendering, plus detached cached rest meshes for contact/port
+  queries. Existing `assets` checks compare native/rest vertices across connector
+  orientations, full neighboring profiles and bridge-deck transforms, and retain
+  corrupt-normal/UV/winding/material/geometry rejection and forest PBR/mipmap
+  checks. It does not flatten active animation just to satisfy static coverage.
+- Existing `arena`, `receiving` and `worldtree` passed their lifebar/invulnerable
+  tower/shared-squad, ledger/battle-flow and living-tree preservation boundaries.
+  Broad fast passed 738 core + 652 runner, with two Windows-only skips; deep
+  campaign tests were not selected. Source preparation mutations were sequential.
+
+No full-game journey or supervisor was added. Rendered **in-game** vividness,
+aesthetic/readability acceptance and GPU cost remain unexecuted under headless-only
+policy; source standalone evidence is not a substitute. These implementation
+receipts do not replace subsequent final-head pipeline/CI qualification.

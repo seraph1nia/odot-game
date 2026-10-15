@@ -23,7 +23,7 @@ internal static class AssetFidelityProbe
     {
         RunGlyphDuplicateRegression();
         object detailedGround = GroundPlacementProof.Run(owner);
-        static bool Batched(string path) => path is AssetCatalog.Meadow or AssetCatalog.Stream || DetailedGround.Paths.Contains(path, StringComparer.Ordinal);
+        static bool Batched(string path) => !LandscapeAssets.AmbientWater(path) && (path == AssetCatalog.Meadow || DetailedGround.Paths.Contains(path, StringComparer.Ordinal));
         var reports = new List<object>();
         foreach (string path in AssetCatalog.RequiredPaths.Where(p => !p.StartsWith("characters/", StringComparison.Ordinal)))
         {
