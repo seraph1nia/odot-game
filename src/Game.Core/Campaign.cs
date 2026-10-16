@@ -35,6 +35,7 @@ public sealed class CampaignConfiguration
 {
     private readonly FrozenDictionary<int, WaveDefinition> _waves;
     private readonly WaveDefinition[] _catalog;
+    private readonly int _squadCapacity;
     public int TotalWaves => _waves.Count;
     public CombatFingerprint Fingerprint { get; }
     public CampaignConfiguration(CampaignDefinition definition, CombatConfiguration combat)
@@ -57,6 +58,7 @@ public sealed class CampaignConfiguration
             }
         }
         if (spawns > int.MaxValue / 4) throw new ArgumentException("Campaign spawn identities exceed roster bounds.", nameof(definition));
+        _squadCapacity = combat.Arena.SquadCapacity;
         _waves = definition.Waves.Select(Copy).ToFrozenDictionary(w => w.Number);
         _catalog = _waves.Values.OrderBy(w => w.Number).ToArray();
         using var stream = new MemoryStream();
@@ -76,6 +78,8 @@ public sealed class CampaignConfiguration
     private static WaveDefinition Copy(WaveDefinition wave) => wave with { Entries = wave.Entries.ToArray() };
     public WaveDefinition Wave(int number) => Copy(_waves[number]);
     internal WaveDefinition WaveRule(int number) => _waves[number];
+    internal bool HasRemainingSecondaryTargets(int clearedWave) => _squadCapacity > 1 && _catalog.Skip(clearedWave)
+        .Any(w => w.Entries.Where(e => !e.IsBoss).GroupBy(e => e.Type).Any(g => g.Sum(e => (long)e.Count) > 1));
     public CampaignDefinition Definition() => new(_catalog.Select(Copy).ToArray());
 }
 

@@ -171,6 +171,7 @@ public static class RunEffects
     public static bool Eligible(City city, RewardCard card, int wave, int keepMaximum, CampaignConfiguration campaign, int originalPlayers)
     {
         if (wave < 1 || wave >= campaign.TotalWaves) return false;
+        if (card.Id is "A04" or "R04" && !campaign.HasRemainingSecondaryTargets(wave)) return false;
         if (card.Id == "R05" && campaign.TotalWaves - wave < card.Amount) return false;
         if (card.Id == "R03" && !Enumerable.Range(wave + 1, campaign.TotalWaves - wave)
             .Any(next => (long)campaign.WaveRule(next).Allocation * originalPlayers >= card.Amount)) return false;

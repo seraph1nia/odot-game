@@ -184,6 +184,77 @@ public sealed class RunRewardTests
         Assert.Equal(players < 3 ? "F05" : "R03", city.Run.Choice);
         Assert.Equal(19 * 3, m.ProductionCount);
     }
+    [Theory]
+    [InlineData(1, "A04")]
+    [InlineData(2, "A04")]
+    [InlineData(3, "A04")]
+    [InlineData(4, "A04")]
+    [InlineData(1, "R04")]
+    [InlineData(2, "R04")]
+    [InlineData(3, "R04")]
+    [InlineData(4, "R04")]
+    public void SecondaryRewardsRequireRemainingSquadTargetsForOffersSelectionAndFallback(int players, string id)
+    {
+        using Match m = Start(players: players);
+        for (int wave = 1; wave <= 17; wave++) { Clear(m); if (wave < 17) RewardFixture.Resolve(m); }
+        City city = m.Players[1];
+        foreach (City survivor in m.Players.Values)
+            survivor.Run = survivor.Run with { Cards = [], Offers = [id, "E01", "E02"], Choice = null };
+        Assert.True(RunEffects.Eligible(city, RunCatalog.Card(id), 17, 10000, m.Campaign, players));
+        Act(m, 1, "reward:" + id);
+        foreach (City survivor in m.Players.Values.Skip(1)) Act(m, survivor.Id, "reward:" + id);
+        Assert.All(m.Players.Values, c => Assert.Equal(1, c.Run.Stacks(id)));
+        Clear(m);
+        var offered = new HashSet<string>();
+        foreach (City survivor in m.Players.Values) survivor.Run = survivor.Run with { Cards = [] };
+        for (ulong seed = 0; seed < 64; seed++)
+        {
+            string[] offers = RunEffects.Offers(city, 18, seed, 10000, m.Campaign, players);
+            Assert.Equal(3, offers.Distinct().Count());
+            offered.UnionWith(offers);
+        }
+        Assert.Contains(id, offered);
+        foreach (City survivor in m.Players.Values)
+            survivor.Run = survivor.Run with { Offers = [id, "E01", "E02"], Choice = null };
+        foreach (City survivor in m.Players.Values) m.SetConnected(survivor.Id, false);
+        Assert.Equal(Phase.Building, m.Phase);
+        Assert.All(m.Players.Values, c => { Assert.Equal(id, c.Run.Choice); Assert.Equal(1, c.Run.Stacks(id)); });
+        foreach (City survivor in m.Players.Values) m.SetConnected(survivor.Id, true);
+        Clear(m);
+        foreach (City survivor in m.Players.Values) survivor.Run = survivor.Run with { Cards = [] };
+        for (ulong seed = 0; seed < 64; seed++)
+        {
+            string[] offers = RunEffects.Offers(city, 19, seed, 10000, m.Campaign, players);
+            Assert.Equal(3, offers.Distinct().Count());
+            Assert.DoesNotContain("A04", offers); Assert.DoesNotContain("R04", offers);
+        }
+        foreach (City survivor in m.Players.Values)
+            survivor.Run = survivor.Run with { Offers = ["A04", "R04", "F05"], Choice = null };
+        foreach (string secondary in new[] { "A04", "R04" })
+        {
+            Assert.False(RunEffects.Eligible(city, RunCatalog.Card(secondary), 19, 10000, m.Campaign, players));
+            string before = Json(m);
+            Assert.False(m.Apply(1, Cmd(m, 1, "reward:" + secondary)).Accepted); Assert.Equal(before, Json(m));
+        }
+        foreach (City survivor in m.Players.Values) m.SetConnected(survivor.Id, false);
+        Assert.Equal(Phase.Building, m.Phase);
+        Assert.All(m.Players.Values, c => { Assert.Equal("F05", c.Run.Choice); Assert.Equal(0, c.Run.Stacks("A04")); Assert.Equal(0, c.Run.Stacks("R04")); });
+        Assert.Equal(19 * 3, m.ProductionCount);
+    }
+    [Theory]
+    [InlineData(1, false, false)]
+    [InlineData(1, true, false)]
+    [InlineData(3, false, false)]
+    [InlineData(3, true, true)]
+    public void SecondaryEligibilityUsesConfiguredHomogeneousSquadMembership(int capacity, bool sameType, bool eligible)
+    {
+        WaveDefinition[] waves = CampaignDefinition.Default().Waves.Take(8).Select(w => w.Number == 8
+            ? w with { Entries = [new(UnitType.Swordsman, 1), new(sameType ? UnitType.Swordsman : UnitType.Mage, 2)] } : w).ToArray();
+        using var m = new Match(new() { Campaign = new(waves), Arena = new() { SquadCapacity = capacity } });
+        City city = m.Join()!; m.Join(); m.Join(); m.Join();
+        foreach (string id in new[] { "A04", "R04" })
+            Assert.Equal(eligible, RunEffects.Eligible(city, RunCatalog.Card(id), 7, 10000, m.Campaign, 4));
+    }
     [Fact]
     public void HarvestNeedsOneSufficientWaveAndCodexUsesConfiguredRemainingClears()
     {
