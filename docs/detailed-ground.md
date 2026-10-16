@@ -41,15 +41,16 @@ new image encoding, external texture download or export-byte editing occurs.
 its imported buffers. `VillageLandscape` batches floors and path ribbons;
 [ambient water playback](vivid-ambient-import.md#actual-runtime-owners) owns the
 native animated river consumers and detached rest-pose query meshes. Menu and
-every city use this same consumer, not a review-only scene.
-`DetailedGround` is a cosmetic coordinate/connector projection, not authority
-terrain or a procedural river generator. The follow-up
-[rich background composition](rich-background.md) records the current authored
-runs, smaller ground patches, instanced woodland and before/after evidence.
+match districts use this consumer with different composition modes, not a
+review-only scene. `DetailedGround` is a cosmetic coordinate/connector projection,
+not authority terrain or a procedural river generator.
+[Rich background composition](rich-background.md) owns the full woodland plan
+retained by the menu and its before/after evidence; [horizontal-board framing](horizontal-board.md#presentation-contract)
+owns the successor live-match composition.
 
-- Every rendered lattice cell has exactly one floor; the current family
-  distribution and authored route layout are owned by
-  [rich background composition](rich-background.md#what-is-composed).
+- Every rendered lattice cell has exactly one floor; family distribution uses
+  the cosmetic `DetailedGround` projection. Composition owners linked above
+  define which routes and decoration are installed in each view.
 - Passive clearing decoration samples the installed ribbon triangles for local
   contact. Buildings, plots, home/defender, combat units and projectile origins
   keep their original supporting heights/centers/scales. This ground integration
@@ -62,9 +63,10 @@ runs, smaller ground patches, instanced woodland and before/after evidence.
 The original flat-top radius 2.55 is converted through the **existing** +90°
 Godot-Y rotation and `VillageLayout.TerrainScale`, retaining the pointy lattice
 and ordering. `VillageLayout.GroundTransform` uses `DetailedGround.Elevation`
-for cosmetic floor/ribbon heights; `VillageLayout.Height` retains the original
-structure/combat surface mapping. Base and overlay share the exact transform
-origin and scale; connector turns add positive multiples of 60° about Godot Y. Edge 0
+for the full woodland floor/ribbon heights; `VillageLandscape.GroundTransform`
+applies the match district's elevation policy. `VillageLayout.Height` retains
+the settlement structure surface mapping. Base and overlay share the exact
+transform origin and scale; connector turns add positive multiples of 60° about Godot Y. Edge 0
 therefore faces west on this lattice. Matching ports are straight edge midpoints,
 not vertices. No extra vertical bias, priority, disabled depth test or water-above-
 occupant rendering is used. Source base top is zero, bottom −0.36; path/river
@@ -73,9 +75,9 @@ minimum clearance is 0.006 source units (about 0.00408 world units).
 **The old recessed stream is not elevation-compatible.** This consumer removes
 its bridge instance's tagged recessed stream, three foam groups, waterfall and
 old scatter-grass mesh before adding the new floor/ribbon. It does not retain a
-hidden competing floor. The bridge timbers, deck, supports, props, position and
-scale remain imported and unchanged; the surface water is below the deck with
-ordinary depth testing. Original bridge/stream export bytes and unrelated
+hidden competing floor. The bridge timbers, deck, supports, props and scale remain
+imported and unchanged; its placement follows the selected composition. Surface
+water is below the deck with ordinary depth testing. Original bridge/stream export bytes and unrelated
 recessed compositions are untouched. The old meadow/stream stay registered for
 existing import/fidelity regressions, but neither is live village terrain.
 There is no new-to-old water transition, crossing/junction, volumetric water or
@@ -97,8 +99,12 @@ clearance. These are consumer rendering buffers, not source-grep assertions or
 external temporary SceneTree probes. Existing vertex/material/normal/UV and
 negative corruption regressions remain mandatory.
 
-The existing `Countryside` assertions, shared by ordinary source and exported UI
-checks, require actual installed five-family bounds, one floor per cell, continuous
+The `Countryside`/launcher descriptions below record checks from the original
+shared menu/city composition, not qualification of the successor match layout.
+Current layout coverage and limitations belong to [horizontal-board verification](horizontal-board.md#coverage-admission-and-receipts).
+
+Those `Countryside` assertions, shared by source and exported UI checks, require
+actual installed five-family bounds, one floor per cell, continuous
 surface-water ports and full edge profiles, no recessed bridge water, joined live
 dirt corners/ends and positive clearance, grounded decorations and instanced
 scatter with plot/route clearance, unchanged building centers, menu/city

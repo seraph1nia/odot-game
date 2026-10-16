@@ -8,19 +8,19 @@
 This follows the [detailed-ground consumer](detailed-ground.md), not an asset
 inventory refresh. `DetailedGround`, `VillageLayout.GroundTransform` and
 `VillageLandscape` still own the cosmetic lattice, placements and rendering.
-Menu and city views use the same consumer. No GLB, embedded map, import sidecar,
-manifest, existing asset ID, dependency lock or asset-repository file changed.
+Menu and match views use that consumer with different composition modes. No GLB,
+embedded map, import sidecar, manifest, existing asset ID, dependency lock or
+asset-repository file changed.
 Normal Godot import also supplied the previously missing C# source UID sidecar
 for `NativeBoundaryControls.Receipt.cs`; it is retained as required source-import
 metadata, not an art/asset change.
 
 ## What is composed
 
-The following describes the authored composition plan. [Compact battlefield
-framing](view-renderer-worldtree.md#battlefield-framing) owns the current city-view
-coverage and decorative visibility boundary; the menu retains full-background
-coverage. Plan cell counts below do not mean every cell is emitted in the compact
-battlefield.
+The following describes the full woodland composition retained by the menu, with
+viewport-derived full-background coverage. The live match's successor composition
+and coverage are owned by [horizontal-board framing](horizontal-board.md#presentation-contract);
+the routes, scatter and plan cell counts below do not describe its building district.
 
 - Weighted coordinate-only patches give the woodland many smaller irregular
   sections, interleaving moss, pine duff, leaf litter and grassy openings. Patch
