@@ -2,19 +2,10 @@
 
 ## Battlefield framing
 
-The current [horizontal-board framing and combat-start parity](horizontal-board.md)
-extends this content-fitting seam: the focused district is left of a river and the
-same physical arena used by its preview, with horizontal pointy-top rows and a
-measured resource-ledger safe lane. The receipts below describe the earlier
-compact-frame/renderer implementation, not final qualification of the new layout.
-
-Settlement framing uses `BattlefieldFrame` to fit the nine buildable plots,
-army homes, next-wave preview, home/defender silhouettes and actual building
-bounds, retaining upgraded-roof allowance. This content box replaces the former
-padded X/Z box without altering Game.Core topology, allocation, routes, selection
-or economy. The connected combat/deployment view has a separate content owner;
-see [shared-arena framing and presentation](shared-arena.md#native-presentation).
-Camera fitting reserves the right-side HUD/inspection lane and bottom HUD.
+[Horizontal-board framing and combat-start parity](horizontal-board.md#presentation-contract)
+owns current settlement/arena content fitting and HUD-safe camera bounds. The
+receipts below describe the earlier compact-frame/renderer implementation, not
+final qualification of the new layout.
 
 The settlement's passive terrain covers a fixed content-derived region,
 not a growing camera-footprint plus double-travel envelope. A separate opaque,

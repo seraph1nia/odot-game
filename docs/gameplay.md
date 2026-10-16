@@ -93,7 +93,10 @@ Walls, general field/city healing, save recovery, host migration, server restart
 
 The bottom panel keeps city resources/health/army and inspection tabs on the left, selected building details/costs in the middle, and match controls on the right. Start is available to the original playing host in a hosted lobby (or connected players on a dedicated server); Ready/Unready and Pause/Resume follow the authoritative phase. Connection and rejection messages appear along the bottom. A disconnected window offers Reconnect to my city; a synchronized resume retains the city and starts with no selected plot. Expired credentials expose the fresh-session lobby action. Fallen players can inspect all cities and pause/resume; victory/defeat remains visible to the entire roster.
 
-![Research Tower research, terrace plots and current resource stocks](images/source-building.png)
+The retained captures below predate the [horizontal-board layout](horizontal-board.md);
+they illustrate earlier controls and assets, not the current board arrangement.
+
+![Research Tower research, terrace plots and resource stocks](images/source-building.png)
 
 ![Observed level-two Catapult with structural base](images/source-upgraded-tower.png)
 
