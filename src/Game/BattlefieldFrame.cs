@@ -52,6 +52,21 @@ internal static class BattlefieldFrame
         camera.Size = Math.Max((maxY - minY + 1.2f) * size.Y / usable, (maxX - minX + 1.2f) * size.Y / width);
         target = center + right * ((minX + maxX) / 2 + camera.Size * rightLane / 2 / size.Y) + up * ((minY + maxY) / 2 + camera.Size * (chrome - hud) / size.Y / 2);
         camera.Position = target + direction * 45; camera.LookAt(target);
+        // Orthographic framing can grow beyond the fixed camera distance in
+        // portrait. Keep the entire surround height range inside the clip planes;
+        // retreating along the view axis changes depth, not screen composition.
+        float nearest = float.PositiveInfinity, farthest = float.NegativeInfinity;
+        foreach (Vector2 pixel in new[] { Vector2.Zero, size })
+            foreach (float height in new[] { Ground, Roof })
+            {
+                Vector3 start = camera.ProjectRayOrigin(pixel), ray = camera.ProjectRayNormal(pixel);
+                Vector3 hit = start + ray * ((height - start.Y) / ray.Y);
+                float depth = (camera.GlobalPosition - hit).Dot(camera.GlobalBasis.Z);
+                nearest = Math.Min(nearest, depth); farthest = Math.Max(farthest, depth);
+            }
+        float retreat = Math.Max(0, camera.Near + 1 - nearest);
+        camera.Position += direction * retreat;
+        camera.Far = Math.Max(camera.Far, farthest + retreat + 1);
     }
     internal static Rect2 GroundRect(Aabb box) => new(new Vector2(box.Position.X, box.Position.Z), new Vector2(box.Size.X, box.Size.Z));
     internal static Rect2 Footprint(Camera3D camera, Rect2 viewport)

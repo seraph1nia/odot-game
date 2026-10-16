@@ -51,6 +51,18 @@ public partial class EngineTests
                 BattlefieldFrame.FitCamera(camera, content, origin, viewport.Size, hud, rightLane: 408);
                 Rect2 world = BattlefieldFrame.GroundRect(content); world.Position += new Vector2(origin.X, origin.Z);
                 navigation.Fit(world, viewport, true); navigation.Reset();
+                // A 2D opaque footprint can still pass while the near plane cuts
+                // through the raised cloud backstop (the portrait green-strip defect).
+                // Native ray/depth checks are cheaper than a graphical journey;
+                // keep both surround heights inside the actual clipping range.
+                foreach (Vector2 pixel in new[] { viewport.Position, viewport.End })
+                    foreach (float height in new[] { BattlefieldFrame.Ground, BattlefieldFrame.Roof })
+                    {
+                        Vector3 start = camera.ProjectRayOrigin(pixel), ray = camera.ProjectRayNormal(pixel);
+                        Vector3 hit = start + ray * ((height - start.Y) / ray.Y);
+                        float depth = (camera.GlobalPosition - hit).Dot(camera.GlobalBasis.Z);
+                        Check(depth >= camera.Near && depth <= camera.Far, "entire cloud/backstop height range survives native near/far clipping at " + size);
+                    }
                 Rect2 safe = new(new Vector2(0, 64), new(viewport.Size.X - 408, viewport.Size.Y - hud - 64));
                 foreach (int corner in Enumerable.Range(0, 8))
                     Check(safe.Grow(1).HasPoint(camera.UnprojectPosition(content.GetEndpoint(corner) + origin)), "landscape arrangement fits all actionable content outside top/right/bottom UI at " + size);
