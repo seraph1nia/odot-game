@@ -115,7 +115,11 @@ internal sealed partial class Runner
         env["DISPLAY"] = null; env["WAYLAND_DISPLAY"] = null; env["XAUTHORITY"] = null;
         env["DBUS_SESSION_BUS_ADDRESS"] = null;
         bool nativeVulkan = name == "atmosphere" && options.Renderer == "forward-plus";
-        env["LIBGL_ALWAYS_SOFTWARE"] = nativeVulkan ? null : "true"; env["LP_NUM_THREADS"] = nativeVulkan ? null : "2";
+        env["LIBGL_ALWAYS_SOFTWARE"] = nativeVulkan ? null : "true";
+        // Runner-local workaround for observed llvmpipe raster-worker stack
+        // corruption (two-plane opcode with a five-plane mask). Use synchronous
+        // software rasterization, retaining all drawing and acceptance checks.
+        env["LP_NUM_THREADS"] = nativeVulkan ? null : "0";
         env["ODOT_UI_WORKER"] = workerToken; env["ODOT_UI_RUNTIME"] = display.Directory;
         var args = new List<string> { "xvfb-run", "--auto-servernum", "--auth-file", Path.Combine(display.Directory, "xauthority"),
             "--error-file", Path.Combine(display.EvidenceDirectory, "xvfb.log"), "--server-args=-screen 0 1920x1080x24 -nolisten tcp",

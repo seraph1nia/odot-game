@@ -136,7 +136,10 @@ internal sealed partial class Runner
                     case "defeat": await worker.Defeat(owned.Port(), token); break;
                     case "failure-cases": await worker.FailureCases(token); break;
                     case "solo-session": await worker.SoloSessionTest(token); break;
-                    case "playing-host-lifecycle": await worker.PlayingHostLifecycleTest(owned.Port(), token); break;
+                    case "playing-host-lifecycle":
+                        if (Environment.GetEnvironmentVariable("ODOT_FINAL_DRAFT_VERIFY") == "1") await worker.FinalDraftWitness(token);
+                        else await worker.PlayingHostLifecycleTest(owned.Port(), token);
+                        break;
                 }
                 await owned.DisposeAsync(); owned.CheckErrors();
             }))).ToArray();

@@ -145,6 +145,12 @@ public partial class Tabletop : Node3D
         Application.ObserveControl(targets, "UpkeepTable", _compactUpkeep);
         if (_detailsDialog.Visible) Application.ObserveControl(targets, "CloseDetails", _detailsDialog.GetOkButton());
         fields["DetailsOpen"] = DetailsOpen;
+        Application.ObserveControl(targets, "RunProgression", _openRun);
+        fields["RunOpen"] = _runDialog.Visible;
+        fields["RunText"] = _runDialog.Content.FindChildren("*", "Label", true, false).OfType<Label>().Select(l => l.Text).ToArray();
+        foreach (Button choice in _runDialog.Choices)
+            Application.ObserveControl(targets, "Run_" + choice.GetParent().GetParent().Name, choice);
+        Application.ObserveControl(targets, "CloseRun", _runDialog.GetOkButton());
         ObserveResearch(targets);
         ObserveArmy(fields, targets);
         fields["StatusBadges"] = _units.Values.Where(v => v.Visible && v.StatusBadge.Length > 0).ToDictionary(v => v.State.Id, v => v.StatusBadge);

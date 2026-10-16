@@ -199,6 +199,8 @@ internal sealed record UiObservation
     public string DetailText { get; init; } = "";
     public string DetailsText { get; init; } = "";
     public bool DetailsOpen { get; init; }
+    public bool RunOpen { get; init; }
+    public string[] RunText { get; init; } = [];
     public ArmyState? ArmyHomes { get; init; }
     public string[] HomeMarkers { get; init; } = [];
     public string[] WorldLabels { get; init; } = [];
