@@ -17,11 +17,14 @@ One owner per topic, rather than competing copied policies:
 ## Roguelite milestone 1 evidence (2026-10-15)
 
 Implementation scope and exact rules are in [roguelite](roguelite.md); the
-[ownership map](roguelite-plan.md) identifies the canonical seams. Protocol is
-now **16 / combat rules 7 / battle flow 3**. The native dialog is a production
-woodland `UiDialog`/Button consumer, not a verification-only screen. This receipt
-qualifies numerical, component and selected transport boundaries, **not rendered
-appearance, physical controller usability, GPU, real Steam or Windows acceptance**.
+[ownership map](roguelite-plan.md) identifies the canonical seams; [session
+ownership](sessions.md) owns compatibility versions. The native dialog is a production
+woodland `UiDialog`/Button consumer, not a verification-only screen. The initial
+2026-10-15 receipt below predates the review and verification-adapter repairs; its
+counts are historical, not final-head coverage. It qualifies numerical, component
+and selected transport boundaries, **not rendered appearance, physical controller
+usability, GPU, real Steam or Windows acceptance**. The later local hardware receipt
+is recorded separately below.
 
 | Check | Executed coverage | Evidence / result |
 | --- | --- | --- |
@@ -41,7 +44,9 @@ eligibility walks, all nineteen real Match draft transitions/sixty settlements,
 negative ownership/stale/paused/duplicate/null-action guards, bounded doctrine
 preview and atomic rejected-start allocation, zero-connected
 fallback, detached/malformed codec states, independent/reproducible seed streams,
-exact authored encounter budget and optional ordering disable. Controlled combat
+exact authored encounter budget and the then-present ordering-disable option.
+That option was subsequently removed; the current authored-budget comparison
+uses the campaign definition directly, as specified in [roguelite rules](roguelite.md#seeded-encounter-boundary-and-compatibility). Controlled combat
 poses test one-action Warhorn, pre-impact Conduit/within-squad splash, actual-hit
 Ashen/Poison coexistence, lethal simultaneous and refreshed periodic potency
 credit after source death, Keep Roots at actual same-tick Watchpost destruction,
@@ -63,12 +68,57 @@ satisfied the old research witness too early; admission now requires purchased
 Fire plus owned Mage potency, with a focused driver regression. No deadlines,
 retry counts, production count, enemy tuning, locks or graphical CI gates changed.
 
-Unexecuted for this milestone: unfiltered deep qualification, the other retained
-specialist network scenarios, package/export/installed acceptance, graphical
-screenshots/controller journeys, native GPU, Windows/macOS and multi-account
-Steam invitations. Updated specialist progression drivers are not passes merely
-because they compile. Existing historical evidence below remains scoped to its
-original source, rules and inputs.
+At that initial checkpoint, graphical and native-GPU journeys were unexecuted.
+Updated specialist progression drivers are not passes merely because they compile.
+Existing historical evidence below remains scoped to its original source, rules
+and inputs.
+
+### Review and local hardware follow-up (2026-10-16)
+
+Retained evidence root for this gate is
+`/home/bart/.no-mistakes/evidence/01M51SPXW3F3MKCATXEB8M6QDT/`.
+`round6-receipt.json` binds selected checks to source `8692e71`: 96 Core and 110
+runner cases; settings/camera, receiving and arena components; ordinary
+playing-host lifecycle and paid Fire/Mage status resume; and paid final-draft
+ENet campaigns for all four roster sizes. The final-draft journeys check A04/R04
+absence and explicit refusal with unused stack/relic capacity, the connected
+barrier and absent-player fallback, without a fourth settlement. These are
+selected regressions, not an unfiltered suite or every card acquired live.
+
+At exact clean source **`76e6a3bb441ec1df61e6391731ca34ee80fe0a96`**,
+`round10-committed-gpu/source-receipt.json` and `receipt.json` bind source, binary
+hashes, actual renderer and owned-window identity to three passed source journeys:
+
+| Journey | Coverage | Owned journey time |
+| --- | --- | ---: |
+| Solo smoke | Real menu → Lobby → Start, paid Farm/Barracks/Metal Mine, production/recruitment, return and Exit | 27.65s |
+| Six doctrines | All six native selections and exact starting allocations, fresh sessions, locked inspection resized to 1280×720 | 44.80s |
+| Earned campaign | Paid seed-1 twenty-wave victory, nineteen native drafts, sixty settlements, all twenty forecast/entry comparisons, locked doctrine, Escape/keyboard reopening and invalid/duplicate refusals | 50.93s |
+
+Every retained GPU journey authenticates **Forward+ / Vulkan RenderingDevice,
+AMD Radeon RX 6800 (RADV NAVI21), DiscreteGpu, X11, Windowed**, and the owned
+child PID/native window. The receipt includes game-only PNG/JSON pairs and records
+visual review of the solo frame, resized doctrines and final draft. Owned processes
+exited and runtime data was removed. Eleven adapter-boundary regressions passed
+with no skips at that head; earlier numerical/headless/ENet evidence was preserved,
+not rerun or counted as fresh. [Renderer verification](atmosphere.md#verification-and-visual-evidence)
+owns the explicit hardware command selection; hosted CI remains headless and
+GPU-independent. Dummy audio and synthetic input do not qualify listening,
+physical controllers, general GPU performance or other hardware/platforms.
+
+**Software-renderer reliability remains unresolved.** Retained llvmpipe SIGSEGV
+and malformed command-bin traversal occurred even with `LP_NUM_THREADS=0`.
+`round5-renderer/retained-bins.txt`, `revalidation-native-crash-backtrace.txt` and
+`round6-receipt.json` retain the failure and diagnosis limits. Later software
+passes and this separately authorized hardware acceptance do not establish a
+Mesa fix. Product rendering defaults, software-lane assertions and CI protections
+were not relaxed to obtain the hardware result.
+
+Still unexecuted for this milestone: unfiltered deep qualification, specialist
+network scenarios outside the recorded selections, package/export/installed
+acceptance, Windows/macOS, physical controller/audio and multi-account Steam
+invitations. The hardware receipt qualifies only the tested local environment,
+not a release, hosted graphical CI or other renderers.
 
 ## CI coverage
 
@@ -205,7 +255,7 @@ final-head verification belongs to the outer validation phases.
 ## Shared arena recovery
 
 [Shared arena](shared-arena.md) owns current actors, objectives, native controls,
-woodland styling and protocol15/rules7/flow2. [Paid baselines](paid-squad-baselines.md)
+woodland styling; [session ownership](sessions.md) owns current compatibility. [Paid baselines](paid-squad-baselines.md)
 retain pre-rebalance full-six Crossbow arithmetic survival, the owner-deferred
 paid ranged openings, ten genuine solo wins and the finite1..4owner cooperative
 sample. [Wave power](wave-power.md#headless-encounter-evidence) owns the current

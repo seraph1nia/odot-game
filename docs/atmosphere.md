@@ -277,7 +277,7 @@ Initialization/shader/rendering errors fail. No desktop/display-server fallback,
 profile modification, driver installation or machine reconfiguration is performed.
 It is separate from required CI until a suitable runner is qualified.
 
-Each command captures eight fixed 1100×820 views: menu landscape, village overview,
+Without a selected smoke checkpoint, each command captures eight fixed 1100×820 views: menu landscape, village overview,
 zoomed forest, river/bridge, misty morning, rain, evening and active first-wave
 combat. The cosmetic clock is fixed at 12 seconds, particles use fixed seeds and
 native seek/freeze, and combat uses ordinary paid construction/recruitment and a
@@ -290,6 +290,32 @@ material continuity, clear silhouettes, legible health bars/UI, mist/rain/dusk
 readability and rigid-vs-foliage separation; initialization alone is not aesthetic
 proof. This does not claim native compositor/input/listening quality or FPS/VRAM
 benchmarks from software rendering or cumulative allocations.
+
+### Selected local roguelite GPU witnesses
+
+The source-only `test-vulkan --desktop --checkpoint smoke` adapter reuses the
+ordinary solo smoke instead of the eight scenic views. It requires the explicitly
+authorized **AMD Radeon RX 6800 (RADV NAVI21)**, actual Forward+/Vulkan, X11,
+Windowed mode and matching owned PID/native window; it refuses software/backend
+fallback. It does not accept `--exported`. With access to the already-authorized
+X11 session supplied only to these subprocesses, select one journey per command:
+
+```sh
+ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --desktop --checkpoint smoke
+ODOT_ALLOW_GRAPHICAL_TESTS=1 ODOT_ROGUELITE_VERIFY=1 ODOT_ROGUELITE_EXTRA=1 mise run test-vulkan --desktop --checkpoint smoke
+ODOT_ALLOW_GRAPHICAL_TESTS=1 ODOT_ROGUELITE_VERIFY=1 mise run test-vulkan --desktop --checkpoint smoke
+```
+
+The first is menu/Lobby/Start/build/recruit/return/Exit; the second drives six
+doctrines and resize; the third earns nineteen drafts and compares forecasts to
+all twenty combat entries. These verification-only environment selectors do not
+change ordinary `play` or CI. Existing Child/ScenarioScope ownership isolates
+preferences/runtime, uses silent audio and captures only the game viewport.
+Never copy authentication contents, persist session environment globally or alter
+display access controls. Missing session access is an unexecuted prerequisite,
+not permission to guess credentials or switch surfaces. [Current milestone
+evidence](verification.md#review-and-local-hardware-follow-up-2026-10-16) owns the
+exact-head hardware receipt and the separately unresolved llvmpipe failures.
 
 ## Requirement / milestone / evidence map
 

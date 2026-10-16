@@ -25,8 +25,8 @@ Read gameplay, shared-arena, session ownership and verification guidance before 
 ## Implementation complete
 
 The ordered implementation is present in Core, production Godot Controls and
-existing process drivers. Current wire identity is protocol 16 / rules 7 / flow 3.
-See [the complete player-facing rules](roguelite.md) and [actual verification
+existing process drivers. [Session ownership](sessions.md) owns current wire
+compatibility. See [the complete player-facing rules](roguelite.md) and [actual verification
 receipts](verification.md#roguelite-milestone-1-evidence-2026-10-15).
 
 - Six personal doctrines and all 36 fixed-value rewards are wired into live
@@ -36,17 +36,11 @@ receipts](verification.md#roguelite-milestone-1-evidence-2026-10-15).
   eligibility, one-choice state, presence-driven fallback and detached snapshots.
 - Seeded encounter variation intentionally permutes authored entry order at the
   exact existing numerical budget. `NextWave` remains the reusable canonical
-  forecast/combat-start projection; no board/camera/layout contract was changed.
+  forecast/combat-start projection; logical board and allocation contracts remain.
 - Native woodland doctrine/reward dialog, actual selection/ack binding, live
   descriptions/stacks/rarity/forecast, modal ownership and normal solo lobby
   choice are implemented. Headless solo/dev host/guest behavior remains intact.
-- Final fast checks: 795 core + 663 runner passed, two existing Windows-specific
-  runner skips; native receiving/arena components, three essential ENet cases,
-  selected purchased-Fire/reconnect transport and 22 complete paid C# campaigns
-  passed. No rendered/platform qualification is claimed.
 
 ## Verification scope
 
-Tier A owns exact 6/36 values, caps/rounding/research interactions, start-once/city locality, all nineteen drafts/no final draft, exactly sixty settlements, offer/stream/variation invariants and negative authority/codec checks. Existing core fixtures and command/ledger seams are reused. Tier B instantiates actual native dialog Controls and observes signals/commands without rendering claims. Tier C uses existing Child/Scenarios ownership for bounded real ENet disconnect/reconnect convergence. Preserve failures under ignored logs; record actual commands/results here rather than claim unexecuted coverage.
-
-Rendered aesthetics/readability, physical controller/native desktop journeys, GPU, real Steam invitations and Windows platform acceptance are not headless proof and remain unexecuted locally. No graphical/full-game optional tests, tool installation or asset acquisition is authorized.
+Tier A owns exact 6/36 values, caps/rounding/research interactions, start-once/city locality, all nineteen drafts/no final draft, exactly sixty settlements, offer/stream/variation invariants and negative authority/codec checks. Existing core fixtures and command/ledger seams are reused. Tier B instantiates actual native dialog Controls and observes signals/commands without rendering claims. Tier C uses existing Child/Scenarios ownership for bounded real ENet disconnect/reconnect convergence. Preserve failures in owned evidence; [verification](verification.md#roguelite-milestone-1-evidence-2026-10-15) owns executed receipts and remaining qualification, including the separately authorized local GPU journeys. Headless checks alone do not establish rendered, physical-input or platform acceptance.

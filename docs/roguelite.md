@@ -8,7 +8,8 @@ not presentation-only bonuses. No meta-progression or cross-match save is added.
 
 ## Choose a doctrine
 
-Open the woodland **Doctrine / rewards** control in the lobby. Six native cards
+Open the woodland doctrine control in the lobby, labelled with the selected
+doctrine (**The Warden** by default). Six native cards
 show crest, category, benefits and drawback; **Choose** sends an authoritative
 personal selection. The roster shows each owner's selection. The original host
 still owns hosted Start. Graphical solo now waits for Start too, so its doctrine
@@ -32,6 +33,9 @@ Merchant applies once per transaction, not once per bundle, Market or owned
 building. Failed sales consume no bonus. Doctrine equipment surcharges apply per
 recruited member at every tier; authoritative quotes include them. Grovekeeper's
 city bonuses are separate from the per-building production cards below.
+`RunCatalog.Doctrines` in [`Roguelite.cs`](../src/Game.Core/Roguelite.cs) owns the
+configurable numeric definitions; allocation, quotes, production, Market proceeds
+and native descriptions consume them rather than independent UI balancing values.
 
 ## Earn and choose rewards
 
@@ -82,13 +86,21 @@ already full. Future recruit/unlock passives remain meaningful without the
 matching building today; they don't grant free buildings or bypass unlocks.
 Ancient Codex requires at least two remaining clears. Iron Harvest requires at
 least one remaining wave with three enemy members across the original roster;
-kills cannot accumulate across waves. Offers, selection and absent-player fallback
-use these same campaign-aware checks.
+kills cannot accumulate across waves. Arcane Barrage and Crystal Prism require
+at least one remaining enemy squad capable of containing more than one member,
+using the configured squad capacity and homogeneous nonboss membership. Separate
+single-member bosses never supply splash targets, even with multiple owners;
+therefore neither card is eligible after wave 19 in the default campaign.
+Offers, selection and absent-player fallback use these same campaign-aware checks.
+`RunRewardTests.SecondaryRewardsRequireRemainingSquadTargetsForOffersSelectionAndFallback`
+covers earlier-wave acceptance and final-draft refusal for all roster sizes.
 If an offer pool cannot supply three distinct eligible cards, fail visibly rather
 than silently duplicate or invent cards. Default finite runs retain three offers.
 
-All same-stat run percentages **add before one scale**, rather than multiply per
-card. Research foundation is the existing prior stage. HP, damage and periodic
+Persistent and enabled impact-time same-stat percentages **add before one scale**,
+rather than multiply per card: direct-damage research, doctrine/cards, Warhorn and
+pre-impact Conduit join that sum for each applicable channel. Research foundation
+is the existing prior stage; Watchpost-loss Rally reduction remains a later stage. HP, damage and periodic
 potency use checked integer hundredths with positive ceiling, bounded products
 and conversion; zero stays zero. Attack cadence reduces the **full cycle**, with
 windup and recovery both remaining positive. Existing soldiers retain absolute
@@ -178,9 +190,9 @@ and combat entry. Reconnect, choice arrival order and selected reward effects do
 not reroll the encounter. Presentation must map its canonical identities and
 coordinates; it must not assume a fixed roster or vertical world-space layout.
 
-Protocol **16 / combat rules 7 / battle flow 3** refuses incompatible peers; there
-is no saved-run migration or server-restart recovery. Catalogs participate in
-rules identity. No dependency, asset provenance, tool lock or renderer changes
-accompany this milestone. See [verification](verification.md)
-for exact executed coverage and the explicitly unexecuted graphical/platform
-acceptance boundary.
+[Session compatibility](sessions.md) owns wire/rules/flow versions and incompatible
+peer refusal; there is no saved-run migration or server-restart recovery. Catalogs
+participate in rules identity. No dependency, asset provenance, tool lock or product
+renderer-default changes accompany this milestone. See [verification](verification.md)
+for exact executed coverage, local GPU acceptance and remaining software-renderer,
+platform and physical-input limitations.
