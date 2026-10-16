@@ -1,5 +1,13 @@
 # Testing overhaul audit and coverage ledger (2026-10-11)
 
+## Horizontal board and combat-start projection admission (2026-10-15)
+
+[Horizontal-board verification](horizontal-board.md#coverage-admission-and-receipts)
+owns the successor Tier A/B coverage, costs, mismatch/counterfactuals, failures and
+receipts. Its [unexecuted qualification](horizontal-board.md#explicit-unexecuted-qualification)
+limits those receipts; earlier preview-routing and scenery receipts below remain
+historical, not acceptance of the current layout.
+
 ## Inputs and limits
 
 Audited baseline `d7f1728`, equal to actual `origin/main` at task start (not the

@@ -12,9 +12,8 @@ internal sealed class CombatLayout(HexBoard board)
     private readonly Dictionary<int, Vector3> _formations = []; // Cosmetic offsets only; reset per match/playback layout.
     internal static Vector3 ArenaOrigin => Convert(SharedCombatProjection.Origin);
     private static Vector3 Convert(System.Numerics.Vector3 point) => new(point.X, point.Y, point.Z);
-    private Dictionary<int, Vector3> _preview = [];
-    internal void SetPreview(UnitState[] manifest) => _preview = NextWaveFormation.Positions(manifest);
-    public static Vector3 Center(int city) => new((city - 1) * 40, 0, 0);
+    internal static Vector3 DistrictOrigin(MatchSnapshot state)
+        => Convert(SharedCombatProjection.DistrictOrigin(state.Arena!.Board));
     internal Vector3 CellPosition(int id) => Convert(SharedCombatProjection.CellPosition(board, id));
     internal void Synchronize(MatchSnapshot state)
     {
@@ -35,7 +34,6 @@ internal sealed class CombatLayout(HexBoard board)
     private Vector3 Formation(UnitState unit) => Convert(SharedCombatProjection.Formation(unit.FormationSlot, _capacity, unit.IsBoss));
     public Vector3 Position(UnitState unit, double tick)
     {
-        if (unit.Id < 0 && _preview.TryGetValue(unit.Id, out Vector3 preview)) return preview;
         HexUnitState hex = unit.Hex ?? throw new ArgumentException("Combat models require hex state.", nameof(unit));
         return Pose(hex, tick) + Formation(unit);
     }

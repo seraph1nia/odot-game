@@ -125,7 +125,7 @@ public static class DetailedGround
     public static IEnumerable<(int Column, int Row, GroundConnector Connector)> Watercourse() => WaterRoute;
     public static IEnumerable<(int Column, int Row, GroundConnector Connector)> BankTrail() => BankRoute;
     public static IEnumerable<(int Column, int Row, GroundConnector Connector)> WoodlandTrail() => WoodlandRoute;
-    private static IEnumerable<(int Column, int Row, GroundConnector Connector)> Route(GroundOverlay family, (int Column, int Row)[] cells)
+    internal static IEnumerable<(int Column, int Row, GroundConnector Connector)> Route(GroundOverlay family, (int Column, int Row)[] cells)
     {
         for (int i = 0; i < cells.Length; i++)
         {

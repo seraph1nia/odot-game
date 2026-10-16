@@ -81,7 +81,8 @@ internal sealed partial class CombatSimulation : IDisposable
         CombatUnit? compatible = living.FirstOrDefault(u => u.Faction == member.Faction && u.Owner == member.Owner && u.Type == member.Type
             && !u.Identity.IsBoss && !member.Identity.IsBoss && u.SquadId > 0 && _squads.ContainsKey(u.SquadId)
             && (member.Faction == Faction.Adventurers ? member.Assignment is { Stored: false } && u.Assignment == member.Assignment
-                : u.Destination == member.Destination && u.Origin == member.Origin && _squads[u.SquadId].Location.Lifecycle == UnitLifecycle.Queued)
+                : BattleDeployment.CompatibleEnemy(member.Type, member.Origin, member.Destination, member.Identity.IsBoss,
+                    u.Type, u.Origin, u.Destination, u.Identity.IsBoss) && _squads[u.SquadId].Location.Lifecycle == UnitLifecycle.Queued)
             && living.Count(m => m.SquadId == u.SquadId) < _configuration.Arena.SquadCapacity);
         if (compatible is not null) return compatible.SquadId;
         int id = _nextSquadId++; _squads.Add(id, NewSquad(id, member)); return id;
@@ -378,7 +379,7 @@ internal sealed partial class CombatSimulation : IDisposable
             .Concat(_squads.Values.Select(s => s.Action).OfType<CombatAction.Moving>().Select(m => m.Destination.Cell)).ToHashSet();
         foreach (CombatSquad squad in _squads.Values.Where(s => s.Location.Lifecycle == UnitLifecycle.Queued).ToArray())
         {
-            int cell = _arena.EnemyCells(squad.Destination).FirstOrDefault(c => !occupied.Contains(c));
+            int cell = BattleDeployment.Entry(_arena.EnemyCells(squad.Destination), occupied);
             if (cell == 0) continue;
             occupied.Add(cell); _squads[squad.Id] = squad with { Location = new(UnitLifecycle.Alive, new(cell, 1), _tick) };
             foreach (CombatUnit member in Living().Where(u => u.SquadId == squad.Id)) Unit(member.Id) = member with { Location = new(UnitLifecycle.Alive, default) };

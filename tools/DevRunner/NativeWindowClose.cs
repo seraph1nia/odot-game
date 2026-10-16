@@ -2,13 +2,13 @@ using System.Runtime.InteropServices;
 
 namespace DevRunner;
 
-// Xlib's Linux x86_64 layout, used only on the supervisor-owned display.
-// The observed main window and PID property identify the child; titles are never matched.
+// Xlib's Linux x86_64 layout. Private displays by default; explicit desktop
+// Vulkan permits focus/resize of the observed owned PID/window only, never discovery.
 internal static class NativeWindowClose
 {
     public static void Resize(Child child, Options options, ulong window, uint width, uint height)
     {
-        PrivateDisplay.ValidateWorker(options);
+        ValidateFocusOrResize(options);
         if (child.HasExited || window == 0) throw new InvalidOperationException("Owned child has no live observed window.");
         nint display = XOpenDisplay(0);
         if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");
@@ -23,16 +23,18 @@ internal static class NativeWindowClose
         }
         finally { _ = XCloseDisplay(display); }
     }
-    public static void Focus(Child child, Options options, ulong window)
+    private static void ValidateFocusOrResize(Options options)
     {
         if (options.DesktopSurface)
         {
             if (options.Command != "test-vulkan" || !OperatingSystem.IsLinux() || string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")))
-                throw new InvalidOperationException("Desktop focus requires the explicit authorized windowed Vulkan command.");
-            // This single focus operation is restricted below to the observed
-            // live child PID. Resize/close/defocus remain private-display-only.
+                throw new InvalidOperationException("Desktop focus/resize requires the explicit authorized windowed Vulkan command.");
         }
         else PrivateDisplay.ValidateWorker(options);
+    }
+    public static void Focus(Child child, Options options, ulong window)
+    {
+        ValidateFocusOrResize(options);
         if (child.HasExited || window == 0) throw new InvalidOperationException("Owned child has no live observed window.");
         nint display = XOpenDisplay(0);
         if (display == 0) throw new InvalidOperationException("Cannot open the owned X11 display.");

@@ -2,27 +2,10 @@
 
 ## Battlefield framing
 
-Settlement framing uses `BattlefieldFrame` to fit the nine buildable plots,
-army homes, next-wave preview, home/defender silhouettes and actual building
-bounds, retaining upgraded-roof allowance. This content box replaces the former
-padded X/Z box without altering Game.Core topology, allocation, routes, selection
-or economy. The connected combat/deployment view has a separate content owner;
-see [shared-arena framing and presentation](shared-arena.md#native-presentation).
-Camera fitting reserves the right-side HUD/inspection lane and bottom HUD.
-
-The settlement's passive terrain covers a fixed content-derived region,
-not a growing camera-footprint plus double-travel envelope. A separate opaque,
-unshaded grey perimeter uses continuous exterior slabs and overlapping cloud
-lobes, independently of renderer, weather and atmospheric-effects preferences.
-Outside decorative scatter is excluded; the four magical accents remain inside
-real compact terrain and the existing accent rig refreshes their moved sites.
-No artwork was imported or edited; the pinned assets and provenance remain intact.
-
-All settlement navigation paths share a clamp: full native projection at ground/roof heights
-must stay within the perimeter envelope, the view-center ground point must stay
-inside the cloud bank, and local travel stays bounded. Resize/HUD/content refits
-rebuild that envelope. Zoom-out stops at the fitted overview, rather than exposing
-more dead terrain. This is presentation framing, not deletion of combat space.
+[Horizontal-board framing and combat-start parity](horizontal-board.md#presentation-contract)
+owns current settlement/arena content fitting and HUD-safe camera bounds. The
+receipts below describe the earlier compact-frame/renderer implementation, not
+final qualification of the new layout.
 
 [Worldtree controls and details](worldtree.md#reachable-game-feature) owns the HUD
 balance, single details surface and pointer/keyboard purchase route; its

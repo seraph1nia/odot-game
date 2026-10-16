@@ -205,9 +205,12 @@ Town Hall storage/return and retirement. All actions use the normal session comm
 and accepted snapshot path. Roster focus survives ordinary authoritative updates;
 no optimistic member appears before acknowledgment. [Army-home restoration](gameplay.md#purchased-army-homes-and-town-hall-rotation)
 owns accepted cleanup-time edits, persistent eligibility, retained physical claims
-and the final settlement barrier. Allies can be inspected but not edited. Deployment toggles between the settlement and the connected arena;
-select an owned squad, close the panel, then pick an empty highlighted purchased
-home. Combat presents all owners together, with local camera navigation only.
+and the final settlement barrier. Allies can be inspected but not edited.
+Deployment focuses the arena; select an owned squad, close the panel, then pick
+an empty highlighted purchased home. Combat presents all owners together, with
+local camera navigation only. [Horizontal-board projection and verification](horizontal-board.md)
+owns the preparation layout, combat-start parity and camera contract, including
+unexecuted rendered acceptance.
 
 `SharedArenaView` owns physical imported Keeps, Watchposts and purchased towers,
 owned tiles and objective overlays; `MemberHealthBars` owns member controls.

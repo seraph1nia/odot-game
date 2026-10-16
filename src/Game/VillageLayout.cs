@@ -6,13 +6,22 @@ namespace Game;
 internal static class VillageLayout
 {
     public const float HalfWidth = SharedCombatProjection.HalfWidth;
-    public const float Radius = 1.1547005f * HalfWidth;
+    public const float Radius = SharedCombatProjection.Radius;
     public const float RowStep = SharedCombatProjection.RowStep;
     public const float TerrainScale = Radius / 2.55f;
     public const int RiverRow = 5;
     public const int BridgeColumn = 1;
     public static float Height(int column, int row) => row == RiverRow ? -.03f : row >= 4 ? .18f : row >= 3 ? .09f : 0;
-    public static Vector3 Hex(int column, int row) => new(column * HalfWidth * 2 + (Math.Abs(row) % 2) * HalfWidth, Height(column, row), row * RowStep);
+    public static Vector3 Hex(int column, int row)
+    {
+        System.Numerics.Vector3 p = SharedCombatProjection.Lattice(column, row);
+        return new(p.X, Height(column, row), p.Z);
+    }
+    internal static Vector3 Corner(int corner, float scale = 1)
+    {
+        System.Numerics.Vector3 p = SharedCombatProjection.Corner(corner, scale);
+        return new(p.X, p.Y, p.Z);
+    }
     public static float Surface(Vector3 point)
     {
         int row = (int)Math.Round(point.Z / RowStep);
@@ -27,8 +36,7 @@ internal static class VillageLayout
     public static bool ContainsPoint(Vector3 center, Vector3 point)
     {
         Vector3 local = point - center;
-        float x = Math.Abs(local.X), z = Math.Abs(local.Z);
-        return x <= HalfWidth && z <= Radius - x / Mathf.Sqrt(3);
+        return SharedCombatProjection.Contains(new(local.X, local.Y, local.Z));
     }
     // Slab intersection returns distance along a normalized camera ray, including roofs.
     public static float? RayBounds(Vector3 origin, Vector3 direction, Aabb bounds)

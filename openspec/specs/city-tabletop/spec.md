@@ -84,7 +84,7 @@ The authoritative dedicated server and automated headless roles, including a pla
 
 ### Requirement: Medieval landscape and visible battles
 
-Each settlement SHALL retain nine stable purchased/locked hex plots, its authored woodland ground/river/bridge/terraces/props and existing economy interactions. Combat SHALL transition to one complete connected battle diorama for all owners, using the same woodland/tabletop palette. Keeps, forward Watchposts, purchased towers, owned squad formations and enemy groups SHALL be physically identifiable with non-color-only ownership/status cues. Arena ground SHALL have restrained authored grass/moss/earth variation and dressed exterior edges, while active hexes/routes remain open. Scenery SHALL never change topology, numerical capacity, damage or economy, obscure deployment/picking or act as an invisible obstacle. Keep/Watchpost state SHALL follow accepted authority updates. Purchased inactive towers SHALL not appear destroyed merely because the owner fell. No manual RTS controls, movable terrain or board folding SHALL be added.
+Each settlement SHALL retain nine stable purchased/locked hex plots and existing economy interactions. The [horizontal-board presentation contract](../../../docs/horizontal-board.md#presentation-contract) owns the current preparation arrangement, combat-start projection and camera framing. Combat SHALL use one complete connected battle diorama for all owners, using the same woodland/tabletop palette. Keeps, forward Watchposts, purchased towers, owned squad formations and enemy groups SHALL be physically identifiable with non-color-only ownership/status cues. Arena ground SHALL have restrained authored grass/moss/earth variation and dressed exterior edges, while active hexes/routes remain open. Scenery SHALL never change topology, numerical capacity, damage or economy, obscure deployment/picking or act as an invisible obstacle. Keep/Watchpost state SHALL follow accepted authority updates. Purchased inactive towers SHALL not appear destroyed merely because the owner fell. No manual RTS controls, movable terrain or board folding SHALL be added.
 
 #### Scenario: Enter a four-player battle
 - **WHEN** final preparation starts combat
@@ -98,8 +98,8 @@ Each settlement SHALL retain nine stable purchased/locked hex plots, its authore
 
 #### Scenario: Attractive empty starting village
 - **WHEN** a match starts with all nine plots empty
-- **THEN** the player sees a coherent authored woodland landscape with the home, defender, continuous river/bridge, wooded terraces, rocks and village props continuing beyond the visible world edges
-- **AND** five initially usable plots, four locked expansion plots and the battle approach remain distinguishable from scenery
+- **THEN** the player sees the preparation composition defined by the [horizontal-board presentation contract](../../../docs/horizontal-board.md#presentation-contract)
+- **AND** five initially usable plots, four locked expansion plots and the shared arena remain distinguishable from scenery
 
 #### Scenario: Watch a redistributed wave
 - **WHEN** a Keep falls during shared combat
@@ -357,11 +357,11 @@ Settlement coverage SHALL retain compact authored countryside and its opaque bou
 - **AND** Reset view restores the complete playable composition
 
 ### Requirement: Menu shares the starting countryside
-The start screen and multiplayer entry backdrop SHALL reuse the starting village's terrain composition, elevations, home, defender, nine empty plots with the starting five-purchased/four-locked appearance, river, bridge and static decoration assets, with consistent asset scale, materials and lighting. Menu framing SHALL fill the background around its readable controls using viewport-derived countryside coverage, rather than the compact battlefield cloud boundary. Menu scenery SHALL remain non-interactive and SHALL NOT create a gameplay session, connect to an authority or expose match actions. Returning to the menu SHALL restore the empty starting countryside without retaining a previous match's purchased expansions, constructed buildings or units. Source and exported graphical clients SHALL provide this same presentation; headless roles SHALL remain free of visual instantiation.
+The start screen and multiplayer entry backdrop SHALL retain the [full woodland composition](../../../docs/rich-background.md#what-is-composed), including the home, defender and nine empty plots with the starting five-purchased/four-locked appearance. Menu and match SHALL share bundled assets, materials and lighting, not identical scenery arrangements. Menu framing SHALL fill the background around its readable controls using viewport-derived countryside coverage, rather than the compact battlefield cloud boundary. Menu scenery SHALL remain non-interactive and SHALL NOT create a gameplay session, connect to an authority or expose match actions. Returning to the menu SHALL restore the empty starting countryside without retaining a previous match's purchased expansions, constructed buildings or units. Source and exported graphical clients SHALL provide this same presentation; headless roles SHALL remain free of visual instantiation.
 
 #### Scenario: Enter a solo match from the menu
 - **WHEN** the player views the start screen and then starts a fresh solo match
-- **THEN** the same starting countryside arrangement, assets and scales are recognizable in both views
+- **THEN** the shared countryside assets and materials are recognizable despite the distinct menu and match arrangements
 - **AND** the menu has no match state while the match exposes its nine empty selectable plots with five usable and four offering expansion
 
 #### Scenario: Return after construction
@@ -522,7 +522,7 @@ Unpurchased plots SHALL display a compact bundled gold/buy marker instead of Loc
 
 ### Requirement: Clickable unit inspection
 
-Every visible deployed living member and boss across the shared arena SHALL be short-click inspectable with stable nearest-visible-hit selection and no gameplay command. The existing nonmodal popup SHALL show the actual model/name/role/owner/faction/boss identity, level, current/max HP and resolved damage channels, structure damage and range/timing where relevant; it SHALL not describe retired body-size capacity. It SHALL refresh from accepted state, retain frozen values during pause/loss and fit below resource tables/above HUD. Input inside the popup SHALL block underlying world input; outside click SHALL dismiss and deliver the ordinary target action once. Another member click SHALL replace content directly. Dragging SHALL dismiss/avoid inspection. Death/undeployed/reserve members SHALL not be world targets; rosters SHALL permit their appropriate inspection. Session replacement, removal/death or invalid selection SHALL clear the popup, while same-match surviving reconnect SHALL refresh it. Owned army actions SHALL use phase/ownership/capacity guards; foreign members SHALL remain read-only.
+Every visible deployed living member and boss across the shared arena SHALL be short-click inspectable with stable nearest-visible-hit selection and no gameplay command. The existing nonmodal popup SHALL show the actual model/name/role/owner/faction/boss identity, level, current/max HP and resolved damage channels, structure damage and range/timing where relevant; it SHALL not describe retired body-size capacity. It SHALL refresh from the sampled visible member state, including the [preparation projection](../../../docs/horizontal-board.md#presentation-contract), rather than require snapshot deployment or a destination matching the focused city. It SHALL retain frozen values during pause/loss and fit below resource tables/above HUD. Input inside the popup SHALL block underlying world input; outside click SHALL dismiss and deliver the ordinary target action once. Another member click SHALL replace content directly. Dragging SHALL dismiss/avoid inspection. Death/undeployed/reserve members SHALL not be world targets; rosters SHALL permit their appropriate inspection. Session replacement, removal/death or invalid selection SHALL clear the popup, while same-match surviving reconnect SHALL refresh it. Owned army actions SHALL use phase/ownership/focus/capacity guards; foreign members SHALL remain read-only.
 
 #### Scenario: Foreign member
 - **WHEN** a player clicks another owner's member in the arena

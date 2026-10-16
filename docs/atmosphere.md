@@ -261,7 +261,11 @@ display, client XDG state, ordered event driver, input/capture protocol, evidenc
 bounded cleanup. Explicitly authorized `test-vulkan --desktop` instead uses the
 existing Linux X11 surface with an owned windowed game, isolated client state and
 game-viewport-only captures; it creates no display server/window manager and never
-serves as a mandatory CI fallback. Both `--exported` checks require only the existing
+serves as a mandatory CI fallback. Native focus and resize are restricted to the
+observed live child window after its `_NET_WM_PID` matches the owned process;
+window discovery, unrelated-window operations and desktop capture are forbidden.
+Native close requests and defocus remain private-display-only.
+Both `--exported` checks require only the existing
 Linux client executable, not a server export; missing clients are **unexecuted** and
 neither command implicitly rebuilds them. Ordinary exported-package smoke retains
 its client/server prerequisite. The Vulkan command does not set software-OpenGL
@@ -797,11 +801,10 @@ consumers remain; no dropdown framework, shadow UI or settings redesign was adde
 Focused actual corrected export initially **FAILED25.34s**,
 `logs/20261010-181723-2e38182b`, at the existing native-focus helper's private-display
 guard, not C++ popup cleanup. Native popup ownership exposes focus recovery that
-previous embedded popups did not. The existing Xlib **Focus only** now admits the
-explicit authorized `test-vulkan --desktop` live child main window; `_NET_WM_PID`
-must exactly match the observed owned process before focus changes. Resize/close /
-defocus remain private-display-only. No unrelated focus/window/process/desktop
-capture, new display manager or permissions expansion is involved.
+previous embedded popups did not. That repair admitted Xlib focus for the
+explicitly authorized desktop child's main window. The current focus/resize and
+private-display restrictions are owned by
+[the graphical command boundary](#verification-and-visual-evidence).
 Corrected original exported popup proof **PASSED30.68s** owned / **32.77s** command,
 `logs/20261010-182041-127b0f37`: real selection/draft, reopen/Escape/reselection,
 Apply, safe return/confirmation and displayed Exit; no engine errors. Format/build
