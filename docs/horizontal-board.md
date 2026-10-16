@@ -14,7 +14,7 @@ positions, character roots, frozen aim, movement and projectile endpoints use th
 same geometry. The old world lattice was already pointy-top; aligning the camera's
 azimuth to zero makes its rows horizontal on screen instead of rotating only
 outlines or swapping authoritative Q/R. A 32-degree tabletop pitch retains the
-existing perspective style. No topology, cell ID, adjacency, path, range, target
+existing orthographic style. No topology, cell ID, adjacency, path, range, target
 order, seeded decision, ownership, cost or damage rule changes.
 
 Preparation now includes the **actual shared arena**, including all co-op sides.
@@ -31,9 +31,18 @@ outer fighting cells. Those cells are not deleted or made impassable; Deployment
 and combat retain the complete arena overview and bounded navigation. Fitting
 reserves the **measured** resource-ledger width (including its native growth),
 bottom panel and 64px top chrome. Dialogs retain their existing modal input owner;
-no doctrine/draft/lobby/reward UI contract changes. Clouds/backstops surround the
-combined content and arena edges independently of weather/renderer preferences.
-Ordinary zoom, cursor zoom, pan, reset and resize remain bounded.
+no doctrine/draft/lobby/reward UI contract changes. `SharedArenaView` alone owns
+the combined match surround: four opaque, unshaded grey backstop slabs and
+overlapping cloud banks, independent of weather/renderer preferences. The building
+district populates a fixed content-derived terrain extent, not a camera-travel
+envelope, without a second perimeter. Its four magical accents remain on that
+terrain; the standalone passive landscape retains its own surround.
+
+Ordinary zoom, cursor zoom, pan, reset and resize share a clamp: the full native
+projection at ground/roof heights stays inside the perimeter envelope, the view's
+ground center stays within the content-plus-cloud region, and local travel stays
+bounded. Resize/HUD/content refits rebuild the envelope; zoom-out stops at the
+fitted overview instead of exposing more dead terrain.
 
 At 1100×820 with a representative 353px ledger lane and 32% bottom allowance, the
 native compact solo overview is **33.112** orthographic units versus **37.843** for

@@ -36,6 +36,7 @@ internal sealed partial class Runner
         await WaitUi(client, p => p.RunOpen && p.Targets.Where(t => t.Key.StartsWith("Run_", StringComparison.Ordinal)).All(t => !t.Value.Enabled), "all doctrine choices locked after start", token);
         await WitnessFrame(client, "04-doctrine-locked", token);
         await Click(client, "CloseRun", token);
+        if (Environment.GetEnvironmentVariable("ODOT_HORIZONTAL_VERIFY") == "1") { await HorizontalBoardWitness(client, token); return; }
         await SimulationSpeed(client, 8, token);
         await ClickAck(client, "SpeedTwo", token);
         var records = new List<object>();

@@ -106,6 +106,14 @@ public sealed class BattleDeploymentTests
         foreach (UnitState enemy in match.Enemies.ToArray()) match.Combat.Remove(enemy.Id);
         match.Players[3].Health = 0; match.Step();
         Assert.True(match.Players[3].Eliminated);
+        // Integrated Roguelite clears enter an authoritative draft before the
+        // next preparation. Choose an actual offer for the connected owner;
+        // ordinary draft resolution chooses for disconnected survivors.
+        Assert.Equal(Phase.RewardDraft, match.Phase);
+        CommandResult reward = match.Apply(1, Command.FromSnapshot(match.Snapshot(), ++sequence, "reward:" + match.Players[1].Run.Offers[0], 1));
+        Assert.True(reward.Accepted, reward.Message);
+        Assert.Equal(Phase.Building, match.Phase);
+        Assert.All(match.Players.Values.Where(c => !c.Eliminated), c => Assert.NotNull(c.Run.Choice));
         Ready(); Ready();
         MatchSnapshot prepared = match.Snapshot();
         UnitState[] expected = BattleDeployment.Preview(prepared).Where(u => u.Id < 0).ToArray();
