@@ -73,7 +73,7 @@ public sealed class EconomyConfiguration
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(3); writer.Write(rules.SeededEncounterOrder); Write(writer, StartingResources); Write(writer, BaseProduction);
+            writer.Write(3); Write(writer, StartingResources); Write(writer, BaseProduction);
             foreach (BuildingDefinition b in _buildings.Values.OrderBy(b => b.Type))
             {
                 writer.Write((int)b.Type); Write(writer, b.Construction); Write(writer, b.Upgrade);
@@ -163,9 +163,9 @@ public sealed class EconomyConfiguration
             if (!total.TryAdd(output, out ResourceCost next)) throw new OverflowException("Production exceeds whole-resource bounds.");
             total = next;
         }
-        if (run is { Started: true } && RunCatalog.Doctrine(run.Doctrine).Grovekeeper)
+        if (run is { Started: true })
         {
-            ResourceCost extra = new(Wood: owned.Any(s => s.Type == Game.Core.Building.Lumbermill) ? 1 : 0, Food: owned.Any(s => s.Type == Game.Core.Building.Farm) ? 1 : 0);
+            ResourceCost extra = RunCatalog.Doctrine(run.Doctrine).ProductionBonus(owned);
             if (!total.TryAdd(extra, out total)) throw new OverflowException();
         }
         return total;

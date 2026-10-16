@@ -16,8 +16,6 @@ public sealed record Rules
     // Enemy-only strength: counts, equipment levels and player profiles stay intact.
     [System.Text.Json.Serialization.JsonRequired]
     public int EnemyPowerPercent { get; init; } = 75;
-    [System.Text.Json.Serialization.JsonRequired]
-    public bool SeededEncounterOrder { get; init; } = true;
     public int CityHealth { get; init; } = 100;
     public int StartingGold { get; init; } = 12;
     public int BaseGold { get; init; } = 2;
@@ -251,13 +249,12 @@ public sealed class City
             _ = _economy.Production(Slots, Research, run);
             _ = _economy.RecruitmentQuotes(_configuration, Research, run);
             int first = RunCatalog.Amount(run, "R01"), primary = first + RunCatalog.Amount(run, "M06");
-            void Safe(HexCombatProfile profile) { _ = RunEffects.Scale(profile.Damage, primary); _ = RunEffects.Scale(profile.SecondaryDamage, first); }
-            foreach (UnitState soldier in Soldiers) Safe(_configuration.Unit(soldier.Type, soldier.Rank, soldier.IsBoss, soldier.Level,
-                RunEffects.Capabilities(_economy.Research.Capabilities(Research, soldier.Type), run, soldier.Type)));
+            foreach (UnitState soldier in Soldiers) _ = _configuration.Unit(soldier.Type, soldier.Rank, soldier.IsBoss, soldier.Level,
+                RunEffects.Capabilities(_economy.Research.Capabilities(Research, soldier.Type), run, soldier.Type), primaryBonus: primary, secondaryBonus: first);
             // Unlock-dependent cards also promise safe future recruitment, not
             // just today's roster. Maximum recruit tier/service rank bounds it.
-            foreach (UnitType type in Enum.GetValues<UnitType>()) Safe(_configuration.Unit(type, rank: 2, level: 5,
-                capabilities: RunEffects.Capabilities(_economy.Research.Capabilities(Research, type), run, type)));
+            foreach (UnitType type in Enum.GetValues<UnitType>()) _ = _configuration.Unit(type, rank: 2, level: 5,
+                capabilities: RunEffects.Capabilities(_economy.Research.Capabilities(Research, type), run, type), primaryBonus: primary, secondaryBonus: first);
             foreach (TowerDefinition tower in _configuration.Towers) _ = RunEffects.Tower(tower, run);
             _ = RunEffects.Watchpost(HealthPoints.FromWhole(_configuration.Arena.WatchpostHealth), run);
             return true;
@@ -431,7 +428,7 @@ public sealed class Match : IDisposable
         {
             string id = command.Action[7..];
             if (Phase != Phase.RewardDraft || city.Eliminated || city.Run.Choice is not null || !city.Run.Offers.Contains(id)
-                || !RunCatalog.Cards.Any(c => c.Id == id) || !RunEffects.Eligible(city, RunCatalog.Card(id), city.Run.DraftWave, HealthPoints.FromWhole(Rules.CityHealth))) return Reject("Invalid, unavailable or already selected reward.");
+                || !RunCatalog.Cards.Any(c => c.Id == id) || !RunEffects.Eligible(city, RunCatalog.Card(id), city.Run.DraftWave, HealthPoints.FromWhole(Rules.CityHealth), Campaign, _roster.Length)) return Reject("Invalid, unavailable or already selected reward.");
             ApplyReward(city, id); Revision++; ResolveDraft();
             return new(command.Sequence, true, "Reward selected.");
         }
@@ -645,14 +642,14 @@ public sealed class Match : IDisposable
             foreach (City survivor in survivors)
             {
                 ulong seed = RunEffects.Seed(CombatSeed, RunEffects.RewardStream, cleared, survivor.Id);
-                survivor.Run = survivor.Run with { DraftWave = cleared, OfferSeed = seed, Offers = RunEffects.Offers(survivor, cleared, seed, HealthPoints.FromWhole(Rules.CityHealth)), Choice = null };
+                survivor.Run = survivor.Run with { DraftWave = cleared, OfferSeed = seed, Offers = RunEffects.Offers(survivor, cleared, seed, HealthPoints.FromWhole(Rules.CityHealth), Campaign, _roster.Length), Choice = null };
             }
             ResolveDraft();
         }
     }
     // Roster/levels/counts and bosses are untouched: only bounded canonical
     // entry ordering varies, changing existing formation placement at equal budget.
-    private SpawnEntry[] EncounterEntries(int origin) => !Rules.SeededEncounterOrder ? Campaign.WaveRule(Wave).Entries.ToArray() : Campaign.WaveRule(Wave).Entries
+    private SpawnEntry[] EncounterEntries(int origin) => Campaign.WaveRule(Wave).Entries
         .Select((entry, index) => (entry, index, rank: RunEffects.Seed(CombatSeed, RunEffects.EncounterStream, Wave, origin ^ (index << 8))))
         .OrderBy(e => e.rank).ThenBy(e => e.index).Select(e => e.entry).ToArray();
     private void ApplyReward(City city, string id)
@@ -672,7 +669,7 @@ public sealed class Match : IDisposable
         if (survivors.Any(c => c.Connected && c.Run.Choice is null)) return;
         foreach (City city in survivors.Where(c => c.Run.Choice is null))
         {
-            string id = city.Run.Offers.First(c => RunEffects.Eligible(city, RunCatalog.Card(c), city.Run.DraftWave, HealthPoints.FromWhole(Rules.CityHealth)));
+            string id = city.Run.Offers.First(c => RunEffects.Eligible(city, RunCatalog.Card(c), city.Run.DraftWave, HealthPoints.FromWhole(Rules.CityHealth), Campaign, _roster.Length));
             ApplyReward(city, id);
         }
         Phase = Phase.Building; Revision++;

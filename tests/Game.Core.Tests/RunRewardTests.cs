@@ -111,10 +111,13 @@ public sealed class RunRewardTests
         Command Trade(int slot, Resource resource, int bundles) => Cmd(m, 1, "trade") with
         { Slot = slot, ExpectedGeneration = city.Slots[slot].Generation, Resource = resource, Bundles = bundles };
         Assert.False(m.Apply(1, Trade(0, Resource.Metal, 0)).Accepted); Assert.Equal(0, city.Run.MerchantWave);
+        Assert.Equal(1, m.Snapshot().Players[0].MarketSaleBonus);
         int gold = city.Gold; Assert.True(m.Apply(1, Trade(0, Resource.Metal, 2)).Accepted);
+        Assert.Equal(0, m.Snapshot().Players[0].MarketSaleBonus);
         Assert.Equal(gold + 5, city.Gold); Assert.Equal(1, city.Run.MerchantWave);
         Assert.True(m.Apply(1, Trade(1, Resource.Metal, 1)).Accepted); Assert.Equal(gold + 7, city.Gold);
         Clear(m); RewardFixture.Resolve(m); gold = city.Gold;
+        Assert.Equal(1, m.Snapshot().Players[0].MarketSaleBonus);
         Assert.True(m.Apply(1, Trade(1, Resource.Wood, 1)).Accepted); Assert.Equal(gold + 2, city.Gold); Assert.Equal(2, city.Run.MerchantWave);
     }
     [Fact]
@@ -124,24 +127,74 @@ public sealed class RunRewardTests
         OfferedEffect(m, "F05"); Assert.Equal(points + 2, m.Players[1].Research.Points);
         Clear(m); City city = m.Players[1]; city.Health = 9501; int food = city.Food;
         OfferedEffect(m, "F04"); Assert.Equal(10000, city.Health); Assert.Equal(food, city.Food);
-        Assert.False(RunEffects.Eligible(city, RunCatalog.Card("F04"), 2, 10000));
+        Assert.False(RunEffects.Eligible(city, RunCatalog.Card("F04"), 2, 10000, m.Campaign, m.Players.Count));
     }
     [Fact]
-    public void EncounterOrderVariesAcrossSeedsAtExactlyTheAuthoredBudgetAndCanBeDisabled()
+    public void EncounterOrderVariesAcrossSeedsAtExactlyTheAuthoredBudget()
     {
         var orders = new HashSet<string>();
         for (ulong seed = 0; seed < 8; seed++)
         {
-            using Match varied = Start(seed); Clear(varied); RewardFixture.Resolve(varied);
-            UnitState[] forecast = varied.Snapshot().NextWave; orders.Add(string.Join(',', forecast.Select(u => u.Type)));
-            Assert.Equal(4, forecast.Length); Assert.Equal(3, forecast.Count(u => u.Type == UnitType.Swordsman));
-            Assert.Single(forecast, u => u.Type == UnitType.Berserker);
-            Assert.All(forecast, u => Assert.Equal(varied.Configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level, faction: Faction.Skeletons).Runtime(), u.Profile));
-            using var authored = new Match(new() { SeededEncounterOrder = false }, combatSeed: seed);
-            authored.Join(); Act(authored, 1, "start"); Clear(authored); RewardFixture.Resolve(authored);
-            Assert.Equal(new[] { UnitType.Swordsman, UnitType.Swordsman, UnitType.Swordsman, UnitType.Berserker }, authored.Snapshot().NextWave.Select(u => u.Type));
+            using Match varied = Start(seed);
+            for (int wave = 1; wave <= 20; wave++)
+            {
+                UnitState[] forecast = varied.Snapshot().NextWave;
+                if (wave == 2) orders.Add(string.Join(',', forecast.Select(u => u.Type)));
+                Assert.All(forecast, u => Assert.Equal(varied.Configuration.Unit(u.Type, u.Rank, u.IsBoss, u.Level, faction: Faction.Skeletons).Runtime(), u.Profile));
+                var authored = varied.Campaign.Wave(wave).Entries.SelectMany(e => Enumerable.Repeat((e.Type, e.Level, e.Rank, e.IsBoss), e.Count));
+                Assert.Equal(authored.OrderBy(e => e.Type), forecast.Select(u => (u.Type, u.Level, u.Rank, u.IsBoss)).OrderBy(e => e.Type));
+                if (wave < 20) { Clear(varied); RewardFixture.Resolve(varied); }
+            }
         }
         Assert.Equal(2, orders.Count);
+    }
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void LateRelicEligibilityIsSharedByOffersSelectionAndDisconnectedFallback(int players)
+    {
+        using Match m = Start(players: players);
+        for (int wave = 1; wave <= 18; wave++) { Clear(m); if (wave < 18) RewardFixture.Resolve(m); }
+        City city = m.Players[1]; city.Run = city.Run with { Cards = [] };
+        Assert.True(RunEffects.Eligible(city, RunCatalog.Card("R05"), 18, 10000, m.Campaign, players));
+        Assert.True(RunEffects.Eligible(city, RunCatalog.Card("R03"), 18, 10000, m.Campaign, players));
+        RewardFixture.Resolve(m); Clear(m);
+        foreach (City survivor in m.Players.Values) survivor.Run = survivor.Run with { Cards = [] };
+        Assert.False(RunEffects.Eligible(city, RunCatalog.Card("R05"), 19, 10000, m.Campaign, players));
+        Assert.Equal(players >= 3, RunEffects.Eligible(city, RunCatalog.Card("R03"), 19, 10000, m.Campaign, players));
+        for (ulong seed = 0; seed < 64; seed++)
+        {
+            string[] offers = RunEffects.Offers(city, 19, seed, 10000, m.Campaign, players);
+            Assert.DoesNotContain("R05", offers);
+            if (players < 3) Assert.DoesNotContain("R03", offers);
+        }
+        foreach (City survivor in m.Players.Values) survivor.Run = survivor.Run with { Offers = ["R05", "R03", "F05"], Choice = null };
+        string before = Json(m); Assert.False(m.Apply(1, Cmd(m, 1, "reward:R05")).Accepted); Assert.Equal(before, Json(m));
+        if (players < 3)
+        { Assert.False(m.Apply(1, Cmd(m, 1, "reward:R03")).Accepted); Assert.Equal(before, Json(m)); }
+        else
+        {
+            foreach (City fallen in m.Players.Values.Skip(1)) fallen.Health = 0;
+            Act(m, 1, "reward:R03"); Assert.Equal("R03", city.Run.Choice);
+        }
+        if (players < 3) foreach (City survivor in m.Players.Values) m.SetConnected(survivor.Id, false);
+        Assert.Equal(Phase.Building, m.Phase);
+        Assert.Equal(players < 3 ? "F05" : "R03", city.Run.Choice);
+        Assert.Equal(19 * 3, m.ProductionCount);
+    }
+    [Fact]
+    public void HarvestNeedsOneSufficientWaveAndCodexUsesConfiguredRemainingClears()
+    {
+        WaveDefinition[] waves = CampaignDefinition.Default().Waves.Take(9).Select(w => w.Number >= 8
+            ? w with { Entries = [new(UnitType.Swordsman, 1)], IsBoss = false } : w).ToArray();
+        using var m = new Match(new() { Campaign = new(waves) }); City city = m.Join()!; m.Join();
+        Assert.True(RunEffects.Eligible(city, RunCatalog.Card("R05"), 7, 10000, m.Campaign, 2));
+        Assert.False(RunEffects.Eligible(city, RunCatalog.Card("R05"), 8, 10000, m.Campaign, 2));
+        Assert.False(RunEffects.Eligible(city, RunCatalog.Card("R03"), 7, 10000, m.Campaign, 2));
+        Assert.True(RunEffects.Eligible(city, RunCatalog.Card("R03"), 7, 10000, m.Campaign, 3));
+        Assert.False(RunEffects.Eligible(city, RunCatalog.Card("R03"), 9, 10000, m.Campaign, 3));
     }
     [Fact]
     public void CodecRefusesMalformedRunStateInsteadOfInventingSelectionsOrPassives()

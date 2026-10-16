@@ -90,6 +90,41 @@ public sealed class RogueliteTests
         Assert.All(quotes, q => Assert.Equal(1, q.Upkeep));
         Assert.Equal(2, m.Economy.RecruitmentQuotes(m.Configuration).Single(q => q.Type == UnitType.Mage && q.Level == 1).Upkeep);
     }
+    [Fact]
+    public void DoctrineTuningDrivesEquipmentProductionMarketAndDescriptions()
+    {
+        DoctrineDefinition tuned = RunCatalog.Doctrine("grovekeeper") with
+        {
+            MeleeMetalSurcharge = 2,
+            CrossbowMetalSurcharge = 3,
+            MageClothSurcharge = 4,
+            LumbermillWood = 5,
+            FarmFood = 6,
+            MerchantSaleGold = 7
+        };
+        using var m = new Match();
+        foreach (UnitType type in Enum.GetValues<UnitType>())
+            for (int level = 1; level <= 5; level++)
+            {
+                ResourceCost original = m.Economy.Recruitment(type, level);
+                ResourceCost actual = tuned.Recruitment(original, type);
+                Assert.Equal(original.Metal + (type is UnitType.Swordsman or UnitType.Berserker ? 2 : type == UnitType.Crossbowman ? 3 : 0), actual.Metal);
+                Assert.Equal(original.Cloth + (type == UnitType.Mage ? 4 : 0), actual.Cloth);
+                Assert.Equal(original.Gold, actual.Gold); Assert.Equal(original.Wood, actual.Wood);
+            }
+        Assert.Equal(default, tuned.ProductionBonus([]));
+        Assert.Equal(new ResourceCost(Wood: 5), tuned.ProductionBonus([new(Building.Lumbermill, 2), new(Building.Lumbermill, 1)]));
+        Assert.Equal(new ResourceCost(Food: 6), tuned.ProductionBonus([new(Building.Farm, 1), new(Building.Farm, 2)]));
+        Assert.Equal(new ResourceCost(Wood: 5, Food: 6), tuned.ProductionBonus([new(Building.Lumbermill, 1), new(Building.Farm, 1)]));
+        Assert.Equal(7, tuned.MarketBonus(0, 1)); Assert.Equal(0, tuned.MarketBonus(1, 1)); Assert.Equal(7, tuned.MarketBonus(1, 2));
+        Assert.Contains("+5 Wood", tuned.Benefits, StringComparison.Ordinal);
+        Assert.Contains("+6 Food", tuned.Benefits, StringComparison.Ordinal);
+        Assert.Contains("+7 Gold", tuned.Benefits, StringComparison.Ordinal);
+        Assert.Contains("+2 Metal per Swordsman/Berserker", tuned.Drawback, StringComparison.Ordinal);
+        Assert.Contains("+3 Metal per Crossbowman", tuned.Drawback, StringComparison.Ordinal);
+        Assert.Contains("+4 Cloth per Mage", tuned.Drawback, StringComparison.Ordinal);
+        Assert.Throws<OverflowException>(() => tuned.Recruitment(new(Metal: int.MaxValue), UnitType.Swordsman));
+    }
     [Theory]
     [InlineData(1, 75, 25, 0, 1)]
     [InlineData(4, 75, 25, 0, 1)]
@@ -111,9 +146,9 @@ public sealed class RogueliteTests
             using var m = new Match(combatSeed: seed); City c = m.Join()!; c.Run = WithCards("warden");
             for (int wave = 1; wave <= 19; wave++)
             {
-                string[] offers = RunEffects.Offers(c, wave, RunEffects.Seed(seed, RunEffects.RewardStream, wave, c.Id), 10000);
+                string[] offers = RunEffects.Offers(c, wave, RunEffects.Seed(seed, RunEffects.RewardStream, wave, c.Id), 10000, m.Campaign, m.Players.Count);
                 Assert.Equal(3, offers.Distinct().Count());
-                Assert.All(offers, id => Assert.True(RunEffects.Eligible(c, RunCatalog.Card(id), wave, 10000)));
+                Assert.All(offers, id => Assert.True(RunEffects.Eligible(c, RunCatalog.Card(id), wave, 10000, m.Campaign, m.Players.Count)));
                 if (wave < 7) Assert.DoesNotContain(offers, id => RunCatalog.Card(id).Rarity == CardRarity.Relic);
                 string selected = offers.OrderByDescending(id => RunCatalog.Card(id).Rarity).ThenBy(id => id, StringComparer.Ordinal).First();
                 c.Run = c.Run with { Cards = c.Run.Cards.Where(s => s.Id != selected).Append(new AcquiredCard(selected, c.Run.Stacks(selected) + 1)).ToArray() };
@@ -127,12 +162,12 @@ public sealed class RogueliteTests
         foreach (RewardCard card in RunCatalog.Cards)
         {
             c.Run = new() { Started = true, Cards = [new(card.Id, card.MaxStacks)] };
-            Assert.False(RunEffects.Eligible(c, card, 10, 10000));
+            Assert.False(RunEffects.Eligible(c, card, 10, 10000, m.Campaign, m.Players.Count));
         }
         c.Run = WithCards("warden", "R01", "R02");
-        Assert.All(RunCatalog.Cards.Where(c => c.Rarity == CardRarity.Relic), card => Assert.False(RunEffects.Eligible(c, card, 10, 10000)));
-        Assert.False(RunEffects.Eligible(c, RunCatalog.Card("F04"), 10, 10000)); c.Health--;
-        Assert.True(RunEffects.Eligible(c, RunCatalog.Card("F04"), 10, 10000));
+        Assert.All(RunCatalog.Cards.Where(c => c.Rarity == CardRarity.Relic), card => Assert.False(RunEffects.Eligible(c, card, 10, 10000, m.Campaign, m.Players.Count)));
+        Assert.False(RunEffects.Eligible(c, RunCatalog.Card("F04"), 10, 10000, m.Campaign, m.Players.Count)); c.Health--;
+        Assert.True(RunEffects.Eligible(c, RunCatalog.Card("F04"), 10, 10000, m.Campaign, m.Players.Count));
     }
     [Fact]
     public void AllNineteenAuthoritativeDraftsPreserveSixtySettlementsAndNoFinalDraft()

@@ -2,9 +2,51 @@ namespace Game.Core;
 
 public enum CardRarity { Common, Uncommon, Relic }
 public sealed record DoctrineDefinition(string Id, string Name, string Crest, string Category, string Theme,
-    string Benefits, string Drawback, ResourceCost StartingBonus, ResourceCost StartingPenalty,
+    ResourceCost StartingBonus, ResourceCost StartingPenalty,
     int WatchpostPercent = 0, int MeleePercent = 0, int MageSecondaryPercent = 0, int CrossbowRange = 0,
-    int CrossbowHealthPercent = 0, int Research = 0, bool Merchant = false, bool Grovekeeper = false);
+    int CrossbowHealthPercent = 0, int Research = 0, int MerchantSaleGold = 0, int LumbermillWood = 0,
+    int FarmFood = 0, int MeleeMetalSurcharge = 0, int CrossbowMetalSurcharge = 0, int MageClothSurcharge = 0)
+{
+    public string Benefits => string.Join("; ", new[]
+    {
+        StartingBonus == default ? null : "+" + RunPresentation.Resources(StartingBonus),
+        Research == 0 ? null : $"+{Research} Research",
+        WatchpostPercent == 0 ? null : $"Watchpost +{WatchpostPercent}% maximum HP",
+        MerchantSaleGold == 0 ? null : $"first Market sale each wave +{MerchantSaleGold} Gold (once per transaction)",
+        MeleePercent == 0 ? null : $"Swordsman/Berserker +{MeleePercent}% primary damage",
+        MageSecondaryPercent == 0 ? null : $"Mage +{MageSecondaryPercent}% secondary damage",
+        LumbermillWood == 0 ? null : $"+{LumbermillWood} Wood with any Lumbermill per production (once per city)",
+        FarmFood == 0 ? null : $"+{FarmFood} Food with any Farm per production (once per city)",
+        CrossbowRange == 0 ? null : $"Crossbowmen +{CrossbowRange} range"
+    }.OfType<string>());
+    public string Drawback => string.Join("; ", new[]
+    {
+        StartingPenalty == default ? null : "Fewer starting resources: " + RunPresentation.Resources(StartingPenalty),
+        MeleeMetalSurcharge == 0 ? null : $"+{MeleeMetalSurcharge} Metal per Swordsman/Berserker recruit",
+        CrossbowMetalSurcharge == 0 ? null : $"+{CrossbowMetalSurcharge} Metal per Crossbowman recruit",
+        MageClothSurcharge == 0 ? null : $"+{MageClothSurcharge} Cloth per Mage recruit",
+        CrossbowHealthPercent == 0 ? null : $"Crossbowmen {CrossbowHealthPercent}% maximum HP"
+    }.OfType<string>());
+    public ResourceCost Recruitment(ResourceCost cost, UnitType type)
+    {
+        ResourceCost extra = type switch
+        {
+            UnitType.Swordsman or UnitType.Berserker => new(Metal: MeleeMetalSurcharge),
+            UnitType.Crossbowman => new(Metal: CrossbowMetalSurcharge),
+            UnitType.Mage => new(Cloth: MageClothSurcharge),
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+        if (!cost.TryAdd(extra, out ResourceCost total)) throw new OverflowException();
+        return total;
+    }
+    public ResourceCost ProductionBonus(IEnumerable<SlotState> slots)
+    {
+        SlotState[] owned = slots.ToArray();
+        return new(Wood: owned.Any(s => s.Type == Building.Lumbermill) ? LumbermillWood : 0,
+            Food: owned.Any(s => s.Type == Building.Farm) ? FarmFood : 0);
+    }
+    public int MarketBonus(int lastSaleWave, int wave) => lastSaleWave != wave ? MerchantSaleGold : 0;
+}
 public sealed record RewardCard(string Id, string Name, CardRarity Rarity, int MaxStacks, string Effect,
     int Amount = 0, ResourceCost Resources = default, bool Multiplied = false);
 public sealed record AcquiredCard(string Id, int Count);
@@ -29,12 +71,12 @@ public static class RunCatalog
 {
     public static IReadOnlyList<DoctrineDefinition> Doctrines { get; } = Array.AsReadOnly<DoctrineDefinition>(
     [
-        new("warden", "The Warden", "♜", "Fortress / survival", "Stand as the old forest stands.", "+2 Stone; Watchpost +25% maximum HP", "−2 starting Gold", new(Stone: 2), new(Gold: 2), WatchpostPercent: 25),
-        new("merchant", "The Merchant", "⚖", "Trade / flexibility", "Every road brings opportunity.", "+4 Gold; first Market sale each wave +1 Gold (once per transaction)", "−2 starting Wood", new(Gold: 4), new(Wood: 2), Merchant: true),
-        new("warmaster", "The Warmaster", "⚔", "Aggressive melee", "Steel answers the darkness.", "+4 Metal, +6 Food; Swordsman/Berserker +10% primary damage", "+1 Metal per Swordsman/Berserker recruit", new(Metal: 4, Food: 6), default, MeleePercent: 10),
-        new("arcanist", "The Arcanist", "✦", "Magic / research", "Read the secrets beneath the roots.", "+3 Cloth, +3 Stone, +1 Research; Mage +10% secondary damage", "−3 starting Gold", new(Cloth: 3, Stone: 3), new(Gold: 3), MageSecondaryPercent: 10, Research: 1),
-        new("grovekeeper", "The Grovekeeper", "♧", "Sustainable economy", "Tend today what shelters tomorrow.", "+2 Wood; +1 Wood with any Lumbermill, +1 Food with any Farm per production (once per city)", "+1 Metal per Swordsman/Berserker/Crossbowman; +1 Cloth per Mage recruit", new(Wood: 2), default, Grovekeeper: true),
-        new("huntsman", "The Huntsman", "➶", "Ranged / positioning", "Keep the enemy beyond the treeline.", "+2 Metal; Crossbowmen +1 range", "Crossbowmen −10% maximum HP", new(Metal: 2), default, CrossbowRange: 1, CrossbowHealthPercent: -10)
+        new("warden", "The Warden", "♜", "Fortress / survival", "Stand as the old forest stands.", new(Stone: 2), new(Gold: 2), WatchpostPercent: 25),
+        new("merchant", "The Merchant", "⚖", "Trade / flexibility", "Every road brings opportunity.", new(Gold: 4), new(Wood: 2), MerchantSaleGold: 1),
+        new("warmaster", "The Warmaster", "⚔", "Aggressive melee", "Steel answers the darkness.", new(Metal: 4, Food: 6), default, MeleePercent: 10, MeleeMetalSurcharge: 1),
+        new("arcanist", "The Arcanist", "✦", "Magic / research", "Read the secrets beneath the roots.", new(Cloth: 3, Stone: 3), new(Gold: 3), MageSecondaryPercent: 10, Research: 1),
+        new("grovekeeper", "The Grovekeeper", "♧", "Sustainable economy", "Tend today what shelters tomorrow.", new(Wood: 2), default, LumbermillWood: 1, FarmFood: 1, MeleeMetalSurcharge: 1, CrossbowMetalSurcharge: 1, MageClothSurcharge: 1),
+        new("huntsman", "The Huntsman", "➶", "Ranged / positioning", "Keep the enemy beyond the treeline.", new(Metal: 2), default, CrossbowRange: 1, CrossbowHealthPercent: -10)
     ]);
     public static IReadOnlyList<RewardCard> Cards { get; } = Array.AsReadOnly<RewardCard>(
     [
@@ -107,11 +149,7 @@ public static class RunEffects
     public static ResourceCost Recruitment(ResourceCost cost, RunState? run, UnitType type)
     {
         if (run is null || !run.Started) return cost;
-        bool grove = RunCatalog.Doctrine(run.Doctrine).Grovekeeper;
-        ResourceCost extra = type == UnitType.Mage ? new(Cloth: grove ? 1 : 0)
-            : new(Metal: grove || run.Doctrine == "warmaster" && type is UnitType.Swordsman or UnitType.Berserker ? 1 : 0);
-        if (!cost.TryAdd(extra, out ResourceCost total)) throw new OverflowException();
-        return total;
+        return RunCatalog.Doctrine(run.Doctrine).Recruitment(cost, type);
     }
     public static int Upkeep(int upkeep, RunState? run, UnitType type) => Math.Max(1, upkeep - (type is UnitType.Berserker or UnitType.Mage ? RunCatalog.Amount(run, "A06") : 0));
     public static TowerDefinition Tower(TowerDefinition tower, RunState? run)
@@ -123,15 +161,19 @@ public static class RunEffects
         int windup = Math.Clamp(Scale(tower.WindupTicks, -speed), 1, cadence - 1);
         return tower with { Damage = Scale(tower.Damage, percent), SecondaryDamage = Scale(tower.SecondaryDamage, percent), HexRange = tower.HexRange + (catapult ? 0 : RunCatalog.Amount(run, "T04")), CadenceTicks = cadence, WindupTicks = windup };
     }
-    public static int MerchantBonus(RunState run, int wave) => run.Started && RunCatalog.Doctrine(run.Doctrine).Merchant && run.MerchantWave != wave ? 1 : 0;
+    public static int MerchantBonus(RunState run, int wave) => run.Started ? RunCatalog.Doctrine(run.Doctrine).MarketBonus(run.MerchantWave, wave) : 0;
     public static string? ProducerCard(Building building) => building switch { Building.Lumbermill => "E01", Building.Farm => "E02", Building.Mine => "E03", Building.Stonecutter => "E04", Building.MetalMine => "E05", Building.Weaver => "E06", _ => null };
     public static int Watchpost(int health, RunState run) => Scale(health, run.Started ? RunCatalog.Doctrine(run.Doctrine).WatchpostPercent + RunCatalog.Amount(run, "T01") : 0);
     public static (int Common, int Uncommon, int Relic) Weights(int wave) => wave <= 4 ? (75, 25, 0) : wave <= 6 ? (60, 40, 0) : wave <= 9 ? (60, 35, 5) : (45, 40, 15);
     // Independent pure namespaces: no mutable combat RNG or UI enumeration.
     public static ulong Seed(ulong runSeed, ulong stream, int wave, int city = 0) => SeededDecision.Mix(runSeed ^ stream ^ ((ulong)(uint)wave << 32) ^ (uint)city);
     public const ulong RewardStream = 0x524557415244UL, EncounterStream = 0x454E434F554E5445UL;
-    public static bool Eligible(City city, RewardCard card, int wave, int keepMaximum)
+    public static bool Eligible(City city, RewardCard card, int wave, int keepMaximum, CampaignConfiguration campaign, int originalPlayers)
     {
+        if (wave < 1 || wave >= campaign.TotalWaves) return false;
+        if (card.Id == "R05" && campaign.TotalWaves - wave < card.Amount) return false;
+        if (card.Id == "R03" && !Enumerable.Range(wave + 1, campaign.TotalWaves - wave)
+            .Any(next => (long)campaign.WaveRule(next).Allocation * originalPlayers >= card.Amount)) return false;
         RunState run = city.Run;
         if (city.Eliminated || run.Stacks(card.Id) >= card.MaxStacks || card.Rarity == CardRarity.Relic && (wave < 7 || run.Cards.Count(s => RunCatalog.Card(s.Id).Rarity == CardRarity.Relic) >= 2)) return false;
         if (card.Id == "F04" && city.Health >= keepMaximum && city.Soldiers.All(s => s.Health >= s.Profile.Health)) return false;
@@ -146,9 +188,9 @@ public static class RunEffects
         Choice = id,
         CodexClears = id == "R05" ? 0 : run.CodexClears
     };
-    public static string[] Offers(City city, int wave, ulong seed, int keepMaximum)
+    public static string[] Offers(City city, int wave, ulong seed, int keepMaximum, CampaignConfiguration campaign, int originalPlayers)
     {
-        var eligible = RunCatalog.Cards.Where(c => Eligible(city, c, wave, keepMaximum)).OrderBy(c => c.Id, StringComparer.Ordinal).ToList();
+        var eligible = RunCatalog.Cards.Where(c => Eligible(city, c, wave, keepMaximum, campaign, originalPlayers)).OrderBy(c => c.Id, StringComparer.Ordinal).ToList();
         var offers = new List<string>();
         var weights = Weights(wave);
         for (int slot = 0; slot < 3; slot++)

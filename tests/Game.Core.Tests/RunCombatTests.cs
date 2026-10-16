@@ -48,6 +48,61 @@ public sealed class RunCombatTests
         Assert.Equal(3, m.Combat.Events().Count(e => e.Tick == 114 && e.Type == CombatEventType.Impact && e.Unit?.Owner == 1 && e.Damage == 2096));
         Assert.Equal(50000, m.Combat.Read(untouched).Health);
     }
+    [Theory]
+    [InlineData(UnitType.Crossbowman, false, false, false, 1440, 0)]
+    [InlineData(UnitType.Crossbowman, true, false, false, 1740, 0)]
+    [InlineData(UnitType.Crossbowman, false, true, false, 1536, 0)]
+    [InlineData(UnitType.Crossbowman, true, true, false, 1836, 0)]
+    [InlineData(UnitType.Crossbowman, true, true, true, 2180, 0)]
+    [InlineData(UnitType.Mage, false, false, false, 1440, 616)]
+    [InlineData(UnitType.Mage, true, false, false, 1740, 716)]
+    [InlineData(UnitType.Mage, false, true, false, 1536, 616)]
+    [InlineData(UnitType.Mage, true, true, true, 2180, 836)]
+    [InlineData(UnitType.Berserker, true, true, true, 2946, 457)]
+    public void ConditionalDamageAddsToPersistentPercentagesAfterFoundationAndBeforeRally(UnitType type, bool horn, bool afflicted, bool research, int primary, int secondary)
+    {
+        foreach (bool rally in new[] { false, true })
+        {
+            using var m = new Match(new()
+            {
+                EnemyPowerPercent = 100,
+                SoldierHealth = 500,
+                SoldierDamage = 0,
+                DefenderDamage = 0,
+                Arena = new() { WatchpostHealth = 1 }
+            }, combatSeed: 1);
+            City city = m.Join()!;
+            string[] persistent = type switch
+            {
+                UnitType.Crossbowman => ["A03", "A03"],
+                UnitType.Mage => ["M01", "M01", "A04", "A04", "R04"],
+                _ => ["A02", "A02"]
+            };
+            city.Run = Run(persistent.Concat(horn ? ["R01"] : Array.Empty<string>()).Append("M06").ToArray()) with
+            { Doctrine = type == UnitType.Mage ? "arcanist" : type == UnitType.Berserker ? "warmaster" : "warden" };
+            UnitCapabilities c = RunEffects.Capabilities(new(FoundationPercent: research ? 5 : 0, DirectDamagePercent: research ? 20 : 0), city.Run, type);
+            m.Combat.BeginWave(1, [], [city]);
+            int attacker = Group(m, type, 1, 1, 17, c)[0]; int[] targets = Group(m, UnitType.Swordsman, 3, 0, 18);
+            if (rally)
+            {
+                var arena = new SharedArena([1]);
+                int breaker = Group(m, UnitType.Swordsman, 1, 0, arena.Board.Cell(arena.Watchpost(1)).Neighbors.First(arena.CanOccupy))[0];
+                m.Combat.Seed(m.Combat.Inspect(breaker) with { Action = new CombatAction.Windup(1, 1, 49, new(new(CombatTargetKind.Watchpost, 1), 0, 1)) });
+                m.Combat.Advance(1, [city]); m.Combat.Remove(breaker);
+                Assert.True(m.Combat.SquadSnapshots().Single(s => s.Members.Contains(attacker)).RallyDisruptedUntil > 1);
+            }
+            if (afflicted)
+                m.Combat.Seed(m.Combat.Inspect(targets[0]) with { Statuses = StatusPolicy.Apply(new(), new(targets[0], StatusKind.Chill, attacker, 1, 0, 10), m.Configuration.Statuses) });
+            long start = rally ? 1 : 0;
+            m.Combat.StartActions([city]); m.Combat.Advance(start + m.Combat.Read(attacker).Profile.WindupTicks, [city]);
+            int x = rally ? primary * 80 / 100 : primary, y = rally ? secondary * 80 / 100 : secondary;
+            CombatEvent impact = Assert.Single(m.Combat.Events(), e => e.Type == CombatEventType.Impact && e.Unit?.Id == attacker);
+            Assert.Equal(x + 2 * y, impact.Damage);
+            Assert.Equal(new[] { y, y, x }.Order(), targets.Select(id => 50000 - m.Combat.Read(id).Health).Order());
+            Assert.Equal(3, targets.Length);
+            Assert.True(city.CanApplyRun(city.Run));
+        }
+    }
     [Fact]
     public void AshenQuiverUsesActualHitWhilePoisonPreservesExistingResearchCaptureAndBothCoexist()
     {

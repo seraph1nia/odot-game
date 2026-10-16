@@ -80,6 +80,10 @@ hold at most two. At-cap cards and immediate effects that cannot apply safely
 are excluded. Field Surgeons is excluded when both Keep and living army are
 already full. Future recruit/unlock passives remain meaningful without the
 matching building today; they don't grant free buildings or bypass unlocks.
+Ancient Codex requires at least two remaining clears. Iron Harvest requires at
+least one remaining wave with three enemy members across the original roster;
+kills cannot accumulate across waves. Offers, selection and absent-player fallback
+use these same campaign-aware checks.
 If an offer pool cannot supply three distinct eligible cards, fail visibly rather
 than silently duplicate or invent cards. Default finite runs retain three offers.
 
@@ -165,10 +169,9 @@ Rewards key on cleared wave and stable city identity. Encounter variation keys o
 wave/original allocation and permutes authored `SpawnEntry` ordering. It changes
 formation/order only: **same member counts, types, levels, bosses, original-player
 pressure and total numerical budget**, including inherited fallen-city pressure.
-Single-entry waves cannot vary their order. `Rules.SeededEncounterOrder = false`
-restores authored ordering. This deliberately bounded first milestone does not
-add new enemies, composition budgets, difficulty multipliers or cosmetic RNG to
-combat. Existing combat decision RNG remains unchanged and unconsumed by drafts.
+Single-entry waves cannot vary their order. This deliberately bounded first
+milestone does not add new enemies, composition budgets, difficulty multipliers
+or cosmetic RNG to combat. Existing combat decision RNG remains unchanged and unconsumed by drafts.
 
 `MatchSnapshot.NextWave` is the reusable authority projection consumed by preview
 and combat entry. Reconnect, choice arrival order and selected reward effects do
@@ -176,8 +179,8 @@ not reroll the encounter. Presentation must map its canonical identities and
 coordinates; it must not assume a fixed roster or vertical world-space layout.
 
 Protocol **16 / combat rules 7 / battle flow 3** refuses incompatible peers; there
-is no saved-run migration or server-restart recovery. Catalogs and encounter flag
-participate in rules identity. No dependency, asset provenance, tool lock or
-renderer changes accompany this milestone. See [verification](verification.md)
+is no saved-run migration or server-restart recovery. Catalogs participate in
+rules identity. No dependency, asset provenance, tool lock or renderer changes
+accompany this milestone. See [verification](verification.md)
 for exact executed coverage and the explicitly unexecuted graphical/platform
 acceptance boundary.

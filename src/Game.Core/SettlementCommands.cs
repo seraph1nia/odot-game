@@ -100,12 +100,12 @@ internal sealed class SettlementCommands(EconomyConfiguration economy, ArmyConfi
             case "trade":
                 if (slot.Type != Building.Market) return Reject("Select your Market.");
                 if (!economy.TryMarketQuote(command.Resource, command.Bundles, out ResourceCost stock, out ResourceCost proceeds)) return Reject("Choose a valid resource and positive whole bundles.");
-                bool merchantBonus = RunEffects.MerchantBonus(city.Run, city.CurrentWave) > 0;
-                if (merchantBonus && !proceeds.TryAdd(new(Gold: 1), out proceeds)) return Reject("Trade would overflow.");
+                int merchantBonus = RunEffects.MerchantBonus(city.Run, city.CurrentWave);
+                if (!proceeds.TryAdd(new(Gold: merchantBonus), out proceeds)) return Reject("Trade would overflow.");
                 if (!city.Resources.TryPay(stock, out ResourceCost afterStock)) return Reject("Not enough stock.");
                 if (!afterStock.TryAdd(proceeds, out ResourceCost traded)) return Reject("Trade would overflow resource balances.");
                 city.Resources = traded;
-                if (merchantBonus) city.Run = city.Run with { MerchantWave = city.CurrentWave };
+                if (merchantBonus > 0) city.Run = city.Run with { MerchantWave = city.CurrentWave };
                 break;
             case "build":
                 BuildingDefinition? construction = economy.BuildingRule(command.Building);

@@ -426,7 +426,10 @@ internal sealed partial class CombatSimulation : IDisposable
                     bool horn = run?.WarhornSquads.Contains(squad.Id) == true;
                     bool afflicted = defenders.Any(d => d.Statuses.ChillAt(tick) > 0 || d.Statuses.Burn is { ExpiresTick: var expiry } && expiry >= tick || d.Statuses.Poison.Any(p => p.ExpiresTick >= tick));
                     int first = horn ? RunCatalog.Amount(run, "R01") : 0;
-                    GroupDamageProfile p = new(RunEffects.Scale(m.Profile.Damage, first + (afflicted ? RunCatalog.Amount(run, "M06") : 0)), RunEffects.Scale(m.Profile.SecondaryDamage, first));
+                    int primaryBonus = first + (afflicted ? RunCatalog.Amount(run, "M06") : 0);
+                    WeaponProfile profile = primaryBonus == 0 && first == 0 ? m.Profile : _configuration.Unit(m.Type, m.Identity.Rank,
+                        m.Identity.IsBoss, m.Identity.Level, m.Capabilities, m.Faction, primaryBonus, first).Runtime();
+                    GroupDamageProfile p = new(profile.Damage, profile.SecondaryDamage);
                     if (tick < squad.RallyDisruptedUntil) p = new(Rally(p.Primary), Rally(p.Secondary));
                     return new MemberStrike(m.Id, p);
                 }).ToArray();

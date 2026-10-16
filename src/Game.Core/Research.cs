@@ -31,14 +31,14 @@ public readonly record struct UnitCapabilities(int FoundationPercent = 0, int Di
     }
     public static int Scale(int value, int percent) => RunEffects.Scale(value, percent);
     public int Reduce(int damage) => RunEffects.Scale(damage, -ReductionPercent);
-    public WeaponProfile Apply(WeaponProfile profile)
+    public WeaponProfile Apply(WeaponProfile profile, int primaryBonus = 0, int secondaryBonus = 0)
     {
         Validate();
         return profile with
         {
             Health = Math.Max(1, RunEffects.Scale(Scale(profile.Health, FoundationPercent), HealthPercent)),
-            Damage = RunEffects.Scale(Scale(profile.Damage, FoundationPercent), DirectDamagePercent + PrimaryPercent),
-            SecondaryDamage = RunEffects.Scale(Scale(profile.SecondaryDamage, FoundationPercent), DirectDamagePercent + SecondaryPercent),
+            Damage = RunEffects.Scale(Scale(profile.Damage, FoundationPercent), checked(DirectDamagePercent + PrimaryPercent + primaryBonus)),
+            SecondaryDamage = RunEffects.Scale(Scale(profile.SecondaryDamage, FoundationPercent), checked(DirectDamagePercent + SecondaryPercent + secondaryBonus)),
             HexRange = profile.HexRange + RangeBonus
         };
     }
