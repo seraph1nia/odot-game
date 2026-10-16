@@ -307,7 +307,7 @@ public partial class Tabletop : Node3D
             landscape.CoverBattlefield(BattlefieldFrame.GroundRect(_frameContent), new Rect2(_navigation.Boundary.Position - new Vector2(Center(_focus).X, Center(_focus).Z), _navigation.Boundary.Size));
         mark = ReplayMark("Landscape", mark);
         UpdateHealthBars();
-        UpdateInspector();
+        UpdateInspector(_units, _playback.Tick);
         _homeHealth.Sample(Focus(), game.State?.Rules.CityHealth ?? 100, Center(_focus) + VillageLandscape.Home + new Vector3(0, 2.7f, 0), _camera, WorldArea());
         _homeHealth.Visible = false; // SharedArenaView owns the one physical Keep in both phases.
         mark = ReplayMark("Overlays", mark);

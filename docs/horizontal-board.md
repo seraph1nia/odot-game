@@ -160,6 +160,59 @@ New failures were not waived:
 No new deadline, retry, synchronization override, graphics waiver, install or
 unrelated-process cleanup was introduced.
 
+## Integrated review regressions
+
+R1 resolves inspection from the sampled visible `UnitView`, including foreign
+soldiers, foreign-destined seeded forecast members and paid recruits projected
+while the numerical corpse-cleanup state is not deployed. Both settlement and
+arena selection converge on this HUD receiving boundary. Existing ownership and
+focus guards still govern editing; no snapshot, doctrine, draft or encounter
+rules changed. R2 leaves the combined-board surround with the arena alone;
+district terrain, river, bridge and accents remain, and the standalone passive
+landscape still owns its own perimeter.
+
+Coverage admission: the existing minimal Tier B `arena` owner now executes native
+member rays and the production inspector refresh/action callbacks against a
+seed-123 two-owner numerical Match, with explicit supplies and a controlled
+cleanup corpse. It checks projected recruitment, own/foreign/forecast inspection,
+displayed health, ownership/focus refusal, accepted owned retirement, and closure
+for hidden, undeployed, dead, missing and modal cases. Earlier native picking and
+numerical deployment tests did not refresh this inspector boundary, so they
+could miss a selected figure immediately closing. Pure C# cannot execute native
+Controls or imported picking bounds. The addition reuses owned component nodes
+and is estimated to add less than a second, not a new session or journey.
+
+The existing six-aspect framing checks now count the actual combined arena and
+district perimeter nodes, require exactly one four-slab opaque cloud surround,
+measure its world-space edge/corner coverage, and retain the native near/far-plane
+regression and same-tick combat-entry checks. This catches duplicated geometry
+that the previous enclosure-only checks accepted, without requiring GPU CI.
+The existing settings component continues to cover standalone landscape clouds.
+
+Focused review verification used integrated head
+`2a8ef490073b91cf8ccbe960973dbb06d9abc2d7` plus this review's changes to
+`Tabletop.cs`, `TabletopInspection.cs`, `VillageLandscape.cs` and
+`Verification/EngineHorizontalBoard.cs`. Locked restore and
+`dotnet format Odot.slnx --no-restore --include` for those four files succeeded;
+solution compilation reported no warnings/errors. The prepared command was
+`dotnet tools/DevRunner/bin/Debug/net10.0/DevRunner.dll test-engine --scenario arena`,
+with the installed locked tools and acquisition disabled as above.
+
+| Review attempt | Evidence | Result |
+| --- | --- | --- |
+| Cold preparation | `logs/20261016-191836-abb4d500` | Restore/build passed; import exhausted the unchanged 15-second startup allowance rebuilding generated assets; no component ran; owned children cleaned up |
+| Same command after generated import inputs changed | `logs/20261016-191922-26a565d8`; `logs/review-arena-focused.log` | **Passed**, 7.89s component / 12.51s total; all inspection, single-surround, six-aspect, retained near-plane and existing arena checks executed |
+
+No deadline, retry policy or assertion was relaxed. This is selected headless
+component coverage, not an unfiltered C# or engine suite, live transport or GPU
+acceptance. Broader integrated acceptance is separate: the outer Test phase owns
+fast numerical, native/network and authorized RX6800 owned-window revalidation
+under the supplemental integration instructions. It must authenticate the fresh
+process-local display handoff before its first GPU action and use the existing
+`test-vulkan --desktop --checkpoint smoke` owned-window path; no software fallback
+or GPU-dependent CI is implied. No software-renderer repair or rendered
+acceptance follows from these regressions.
+
 ## Explicit unexecuted qualification
 
 No rendered in-game artistic acceptance, pixels, physical mouse/compositor,

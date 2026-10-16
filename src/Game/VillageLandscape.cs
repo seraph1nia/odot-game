@@ -45,8 +45,11 @@ internal sealed partial class VillageLandscape : Node3D
     internal void CoverBattlefield(Rect2 content, Rect2 cameraBoundary)
     {
         Rect2 inner = content.Grow(BattlefieldFrame.Margin);
-        if (_perimeter is null) { _perimeter = new BattlefieldPerimeter { Name = "OpaqueCloudPerimeter" }; AddChild(_perimeter); }
-        _perimeter.Cover(inner, cameraBoundary.Merge(inner));
+        if (!_district)
+        {
+            if (_perimeter is null) { _perimeter = new BattlefieldPerimeter { Name = "OpaqueCloudPerimeter" }; AddChild(_perimeter); }
+            _perimeter.Cover(inner, cameraBoundary.Merge(inner));
+        }
         if (_battlefieldInner != inner)
         {
             _battlefieldInner = inner;
