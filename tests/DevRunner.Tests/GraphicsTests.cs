@@ -107,6 +107,11 @@ public sealed class GraphicsTests
         Assert.True(Options.Parse(["test-vulkan", "--desktop"]).DesktopSurface);
         Assert.True(Options.Parse(["test-vulkan", "--desktop", "--exported"]).Exported);
         Assert.False(Options.Parse(["test-vulkan"]).DesktopSurface);
+        // Tier A consumer check: the source witness must never claim exported or CI coverage.
+        Assert.Equal("smoke", Options.Parse(["test-vulkan", "--desktop", "--checkpoint", "smoke"]).UiCheckpoint);
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-vulkan", "--desktop", "--exported", "--checkpoint", "smoke"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["test-vulkan", "--checkpoint", "smoke"]));
+        Assert.Throws<ArgumentException>(() => Options.Parse(["ci", "--checkpoint", "smoke"]));
         Assert.Throws<ArgumentException>(() => Options.Parse(["ci", "--desktop"]));
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-atmosphere", "--desktop"]));
     }

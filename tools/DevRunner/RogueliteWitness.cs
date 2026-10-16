@@ -13,6 +13,7 @@ internal sealed partial class Runner
         Child client = StartGameRole("roguelite", "menu", false, 0, null, "--combat-seed", "1");
         await client.WaitFor(e => e.Type == "menu", "menu startup", options.StartupTimeout, token);
         await WaitUi(client, p => p.Screen == "menu", "menu", token);
+        if (options.DesktopSurface) await WitnessFrame(client, "campaign-menu", token);
         await Click(client, "Singleplayer", token);
         await client.WaitFor(e => e.Type == "connected" && e.State?.Phase == Phase.Lobby, "solo doctrine lobby", options.StartupTimeout, token);
         await Click(client, "RunProgression", token);
@@ -126,6 +127,7 @@ internal sealed partial class Runner
     {
         Child client = StartGameRole("doctrines", "menu", false, 0, null, "--combat-seed", "1");
         await client.WaitFor(e => e.Type == "menu", "initial menu", options.StartupTimeout, token);
+        if (options.DesktopSurface) await WitnessFrame(client, "doctrines-menu", token);
         (string Id, int Gold, int Wood, int Stone, int Metal, int Cloth, int Food, int Research)[] starts =
         [
             ("warden", 10, 6, 2, 0, 0, 0, 0),
@@ -185,6 +187,7 @@ internal sealed partial class Runner
         string path = Path.Combine(_scope!.EvidenceDirectory, name + ".png");
         UiObservation frame = await UiProtocol.Probe(client, options.StartupTimeout, token, path);
         UiProtocol.Frame(frame, path);
+        if (options.DesktopSurface) RequireDesktopGpu(client, frame);
         await File.WriteAllTextAsync(Path.Combine(_scope.EvidenceDirectory, name + ".json"), JsonSerializer.Serialize(frame, Evidence.JsonOptions), token);
         Console.WriteLine($"FRAME {name}: {frame.Width}x{frame.Height}; {path}");
         return frame;

@@ -12,6 +12,7 @@ internal sealed partial class Runner
         Child client = StartGameRole("ui-smoke", "menu", false, 0, executable);
         await client.WaitFor(e => e.Type == "menu", "menu startup", options.StartupTimeout, token);
         UiObservation menu = await WaitUi(client, p => p.Screen == "menu" && p.MusicPlaying, "menu ready", token);
+        if (options.DesktopSurface) await WitnessFrame(client, "smoke-menu", token);
         await Click(client, "Singleplayer", token);
         await client.WaitFor(e => e.Type == "connected" && e.State?.Phase == Phase.Lobby,
             "solo lobby opens through real menu input", options.StartupTimeout, token);
@@ -32,7 +33,8 @@ internal sealed partial class Runner
         UiObservation frame = await WitnessFrame(client, "smoke-session", token);
         WoodlandPresentation(frame);
         Require(frame.Display == "X11" && frame.Models > 0 && frame.MusicLoaded && frame.MusicPlaying, "solo frame uses bundled scenery and persistent music");
-        Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "solo route uses owned software graphics and silent audio");
+        if (options.DesktopSurface) Require(frame.AudioDriver == "Dummy", "owned GPU smoke uses silent audio");
+        else Require(frame.AudioDriver == "Dummy" && (frame.Renderer.Contains("llvmpipe", StringComparison.OrdinalIgnoreCase) || frame.Renderer.Contains("softpipe", StringComparison.OrdinalIgnoreCase)), "solo route uses owned software graphics and silent audio");
         Require(Path.GetFullPath(frame.UserDataPath).StartsWith(Path.Combine(_scope!.Directory, client.Name, "data") + Path.DirectorySeparatorChar, StringComparison.Ordinal), "solo preferences belong to owned client storage");
         await Click(client, "ReturnToMenu", token); await Click(client, "ConfirmReturn", token);
         await WaitUi(client, p => p.Screen == "menu" && !p.Connected, "return disposes session", token);
