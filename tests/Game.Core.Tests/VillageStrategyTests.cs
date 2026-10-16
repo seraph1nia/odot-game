@@ -37,7 +37,7 @@ public sealed class VillageStrategyTests(ITestOutputHelper output)
         Assert.False(Act(match, 1, "build", 0, Building.Farm).Accepted); Assert.Equal(before, JsonSerializer.Serialize(match.Snapshot()));
         Assert.False(Act(match, 1, "build", 0, Building.Lumbermill).Accepted);
         Assert.True(match.Apply(1, new(1, match.Id, match.Phase, match.TurnSerial, "build", 1, 0, Building.Lumbermill, Payment: ConstructionPayment.GoldRecovery)).Accepted); Assert.True(Act(match, 1, "ready").Accepted);
-        Assert.Equal(1, city.Wood); Assert.Equal(10, city.Gold);
+        Assert.Equal(1, city.Wood); Assert.Equal(8, city.Gold);
         Assert.Equal(14, match.Snapshot().BuildingCatalog.Length); Assert.Equal(4, match.Snapshot().UnitCatalog.Length);
     }
     [Fact]

@@ -15,7 +15,7 @@ public sealed class SessionCampaignTests(ITestOutputHelper output)
         flow.Act(1, new("start"));
         var bossWaves = new HashSet<int>();
         int ticks = 0;
-        while (flow.Session.Phase is Phase.Building or Phase.Preparation or Phase.Combat)
+        while (flow.Session.Phase is Phase.Building or Phase.Preparation or Phase.Combat or Phase.RewardDraft)
         {
             flow.Prepare();
             MatchSnapshot battle = flow.State;

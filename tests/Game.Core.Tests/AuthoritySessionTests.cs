@@ -182,7 +182,7 @@ public sealed class AuthoritySessionTests
     [Fact]
     public void ResumeDuringPauseAndAfterEliminationRetainsCityAndLedger()
     {
-        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, Campaign = CampaignFixture.Three(first: 1) });
+        using var session = new AuthoritySession(AuthorityPolicy.Dedicated, new Rules { CityHealth = 3, DefenderDamage = 0, Arena = new() { WatchpostHealth = 1 }, Campaign = CampaignFixture.Three(first: 1) });
         AdmissionResult player = Join(session, 2);
         Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, 1, "start")).Accepted);
         for (int sequence = 2; sequence <= 4; sequence++) Assert.True(Remote(session, 2, Cmd(session, player.PlayerId, sequence, "ready")).Accepted);
@@ -209,7 +209,7 @@ public sealed class AuthoritySessionTests
         // The delivery adapter supplies these trusted identities; SDK lookup itself remains
         // separate Steam acceptance. Accelerated rules reach elimination through normal steps.
         using var session = new AuthoritySession(AuthorityPolicy.PlayingHost,
-            new Rules { CityHealth = 3, DefenderDamage = 0, Campaign = CampaignFixture.Three(first: 1) },
+            new Rules { CityHealth = 3, DefenderDamage = 0, Arena = new() { WatchpostHealth = 1 }, Campaign = CampaignFixture.Three(first: 1) },
             originalHostIdentity: "original-host", requireTrustedIdentity: true);
         AdmissionResult guest = Join(session, 2, identity: "guest-account");
         Assert.True(guest.Accepted);
@@ -241,7 +241,7 @@ public sealed class AuthoritySessionTests
         Assert.True(city.Slots[0].Purchased); Assert.Equal(1, city.Slots[0].Generation);
         Assert.Equal(new ResourceCost(Wood: 2), city.Slots[0].Investment);
         Assert.Equal(new ResourceCost(Wood: 1), city.Slots[0].Refund);
-        Assert.Equal(18, city.Gold); Assert.Equal(15, city.Food);
+        Assert.Equal(16, city.Gold); Assert.Equal(15, city.Food);
         string paused = State(session);
         Assert.Equal(purchased, Remote(session, 4, purchase));
         session.Step();

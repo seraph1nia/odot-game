@@ -19,11 +19,12 @@ A normal graphical launch SHALL show Single player, Multiplayer, Settings, and E
 - **THEN** the application attempts that connection directly instead of waiting for a start-screen selection
 
 ### Requirement: Self-contained single player
-Selecting Single player SHALL create and start a fresh match with exactly one local player inside the graphical application, using the same economy, nine slots, recruitment, upgrades, ready cadence, pause, combat, and outcome rules as cooperative play. It SHALL NOT require a socket, external server process, Steam account, or internet connection. Gameplay SHALL use validated requests and current authoritative snapshots. Additional players SHALL NOT join that session.
+Selecting Single player SHALL create a fresh lobby with exactly one local player inside the graphical application; its doctrine selection and explicit Start SHALL follow [roguelite controls](../../../docs/roguelite.md#choose-a-doctrine). Once started, it SHALL use the same economy, nine slots, recruitment, upgrades, ready cadence, pause, combat, and outcome rules as cooperative play. It SHALL NOT require a socket, external server process, Steam account, or internet connection. Gameplay SHALL use validated requests and current authoritative snapshots. Additional players SHALL NOT join that session.
 
 #### Scenario: Start offline solo play
 - **WHEN** a player activates Single player while offline
-- **THEN** the first building turn opens with one city, nine empty plots, and the configured starting resources
+- **THEN** a fresh local doctrine lobby opens without network admission
+- **AND** after the owner starts, the first building turn opens with nine empty plots and the selected doctrine's configured starting allocation
 - **AND** build, upgrade, recruit, ready, and pause/resume follow the normal match rules
 
 #### Scenario: Start another solo match

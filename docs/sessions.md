@@ -105,14 +105,18 @@ recovery eligibility. City command IDs remain 0–8; army IDs are 9–14, displa
 as Army 1–6. It also carries the [Worldtree production technologies](worldtree.md#bounded-node-design)
 and their optional catalog benefits, and the distinct rapid-arrow/bombard tower
 profiles, synchronized combat speed and the authoritative next-wave manifest.
-Integrated protocol **15** rejects older peers before sending a snapshot,
-including both incompatible predecessor protocol14 schemas. Steam lobby matching
-uses the same version boundary. Combat rules7 and battle-flow version2 are also
+Required per-city run state and its frozen catalogs participate in compatibility;
+[roguelite rules](roguelite.md#earn-and-choose-rewards) own doctrine/reward commands,
+draft presence resolution and retained offers/choices across reconnect.
+Integrated protocol **16** rejects older peers before sending a snapshot,
+including protocol15 and both incompatible predecessor protocol14 schemas. Steam lobby matching
+uses the same version boundary. Combat rules7 and battle-flow version3 are also
 validated explicitly; matching a protocol integer alone cannot validate actors,
 profiles, geometry or the full authoritative configuration fingerprint.
 
 `MatchSnapshot.CurrentBattleFlowVersion` in [the snapshot schema](../src/Game.Core/World.cs)
-distinguishes numbered preparation semantics from legacy four-check snapshots.
+distinguishes the reward-draft flow from prior numbered-preparation and legacy
+four-check snapshots.
 [The payload codec](../src/Game/SnapshotPayload.cs) rejects a missing or mismatched
 version, Building turns other than 1/2, Preparation turns other than 3, and invalid
 combat-speed values. Serialized rules must include `EnemyPowerPercent` (1–100);

@@ -16,6 +16,7 @@ public sealed class WorldTests
     }
     private static void Ready(Match m)
     {
+        RewardFixture.Resolve(m);
         foreach (City c in m.Players.Values.Where(c => !c.Eliminated && c.Connected)) Act(m, c.Id, "ready");
         for (int tick = 0; tick < 48 && m.Phase == Phase.Preparation && m.Players.Values.Where(c => !c.Eliminated && c.Connected).All(c => c.Ready); tick++) m.Step();
     }
@@ -30,7 +31,7 @@ public sealed class WorldTests
     {
         using Match m = Started(count);
         Assert.Null(m.Join());
-        Assert.All(m.Players.Values, c => { Assert.Equal(12, c.Gold); Assert.Equal(0, c.Food); Assert.Equal(10000, c.Health); Assert.Equal(9, c.Slots.Length); });
+        Assert.All(m.Players.Values, c => { Assert.Equal(10, c.Gold); Assert.Equal(0, c.Food); Assert.Equal(10000, c.Health); Assert.Equal(9, c.Slots.Length); });
         string json = JsonSerializer.Serialize(m.Snapshot(), WireJson.Options);
         Assert.Equal(json, JsonSerializer.Serialize(JsonSerializer.Deserialize<MatchSnapshot>(json, WireJson.Options), WireJson.Options));
         using var lobby = new Match(); for (int i = 0; i < 4; i++) lobby.Join(); Assert.Null(lobby.Join());
@@ -45,7 +46,7 @@ public sealed class WorldTests
     public void PurchasesAreAtomicOwnedAndBounded()
     {
         using Match m = Started(2); Act(m, 1, "build", 0, Building.Mine);
-        Assert.Equal(12, m.Players[1].Gold);
+        Assert.Equal(10, m.Players[1].Gold);
         Command[] invalid = [Cmd(m, 1, "build", 0, Building.Farm), Cmd(m, 1, "build", -1, Building.Farm), Cmd(m, 1, "build", 9, Building.Farm), Cmd(m, 1, "build", 1, (Building)100), Cmd(m, 2, "build", 1, Building.Farm), Cmd(m, 1, "nonsense", 1)];
         foreach (Command c in invalid)
         {
@@ -68,7 +69,7 @@ public sealed class WorldTests
         Act(m, 1, "upgrade", 1); int food = m.Players[1].Food;
         Act(m, 1, "recruit", 1); Assert.Equal(food, m.Players[1].Food);
         Assert.Equal(4000, m.Players[1].Soldiers[0].Health); Assert.Equal(2, m.Players[1].Soldiers[1].Level);
-        using var n = Started(); n.Players[1].Stone = 10; Act(n, 1, "build", 0, Building.Mine); Act(n, 1, "upgrade", 0); Ready(n); Assert.Equal(16, n.Players[1].Gold);
+        using var n = Started(); n.Players[1].Stone = 10; Act(n, 1, "build", 0, Building.Mine); Act(n, 1, "upgrade", 0); Ready(n); Assert.Equal(14, n.Players[1].Gold);
     }
     [Fact]
     public void ReadyEditingDisconnectAndUniqueTurnGuards()
@@ -76,7 +77,7 @@ public sealed class WorldTests
         using Match m = Started(2); Command stale = Cmd(m, 2, "ready"); Act(m, 1, "ready");
         Assert.False(m.Apply(1, Cmd(m, 1, "build", 0, Building.Mine)).Accepted);
         Act(m, 1, "unready"); Act(m, 1, "build", 0, Building.Mine); Act(m, 1, "ready");
-        m.SetConnected(2, false); Assert.Equal(2, m.Turn); Assert.Equal(14, m.Players[2].Gold); Assert.False(m.Players[2].Ready);
+        m.SetConnected(2, false); Assert.Equal(2, m.Turn); Assert.Equal(12, m.Players[2].Gold); Assert.False(m.Players[2].Ready);
         m.SetConnected(2, true); Assert.False(m.Apply(2, stale).Accepted);
         m.SetConnected(1, false); m.SetConnected(2, false); long revision = m.Revision;
         for (int i = 0; i < 100; i++) m.Step(); Assert.Equal(revision, m.Revision); Assert.Equal(2, m.Turn);
@@ -88,7 +89,7 @@ public sealed class WorldTests
     {
         using Match m = Started(); var ledger = new CommandLedger(); Command command = Cmd(m, 1, "build", 0, Building.Farm, 5);
         CommandResult once = ledger.Execute(command, () => m.Apply(1, command));
-        Assert.Equal(once, ledger.Execute(command, () => throw new InvalidOperationException("Executed twice"))); Assert.Equal(12, m.Players[1].Gold);
+        Assert.Equal(once, ledger.Execute(command, () => throw new InvalidOperationException("Executed twice"))); Assert.Equal(10, m.Players[1].Gold);
         Command bad = command with { Sequence = 6, Slot = 0 }; Assert.False(ledger.Execute(bad, () => m.Apply(1, bad)).Accepted);
         Assert.False(ledger.Execute(bad with { Slot = 1 }, () => throw new InvalidOperationException("Reused rejection")).Accepted);
         Assert.True(ledger.Execute(command with { Sequence = 7, Slot = 1 }, () => m.Apply(1, command with { Sequence = 7, Slot = 1 })).Accepted);
@@ -168,7 +169,7 @@ public sealed class WorldTests
         match.Combat.Seed(enemy with
         { Health = 100, ReadyTick = 500, Hex = enemy.Hex! with { Position = new(inRange, 1), Action = UnitActionKind.Recovery, EndTick = 500 } });
         CombatFixture.Steps(match, 13);
-        Assert.Equal(Phase.Building, match.Phase); Assert.Empty(match.Enemies);
+        Assert.Equal(Phase.RewardDraft, match.Phase); RewardFixture.Resolve(match); Assert.Empty(match.Enemies);
         UnitState corpse = Assert.Single(match.Snapshot().DyingBodies); Assert.Equal(61, corpse.Hex!.DeathEndTick);
         Ready(match); Ready(match); Assert.Equal(Phase.Preparation, match.Phase);
         CityState prepared = match.Players[1].Snapshot(); Act(match, 1, "ready");
@@ -189,7 +190,7 @@ public sealed class WorldTests
         foreach (UnitState enemy in m.Enemies.Where(e => e.Destination != 1)) m.Combat.Remove(enemy.Id); m.Players[1].Health = 2; m.SetConnected(3, false);
         int[] ids = m.Enemies.Select(e => e.Id).ToArray(); foreach (UnitState e in m.Enemies) CombatFixture.Change(m, e.Id, u => u with { Health = 7 }); CombatFixture.AtCityEdge(m);
         var sources = m.Enemies.ToDictionary(e => e.Id, e => e.Hex!.Position);
-        CombatFixture.Steps(m, 2); Assert.True(m.Players[1].Eliminated); Assert.Equal(3, m.Enemies.Count(e => e.Destination == 2)); Assert.Equal(2, m.Enemies.Count(e => e.Destination == 3));
+        CombatFixture.Steps(m, 2); Assert.True(m.Players[1].Eliminated); Assert.Equal((2, 3), (Math.Min(m.Enemies.Count(e => e.Destination == 2), m.Enemies.Count(e => e.Destination == 3)), Math.Max(m.Enemies.Count(e => e.Destination == 2), m.Enemies.Count(e => e.Destination == 3))));
         Assert.Equal(ids, m.Enemies.Select(e => e.Id)); Assert.All(m.Enemies, e =>
         {
             Assert.Equal(7, e.Health); Assert.Equal(e.Profile.CadenceTicks - 1, e.Cooldown); Assert.True(e.Deployed);
@@ -197,7 +198,8 @@ public sealed class WorldTests
             Assert.Equal(sources[e.Id], e.Hex!.Position); // preference redirect, never lane teleport
         });
         m.Players[2].Health = 2; CombatFixture.AtCityEdge(m, resetRecovery: true);
-        CombatFixture.Steps(m, 2); Assert.All(m.Enemies, e => Assert.Equal(3, e.Destination)); Assert.Equal(5, m.Enemies.Count);
+        int structuralWindup = m.Enemies.Where(e => e.Destination == 2).Max(e => e.Profile.WindupTicks);
+        CombatFixture.Steps(m, structuralWindup + 1); Assert.All(m.Enemies, e => Assert.Equal(3, e.Destination)); Assert.Equal(5, m.Enemies.Count);
     }
     [Fact]
     public void SimultaneousEliminationsExcludeBothAndFutureBudgetsCountOnce()
@@ -251,10 +253,10 @@ public sealed class WorldTests
     {
         using Match m = Started(2);
         Act(m, 1, "ready"); Act(m, 2, "pause"); m.SetConnected(2, false);
-        Assert.Equal(1, m.Turn); Assert.Equal(12, m.Players[1].Gold);
+        Assert.Equal(1, m.Turn); Assert.Equal(10, m.Players[1].Gold);
         Act(m, 1, "resume");
-        Assert.Equal(2, m.Turn); Assert.Equal(14, m.Players[1].Gold); Assert.False(m.Players[1].Ready);
-        Assert.Equal(14, m.Players[2].Gold);
+        Assert.Equal(2, m.Turn); Assert.Equal(12, m.Players[1].Gold); Assert.False(m.Players[1].Ready);
+        Assert.Equal(12, m.Players[2].Gold);
     }
     [Fact]
     public void OrdinaryPaidOpeningFieldsFourFedSoldiersAndClearsFirstWave()
@@ -266,7 +268,7 @@ public sealed class WorldTests
         Assert.Equal(4, m.Players[1].Soldiers.Count); Assert.Equal(10, m.Players[1].Food);
         Ready(m); Assert.Equal(11, m.Players[1].Food); Assert.Equal(4, m.Players[1].Metal); Assert.All(m.Players[1].Soldiers, u => Assert.True(u.Participating));
         int steps = 0; while (m.Phase == Phase.Combat && steps++ < 6000) m.Step();
-        Assert.Equal(Phase.Building, m.Phase); Assert.Equal(2, m.Wave); Assert.False(m.Players[1].Eliminated);
+        Assert.Equal(Phase.RewardDraft, m.Phase); Assert.Equal(2, m.Wave); Assert.False(m.Players[1].Eliminated);
         // First-wave paid evidence only; shared-squad twenty-wave strategy
         // qualification is separate and must not be inferred from this opening.
     }

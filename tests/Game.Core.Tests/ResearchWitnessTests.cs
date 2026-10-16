@@ -14,6 +14,7 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
         bool burn = false;
         for (int steps = 0; steps < 30000 && match.Phase is not (Phase.Victory or Phase.Defeat) && match.Wave <= 10 && !burn; steps++)
         {
+            RewardFixture.Resolve(match);
             if (match.Phase == Phase.Combat) { match.Step(); burn = match.Enemies.Any(u => u.Statuses.Burn is not null); continue; }
             foreach (City city in match.Players.Values.Where(c => !c.Ready && !c.Eliminated))
             {
@@ -49,6 +50,7 @@ public sealed class ResearchWitnessTests(ITestOutputHelper output)
         bool burn = false;
         for (int steps = 0; steps < 30000 && match.Phase is not (Phase.Victory or Phase.Defeat) && match.Wave <= 10 && !burn; steps++)
         {
+            RewardFixture.Resolve(match);
             if (match.Phase == Phase.Combat)
             {
                 match.Step(); burn = match.Enemies.Any(u => u.Health > 0 && u.Statuses.Burn is { } status && status.ExpiresTick > match.Tick); continue;

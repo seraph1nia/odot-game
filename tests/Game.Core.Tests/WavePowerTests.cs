@@ -44,6 +44,7 @@ public sealed class WavePowerTests(ITestOutputHelper output)
                 Assert.Equal(baseline.Unit(type, level: level), match.Configuration.Unit(type, level: level));
         for (int wave = 1; wave <= 20; wave++)
         {
+            RewardFixture.Resolve(match);
             WaveDefinition original = before.Campaign.Waves[wave - 1], current = match.Campaign.Wave(wave);
             Assert.Equal(original.Entries, current.Entries);
             Assert.Equal(original.Reward, current.Reward);

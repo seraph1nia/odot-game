@@ -107,7 +107,7 @@ public sealed class ArmyRosterTests(ITestOutputHelper output)
         Assert.Null(match.Army.Find(city.Soldiers, city.PurchasedHomes));
         Assert.Equal(city.Soldiers.Select(u => u.Id), city.LastUpkeep.Funded);
         while (match.Phase == Phase.Combat || match.Combat.HasDeaths) match.Step();
-        Assert.Equal(Phase.Building, match.Phase); Assert.Equal(2, match.Wave); Assert.False(city.Eliminated);
+        Assert.Equal(Phase.RewardDraft, match.Phase); RewardFixture.Resolve(match); Assert.Equal(2, match.Wave); Assert.False(city.Eliminated);
         output.WriteLine($"Paid opening: survivors={city.Soldiers.Count}, gold={city.Gold}, wood={city.Wood}, stone={city.Stone}, food={city.Food}");
         Assert.True(Act(match, "buy-home").Accepted); Assert.Equal(3, city.PurchasedHomes);
     }

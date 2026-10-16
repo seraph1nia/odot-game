@@ -8,18 +8,14 @@ Give automatic battles distinct, readable combat roles while sharing numerical p
 
 ### Requirement: Shared archetypes and faction identity
 
-Ordinary combat actors SHALL be homogeneous squads up to configured capacity three; bosses SHALL use the same actor architecture with exactly one member. Each member SHALL independently retain faction, archetype, class, positive equipment level, boss modifiers, health and capabilities. Swordsman/Berserker SHALL be melee, Crossbowman ranged and Mage magic. Equal type/level/research/status/boss inputs SHALL yield equal HP, X/Y, structural damage, initiative, range and timing across factions. Faction SHALL define allegiance and presentation, not hidden strength. One actor SHALL claim one hex regardless of population. Foundations SHALL modify individual maximum HP/direct damage; specializations SHALL retain Assault, Guardian, Precision, Fire, Venom and Frost behavior. Type/range/timing and equipment SHALL not change because a home is bought, a member is regrouped or presentation scales a boss.
-
-#### Scenario: Mirrored Crossbowmen
-- **WHEN** allied and enemy Crossbowmen have equal level/capabilities/modifiers
-- **THEN** their complete numerical profiles agree, including any small default buff
+Ordinary combat actors SHALL be homogeneous squads up to configured capacity three; bosses SHALL use the same actor architecture with exactly one member. Each member SHALL independently retain faction, archetype, class, positive equipment level, boss modifiers, health and capabilities. Swordsman/Berserker SHALL be melee, Crossbowman ranged and Mage magic. Profiles SHALL resolve from the complete configured inputs, including [personal run modifiers](../../../docs/roguelite.md#rarity-eligibility-and-stacking) and the explicit [enemy-strength rule](../../../docs/wave-power.md#baseline-and-rule). Faction SHALL define allegiance and presentation and select that documented enemy scaling, not introduce additional hidden strength. One actor SHALL claim one hex regardless of population. Foundations SHALL modify individual maximum HP/direct damage; specializations SHALL retain Assault, Guardian, Precision, Fire, Venom and Frost behavior. Type/range/timing and equipment SHALL not change because a home is bought, a member is regrouped or presentation scales a boss.
 
 #### Scenario: Single-member boss
 - **WHEN** a boss enters combat
 - **THEN** it uses one squad cell and the ordinary movement/attack cycle with one contributing member
 
 #### Scenario: Mirrored combat profiles
-- **WHEN** an allied Mage and enemy skeleton Mage have equal unit level, research stat modifiers, capabilities, active statuses and boss modifiers
+- **WHEN** an allied Mage and enemy skeleton Mage have equal unit level, research and run stat modifiers, capabilities, active statuses and boss modifiers, with enemy power explicitly configured to 100%
 - **THEN** their complete numerical combat profiles agree and only faction/presentation and ownership differ
 
 #### Scenario: Mixed formation

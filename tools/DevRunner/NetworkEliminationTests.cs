@@ -57,11 +57,10 @@ internal sealed partial class Runner
                         await Observe(client, s => s.TurnSerial == serial, "actual END settlement delivered", token);
                 }
             }
-            MatchSnapshot clear = await Observe(host, s => s.Phase == Phase.Building && s.Wave == wave + 1,
+            MatchSnapshot clear = await Observe(host, s => s.Phase == Phase.RewardDraft && s.Wave == wave + 1,
                 "actual paid clear before numerical input", token);
             Require(clear.Players.All(c => !c.Eliminated), "paid prefix did not eliminate a Keep");
-            foreach (Child client in new[] { ally, owner })
-                await Observe(client, s => s.Phase == Phase.Building && s.Wave == wave + 1, "paid clear delivered", token);
+            await ResolveRewards([host, ally, owner], token);
         }
         Require(purchase is not null, "authentic recruitment receipt retained");
         await Observe(host, s => s.DyingBodies.Length == 0, "paid prefix physical cleanup", token);
@@ -139,8 +138,9 @@ internal sealed partial class Runner
                 Require(retry.Result!.Accepted && Gameplay(State(retry)) == Gameplay(frozen), "accepted original purchase exactly once");
                 await Action(receiving, "resume", token);
             }
-            MatchSnapshot clearThird = await Observe(receiving, s => s.Phase == Phase.Building && s.Wave == 4 && s.DyingBodies.Length == 0,
+            MatchSnapshot clearThird = await Observe(receiving, s => s.Phase == Phase.RewardDraft && s.Wave == 4 && s.DyingBodies.Length == 0,
                 "actual controlled one-enemy team clear", token);
+            await ResolveRewards([host, ally, receiving], token);
             Require(clearThird.Players.Single(c => c.Id == fallenId).Eliminated == !protectedKeep
                 && clearThird.Players.Single(c => c.Id == fallenId).Soldiers.Select(RetainedMember).SequenceEqual(authentic.Soldiers.Select(RetainedMember)),
                 "threshold disconfirming control, exact stored members preserved");

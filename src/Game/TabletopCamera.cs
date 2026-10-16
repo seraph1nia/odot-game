@@ -30,10 +30,11 @@ internal sealed class TabletopCamera(Camera3D camera)
     {
         _fittedBase = _base = camera.Transform; _baseSize = camera.Size; _viewport = viewport; _content = content.Grow(BattlefieldFrame.Margin);
         _travel = sharedArena ? content.Size / 2 : Travel;
-        // A long arena in a portrait viewport needs its fitted overview's ground
-        // center retained even when HUD compensation puts it beyond the diorama.
-        // The projected opaque boundary remains the hard travel limit.
-        if (sharedArena && Ground(viewport.GetCenter()) is { } fittedCenter)
+        // HUD compensation can put the fitted ground center beyond the content,
+        // including while the solo lobby's panel is still laying out. Retain that
+        // valid overview for every view; otherwise content and footprint limits
+        // can conflict. The projected opaque boundary stays the hard travel limit.
+        if (Ground(viewport.GetCenter()) is { } fittedCenter)
             _content = _content.Expand(new(fittedCenter.X, fittedCenter.Z));
         // Include the complete default native projection, even behind the HUD.
         // This also handles narrow/wide resize without exposing a perimeter end.

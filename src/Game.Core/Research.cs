@@ -19,24 +19,27 @@ public static class TechnologyIds
     }
 }
 public readonly record struct UnitCapabilities(int FoundationPercent = 0, int DirectDamagePercent = 0, int ReductionPercent = 0,
-    int BurnPercent = 0, int PoisonPercent = 0, int ChillPercent = 0)
+    int BurnPercent = 0, int PoisonPercent = 0, int ChillPercent = 0,
+    int HealthPercent = 0, int PrimaryPercent = 0, int SecondaryPercent = 0, int RangeBonus = 0)
 {
     public void Validate()
     {
         if (FoundationPercent is < 0 or > 10 || DirectDamagePercent is < 0 or > 20 || ReductionPercent is < 0 or > 20
-            || BurnPercent is < 0 or > 30 || PoisonPercent is < 0 or > 15 || ChillPercent is < 0 or > 50)
+            || BurnPercent is < 0 or > 40 || PoisonPercent is < 0 or > 20 || ChillPercent is < 0 or > 50
+            || HealthPercent is < -10 or > 50 || PrimaryPercent is < 0 or > 50 || SecondaryPercent is < 0 or > 60 || RangeBonus is < 0 or > 1)
             throw new ArgumentException("Unsafe technology capabilities.");
     }
-    public static int Scale(int value, int percent) => checked((int)((checked((long)value * (100 + percent)) + 99) / 100));
-    public int Reduce(int damage) => checked((int)((checked((long)damage * (100 - ReductionPercent)) + 99) / 100));
-    public WeaponProfile Apply(WeaponProfile profile)
+    public static int Scale(int value, int percent) => RunEffects.Scale(value, percent);
+    public int Reduce(int damage) => RunEffects.Scale(damage, -ReductionPercent);
+    public WeaponProfile Apply(WeaponProfile profile, int primaryBonus = 0, int secondaryBonus = 0)
     {
         Validate();
         return profile with
         {
-            Health = Scale(profile.Health, FoundationPercent),
-            Damage = Scale(Scale(profile.Damage, FoundationPercent), DirectDamagePercent),
-            SecondaryDamage = Scale(Scale(profile.SecondaryDamage, FoundationPercent), DirectDamagePercent)
+            Health = Math.Max(1, RunEffects.Scale(Scale(profile.Health, FoundationPercent), HealthPercent)),
+            Damage = RunEffects.Scale(Scale(profile.Damage, FoundationPercent), checked(DirectDamagePercent + PrimaryPercent + primaryBonus)),
+            SecondaryDamage = RunEffects.Scale(Scale(profile.SecondaryDamage, FoundationPercent), checked(DirectDamagePercent + SecondaryPercent + secondaryBonus)),
+            HexRange = profile.HexRange + RangeBonus
         };
     }
     internal UnitCapabilities Merge(UnitCapabilities other) => new(Math.Max(FoundationPercent, other.FoundationPercent), Math.Max(DirectDamagePercent, other.DirectDamagePercent),

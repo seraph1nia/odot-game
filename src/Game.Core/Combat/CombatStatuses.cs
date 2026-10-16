@@ -17,13 +17,14 @@ internal sealed partial class CombatSimulation
         }
         return updates;
     }
-    private static void GatherApplications(CombatUnit actor, int victim, long tick, List<StatusApplication> applications, int damage, long attackSequence)
+    private static void GatherApplications(CombatUnit actor, int victim, long tick, List<StatusApplication> applications, int damage, long attackSequence, int actualDamage = -1)
     {
         if (damage == 0) return;
         UnitCapabilities c = actor.Capabilities;
         foreach (var (kind, percent) in new[] { (StatusKind.Burn, c.BurnPercent), (StatusKind.Poison, c.PoisonPercent), (StatusKind.Chill, c.ChillPercent) })
         {
-            int strength = kind == StatusKind.Chill ? percent : StatusPolicy.Potency(damage, percent);
+            int captured = kind == StatusKind.Burn && actor.Type == UnitType.Crossbowman && actualDamage >= 0 ? actualDamage : damage;
+            int strength = kind == StatusKind.Chill ? percent : StatusPolicy.Potency(captured, percent);
             if (strength > 0) applications.Add(new(victim, kind, actor.Id, attackSequence, tick, strength));
         }
     }

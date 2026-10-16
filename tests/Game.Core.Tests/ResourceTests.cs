@@ -57,7 +57,7 @@ public sealed class ResourceTests
         Assert.True(match.Apply(2, Request(2, "ready")).Accepted);
         Assert.Equal(1, match.ProductionCount);
         Assert.Equal(2, match.Players[2].Gold);
-        Assert.All(match.Players.Values, c => Assert.Equal(new ResourceCost(c.Gold, c.Wood), c.Resources));
+        Assert.All(match.Players.Values, c => Assert.Equal(new ResourceCost(c.Gold, c.Wood, Stone: 2), c.Resources));
     }
 
     [Fact]

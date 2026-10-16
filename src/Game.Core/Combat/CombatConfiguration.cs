@@ -79,7 +79,7 @@ public sealed class CombatConfiguration
         get => _work;
         set { _work = value; value?.Support(WorkMetric.ProfileResolutions, WorkMetric.ProfileCacheMisses, WorkMetric.ProfileCacheHits); }
     }
-    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level, UnitCapabilities Capabilities, Faction Faction), HexCombatProfile> _resolved = [];
+    private readonly Dictionary<(UnitType Type, int Rank, bool Boss, int Level, UnitCapabilities Capabilities, Faction Faction, int PrimaryBonus, int SecondaryBonus), HexCombatProfile> _resolved = [];
     internal int CachedProfiles => _resolved.Count;
     internal void ClearCache() { _resolved.Clear(); Work = null; }
     private readonly FrozenDictionary<UnitType, HexCombatProfile> _profiles;
@@ -165,12 +165,12 @@ public sealed class CombatConfiguration
         Fingerprint = ComputeFingerprint();
     }
 
-    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default, Faction faction = Faction.Adventurers)
+    public HexCombatProfile Unit(UnitType type, int rank = 0, bool isBoss = false, int level = 1, UnitCapabilities capabilities = default, Faction faction = Faction.Adventurers, int primaryBonus = 0, int secondaryBonus = 0)
     {
         Work?.Add(WorkMetric.ProfileResolutions);
         capabilities.Validate();
         if (!Enum.IsDefined(faction)) throw new ArgumentOutOfRangeException(nameof(faction));
-        var key = (type, rank, isBoss, level, capabilities, faction);
+        var key = (type, rank, isBoss, level, capabilities, faction, primaryBonus, secondaryBonus);
         if (_resolved.TryGetValue(key, out HexCombatProfile? cached)) { Work?.Add(WorkMetric.ProfileCacheHits); return cached; }
         Work?.Add(WorkMetric.ProfileCacheMisses);
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
@@ -191,8 +191,8 @@ public sealed class CombatConfiguration
             SecondaryDamage = HealthPoints.FromWhole(secondary),
             StructureDamage = HealthPoints.FromWhole(structural)
         }).Researched(rank);
-        WeaponProfile modified = capabilities.Apply(resolved.Runtime());
-        resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage };
+        WeaponProfile modified = capabilities.Apply(resolved.Runtime(), primaryBonus, secondaryBonus);
+        resolved = resolved with { Health = modified.Health, Damage = modified.Damage, SecondaryDamage = modified.SecondaryDamage, HexRange = modified.HexRange };
         // Resolve from the original leveled profile once, never from received HP.
         // Fixed-point stats retain quarter-HP precision at the default 75%.
         if (faction == Faction.Skeletons)

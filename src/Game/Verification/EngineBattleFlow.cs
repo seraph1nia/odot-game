@@ -101,7 +101,7 @@ public partial class EngineTests
                 if (turn == 3)
                 {
                     session.SendAction("build", 1, Building.Stonecutter);
-                    Check(session.Results.Last().Accepted && match.Players[1].Stone == 0, "final preparation construction precedes its first income");
+                    Check(session.Results.Last().Accepted && match.Players[1].Stone == 2, "final preparation construction retains Warden starting stone before first income");
                     session.Acknowledge(); hud.RefreshHud(1, -1);
                 }
                 Button ready = root.FindChildren("Ready", "Button", true, false).OfType<Button>().Single();
@@ -114,7 +114,7 @@ public partial class EngineTests
                 session.Acknowledge(); hud.RefreshHud(1, -1); await Frames();
                 Check(match.ProductionCount == turn && match.Players.Values.All(c => !c.Ready), "native three-stage consumer observes one settlement per preparation");
             }
-            Check(match.Players[1].Stone == 1, "final Stonecutter contributes before component combat entry");
+            Check(match.Players[1].Stone == 3, "final Stonecutter contributes before component combat entry");
             Check(match.Phase == Phase.Combat && match.Snapshot().NextWave.Length == 0 && match.Enemies.Count == manifest.Length,
                 "combat transition consumes exactly the inspected forecast allocation");
             inspector.Close();

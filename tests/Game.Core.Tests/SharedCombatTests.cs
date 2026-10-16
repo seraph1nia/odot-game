@@ -124,6 +124,7 @@ public sealed class SharedCombatTests
             cursor = match.Combat.EventSequence;
         }
         Assert.True(continued, "Fallen-owner survivors must actually land a later current-battle strike.");
+        Assert.Equal(Phase.RewardDraft, match.Phase); RewardFixture.Resolve(match);
         Assert.Equal(Phase.Building, match.Phase);
         Assert.Contains(city.Soldiers, u => u.Experience == 1);
         for (int cleanup = 0; cleanup < 120 && match.Combat.HasDeaths; cleanup++) match.Step();
@@ -166,7 +167,7 @@ public sealed class SharedCombatTests
             SquadState[] actors = match.Snapshot().Squads.Where(s => s.Hex.Lifecycle == UnitLifecycle.Alive).ToArray();
             Assert.Equal(actors.Length, actors.Select(s => s.Hex.Position.Cell).Distinct().Count());
         }
-        Assert.Equal(Phase.Building, match.Phase);
+        Assert.Equal(Phase.RewardDraft, match.Phase);
         Assert.True(city.Health > 0);
         Assert.Null(match.Stall);
         Assert.Equal(2, match.Wave);

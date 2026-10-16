@@ -64,7 +64,7 @@ public sealed class AuthorityCombatTests
                 Assert.Equal(JsonSerializer.Serialize(units.OrderBy(u => u.Id)), JsonSerializer.Serialize(playback.Units()));
             }
         }
-        Assert.True(movement && death && recovery); Assert.Equal(Phase.Building, match.Phase);
+        Assert.True(movement && death && recovery); Assert.Equal(Phase.RewardDraft, match.Phase);
         Assert.Empty(match.Snapshot().DyingBodies); Assert.Equal(3, match.ProductionCount);
     }
 
@@ -110,7 +110,7 @@ public sealed class AuthorityCombatTests
                 Act("resume"); Assert.All(sessions, s => Assert.False(s.Paused)); pausedDeath = true;
             }
         }
-        Assert.True(pausedDeath); Assert.Equal(Phase.Building, solo.Phase); Assert.Empty(solo.Snapshot().DyingBodies);
+        Assert.True(pausedDeath); Assert.Equal(Phase.RewardDraft, solo.Phase); Assert.Empty(solo.Snapshot().DyingBodies);
         foreach (AuthoritySession session in sessions)
         {
             string retained = Json(session.Snapshot()); session.End(); session.End(); session.Step();

@@ -33,9 +33,9 @@ internal sealed partial class Runner
         Require(connected.PeerId == 1 && city.Id == connected.PlayerId && city.Slots.Length == 9
             && city.Slots.All(s => s.Type == Building.Empty) && occupied.Client.IsBound, "socketless solo binds one fresh nine-slot city and preserves endpoint owner");
         await SessionAction(solo, "build 0 farm", token);
-        await SessionAction(solo, "upgrade 0", token, false);
         await SessionAction(solo, "build 1 barracks", token);
         await SessionAction(solo, "build 2 metalmine", token);
+        await SessionAction(solo, "upgrade 0", token, false); // Warden has Stone; spent Wood still prevents this upgrade.
         await SessionAction(solo, "build 9 mine", token, false);
         await SessionAction(solo, "build 2 mine", token, false);
         await SessionAction(solo, "ready", token);
@@ -59,7 +59,7 @@ internal sealed partial class Runner
             && e.Result!.Accepted && e.State?.Phase == Phase.Building, "fresh solo start", options.StartupTimeout, token));
         Require(fresh.Players.Length == 1 && fresh.Players[0].Slots.All(s => s.Type == Building.Empty)
             && fresh.Players[0].Gold == city.Gold && fresh.Players[0].Food == 0 && fresh.Players[0].Soldiers.Length == 0
-            && fresh.Players[0].Stone == 0 && fresh.Players[0].Metal == 0 && fresh.Players[0].Cloth == 0
+            && fresh.Players[0].Stone == city.Stone && fresh.Players[0].Run is { Started: true, Doctrine: "warden", Cards.Length: 0 } && fresh.Players[0].Metal == 0 && fresh.Players[0].Cloth == 0
             && fresh.Players[0].Slots.Count(s => s.Purchased) == 5 && fresh.Players[0].LastUpkeep is null && fresh.Players[0].LastReward is null,
             "second solo session discards unsaved gameplay and starts a new match");
         await solo.Send(replay);
@@ -76,7 +76,7 @@ internal sealed partial class Runner
 
     private async Task PlayingHostLifecycleTest(int port, CancellationToken token)
     {
-        await using var host = StartGameRole("playing-host", "playing-host", true, port);
+        await using var host = StartGameRole("playing-host", "playing-host", true, port, null, "--combat-seed", "1");
         GameEvent hostJoined = await host.WaitFor(e => e.Type == "connected", "bound playing host", options.StartupTimeout, token);
         await host.WaitFor(e => e.Type == "ready", "playing host transport ready", options.StartupTimeout, token);
         string path = Path.Combine(_scope!.Directory, "hosted-guest.json");
@@ -86,7 +86,9 @@ internal sealed partial class Runner
         Require(hostJoined.PlayerId == 1 && joined.PlayerId != hostJoined.PlayerId && State(joined).MatchId == roster.MatchId,
             "playing host is a directly bound player in the same authority as its guest");
         await Action(guest, "start", token, false);
+        await SessionAction(host, "doctrine:warden", token); await Action(guest, "doctrine:warden", token);
         await SessionAction(host, "start", token);
+        await Action(guest, "doctrine:merchant", token, false);
         await Observe(guest, s => s.Phase == Phase.Building, "guest sees host start", token);
         await SessionAction(host, $"build 0 farm {guest.PlayerId}", token, false);
         await Action(guest, $"build 0 farm {host.PlayerId}", token, false);
@@ -122,9 +124,41 @@ internal sealed partial class Runner
         await Observe(resumed, s => s.Paused && s.Tick == paused.Tick && s.Revision >= paused.Revision, "shared paused combat revision", token);
         Require(combat.Tick <= paused.Tick && Gameplay(Latest(resumed)) == Gameplay(paused), "guest consumes identical paused authority state without numerical stepping");
         await Action(resumed, "ready", token, false);
+        // Extend this existing bounded transport owner, not another supervisor:
+        // real paid clear, draft reconnect, command retry and presence fallback.
+        await SessionAction(host, "resume", token);
+        MatchSnapshot draft = await Observe(host, s => s.Phase is Phase.RewardDraft or Phase.Defeat, "paid first clear reaches draft", token);
+        Require(draft.Phase == Phase.RewardDraft && draft.ProductionCount == 3, "successful clear has draft and exactly three production settlements");
+        await Observe(resumed, s => s.Phase == Phase.RewardDraft, "guest receives own reward offers", token);
+        await Action(resumed, "reward:invalid", token, false);
+        MatchSnapshot draftFrozen = State(await SessionAction(host, "pause", token));
+        await Observe(resumed, s => s.Paused && s.Revision >= draftFrozen.Revision, "draft pause converges", token);
+        await resumed.Send("quit"); Require(await resumed.WaitExit(token) == 0, "draft guest exits before choosing");
+        await Observe(host, s => !s.Players.Single(p => p.Id == joined.PlayerId).Connected, "draft presence transition is authority-owned", token);
+        await using var draftGuest = StartGameRole("draft-resumed", "client", true, port, null, "--session-file", path);
+        MatchSnapshot restoredDraft = State(await draftGuest.WaitFor(e => e.Type == "connected", "resume pending draft", options.StartupTimeout, token));
+        Require(Gameplay(restoredDraft) == Gameplay(draftFrozen), "full paused draft state/seed/offers and personal cards survive real process reconnect");
+        await SessionAction(host, "resume", token);
+        MatchSnapshot beforeReward = Latest(host); string selected = beforeReward.Players.Single(p => p.Id == host.PlayerId).Run.Offers[0];
+        GameEvent reward = await SessionAction(host, "reward:" + selected, token);
+        Require(State(reward).Phase == Phase.RewardDraft, "connected guest with no choice blocks only draft completion");
+        int stacks = State(reward).Players.Single(p => p.Id == host.PlayerId).Run.Stacks(selected);
+        GameEvent[] oldRewardEvents = host.History(); await host.Send("retry " + reward.Result!.Sequence);
+        GameEvent retryReward = await host.WaitFor(e => e.Type == "ack" && e.Result == reward.Result && !oldRewardEvents.Any(old => ReferenceEquals(old, e)), "reward retry delivered", options.StartupTimeout, token);
+        Require(State(retryReward).Players.Single(p => p.Id == host.PlayerId).Run.Stacks(selected) == stacks, "reward retry cannot grant a second stack");
+        await draftGuest.Send("quit"); Require(await draftGuest.WaitExit(token) == 0, "unselected guest exits after connected survivor chooses");
+        MatchSnapshot resolvedDraft = await Observe(host, s => s.Phase == Phase.Building && !s.Players.Single(p => p.Id == joined.PlayerId).Connected, "disconnect alone resolves deterministic fallback", token);
+        CityState absentReward = resolvedDraft.Players.Single(p => p.Id == joined.PlayerId);
+        Require(absentReward.Run.Choice == absentReward.Run.Offers[0] && resolvedDraft.ProductionCount == 3, "fallback chooses first eligible offered ID without production");
+        await using var rewardGuest = StartGameRole("reward-resumed", "client", true, port, null, "--session-file", path);
+        MatchSnapshot rewardedResume = State(await rewardGuest.WaitFor(e => e.Type == "connected", "resume chosen fallback", options.StartupTimeout, token));
+        CityState rewardedCity = rewardedResume.Players.Single(p => p.Id == joined.PlayerId);
+        Require(JsonSerializer.Serialize(absentReward.Run, WireJson.Options) == JsonSerializer.Serialize(rewardedCity.Run, WireJson.Options)
+            && absentReward.Resources == rewardedCity.Resources, "fallback choice/cards/resources converge on reconnect without regrant");
+        await Action(rewardGuest, "reward:" + absentReward.Run.Choice, token, false);
         await host.Send("menu");
         await host.WaitFor(e => e.Type == "menu", "host leaves to menu", options.StartupTimeout, token);
-        await resumed.WaitFor(e => e.Type == "session-ended", "orderly original host end reaches guest", options.StartupTimeout, token);
+        await rewardGuest.WaitFor(e => e.Type == "session-ended", "orderly original host end reaches guest", options.StartupTimeout, token);
         await host.Send("host");
         MatchSnapshot fresh = State(await host.WaitFor(e => e.Type == "connected" && e.State is { } state && state.MatchId != roster.MatchId,
             "same-process fresh host", options.StartupTimeout, token));

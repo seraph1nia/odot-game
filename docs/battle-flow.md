@@ -23,7 +23,8 @@ share the accepted rate; authority permissions follow [session ownership](sessio
 `MatchSnapshot.NextWave`; `BeginWave` consumes that manifest. Type, level, rank,
 boss flag, origin, destination and resolved profile are shared, including fallen
 roster allocations. Lifetime-unique negative forecast IDs cannot collide with
-live positive IDs allocated at combat entry. Forecasts consume no RNG, resources,
+live positive IDs allocated at combat entry. [Seeded encounter ordering](roguelite.md#seeded-encounter-boundary-and-compatibility)
+uses its own pure namespace; forecasts consume no combat RNG, resources,
 combat ECS/occupancy, targets or attacks. Refresh/reconnect preserve the manifest.
 The ordinary rig-bounds picker and inspector consume these forecast profiles.
 `BattlefieldFrame` includes actual formation positions in its content-derived

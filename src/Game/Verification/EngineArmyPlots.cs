@@ -91,7 +91,7 @@ public partial class EngineTests
             await Click("BuyPlot");
             Check(session.Commands[^1] is { Action: "buy-plot", Slot: 14, ExpectedHomeCount: 2 } && session.Results[^1].Accepted,
                 "native direct plot purchase uses authoritative quote/command owner");
-            Check(session.State.Players[0].Gold == 100 && session.State.Players[0].Army!.Homes[5].State == ArmyPlotStatus.Locked,
+            Check(session.State.Players[0].Gold == 98 && session.State.Players[0].Army!.Homes[5].State == ArmyPlotStatus.Locked,
                 "intent cannot optimistically acquire army land or spend");
             session.Acknowledge(); hud.RefreshHud(1, 14); Receive(); Pick(14);
             Check(Detail().Text.Contains("OwnedEmpty", StringComparison.Ordinal) && !Button("ArrowTower").Disabled,

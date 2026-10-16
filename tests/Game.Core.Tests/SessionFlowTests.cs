@@ -137,7 +137,9 @@ public sealed class SessionFlowTests
             foreach (UnitState member in city.Soldiers)
             {
                 UnitState old = initial.Players.Single(c => c.Id == city.Id).Soldiers.Single(u => u.Id == member.Id);
-                Assert.Equal(old.Profile, member.Profile); Assert.Equal(old.SquadId, member.SquadId);
+                Assert.Equal(new CombatConfiguration(clear.Rules).Unit(old.Type, old.Rank, old.IsBoss, old.Level,
+                    RunEffects.Capabilities(new EconomyConfiguration(clear.Rules).Research.Capabilities(city.Research, old.Type), city.Run, old.Type)).Runtime(), member.Profile);
+                Assert.Equal(old.SquadId, member.SquadId);
                 Assert.Equal(old.FormationSlot, member.FormationSlot); Assert.Equal(old.Assignment, member.Assignment);
                 Assert.True(member.Health <= old.Health); Assert.Equal(old.Experience + 1, member.Experience);
             }

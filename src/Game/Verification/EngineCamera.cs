@@ -19,6 +19,33 @@ public partial class EngineTests
         Check(Enumerable.Range(0, 9).All(slot => content.HasPoint(VillageLayout.Slot(slot))), "frame retains all nine buildable plots");
         try
         {
+            // Lobby content includes army plots but no forecast. HUD compensation
+            // can put its fitted center outside the content rect; the old Clamp
+            // then threw before the first usable solo frame. Core arithmetic
+            // cannot exercise Camera3D projection. Reuse this owned Tier B check
+            // across native aspects, with no new process or graphical fixture.
+            using var match = new Match(combatSeed: 1); match.Join();
+            MatchSnapshot lobby = match.Snapshot();
+            Check(match.Apply(1, Command.FromSnapshot(lobby, 1, "start", 1)).Accepted, "camera fixture starts through authority");
+            foreach (MatchSnapshot state in new[] { lobby, match.Snapshot() })
+                foreach (Vector2I dimensions in new[] { new Vector2I(1100, 820), new(1280, 720), new(820, 1100) })
+                    foreach (float hud in new[] { 0f, 180f, dimensions.Y * .32f, dimensions.Y * .65f })
+                    {
+                        GetWindow().Size = dimensions; await Frames();
+                        Rect2 viewport = GetViewport().GetVisibleRect();
+                        Aabb liveContent = BattlefieldFrame.Content(state, []);
+                        BattlefieldFrame.FitCamera(camera, liveContent, Vector3.Zero, viewport.Size, hud);
+                        Transform3D fitted = camera.Transform;
+                        navigation.Fit(BattlefieldFrame.GroundRect(liveContent), viewport);
+                        navigation.Reset();
+                        Check(camera.Position.DistanceTo(fitted.Origin) < .001f && navigation.Pan.Length() < .001f,
+                            $"{state.Phase} fitted overview remains valid without forced pan at {dimensions}, HUD {hud}");
+                        navigation.ZoomAt(viewport.GetCenter(), true, 40);
+                        navigation.Drag(new(10000, 0, 10000), viewport.GetCenter());
+                        Check(navigation.Boundary.Grow(.01f).Encloses(BattlefieldFrame.Footprint(camera, viewport)),
+                            $"{state.Phase} extreme drag stays inside opaque boundary at {dimensions}");
+                        navigation.Reset();
+                    }
             foreach (Vector2I dimensions in new[] { new Vector2I(1100, 820), new(1280, 720), new(1920, 1080), new(2560, 1080), new(820, 1100) })
             {
                 GetWindow().Size = dimensions;

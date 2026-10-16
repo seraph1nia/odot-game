@@ -25,10 +25,11 @@ internal sealed partial class Runner
     // ordinary Observe intentionally permits retained historical barriers.
     internal Task<MatchSnapshot> ObserveCurrent(Child child, Func<MatchSnapshot, bool> predicate, string expectation, CancellationToken token)
         => Observe(child, s => ReferenceEquals(s, Latest(child)) && predicate(s), expectation, token);
-    private Task<(GameEvent Receipt, int TargetId)> PauseBurn(Child child, int? city, CancellationToken token)
+    private Task<(GameEvent Receipt, int TargetId)> PauseBurn(Child child, int? city, CancellationToken token, int? researchOwner = null)
         => BurnAdmission.Pause(Latest(child), city, AckSequence(child), () => Latest(child),
             async (floor, cancellation) => { await ObserveCurrent(child, s => s.Revision > floor, "fresh current burn admission revision", cancellation); },
-            (command, cancellation) => Action(child, command, cancellation), token);
+            (command, cancellation) => Action(child, command, cancellation), token,
+            researchOwner is int owner ? (state, enemy) => ResearchBurn(state, enemy, owner) : null);
     private async Task RecruitAll(Child child, CancellationToken token)
     {
         // Cosmetic bodies can outlive the clear, but hold no reservations.
@@ -70,14 +71,31 @@ internal sealed partial class Runner
         }
         throw new InvalidOperationException("Campaign policy exceeded its bounded action count.");
     }
+    private async Task ResolveRewards(Child[] clients, CancellationToken token)
+    {
+        MatchSnapshot entry = Latest(clients[0]);
+        if (entry.Phase != Phase.RewardDraft) return;
+        MatchSnapshot target = entry;
+        foreach (Child child in clients)
+        {
+            MatchSnapshot state = await ObserveCurrent(child, s => s.MatchId == entry.MatchId && s.Revision >= entry.Revision
+                && s.Phase is Phase.RewardDraft or Phase.Building, "authoritative earned reward draft", token);
+            CityState city = state.Players.Single(c => c.Id == child.PlayerId);
+            if (state.Phase == Phase.RewardDraft && !city.Eliminated && city.Run.Choice is null)
+                target = State(await Action(child, "reward:" + CampaignStrategy.RewardChoice(city.Run), token));
+        }
+        foreach (Child child in clients)
+            await Observe(child, s => s.Revision >= target.Revision && s.Phase == Phase.Building, "reward choices complete without production", token);
+    }
     private async Task Economy(Child child, CancellationToken token)
     {
         await Action(child, "build 0 farm", token); await Action(child, "build 1 barracks", token); await Action(child, "build 2 metalmine", token);
     }
-    private async Task Advance(Child[] clients, CancellationToken token)
+    private async Task Advance(Child[] clients, CancellationToken token, bool invest = true)
     {
+        await ResolveRewards(clients, token);
         MatchSnapshot? resolved = null;
-        foreach (Child child in clients) { await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
+        foreach (Child child in clients) { if (invest) await RecruitAll(child, token); resolved = State(await Action(child, "ready", token)); }
         // One Advance means one visible numbered preparation, never a hidden
         // extra income-free ready check. Final editing happens in preparation 3.
         MatchSnapshot target = resolved!;
@@ -118,7 +136,10 @@ internal sealed partial class Runner
                     case "defeat": await worker.Defeat(owned.Port(), token); break;
                     case "failure-cases": await worker.FailureCases(token); break;
                     case "solo-session": await worker.SoloSessionTest(token); break;
-                    case "playing-host-lifecycle": await worker.PlayingHostLifecycleTest(owned.Port(), token); break;
+                    case "playing-host-lifecycle":
+                        if (Environment.GetEnvironmentVariable("ODOT_FINAL_DRAFT_VERIFY") == "1") await worker.FinalDraftWitness(token);
+                        else await worker.PlayingHostLifecycleTest(owned.Port(), token);
+                        break;
                 }
                 await owned.DisposeAsync(); owned.CheckErrors();
             }))).ToArray();
@@ -159,20 +180,23 @@ internal sealed partial class Runner
         await using (var invalid = ExpectedFailure(StartGame("invalid-session", false, true, port, null, "--automated", "--session-file", invalidPath)))
             await invalid.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("expired"), "invalid credential refusal", options.StartupTimeout, token);
         await Action(a, "unknown", token, false);
-        await Economy(a, token); await Economy(b, token);
+        // Reuse the same paid six-member opening as the cheap opening tests.
+        // The older three-building shortcut had no W1 timber and could not
+        // fund this journey's explicit next-wave trainer/equipment witness.
+        await RecruitAll(a, token); await RecruitAll(b, token);
         await Action(a, "build 3 mine", token, false); await Action(a, "recruit 1", token, false);
         await using (var late = ExpectedFailure(StartGame("late", false, true, port, null, "--automated")))
             await late.WaitFor(e => e.Type == "connection-failed" && e.Message!.Contains("locked"), "late join refusal", options.StartupTimeout, token);
         await Advance([a, b], token); await Advance([a, b], token); await Advance([a, b], token);
-        MatchSnapshot firstClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 2, "paid first-wave defense", token);
-        Require(firstClear.Phase == Phase.Building && firstClear.Players.All(p => !p.Eliminated), "ordinary equipment and upkeep clear wave one with both cities living");
-        await Observe(b, s => s.Phase == Phase.Building && s.Wave == 2, "B first clear", token);
+        MatchSnapshot firstClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.RewardDraft && s.Wave == 2, "paid first-wave defense", token);
+        Require(firstClear.Phase == Phase.RewardDraft && firstClear.Players.All(p => !p.Eliminated), "ordinary equipment and upkeep clear wave one with both cities living");
+        await ResolveRewards([a, b], token);
         await Action(b, "buy-plot 7", token);
         await Action(b, "build 7 archeryrange", token);
-        await Advance([a, b], token); await Advance([a, b], token);
-        // Policy refill can occupy both homes after ordinary first-wave casualties.
-        // Buy quoted field room before the explicit retry/reconnect witness.
-        await EnsureFieldRoom(b, token, actualInput: false);
+        // Reserve this ordinary settlement's timber/gold for the explicit typed
+        // witness before generic policy refills/expansions spend it. No extra END.
+        await Advance([a, b], token, invest: false);
+        await EnsureFieldRoom(b, token, actualInput: false, type: UnitType.Crossbowman);
         MatchSnapshot before = Latest(b);
         CommandResult spent = (await Action(b, "recruit 7 crossbowman", token)).Result!;
         var original = new Command(spent.Sequence, before.MatchId, before.Phase, before.TurnSerial, "recruit", cb.PlayerId, 7, SoldierType: UnitType.Crossbowman, ExpectedGeneration: before.Players.Single(p => p.Id == cb.PlayerId).Slots[7].Generation);
@@ -183,7 +207,7 @@ internal sealed partial class Runner
         CityState beforeRecruit = before.Players.Single(p => p.Id == cb.PlayerId), afterRecruit = State(dup).Players.Single(p => p.Id == cb.PlayerId);
         ResourceCost equipment = beforeRecruit.RecruitmentQuotes.Single(q => q.Type == UnitType.Crossbowman && q.Level == beforeRecruit.Slots[7].Level).Cost;
         Require(beforeRecruit.Resources.TryPay(equipment, out ResourceCost paidEquipment) && afterRecruit.Resources == paidEquipment && afterRecruit.Food == beforeRecruit.Food, "equipment spends exactly once without recruitment food");
-        await Advance([a, b], token);
+        await Advance([a, b], token); await Advance([a, b], token);
         await Action(a, "build 4 mine", token, false);
         await b.Send("quit"); Require(await b.WaitExit(token) == 0, "departing client exits");
         MatchSnapshot absent = await Observe(a, s => s.Phase == Phase.Combat && !s.Players.Single(p => p.Id == cb.PlayerId).Connected, "retained disconnected city", token);
@@ -208,9 +232,9 @@ internal sealed partial class Runner
         await Action(resumed, "ready", token, false); MatchSnapshot paused = Latest(resumed);
         await Observe(a, s => s.Paused && s.Revision >= paused.Revision && s.Tick == frozen.Tick, "paused revisions remain visible", token);
         await Action(a, "resume", token);
-        MatchSnapshot secondClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.Building && s.Wave == 3, "ordinary early clear after peer recovery", token);
-        Require(secondClear.Phase == Phase.Building && secondClear.Players.All(p => !p.Eliminated), "ordinary cooperative equipment survives recovery and wave two with both cities living");
-        await Observe(resumed, s => s.Revision >= secondClear.Revision && s.Phase == Phase.Building, "shared early result", token);
+        MatchSnapshot secondClear = await Observe(a, s => s.Phase == Phase.Defeat || s.Phase == Phase.RewardDraft && s.Wave == 3, "ordinary early clear after peer recovery", token);
+        Require(secondClear.Phase == Phase.RewardDraft && secondClear.Players.All(p => !p.Eliminated), "ordinary cooperative equipment survives recovery and wave two with both cities living");
+        await ResolveRewards([a, resumed], token);
         await using var researched = await TransportedResearch(a, resumed, server, port, bPath, token);
         await Action(a, "stale-ready", token, false);
         // Drain one bounded burst in one client frame. Separate stdin lines are
@@ -321,11 +345,11 @@ internal sealed partial class Runner
             CombatContact(seen);
         }
         await Action(a, "resume", token);
-        MatchSnapshot clear = await Observe(a, s => s.Wave == 2 && s.Phase == Phase.Building, "paid cooperative rescue clear", token);
+        MatchSnapshot clear = await Observe(a, s => s.Wave == 2 && s.Phase == Phase.RewardDraft, "paid cooperative rescue clear", token);
         Require(clear.Players.All(p => !p.Eliminated), "paid team protects all three Keeps including the tower-only sector");
         Require(clear.Players.All(city => JsonSerializer.Serialize(city.LastUpkeep, WireJson.Options)
             == JsonSerializer.Serialize(initial.Players.Single(old => old.Id == city.Id).LastUpkeep, WireJson.Options)), "clear retains actual paid battle receipts");
-        foreach (Child child in new[] { b, c }) await Observe(child, s => s.Wave == 2 && s.Phase == Phase.Building, "all peers observe rescue clear", token);
+        await ResolveRewards([a, b, c], token);
         await c.Send("quit"); await c.WaitExit(token);
         await using var observer = StartGame("observer-resumed", false, true, port, null, "--automated", "--session-file", cPath);
         GameEvent restored = await observer.WaitFor(e => e.Type == "connected", "third player resume", options.StartupTimeout, token);

@@ -46,11 +46,14 @@ public sealed record StatusRules
     { w.Write(BurnPeriod); w.Write(BurnDuration); w.Write(PoisonPeriod); w.Write(PoisonDuration); w.Write(PoisonCap); w.Write(ChillDuration); w.Write(MaximumChillPercent); }
 }
 public sealed record StatusApplication(int VictimId, StatusKind Kind, int SourceId, long AttackSequence, long Tick, int Strength);
-public sealed record PeriodicContribution(StatusKind Kind, StatusIdentity Identity, int Damage);
+public sealed record PeriodicContribution(StatusKind Kind, StatusIdentity Identity, int Damage)
+{
+    public int SourceId { get; init; } = Identity.SourceId;
+}
 public static class StatusPolicy
 {
     public static int Potency(int damage, int percent)
-    { ArgumentOutOfRangeException.ThrowIfNegative(damage); ArgumentOutOfRangeException.ThrowIfNegative(percent); return checked((int)((checked((long)damage * percent) + 99) / 100)); }
+    { ArgumentOutOfRangeException.ThrowIfNegative(damage); ArgumentOutOfRangeException.ThrowIfNegative(percent); return RunEffects.Portion(damage, percent); }
     public static int Duration(int ticks, int chillPercent)
     { ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ticks); if (chillPercent is < 0 or > 50) throw new ArgumentOutOfRangeException(nameof(chillPercent)); return UnitCapabilities.Scale(ticks, chillPercent); }
     public static void Validate(StatusState state, StatusRules rules)
@@ -99,7 +102,7 @@ public static class StatusPolicy
             if (effect is null) return null;
             if (effect.NextDamageTick <= tick && effect.NextDamageTick <= effect.ExpiresTick)
             {
-                damage.Add(new(kind, effect.Identity, effect.Strength));
+                damage.Add(new(kind, effect.Identity, effect.Strength) { SourceId = effect.PotencySourceId });
                 effect = effect with { NextDamageTick = checked(effect.NextDamageTick + period) };
             }
             return tick >= effect.ExpiresTick ? null : effect;

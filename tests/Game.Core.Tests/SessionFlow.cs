@@ -66,8 +66,15 @@ internal sealed class SessionFlow : IDisposable
         }
         throw new InvalidOperationException("Economy policy exceeded its action bound.");
     }
+    public void ResolveRewards()
+    {
+        if (Session.Phase != Phase.RewardDraft) return;
+        foreach (CityState city in State.Players.Where(c => c.Connected && !c.Eliminated && c.Run.Choice is null))
+            Act(city.Id, new("reward:" + CampaignStrategy.RewardChoice(city.Run)));
+    }
     public void Prepare()
     {
+        ResolveRewards();
         for (int turn = 0; turn < 5 && Session.Phase is Phase.Building or Phase.Preparation; turn++)
         {
             foreach (CityState city in State.Players.Where(c => c.Connected && !c.Eliminated && !c.Ready))
@@ -83,6 +90,7 @@ internal sealed class SessionFlow : IDisposable
     {
         for (int step = 0; step <= maximum; step++)
         {
+            ResolveRewards();
             MatchSnapshot state = State;
             if (predicate(state)) return state;
             if (step < maximum) Session.Step();

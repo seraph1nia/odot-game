@@ -150,6 +150,7 @@ public partial class EngineTests
 
     private async Task Receiving()
     {
+        await RunProgression();
         await ArmyPlots();
         GetWindow().Size = new(1920, 1080);
         using Theme theme = ApplicationTheme.Create();
@@ -202,7 +203,7 @@ public partial class EngineTests
             await ReceivingSpacing(host, hud, session, match);
             Refresh(); await Frames();
             Check(!hud.IsInsideTree() && hud.GetChildCount() == 0, "receiving controller has no world, camera, landscape or application startup");
-            Check(Stock("Wood").Text == "6" && Stock("Gold").Text == "12", "real resource-ledger native labels receive starting authority stock");
+            Check(Stock("Wood").Text == "6" && Stock("Gold").Text == "10", "real resource-ledger native labels receive starting authority stock");
             Button farm = Button("Farm");
             Check(!farm.Disabled && farm.Text.Contains("+5 food/turn", StringComparison.Ordinal) && farm.GetNode<RichTextLabel>("Cost").Text.Length > 0,
                 "actual farm control receives live producer benefit and resource quote");

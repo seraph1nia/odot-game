@@ -25,6 +25,7 @@ public sealed class ArmyRecoveryTests
     {
         Act(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
         for (int ticks = 0; ticks < 2000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); ticks++) match.Step();
+        RewardFixture.Resolve(match);
         Assert.Equal(Phase.Building, match.Phase); Assert.False(match.Combat.HasDeaths);
     }
 
@@ -66,14 +67,14 @@ public sealed class ArmyRecoveryTests
         Act(match, "pause"); for (int i = 0; i < 5; i++) match.Step(); Assert.Equal(2901, Read(match, reserve).Health); Act(match, "resume");
         for (int production = 1; production <= 2; production++)
         {
-            Act(match, "ready"); Assert.Equal(2901 + 400 * production, Read(match, reserve).Health);
-            Assert.Equal(3101 + 400 * production, Read(match, survivor).Health);
+            Act(match, "ready"); Assert.Equal(2901 + RunEffects.Portion(Read(match, reserve).Profile.Health, 10) * production, Read(match, reserve).Health);
+            Assert.Equal(3101 + RunEffects.Portion(Read(match, survivor).Profile.Health, 10) * production, Read(match, survivor).Health);
             Assert.Equal(2901, Read(match, fresh).Health);
         }
         string preparation = State(match); match.Step(); Assert.Equal(preparation, State(match));
         Act(match, "upgrade-healing", 1);
         Act(match, "ready"); Assert.Equal(Phase.Combat, match.Phase);
-        Assert.Equal(4000, Read(match, reserve).Health); Assert.Equal(4000, Read(match, survivor).Health);
+        Assert.Equal(Read(match, reserve).Profile.Health, Read(match, reserve).Health); Assert.Equal(Read(match, survivor).Profile.Health, Read(match, survivor).Health);
         Assert.Equal(2901, Read(match, fresh).Health);
         Assert.Equal(101, ArmyConfiguration.HealedHealth(100, 101, 5));
         Assert.Equal(111, ArmyConfiguration.HealedHealth(100, 1010, 1)); // ceiling(10.1) is 11.
@@ -92,7 +93,7 @@ public sealed class ArmyRecoveryTests
         match.Combat.Seed(Read(match, survivor) with { Health = 3000 }); Act(match, "store", 1, survivor);
         City city = match.Players[1]; city.Gold = int.MaxValue;
         string before = State(match); Assert.False(match.Apply(1, Request(match, "ready")).Accepted); Assert.Equal(before, State(match));
-        city.Gold = 0; Act(match, "ready"); Assert.Equal(3000, Read(match, reserve).Health); Assert.Equal(3200, Read(match, survivor).Health);
+        city.Gold = 0; Act(match, "ready"); Assert.Equal(3000, Read(match, reserve).Health); Assert.Equal(ArmyConfiguration.HealedHealth(3000, Read(match, survivor).Profile.Health, 5), Read(match, survivor).Health);
         Act(match, "send", 1, survivor); int health = Read(match, survivor).Health;
         Act(match, "ready"); Assert.Equal(health, Read(match, survivor).Health); Assert.Equal(3000, Read(match, reserve).Health);
     }
@@ -105,6 +106,7 @@ public sealed class ArmyRecoveryTests
             for (int i = 0; i < 6; i++) Act(match, "recruit", 0);
             for (int wave = 1; wave <= 3; wave++)
             {
+                RewardFixture.Resolve(match);
                 for (int i = 0; i < 3; i++) Act(match, "ready");
                 for (int ticks = 0; ticks < 2000 && (match.Phase == Phase.Combat || match.Combat.HasDeaths); ticks++) match.Step();
                 Assert.False(match.Combat.HasDeaths);
@@ -151,7 +153,7 @@ public sealed class ArmyRecoveryTests
             }
             match.Step();
         }
-        Assert.True(cleanupObserved); Assert.Equal(Phase.Building, match.Phase);
+        Assert.True(cleanupObserved); Assert.Equal(Phase.RewardDraft, match.Phase);
         var arena = new SharedArena([1]);
         Assert.All(match.Players[1].Soldiers, u => { Assert.Equal(homes[u.Id], u.Assignment); Assert.Equal(new HexPosition(arena.Deployment(1, homes[u.Id].Tile), 1), u.Hex!.Position); Assert.Null(u.Hex.FrozenTick); });
         Assert.Equal(2, match.Snapshot().Reservations.Positions.Length);
