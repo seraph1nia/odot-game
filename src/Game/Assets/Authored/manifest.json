@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/seraph1nia/odot-game-assets.git",
-  "revision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+  "revision": "2d88d355393f145aedfc19fa198960dac741c6fb",
   "permission": "the repo is my own work, so yes, use it",
   "permissionScope": "Required authored game-ready exports, embedded maps and four standalone forest decal textures for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
   "files": [
     {
       "path": "buildings/archery_range.glb",
       "sourcePath": "exports/buildings/archery_range.glb",
-      "sha256": "c6bedd11449586116abbdc74405f742f668be7fa249a4bb95116ffb55288595c",
-      "bytes": 14875208,
-      "embeddedImages": 36,
+      "sha256": "b10479a00e15116e1d3b09d017cf55c0dc8d1570e78064c5033aea6176a8d231",
+      "bytes": 17619280,
+      "embeddedImages": 38,
       "materials": 42,
       "animationNames": [
         "ambient"
@@ -402,8 +402,8 @@
     {
       "path": "environment/hex_ground_dirt.glb",
       "sourcePath": "exports/environment/hex_ground_dirt.glb",
-      "sha256": "1047b6db6b37d989c1e602fef8f61fd11379b801bdcd7d59a517df2932f01fc2",
-      "bytes": 1762544,
+      "sha256": "6d8a2a895b8558cbe8a4d7b2da79b131eaf554eee562297232996f129e09fa33",
+      "bytes": 1691708,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -411,8 +411,8 @@
     {
       "path": "environment/hex_ground_grass.glb",
       "sourcePath": "exports/environment/hex_ground_grass.glb",
-      "sha256": "348b6b2fbeab5bed0dad3389ed8eae881473a51e89f42fa4a5e2df21979a6584",
-      "bytes": 2229484,
+      "sha256": "a7eb5b33ae06dad227ff3de858ca0b521e5719550fd7b6b53d55e11200e13d86",
+      "bytes": 2141964,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -420,8 +420,8 @@
     {
       "path": "environment/hex_ground_leaf_litter.glb",
       "sourcePath": "exports/environment/hex_ground_leaf_litter.glb",
-      "sha256": "cd799e48f11c755e7944432de6ab0cb0041794a7ca54738c0e435c1fba6e50d5",
-      "bytes": 2225992,
+      "sha256": "b0aff9370b43e97cc5a376cc6e390e8a9c510fc4a258f912cfa9245723aaa16f",
+      "bytes": 2057852,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -429,8 +429,8 @@
     {
       "path": "environment/hex_ground_moss.glb",
       "sourcePath": "exports/environment/hex_ground_moss.glb",
-      "sha256": "b9640f362c4f5ac9993eb291955732214f876e6fbe824d75b8ac32b06fbbed3a",
-      "bytes": 2175404,
+      "sha256": "d13366a078a3b20e523a616bf62cb8d740f5b854f49ca3d2378582be51c6061f",
+      "bytes": 2039604,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -438,8 +438,8 @@
     {
       "path": "environment/hex_ground_pine_duff.glb",
       "sourcePath": "exports/environment/hex_ground_pine_duff.glb",
-      "sha256": "70c8d0bc648be7585df77e9cfd5eb601c49d34bb13973f389a407e88ce57eefd",
-      "bytes": 1911940,
+      "sha256": "fcd251444db55664911c4d5b4e3be70486d24030b8417f53b6bd02ff163f885c",
+      "bytes": 1891364,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -447,8 +447,8 @@
     {
       "path": "environment/hex_path_end.glb",
       "sourcePath": "exports/environment/hex_path_end.glb",
-      "sha256": "962194b63cc76fc33d8f123a37fc84642e78c7f1c15120940cb8c5fd3461f842",
-      "bytes": 286904,
+      "sha256": "cad1a175eb4eddeb58cbb21010c499169b148410936a91e7799f55db2f76037d",
+      "bytes": 355760,
       "embeddedImages": 3,
       "materials": 1,
       "animationNames": []
@@ -456,8 +456,8 @@
     {
       "path": "environment/hex_path_straight.glb",
       "sourcePath": "exports/environment/hex_path_straight.glb",
-      "sha256": "0691ac4723ea9a666417e76bf6216707c305a7bc36fef98f90e50d8e1c70d941",
-      "bytes": 282800,
+      "sha256": "f9f341dc4f86854c3376b9ae01c7d4890519ac8ff9ca2c670e29a4666261c35a",
+      "bytes": 351656,
       "embeddedImages": 3,
       "materials": 1,
       "animationNames": []
@@ -465,8 +465,8 @@
     {
       "path": "environment/hex_path_turn_120.glb",
       "sourcePath": "exports/environment/hex_path_turn_120.glb",
-      "sha256": "9a8b51697b877d265c07ab1234fa2b74aede06e037f9adb1e39344c73de1f902",
-      "bytes": 291864,
+      "sha256": "5b2b385c1ea35597c13ceacdf327c002c005b849f0df1f40f41db91c6491e149",
+      "bytes": 360720,
       "embeddedImages": 3,
       "materials": 1,
       "animationNames": []
@@ -474,8 +474,8 @@
     {
       "path": "environment/hex_path_turn_60.glb",
       "sourcePath": "exports/environment/hex_path_turn_60.glb",
-      "sha256": "95f1ce4d80385c1ab74edb29979d8e73fac58928dd3a677b2f8a98497f7c4b01",
-      "bytes": 291860,
+      "sha256": "0f7a5c775d34f49029353e98dbe2081bd9492d3467a1fe3076d10c193f229642",
+      "bytes": 360716,
       "embeddedImages": 3,
       "materials": 1,
       "animationNames": []
@@ -483,8 +483,8 @@
     {
       "path": "environment/hex_river_overlay_end.glb",
       "sourcePath": "exports/environment/hex_river_overlay_end.glb",
-      "sha256": "533c50274c29a6febd01530dfa8a7bfcc60e923fbcb9458e2e6f27f851957731",
-      "bytes": 194784,
+      "sha256": "2ba8279b3e5016b716abb27ed277a439558b2989fd828ce0e24db5866ff4b42c",
+      "bytes": 348436,
       "embeddedImages": 5,
       "materials": 2,
       "animationNames": [
@@ -494,8 +494,8 @@
     {
       "path": "environment/hex_river_overlay_straight.glb",
       "sourcePath": "exports/environment/hex_river_overlay_straight.glb",
-      "sha256": "9b5da586b925c1f5b69b8634ecd21facbe41b710142e6cbd60449ccf1b2c6e42",
-      "bytes": 189368,
+      "sha256": "6ef4464cd942b99222db78d166eaf0097c6207a3f2f7b55cb298066346f74b54",
+      "bytes": 343024,
       "embeddedImages": 5,
       "materials": 2,
       "animationNames": [
@@ -505,8 +505,8 @@
     {
       "path": "environment/hex_river_overlay_turn_120.glb",
       "sourcePath": "exports/environment/hex_river_overlay_turn_120.glb",
-      "sha256": "fbaf4cf17e18a49cf7143c24668da7069b9b6b150e14cd38f15a6424f95f0e40",
-      "bytes": 198720,
+      "sha256": "7bdd54af841f3794e1578165c1f2e174f7f86eeecb497ccf506ff845ef058a70",
+      "bytes": 352376,
       "embeddedImages": 5,
       "materials": 2,
       "animationNames": [
@@ -516,8 +516,8 @@
     {
       "path": "environment/hex_river_overlay_turn_60.glb",
       "sourcePath": "exports/environment/hex_river_overlay_turn_60.glb",
-      "sha256": "fe554f74f112b9588409ef7daf65a3e3ee65f71ff735307598c05b8c71a2f58e",
-      "bytes": 198720,
+      "sha256": "491a64fdef47a1bc1d889c6609f42b5a73d961c8563cd99908873208614125d1",
+      "bytes": 352372,
       "embeddedImages": 5,
       "materials": 2,
       "animationNames": [
@@ -619,292 +619,308 @@
   ],
   "derived": [
     {
+      "path": "buildings/archery_range_ai_texture_poc_v1_cloth_cobalt_weave_9bbd6b43ab5b77a88da46bfa_base_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "ai_texture_poc_v1_cloth_cobalt_weave_9bbd6b43ab5b77a88da46bfa_base_color",
+      "sha256": "04f33361a6cc07912be3b3b9fe92d374ff337094fd1512ac80131a38f866b5fc",
+      "bytes": 553908,
+      "imageIndex": 0
+    },
+    {
       "path": "buildings/archery_range_painted_plaster_normal.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_plaster_normal",
-      "imageIndex": 0,
       "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
-      "bytes": 44763
+      "bytes": 44763,
+      "imageIndex": 1
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_93e9623cd52fb87c876ac318.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_stone_mossy_masonry_eafedc80f43f2c124f06f598_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_93e9623cd52fb87c876ac318",
-      "imageIndex": 1,
-      "sha256": "e2d458886016bb7a624449fa95a783fbfa3dd11df4f3f6b1d40c1e38576d3445",
-      "bytes": 204750
+      "imageName": "ai_texture_poc_v1_stone_mossy_masonry_eafedc80f43f2c124f06f598_base_color",
+      "sha256": "3da15623698e5caaf05d8bd959229f7d81d524504df8d949154eabd005fa0739",
+      "bytes": 218971,
+      "imageIndex": 2
     },
     {
       "path": "buildings/archery_range_painted_plaster_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_plaster_roughness",
-      "imageIndex": 2,
       "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
-      "bytes": 19596
+      "bytes": 19596,
+      "imageIndex": 3
     },
     {
       "path": "buildings/archery_range_painted_wood_normal.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_wood_normal",
-      "imageIndex": 3,
       "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
-      "bytes": 95248
+      "bytes": 95248,
+      "imageIndex": 4
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_2b831f5b86290cfae18e5a86.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_wood_warm_planks_8a6faf8f5e08209af9738a0b_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_2b831f5b86290cfae18e5a86",
-      "imageIndex": 4,
-      "sha256": "d1370d3257e81d82b2611df1263bd4a4a7e45cef736722a866beb2a2a5661a51",
-      "bytes": 133994
+      "imageName": "ai_texture_poc_v1_wood_warm_planks_8a6faf8f5e08209af9738a0b_base_color",
+      "sha256": "9f4f6f8eb31467a7deb54bc5c8658de6fc9ed0c3ac6fa5c5e7a7a8c772b6f8a9",
+      "bytes": 221239,
+      "imageIndex": 5
     },
     {
       "path": "buildings/archery_range_painted_wood_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_wood_roughness",
-      "imageIndex": 5,
       "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
-      "bytes": 22819
+      "bytes": 22819,
+      "imageIndex": 6
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_8a798845fe69c756ba1af7a3.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_wood_warm_planks_dddb2af4052ed5549d8dd371_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_8a798845fe69c756ba1af7a3",
-      "imageIndex": 6,
-      "sha256": "06c827e217487107a8726e7169b40a6d39380edc37b4c81e670683824839340f",
-      "bytes": 159360
+      "imageName": "ai_texture_poc_v1_wood_warm_planks_dddb2af4052ed5549d8dd371_base_color",
+      "sha256": "87b87ad3032de00b28ecb330e58b2ddf0a18279538b76d6bc420bc734015b67b",
+      "bytes": 239500,
+      "imageIndex": 7
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_dbb5b0f373b17a7d25614072.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_dbb5b0f373b17a7d25614072",
-      "imageIndex": 7,
       "sha256": "bb7a5b7af6d57697d379ba75898b5764676b94606063130ce4b648503cacd03e",
-      "bytes": 176810
+      "bytes": 176810,
+      "imageIndex": 8
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_4618865289ee70a0a3b845d5.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_wood_horizontal_planks_1c27487fc89609f997152ab6_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_4618865289ee70a0a3b845d5",
-      "imageIndex": 8,
-      "sha256": "e963558fb826c6b8d8108cfe06f76f8e4fd051c69396bc722807a0f7e6632916",
-      "bytes": 104243
+      "imageName": "ai_texture_poc_v1_wood_horizontal_planks_1c27487fc89609f997152ab6_base_color",
+      "sha256": "5b58bc22cb44548e88dd4c6e2142ae977032016c8b045882817fcda133d4f25d",
+      "bytes": 149019,
+      "imageIndex": 9
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_4f67cdf80af81947cc215a57.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_wood_dark_aged_3daae321dace367dd6d58c4c_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_4f67cdf80af81947cc215a57",
-      "imageIndex": 9,
-      "sha256": "ef39df3a202fdb36cd119aa128c72fdf66c884662ff0e131e524e09806ffa7ce",
-      "bytes": 187996
+      "imageName": "ai_texture_poc_v1_wood_dark_aged_3daae321dace367dd6d58c4c_base_color",
+      "sha256": "d77f004149a71caca2b902e1bc7b6fdcbd852fcac41ebeac6d89d45bfab262e0",
+      "bytes": 230688,
+      "imageIndex": 10
+    },
+    {
+      "path": "buildings/archery_range_ai_texture_poc_v1_plaster_warm_333ff66aa1d9a0cf46783134_base_color.png",
+      "parent": "buildings/archery_range.glb",
+      "imageName": "ai_texture_poc_v1_plaster_warm_333ff66aa1d9a0cf46783134_base_color",
+      "sha256": "d2aae23786003dd0750af632423c4d49b0228373a055ff399a6028d892dd1d48",
+      "bytes": 430737,
+      "imageIndex": 11
     },
     {
       "path": "buildings/archery_range_painted_roof_normal.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_roof_normal",
-      "imageIndex": 10,
       "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
-      "bytes": 185014
+      "bytes": 185014,
+      "imageIndex": 12
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_bfffb7fcacfe73245d766c1f.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_roof_blue_shingles_fa6755d02608ec2362442570_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_bfffb7fcacfe73245d766c1f",
-      "imageIndex": 11,
-      "sha256": "d59e936ea9f13acf7f11a67fe9357b4363b6d373b96b53acebe89641fdb0c514",
-      "bytes": 70614
+      "imageName": "ai_texture_poc_v1_roof_blue_shingles_fa6755d02608ec2362442570_base_color",
+      "sha256": "4d79756e9cad68dff43da6902ff78982d85671d4e12d160f374f62fbbcd88fbf",
+      "bytes": 73941,
+      "imageIndex": 13
     },
     {
       "path": "buildings/archery_range_painted_roof_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_roof_roughness",
-      "imageIndex": 12,
       "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
-      "bytes": 10146
+      "bytes": 10146,
+      "imageIndex": 14
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_baab79806e10ab0d1263683c.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_roof_blue_shingles_3fd0bc27dac5125bf13cd7fd_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_baab79806e10ab0d1263683c",
-      "imageIndex": 13,
-      "sha256": "31bb1e259f454159b802f08a7941c9f0d33ea9fe5d369c44342617f616e1575f",
-      "bytes": 80481
+      "imageName": "ai_texture_poc_v1_roof_blue_shingles_3fd0bc27dac5125bf13cd7fd_base_color",
+      "sha256": "d4c2b1e12f7d5827aa14ce97a6071fd787e432e286883a66f30cc4f843b0874c",
+      "bytes": 84004,
+      "imageIndex": 15
     },
     {
       "path": "buildings/archery_range_painted_stone_normal.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_stone_normal",
-      "imageIndex": 14,
       "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
-      "bytes": 51007
+      "bytes": 51007,
+      "imageIndex": 16
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_befc3437a3ac769f14f35af6.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_stone_mossy_masonry_01398a4fea70b59dd588e4bc_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_befc3437a3ac769f14f35af6",
-      "imageIndex": 15,
-      "sha256": "d5d2e0354d09d524da8e18862757fe0f5e72037f5778d88625642500ac805b5e",
-      "bytes": 181038
+      "imageName": "ai_texture_poc_v1_stone_mossy_masonry_01398a4fea70b59dd588e4bc_base_color",
+      "sha256": "da2d0903296130a61ce332cb2f32b2817776b5ed5306e2fcb4437f5a1313ce71",
+      "bytes": 198224,
+      "imageIndex": 17
     },
     {
       "path": "buildings/archery_range_painted_stone_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_stone_roughness",
-      "imageIndex": 16,
       "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
-      "bytes": 19983
+      "bytes": 19983,
+      "imageIndex": 18
     },
     {
       "path": "buildings/archery_range_painted_leaf_normal.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_leaf_normal",
-      "imageIndex": 17,
       "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
-      "bytes": 128018
+      "bytes": 128018,
+      "imageIndex": 19
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_be95f207113ac2a0f32aa9be.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_ivy_moss_foliage_4a0c87662bc16fa5a91045ac_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_be95f207113ac2a0f32aa9be",
-      "imageIndex": 18,
-      "sha256": "28dd0e75723bac9d48b2879f43addc3b6d29795df33b2333de0c173f71b7d937",
-      "bytes": 109680
+      "imageName": "ai_texture_poc_v1_ivy_moss_foliage_4a0c87662bc16fa5a91045ac_base_color",
+      "sha256": "221d256c551235bdf4ffb9c9882ad8e52b50e378054f295db9e24ee8a276fa35",
+      "bytes": 352440,
+      "imageIndex": 20
     },
     {
       "path": "buildings/archery_range_painted_leaf_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_leaf_roughness",
-      "imageIndex": 19,
       "sha256": "8eab1b262bdbc978f295c0e8d35c2f98224cabdf37c80cd3d7c7de06b6010cd8",
-      "bytes": 15561
+      "bytes": 15561,
+      "imageIndex": 21
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_e518087cff7b51be105dd77d.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_ivy_moss_foliage_0fcd6bfc1e7b46b2e76ec1e8_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_e518087cff7b51be105dd77d",
-      "imageIndex": 20,
-      "sha256": "1a1dba23a01844500030bca31032922e907c71a42a7dc38433ff26a51839c2f4",
-      "bytes": 126692
+      "imageName": "ai_texture_poc_v1_ivy_moss_foliage_0fcd6bfc1e7b46b2e76ec1e8_base_color",
+      "sha256": "b954a33e8534e1f53345826a69421aed0a4daad06b7a8dc141dacae298ac9f8b",
+      "bytes": 372864,
+      "imageIndex": 22
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_d80b6116394c29b57b8ab5d8.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_ivy_moss_foliage_9936f442deaea38577689bac_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_d80b6116394c29b57b8ab5d8",
-      "imageIndex": 21,
-      "sha256": "59c7f4e5f2450aff2adafdb0fe60d95b6a5dfda33a58ee719f615a60964cdac1",
-      "bytes": 106707
+      "imageName": "ai_texture_poc_v1_ivy_moss_foliage_9936f442deaea38577689bac_base_color",
+      "sha256": "eae3af652d7a7d19dbdb20f7c619de08e0ba1bd6469af14853db8ae5cf5b0568",
+      "bytes": 349627,
+      "imageIndex": 23
     },
     {
       "path": "buildings/archery_range_painted_moss_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_moss_roughness",
-      "imageIndex": 22,
       "sha256": "8eab1b262bdbc978f295c0e8d35c2f98224cabdf37c80cd3d7c7de06b6010cd8",
-      "bytes": 15561
+      "bytes": 15561,
+      "imageIndex": 24
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_df71a033a245f736ff94fcb4.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_roof_blue_shingles_85a27017f6c14b87d8ead58c_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_df71a033a245f736ff94fcb4",
-      "imageIndex": 23,
-      "sha256": "3f88246c0d3707b158cff263a2ed9945ba935078c1bfa12411b9750e96e34b3e",
-      "bytes": 61662
+      "imageName": "ai_texture_poc_v1_roof_blue_shingles_85a27017f6c14b87d8ead58c_base_color",
+      "sha256": "10a2dfc3c42d4eaacece877ac2aa2373902e6e7d326b230748282f8d183eb27a",
+      "bytes": 67100,
+      "imageIndex": 25
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_7baed00d87ba4678636249bf.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_7baed00d87ba4678636249bf",
-      "imageIndex": 24,
       "sha256": "664daf4e839bf1ff7fe522547afe9eacaa0afb304e1dfc957a9101666ff34c1c",
-      "bytes": 68435
+      "bytes": 68435,
+      "imageIndex": 26
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_42e8f7b214841ff3aadb58c3.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_42e8f7b214841ff3aadb58c3",
-      "imageIndex": 25,
       "sha256": "1d60f9a154a9d0a289f8dcd7752216be41fbe2924367ec8edd5cec08ed101b2b",
-      "bytes": 54283
+      "bytes": 54283,
+      "imageIndex": 27
     },
     {
       "path": "buildings/archery_range_painted_window_roughness.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_window_roughness",
-      "imageIndex": 26,
       "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
-      "bytes": 8981
+      "bytes": 8981,
+      "imageIndex": 28
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_e8c19967beb658b4f260c065.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_e8c19967beb658b4f260c065",
-      "imageIndex": 27,
       "sha256": "9b4b38f52f7b58c35e5a86c5b386a7f8fce1976beb1657a113f242a63b58609b",
-      "bytes": 83034
+      "bytes": 83034,
+      "imageIndex": 29
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_0aced1b1cf9036f83899a8a4.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_0aced1b1cf9036f83899a8a4",
-      "imageIndex": 28,
       "sha256": "db5b03960c5adf19f24132475d3a1b7bfb1059756d35fcb3ad662a140b3d46cc",
-      "bytes": 66260
+      "bytes": 66260,
+      "imageIndex": 30
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_d103a020b22ca457c4979bd8.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_d103a020b22ca457c4979bd8",
-      "imageIndex": 29,
       "sha256": "e43a957cb2e86744907d2a0ff9e152cada5cd11f3b3046cddfff836d7f4850a8",
-      "bytes": 49844
+      "bytes": 49844,
+      "imageIndex": 31
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_c6c9d2f1742a86471dba7653.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_c6c9d2f1742a86471dba7653",
-      "imageIndex": 30,
       "sha256": "94abf29c77019af043c7787fa0a9310308b485581d6dfc9ea5548ce29b859712",
-      "bytes": 39340
+      "bytes": 39340,
+      "imageIndex": 32
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_434085c6cb3018306e7c5e37.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_ivy_moss_foliage_9598238a05dea13da48b9051_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_434085c6cb3018306e7c5e37",
-      "imageIndex": 31,
-      "sha256": "91f9292ab0551b8d3235e9ae2ff8daf10d9f95b133f658ad608ac4bf9172ba9d",
-      "bytes": 115021
+      "imageName": "ai_texture_poc_v1_ivy_moss_foliage_9598238a05dea13da48b9051_base_color",
+      "sha256": "c75552c1ea090e552620a6e7c74311b34a84c91b69a2b5320f21923774f245fe",
+      "bytes": 358392,
+      "imageIndex": 33
     },
     {
-      "path": "buildings/archery_range_painted_leaf_roughness_32.png",
+      "path": "buildings/archery_range_painted_leaf_roughness_34.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "painted_leaf_roughness",
-      "imageIndex": 32,
       "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
-      "bytes": 14341
+      "bytes": 14341,
+      "imageIndex": 34
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_64bed010723398330922d77f.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_ivy_moss_foliage_b260c7746096644da0bc5092_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_64bed010723398330922d77f",
-      "imageIndex": 33,
-      "sha256": "d2c43c05f2564711f7698b8234517811408e0e00657b4645b82c4e00db78435c",
-      "bytes": 129272
+      "imageName": "ai_texture_poc_v1_ivy_moss_foliage_b260c7746096644da0bc5092_base_color",
+      "sha256": "92263f01a3f370b8ba079a2d7dd89594c15a790ac6f92dbe4a3be2468806b547",
+      "bytes": 373848,
+      "imageIndex": 35
     },
     {
-      "path": "buildings/archery_range_vivid_painted_v1_861b7a3ff87698b6df69ae4f.png",
+      "path": "buildings/archery_range_ai_texture_poc_v1_ivy_moss_foliage_44261da7ef60b8d0500f3441_base_color.png",
       "parent": "buildings/archery_range.glb",
-      "imageName": "vivid_painted_v1_861b7a3ff87698b6df69ae4f",
-      "imageIndex": 34,
-      "sha256": "ab9124abe2d54c799fef586a9d6131d10be9289a8126888ee467ef74fed3bb69",
-      "bytes": 99161
+      "imageName": "ai_texture_poc_v1_ivy_moss_foliage_44261da7ef60b8d0500f3441_base_color",
+      "sha256": "eaf4901a12a3f9d32444e071aa3e921f82bb55ef956f572f95571adf27e4ad0f",
+      "bytes": 336725,
+      "imageIndex": 36
     },
     {
       "path": "buildings/archery_range_vivid_painted_v1_ab7731dbbbd9e12c3235e44c.png",
       "parent": "buildings/archery_range.glb",
       "imageName": "vivid_painted_v1_ab7731dbbbd9e12c3235e44c",
-      "imageIndex": 35,
       "sha256": "eb35e03f59423cd4e1c56f4e10fc3375a1f28c9e95217b1bec30ed35a9ba5158",
-      "bytes": 146694
+      "bytes": 146694,
+      "imageIndex": 37
     },
     {
       "path": "buildings/arrow_tower_painted_leaf_normal.png",
@@ -4054,497 +4070,497 @@
       "path": "environment/hex_ground_dirt_ground_foundation_normal.png",
       "parent": "environment/hex_ground_dirt.glb",
       "imageName": "ground_foundation_normal",
-      "imageIndex": 0,
       "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
-      "bytes": 161311
+      "bytes": 161311,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_ground_dirt_vivid_painted_v1_d6e3dd8653e311cc0fc0dda9.png",
+      "path": "environment/hex_ground_dirt_ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color.png",
       "parent": "environment/hex_ground_dirt.glb",
-      "imageName": "vivid_painted_v1_d6e3dd8653e311cc0fc0dda9",
-      "imageIndex": 1,
-      "sha256": "c16cdca91a1ea434223c1d30383547d87a27f4db88dd8d2aaf98ca8b1e557345",
-      "bytes": 267728
+      "imageName": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+      "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+      "bytes": 172051,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_ground_dirt_ground_foundation_roughness.png",
       "parent": "environment/hex_ground_dirt.glb",
       "imageName": "ground_foundation_roughness",
-      "imageIndex": 2,
       "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
-      "bytes": 4589
+      "bytes": 4589,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_ground_dirt_ground_dirt_normal.png",
       "parent": "environment/hex_ground_dirt.glb",
       "imageName": "ground_dirt_normal",
-      "imageIndex": 3,
       "sha256": "3c6a887cc4f642a5a118bf0e7956d151300fc3018052f88a6c9289cd3334fab1",
-      "bytes": 468500
+      "bytes": 468500,
+      "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_dirt_vivid_painted_v1_1508feb9498c6db0ed31d9a0.png",
+      "path": "environment/hex_ground_dirt_ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color.png",
       "parent": "environment/hex_ground_dirt.glb",
-      "imageName": "vivid_painted_v1_1508feb9498c6db0ed31d9a0",
-      "imageIndex": 4,
-      "sha256": "9c1f2f2c4a2ffad647dd1d32e43d198badf777448e82435780fd2ac0216049bc",
-      "bytes": 629401
+      "imageName": "ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color",
+      "sha256": "517c953ae826190504038e6b9929fd90b97d4d8e9ff71b583cc34da8ab9fe7d1",
+      "bytes": 653980,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_ground_dirt_ground_dirt_roughness.png",
       "parent": "environment/hex_ground_dirt.glb",
       "imageName": "ground_dirt_roughness",
-      "imageIndex": 5,
       "sha256": "5c58babb3be02e67f93df04a3ed00104781000721103ccb0919d69442b6c9f74",
-      "bytes": 224503
+      "bytes": 224503,
+      "imageIndex": 5
     },
     {
       "path": "environment/hex_ground_grass_ground_foundation_normal.png",
       "parent": "environment/hex_ground_grass.glb",
       "imageName": "ground_foundation_normal",
-      "imageIndex": 0,
       "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
-      "bytes": 161311
+      "bytes": 161311,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_ground_grass_vivid_painted_v1_d6e3dd8653e311cc0fc0dda9.png",
+      "path": "environment/hex_ground_grass_ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color.png",
       "parent": "environment/hex_ground_grass.glb",
-      "imageName": "vivid_painted_v1_d6e3dd8653e311cc0fc0dda9",
-      "imageIndex": 1,
-      "sha256": "c16cdca91a1ea434223c1d30383547d87a27f4db88dd8d2aaf98ca8b1e557345",
-      "bytes": 267728
+      "imageName": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+      "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+      "bytes": 172051,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_ground_grass_ground_foundation_roughness.png",
       "parent": "environment/hex_ground_grass.glb",
       "imageName": "ground_foundation_roughness",
-      "imageIndex": 2,
       "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
-      "bytes": 4589
+      "bytes": 4589,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_ground_grass_ground_grass_normal.png",
       "parent": "environment/hex_ground_grass.glb",
       "imageName": "ground_grass_normal",
-      "imageIndex": 3,
       "sha256": "750fbbeb01111ba571c8c38d1be1eb4c5600f7d0fe39756769cbc022c967be9c",
-      "bytes": 692506
+      "bytes": 692506,
+      "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_grass_vivid_painted_v1_06f87d3ce76bc1bc681ccc1a.png",
+      "path": "environment/hex_ground_grass_ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color.png",
       "parent": "environment/hex_ground_grass.glb",
-      "imageName": "vivid_painted_v1_06f87d3ce76bc1bc681ccc1a",
-      "imageIndex": 4,
-      "sha256": "e0393e109d8563959ab8bc91dee014d2a6c5bcc6d9bb8595cf892365fdb15458",
-      "bytes": 809618
+      "imageName": "ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color",
+      "sha256": "f19097befd7adea74e763daa3ad070a07e8e74e25cfb1b3b18dcf52fd2c10bea",
+      "bytes": 817510,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_ground_grass_ground_grass_roughness.png",
       "parent": "environment/hex_ground_grass.glb",
       "imageName": "ground_grass_roughness",
-      "imageIndex": 5,
       "sha256": "21bc23c3ed2d05b095178d466677d3db84e05bb42b52ae1d5023598c7e1de3d1",
-      "bytes": 287212
+      "bytes": 287212,
+      "imageIndex": 5
     },
     {
       "path": "environment/hex_ground_leaf_litter_ground_foundation_normal.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
       "imageName": "ground_foundation_normal",
-      "imageIndex": 0,
       "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
-      "bytes": 161311
+      "bytes": 161311,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_ground_leaf_litter_vivid_painted_v1_d6e3dd8653e311cc0fc0dda9.png",
+      "path": "environment/hex_ground_leaf_litter_ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
-      "imageName": "vivid_painted_v1_d6e3dd8653e311cc0fc0dda9",
-      "imageIndex": 1,
-      "sha256": "c16cdca91a1ea434223c1d30383547d87a27f4db88dd8d2aaf98ca8b1e557345",
-      "bytes": 267728
+      "imageName": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+      "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+      "bytes": 172051,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_ground_leaf_litter_ground_foundation_roughness.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
       "imageName": "ground_foundation_roughness",
-      "imageIndex": 2,
       "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
-      "bytes": 4589
+      "bytes": 4589,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_ground_leaf_litter_ground_leaf_litter_normal.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
       "imageName": "ground_leaf_litter_normal",
-      "imageIndex": 3,
       "sha256": "4bafbe18d196fe553cbeafa7772e58989fb06523216d3e9be075c4087e3aaf78",
-      "bytes": 680651
+      "bytes": 680651,
+      "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_leaf_litter_vivid_painted_v1_636fcf7f95eef5f86d609beb.png",
+      "path": "environment/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
-      "imageName": "vivid_painted_v1_636fcf7f95eef5f86d609beb",
-      "imageIndex": 4,
-      "sha256": "fc744ff88388e7aa18f3209c245d3c10814937ba79777104257488654a623c09",
-      "bytes": 825796
+      "imageName": "ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color",
+      "sha256": "5b86ec50ae7f3efc5ae7e6471743b5499463d6460abb00c051a40da02ab5299f",
+      "bytes": 753062,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_ground_leaf_litter_ground_leaf_litter_roughness.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
       "imageName": "ground_leaf_litter_roughness",
-      "imageIndex": 5,
       "sha256": "7ad475b23a2daf653fd3b1b4c3f11bf20639e457c4e95ea03e449db045d2db33",
-      "bytes": 279361
+      "bytes": 279361,
+      "imageIndex": 5
     },
     {
       "path": "environment/hex_ground_moss_ground_foundation_normal.png",
       "parent": "environment/hex_ground_moss.glb",
       "imageName": "ground_foundation_normal",
-      "imageIndex": 0,
       "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
-      "bytes": 161311
+      "bytes": 161311,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_ground_moss_vivid_painted_v1_d6e3dd8653e311cc0fc0dda9.png",
+      "path": "environment/hex_ground_moss_ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color.png",
       "parent": "environment/hex_ground_moss.glb",
-      "imageName": "vivid_painted_v1_d6e3dd8653e311cc0fc0dda9",
-      "imageIndex": 1,
-      "sha256": "c16cdca91a1ea434223c1d30383547d87a27f4db88dd8d2aaf98ca8b1e557345",
-      "bytes": 267728
+      "imageName": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+      "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+      "bytes": 172051,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_ground_moss_ground_foundation_roughness.png",
       "parent": "environment/hex_ground_moss.glb",
       "imageName": "ground_foundation_roughness",
-      "imageIndex": 2,
       "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
-      "bytes": 4589
+      "bytes": 4589,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_ground_moss_ground_moss_normal.png",
       "parent": "environment/hex_ground_moss.glb",
       "imageName": "ground_moss_normal",
-      "imageIndex": 3,
       "sha256": "a0bb89e2f8c421cf95fa90cde680ed968e94ab2c3c82950501a8f0fc4945edcb",
-      "bytes": 649144
+      "bytes": 649144,
+      "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_moss_vivid_painted_v1_7c016393ec8be5367ed3383e.png",
+      "path": "environment/hex_ground_moss_ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color.png",
       "parent": "environment/hex_ground_moss.glb",
-      "imageName": "vivid_painted_v1_7c016393ec8be5367ed3383e",
-      "imageIndex": 4,
-      "sha256": "7b76a454c017bdf7655f8ef25be72307df0afc100a9ed4736b0d6a476b6db23e",
-      "bytes": 820060
+      "imageName": "ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color",
+      "sha256": "3cddea1022d0e5bec5abcc7bbbe6ba31b9ace7bcd697013225fc033dd86eb11d",
+      "bytes": 779670,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_ground_moss_ground_moss_roughness.png",
       "parent": "environment/hex_ground_moss.glb",
       "imageName": "ground_moss_roughness",
-      "imageIndex": 5,
       "sha256": "1cc49bbc7d460287ddcd08f46c7d18c29f6d9fd7cf1bef032a1cefa5f9dbac7d",
-      "bytes": 266074
+      "bytes": 266074,
+      "imageIndex": 5
     },
     {
       "path": "environment/hex_ground_pine_duff_ground_foundation_normal.png",
       "parent": "environment/hex_ground_pine_duff.glb",
       "imageName": "ground_foundation_normal",
-      "imageIndex": 0,
       "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
-      "bytes": 161311
+      "bytes": 161311,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_ground_pine_duff_vivid_painted_v1_d6e3dd8653e311cc0fc0dda9.png",
+      "path": "environment/hex_ground_pine_duff_ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color.png",
       "parent": "environment/hex_ground_pine_duff.glb",
-      "imageName": "vivid_painted_v1_d6e3dd8653e311cc0fc0dda9",
-      "imageIndex": 1,
-      "sha256": "c16cdca91a1ea434223c1d30383547d87a27f4db88dd8d2aaf98ca8b1e557345",
-      "bytes": 267728
+      "imageName": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+      "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+      "bytes": 172051,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_ground_pine_duff_ground_foundation_roughness.png",
       "parent": "environment/hex_ground_pine_duff.glb",
       "imageName": "ground_foundation_roughness",
-      "imageIndex": 2,
       "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
-      "bytes": 4589
+      "bytes": 4589,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_ground_pine_duff_ground_pine_duff_normal.png",
       "parent": "environment/hex_ground_pine_duff.glb",
       "imageName": "ground_pine_duff_normal",
-      "imageIndex": 3,
       "sha256": "ded83a41882ecea7839850d31acfdd434e6d546278f7aa6cd5220a56ea451c0a",
-      "bytes": 567424
+      "bytes": 567424,
+      "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_pine_duff_vivid_painted_v1_38939be8a97e8e303d173c37.png",
+      "path": "environment/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color.png",
       "parent": "environment/hex_ground_pine_duff.glb",
-      "imageName": "vivid_painted_v1_38939be8a97e8e303d173c37",
-      "imageIndex": 4,
-      "sha256": "3704d75387267ec20e710d01883ed4b6ca4e95f6b962e08566a839d9e92c69f6",
-      "bytes": 647758
+      "imageName": "ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color",
+      "sha256": "4fa470be1060519a35ffb3d46818273d8b32163c073cd5ea019e7bcddbc04b67",
+      "bytes": 722595,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_ground_pine_duff_ground_pine_duff_roughness.png",
       "parent": "environment/hex_ground_pine_duff.glb",
       "imageName": "ground_pine_duff_roughness",
-      "imageIndex": 5,
       "sha256": "d675ffe48262b55aecffbdc573e414832d020533b91a6ac9e56ed61029907a9d",
-      "bytes": 256585
+      "bytes": 256585,
+      "imageIndex": 5
     },
     {
       "path": "environment/hex_path_end_ground_path_normal.png",
       "parent": "environment/hex_path_end.glb",
       "imageName": "ground_path_normal",
-      "imageIndex": 0,
       "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
-      "bytes": 78912
+      "bytes": 78912,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_path_end_vivid_painted_v1_623d4244db36573b0631ca2d.png",
+      "path": "environment/hex_path_end_ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color.png",
       "parent": "environment/hex_path_end.glb",
-      "imageName": "vivid_painted_v1_623d4244db36573b0631ca2d",
-      "imageIndex": 1,
-      "sha256": "ae56d4d58899bbf91eadfad89f5a6fd550eb8a769771636ce2edcf20509c46e6",
-      "bytes": 162113
+      "imageName": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+      "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+      "bytes": 230844,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_path_end_ground_path_roughness.png",
       "parent": "environment/hex_path_end.glb",
       "imageName": "ground_path_roughness",
-      "imageIndex": 2,
       "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
-      "bytes": 28866
+      "bytes": 28866,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_path_straight_ground_path_normal.png",
       "parent": "environment/hex_path_straight.glb",
       "imageName": "ground_path_normal",
-      "imageIndex": 0,
       "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
-      "bytes": 78912
+      "bytes": 78912,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_path_straight_vivid_painted_v1_623d4244db36573b0631ca2d.png",
+      "path": "environment/hex_path_straight_ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color.png",
       "parent": "environment/hex_path_straight.glb",
-      "imageName": "vivid_painted_v1_623d4244db36573b0631ca2d",
-      "imageIndex": 1,
-      "sha256": "ae56d4d58899bbf91eadfad89f5a6fd550eb8a769771636ce2edcf20509c46e6",
-      "bytes": 162113
+      "imageName": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+      "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+      "bytes": 230844,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_path_straight_ground_path_roughness.png",
       "parent": "environment/hex_path_straight.glb",
       "imageName": "ground_path_roughness",
-      "imageIndex": 2,
       "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
-      "bytes": 28866
+      "bytes": 28866,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_path_turn_120_ground_path_normal.png",
       "parent": "environment/hex_path_turn_120.glb",
       "imageName": "ground_path_normal",
-      "imageIndex": 0,
       "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
-      "bytes": 78912
+      "bytes": 78912,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_path_turn_120_vivid_painted_v1_623d4244db36573b0631ca2d.png",
+      "path": "environment/hex_path_turn_120_ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color.png",
       "parent": "environment/hex_path_turn_120.glb",
-      "imageName": "vivid_painted_v1_623d4244db36573b0631ca2d",
-      "imageIndex": 1,
-      "sha256": "ae56d4d58899bbf91eadfad89f5a6fd550eb8a769771636ce2edcf20509c46e6",
-      "bytes": 162113
+      "imageName": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+      "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+      "bytes": 230844,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_path_turn_120_ground_path_roughness.png",
       "parent": "environment/hex_path_turn_120.glb",
       "imageName": "ground_path_roughness",
-      "imageIndex": 2,
       "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
-      "bytes": 28866
+      "bytes": 28866,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_path_turn_60_ground_path_normal.png",
       "parent": "environment/hex_path_turn_60.glb",
       "imageName": "ground_path_normal",
-      "imageIndex": 0,
       "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
-      "bytes": 78912
+      "bytes": 78912,
+      "imageIndex": 0
     },
     {
-      "path": "environment/hex_path_turn_60_vivid_painted_v1_623d4244db36573b0631ca2d.png",
+      "path": "environment/hex_path_turn_60_ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color.png",
       "parent": "environment/hex_path_turn_60.glb",
-      "imageName": "vivid_painted_v1_623d4244db36573b0631ca2d",
-      "imageIndex": 1,
-      "sha256": "ae56d4d58899bbf91eadfad89f5a6fd550eb8a769771636ce2edcf20509c46e6",
-      "bytes": 162113
+      "imageName": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+      "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+      "bytes": 230844,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_path_turn_60_ground_path_roughness.png",
       "parent": "environment/hex_path_turn_60.glb",
       "imageName": "ground_path_roughness",
-      "imageIndex": 2,
       "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
-      "bytes": 28866
+      "bytes": 28866,
+      "imageIndex": 2
     },
     {
       "path": "environment/hex_river_overlay_end_painted_water_ambient_shimmer_color.png",
       "parent": "environment/hex_river_overlay_end.glb",
       "imageName": "painted_water_ambient_shimmer_color",
-      "imageIndex": 0,
       "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
-      "bytes": 66753
+      "bytes": 66753,
+      "imageIndex": 0
     },
     {
       "path": "environment/hex_river_overlay_end_painted_water_roughness.png",
       "parent": "environment/hex_river_overlay_end.glb",
       "imageName": "painted_water_roughness",
-      "imageIndex": 1,
       "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
-      "bytes": 10602
+      "bytes": 10602,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_river_overlay_end_ground_river_normal.png",
       "parent": "environment/hex_river_overlay_end.glb",
       "imageName": "ground_river_normal",
-      "imageIndex": 2,
       "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
-      "bytes": 36716
+      "bytes": 36716,
+      "imageIndex": 2
     },
     {
-      "path": "environment/hex_river_overlay_end_vivid_painted_v1_8b2ad1a59c3be55cbe964c74.png",
+      "path": "environment/hex_river_overlay_end_ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color.png",
       "parent": "environment/hex_river_overlay_end.glb",
-      "imageName": "vivid_painted_v1_8b2ad1a59c3be55cbe964c74",
-      "imageIndex": 3,
-      "sha256": "2e3bf3a89406c49b851080c45556456ce51c63c75a5dc99ef7f4b2410d1d27f6",
-      "bytes": 49031
+      "imageName": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+      "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+      "bytes": 202554,
+      "imageIndex": 3
     },
     {
       "path": "environment/hex_river_overlay_end_ground_river_roughness.png",
       "parent": "environment/hex_river_overlay_end.glb",
       "imageName": "ground_river_roughness",
-      "imageIndex": 4,
       "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
-      "bytes": 5387
+      "bytes": 5387,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_river_overlay_straight_painted_water_ambient_shimmer_color.png",
       "parent": "environment/hex_river_overlay_straight.glb",
       "imageName": "painted_water_ambient_shimmer_color",
-      "imageIndex": 0,
       "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
-      "bytes": 66753
+      "bytes": 66753,
+      "imageIndex": 0
     },
     {
       "path": "environment/hex_river_overlay_straight_painted_water_roughness.png",
       "parent": "environment/hex_river_overlay_straight.glb",
       "imageName": "painted_water_roughness",
-      "imageIndex": 1,
       "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
-      "bytes": 10602
+      "bytes": 10602,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_river_overlay_straight_ground_river_normal.png",
       "parent": "environment/hex_river_overlay_straight.glb",
       "imageName": "ground_river_normal",
-      "imageIndex": 2,
       "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
-      "bytes": 36716
+      "bytes": 36716,
+      "imageIndex": 2
     },
     {
-      "path": "environment/hex_river_overlay_straight_vivid_painted_v1_8b2ad1a59c3be55cbe964c74.png",
+      "path": "environment/hex_river_overlay_straight_ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color.png",
       "parent": "environment/hex_river_overlay_straight.glb",
-      "imageName": "vivid_painted_v1_8b2ad1a59c3be55cbe964c74",
-      "imageIndex": 3,
-      "sha256": "2e3bf3a89406c49b851080c45556456ce51c63c75a5dc99ef7f4b2410d1d27f6",
-      "bytes": 49031
+      "imageName": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+      "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+      "bytes": 202554,
+      "imageIndex": 3
     },
     {
       "path": "environment/hex_river_overlay_straight_ground_river_roughness.png",
       "parent": "environment/hex_river_overlay_straight.glb",
       "imageName": "ground_river_roughness",
-      "imageIndex": 4,
       "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
-      "bytes": 5387
+      "bytes": 5387,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_river_overlay_turn_120_painted_water_ambient_shimmer_color.png",
       "parent": "environment/hex_river_overlay_turn_120.glb",
       "imageName": "painted_water_ambient_shimmer_color",
-      "imageIndex": 0,
       "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
-      "bytes": 66753
+      "bytes": 66753,
+      "imageIndex": 0
     },
     {
       "path": "environment/hex_river_overlay_turn_120_painted_water_roughness.png",
       "parent": "environment/hex_river_overlay_turn_120.glb",
       "imageName": "painted_water_roughness",
-      "imageIndex": 1,
       "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
-      "bytes": 10602
+      "bytes": 10602,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_river_overlay_turn_120_ground_river_normal.png",
       "parent": "environment/hex_river_overlay_turn_120.glb",
       "imageName": "ground_river_normal",
-      "imageIndex": 2,
       "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
-      "bytes": 36716
+      "bytes": 36716,
+      "imageIndex": 2
     },
     {
-      "path": "environment/hex_river_overlay_turn_120_vivid_painted_v1_8b2ad1a59c3be55cbe964c74.png",
+      "path": "environment/hex_river_overlay_turn_120_ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color.png",
       "parent": "environment/hex_river_overlay_turn_120.glb",
-      "imageName": "vivid_painted_v1_8b2ad1a59c3be55cbe964c74",
-      "imageIndex": 3,
-      "sha256": "2e3bf3a89406c49b851080c45556456ce51c63c75a5dc99ef7f4b2410d1d27f6",
-      "bytes": 49031
+      "imageName": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+      "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+      "bytes": 202554,
+      "imageIndex": 3
     },
     {
       "path": "environment/hex_river_overlay_turn_120_ground_river_roughness.png",
       "parent": "environment/hex_river_overlay_turn_120.glb",
       "imageName": "ground_river_roughness",
-      "imageIndex": 4,
       "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
-      "bytes": 5387
+      "bytes": 5387,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_river_overlay_turn_60_painted_water_ambient_shimmer_color.png",
       "parent": "environment/hex_river_overlay_turn_60.glb",
       "imageName": "painted_water_ambient_shimmer_color",
-      "imageIndex": 0,
       "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
-      "bytes": 66753
+      "bytes": 66753,
+      "imageIndex": 0
     },
     {
       "path": "environment/hex_river_overlay_turn_60_painted_water_roughness.png",
       "parent": "environment/hex_river_overlay_turn_60.glb",
       "imageName": "painted_water_roughness",
-      "imageIndex": 1,
       "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
-      "bytes": 10602
+      "bytes": 10602,
+      "imageIndex": 1
     },
     {
       "path": "environment/hex_river_overlay_turn_60_ground_river_normal.png",
       "parent": "environment/hex_river_overlay_turn_60.glb",
       "imageName": "ground_river_normal",
-      "imageIndex": 2,
       "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
-      "bytes": 36716
+      "bytes": 36716,
+      "imageIndex": 2
     },
     {
-      "path": "environment/hex_river_overlay_turn_60_vivid_painted_v1_8b2ad1a59c3be55cbe964c74.png",
+      "path": "environment/hex_river_overlay_turn_60_ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color.png",
       "parent": "environment/hex_river_overlay_turn_60.glb",
-      "imageName": "vivid_painted_v1_8b2ad1a59c3be55cbe964c74",
-      "imageIndex": 3,
-      "sha256": "2e3bf3a89406c49b851080c45556456ce51c63c75a5dc99ef7f4b2410d1d27f6",
-      "bytes": 49031
+      "imageName": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+      "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+      "bytes": 202554,
+      "imageIndex": 3
     },
     {
       "path": "environment/hex_river_overlay_turn_60_ground_river_roughness.png",
       "parent": "environment/hex_river_overlay_turn_60.glb",
       "imageName": "ground_river_roughness",
-      "imageIndex": 4,
       "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
-      "bytes": 5387
+      "bytes": 5387,
+      "imageIndex": 4
     },
     {
       "path": "environment/hex_woodland_bridge_painted_wood_normal.png",
