@@ -1,0 +1,672 @@
+{
+  "baselineStatic": {
+    "localEvidence": "logs/20261017-002336-92332f7a/test-assets-summary.json",
+    "summary": {
+      "Command": "test-assets",
+      "Coverage": "owned headless static rendering buffers and corruption regressions; optional unsafe consolidation deferred",
+      "Jobs": 1,
+      "UiJobs": 2,
+      "SetupSimulationSpeed": 4,
+      "Trace": false,
+      "Result": "passed",
+      "Seconds": 21.5036814,
+      "EvidenceBytes": 348007,
+      "Measurements": [
+        {
+          "Name": "restore",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:23:36.4619478+00:00",
+          "Seconds": 1.04405,
+          "Condition": null
+        },
+        {
+          "Name": "build",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:23:37.5098747+00:00",
+          "Seconds": 3.6531578,
+          "Condition": null
+        },
+        {
+          "Name": "import",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:23:41.1638009+00:00",
+          "Seconds": 11.0964007,
+          "Condition": null
+        },
+        {
+          "Name": "authored-static-fidelity",
+          "Kind": "asset",
+          "Result": "passed",
+          "Started": "2026-10-17T00:23:52.2606867+00:00",
+          "Seconds": 5.5044649,
+          "Condition": null
+        }
+      ]
+    }
+  },
+  "baselineGpu": {
+    "localEvidence": "logs/20261017-002635-78edd545/test-vulkan-summary.json",
+    "summary": {
+      "Command": "test-vulkan",
+      "Coverage": "command only; no test coverage claimed",
+      "Jobs": 1,
+      "UiJobs": 2,
+      "SetupSimulationSpeed": 4,
+      "Trace": false,
+      "Result": "passed",
+      "Seconds": 33.1699075,
+      "EvidenceBytes": 19568887,
+      "Measurements": [
+        {
+          "Name": "restore",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:26:35.7440568+00:00",
+          "Seconds": 1.0356089,
+          "Condition": null
+        },
+        {
+          "Name": "build",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:26:36.7836049+00:00",
+          "Seconds": 3.3487552,
+          "Condition": null
+        },
+        {
+          "Name": "import",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:26:40.1331529+00:00",
+          "Seconds": 2.9502569,
+          "Condition": null
+        },
+        {
+          "Name": "desktop-vulkan",
+          "Kind": "ui",
+          "Result": "passed",
+          "Started": "2026-10-17T00:26:43.0842487+00:00",
+          "Seconds": 25.6713493,
+          "Condition": null
+        }
+      ]
+    }
+  },
+  "newStatic": {
+    "localEvidence": "logs/20261017-002954-9d418d79/test-assets-summary.json",
+    "summary": {
+      "Command": "test-assets",
+      "Coverage": "owned headless static rendering buffers and corruption regressions; optional unsafe consolidation deferred",
+      "Jobs": 1,
+      "UiJobs": 2,
+      "SetupSimulationSpeed": 4,
+      "Trace": false,
+      "Result": "passed",
+      "Seconds": 10.4503188,
+      "EvidenceBytes": 277552,
+      "Measurements": [
+        {
+          "Name": "restore",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:29:54.8374208+00:00",
+          "Seconds": 1.0216373,
+          "Condition": null
+        },
+        {
+          "Name": "build",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:29:55.8629777+00:00",
+          "Seconds": 0.9705821,
+          "Condition": null
+        },
+        {
+          "Name": "import",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:29:56.8345026+00:00",
+          "Seconds": 2.9127753,
+          "Condition": null
+        },
+        {
+          "Name": "authored-static-fidelity",
+          "Kind": "asset",
+          "Result": "passed",
+          "Started": "2026-10-17T00:29:59.7477784+00:00",
+          "Seconds": 5.3904235,
+          "Condition": null
+        }
+      ]
+    }
+  },
+  "newAnimation": {
+    "localEvidence": "logs/20261017-003006-f2dc21cc/test-engine-summary.json",
+    "summary": {
+      "Command": "test-engine",
+      "Coverage": "selected: animation",
+      "Jobs": 1,
+      "UiJobs": 2,
+      "SetupSimulationSpeed": 4,
+      "Trace": false,
+      "Result": "passed",
+      "Seconds": 10.2892809,
+      "EvidenceBytes": 512423,
+      "Measurements": [
+        {
+          "Name": "restore",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:06.6277433+00:00",
+          "Seconds": 1.0191832,
+          "Condition": null
+        },
+        {
+          "Name": "build",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:07.6509515+00:00",
+          "Seconds": 0.9727533,
+          "Condition": null
+        },
+        {
+          "Name": "import",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:08.6246945+00:00",
+          "Seconds": 2.9006951,
+          "Condition": null
+        },
+        {
+          "Name": "engine-animation",
+          "Kind": "engine",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:11.5261749+00:00",
+          "Seconds": 5.2350713,
+          "Condition": null
+        }
+      ]
+    }
+  },
+  "newGpu": {
+    "localEvidence": "logs/20261017-003036-0e315b3d/test-vulkan-summary.json",
+    "summary": {
+      "Command": "test-vulkan",
+      "Coverage": "command only; no test coverage claimed",
+      "Jobs": 1,
+      "UiJobs": 2,
+      "SetupSimulationSpeed": 4,
+      "Trace": false,
+      "Result": "passed",
+      "Seconds": 32.9982441,
+      "EvidenceBytes": 23100590,
+      "Measurements": [
+        {
+          "Name": "restore",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:36.3436605+00:00",
+          "Seconds": 1.0171554,
+          "Condition": null
+        },
+        {
+          "Name": "build",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:37.3648538+00:00",
+          "Seconds": 3.26415,
+          "Condition": null
+        },
+        {
+          "Name": "import",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:40.6297478+00:00",
+          "Seconds": 2.9093657,
+          "Condition": null
+        },
+        {
+          "Name": "desktop-vulkan",
+          "Kind": "ui",
+          "Result": "passed",
+          "Started": "2026-10-17T00:30:43.539955+00:00",
+          "Seconds": 25.653592,
+          "Condition": null
+        }
+      ]
+    }
+  },
+  "fast": {
+    "localEvidence": "logs/20261017-003224-29c950d2/test-fast-summary.json",
+    "summary": {
+      "Command": "test-fast",
+      "Coverage": "fast C# core and runner; excludes Tier=Deep; no Godot",
+      "Jobs": 2,
+      "UiJobs": 2,
+      "SetupSimulationSpeed": 4,
+      "Trace": false,
+      "Result": "passed",
+      "Seconds": 70.7225636,
+      "EvidenceBytes": 2689150,
+      "Measurements": [
+        {
+          "Name": "runner",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:32:24.1550415+00:00",
+          "Seconds": 12.7945605,
+          "Condition": null
+        },
+        {
+          "Name": "core",
+          "Kind": "phase",
+          "Result": "passed",
+          "Started": "2026-10-17T00:32:24.1281808+00:00",
+          "Seconds": 70.694118,
+          "Condition": null
+        },
+        {
+          "Name": "rules",
+          "Kind": "suite",
+          "Result": "passed",
+          "Started": "2026-10-17T00:32:24.1246224+00:00",
+          "Seconds": 70.7170686,
+          "Condition": null
+        }
+      ]
+    }
+  },
+  "importedGroundProof": {
+    "Stacks": 40,
+    "NeighborJoins": 72,
+    "Orientations": [
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_end.glb",
+        "Turns": 0,
+        "Edges": [
+          0
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_60.glb",
+        "Turns": 0,
+        "Edges": [
+          0,
+          1
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_120.glb",
+        "Turns": 0,
+        "Edges": [
+          0,
+          2
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_straight.glb",
+        "Turns": 0,
+        "Edges": [
+          0,
+          3
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_120.glb",
+        "Turns": 4,
+        "Edges": [
+          0,
+          4
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_60.glb",
+        "Turns": 5,
+        "Edges": [
+          0,
+          5
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_end.glb",
+        "Turns": 1,
+        "Edges": [
+          1
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_60.glb",
+        "Turns": 1,
+        "Edges": [
+          1,
+          2
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_120.glb",
+        "Turns": 1,
+        "Edges": [
+          1,
+          3
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_straight.glb",
+        "Turns": 1,
+        "Edges": [
+          1,
+          4
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_120.glb",
+        "Turns": 5,
+        "Edges": [
+          1,
+          5
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_end.glb",
+        "Turns": 2,
+        "Edges": [
+          2
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_60.glb",
+        "Turns": 2,
+        "Edges": [
+          2,
+          3
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_120.glb",
+        "Turns": 2,
+        "Edges": [
+          2,
+          4
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_straight.glb",
+        "Turns": 2,
+        "Edges": [
+          2,
+          5
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_end.glb",
+        "Turns": 3,
+        "Edges": [
+          3
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_60.glb",
+        "Turns": 3,
+        "Edges": [
+          3,
+          4
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_120.glb",
+        "Turns": 3,
+        "Edges": [
+          3,
+          5
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_end.glb",
+        "Turns": 4,
+        "Edges": [
+          4
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_turn_60.glb",
+        "Turns": 4,
+        "Edges": [
+          4,
+          5
+        ]
+      },
+      {
+        "Family": "Path",
+        "Asset": "environment/hex_path_end.glb",
+        "Turns": 5,
+        "Edges": [
+          5
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_end.glb",
+        "Turns": 0,
+        "Edges": [
+          0
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_60.glb",
+        "Turns": 0,
+        "Edges": [
+          0,
+          1
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_120.glb",
+        "Turns": 0,
+        "Edges": [
+          0,
+          2
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_straight.glb",
+        "Turns": 0,
+        "Edges": [
+          0,
+          3
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_120.glb",
+        "Turns": 4,
+        "Edges": [
+          0,
+          4
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_60.glb",
+        "Turns": 5,
+        "Edges": [
+          0,
+          5
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_end.glb",
+        "Turns": 1,
+        "Edges": [
+          1
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_60.glb",
+        "Turns": 1,
+        "Edges": [
+          1,
+          2
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_120.glb",
+        "Turns": 1,
+        "Edges": [
+          1,
+          3
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_straight.glb",
+        "Turns": 1,
+        "Edges": [
+          1,
+          4
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_120.glb",
+        "Turns": 5,
+        "Edges": [
+          1,
+          5
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_end.glb",
+        "Turns": 2,
+        "Edges": [
+          2
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_60.glb",
+        "Turns": 2,
+        "Edges": [
+          2,
+          3
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_120.glb",
+        "Turns": 2,
+        "Edges": [
+          2,
+          4
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_straight.glb",
+        "Turns": 2,
+        "Edges": [
+          2,
+          5
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_end.glb",
+        "Turns": 3,
+        "Edges": [
+          3
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_60.glb",
+        "Turns": 3,
+        "Edges": [
+          3,
+          4
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_120.glb",
+        "Turns": 3,
+        "Edges": [
+          3,
+          5
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_end.glb",
+        "Turns": 4,
+        "Edges": [
+          4
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_turn_60.glb",
+        "Turns": 4,
+        "Edges": [
+          4,
+          5
+        ]
+      },
+      {
+        "Family": "River",
+        "Asset": "environment/hex_river_overlay_end.glb",
+        "Turns": 5,
+        "Edges": [
+          5
+        ]
+      }
+    ],
+    "Scope": "owned imported ground diagnostics: connector orientations, neighbor profiles, base/overlay stacks and bridge adaptation"
+  },
+  "negativeRegressions": [
+    "near-zero rendering buffers round-trip",
+    "displacement",
+    "scale",
+    "winding",
+    "lost-triangle",
+    "lost-vertex",
+    "normal",
+    "uv",
+    "material assignment",
+    "hierarchy transform corruption",
+    "mirrored hierarchy explicitly requires original geometry",
+    "nonfinite hierarchy",
+    "actual animated/skinned authored character",
+    "nonuniform transform normal corruption rejected; source retained"
+  ],
+  "limits": "Selected local GPU/headless receipts. No exact-later-published-head CI, sustained performance, package, controller or Steam pair claim."
+}

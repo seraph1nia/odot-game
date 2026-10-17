@@ -1,0 +1,473 @@
+{
+  "assetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+  "previousAssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+  "handoffContentIdentity": "702a679862bb25a1e4f7152b2ea97190ba1c3b14b467398dbaa71af725011635",
+  "manifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+  "files": [
+    {
+      "path": "buildings/archery_range.glb",
+      "changed": true,
+      "beforeSha256": "c6bedd11449586116abbdc74405f742f668be7fa249a4bb95116ffb55288595c",
+      "afterSha256": "b10479a00e15116e1d3b09d017cf55c0dc8d1570e78064c5033aea6176a8d231",
+      "beforeBytes": 14875208,
+      "afterBytes": 17619280
+    },
+    {
+      "path": "buildings/arrow_tower.glb",
+      "changed": false,
+      "beforeSha256": "e5dd348375fe2e74a2ff4b0eacccd52de81194a8348909efc2d6297513f80f35",
+      "afterSha256": "e5dd348375fe2e74a2ff4b0eacccd52de81194a8348909efc2d6297513f80f35",
+      "beforeBytes": 8355696,
+      "afterBytes": 8355696
+    },
+    {
+      "path": "buildings/bakery.glb",
+      "changed": false,
+      "beforeSha256": "ed10e186da56609154c4f0d01b96df394d802d0ca33d5bd23a4b366d25d2eb82",
+      "afterSha256": "ed10e186da56609154c4f0d01b96df394d802d0ca33d5bd23a4b366d25d2eb82",
+      "beforeBytes": 4238172,
+      "afterBytes": 4238172
+    },
+    {
+      "path": "buildings/barracks.glb",
+      "changed": false,
+      "beforeSha256": "4965440253350354f49be062b61f2945c7c2924663c2496bc1bfbeba90b19d0a",
+      "afterSha256": "4965440253350354f49be062b61f2945c7c2924663c2496bc1bfbeba90b19d0a",
+      "beforeBytes": 12216796,
+      "afterBytes": 12216796
+    },
+    {
+      "path": "buildings/bombarding_tower.glb",
+      "changed": false,
+      "beforeSha256": "0e744fe969141821f426ac3b007ec9f23724bd367df02fa28b806c75148fb371",
+      "afterSha256": "0e744fe969141821f426ac3b007ec9f23724bd367df02fa28b806c75148fb371",
+      "beforeBytes": 10055956,
+      "afterBytes": 10055956
+    },
+    {
+      "path": "buildings/gold_mine.glb",
+      "changed": false,
+      "beforeSha256": "40d7ed138c0610ea488f7561790c93cf31af932d01a815dd6f27feb9abdafb95",
+      "afterSha256": "40d7ed138c0610ea488f7561790c93cf31af932d01a815dd6f27feb9abdafb95",
+      "beforeBytes": 2313808,
+      "afterBytes": 2313808
+    },
+    {
+      "path": "buildings/magic_academy.glb",
+      "changed": false,
+      "beforeSha256": "3d4eea8b41984a020321d9064cb9c9f0d8ec0c499f2a8b3f25acb527ea1b72e9",
+      "afterSha256": "3d4eea8b41984a020321d9064cb9c9f0d8ec0c499f2a8b3f25acb527ea1b72e9",
+      "beforeBytes": 16186332,
+      "afterBytes": 16186332
+    },
+    {
+      "path": "buildings/metal_mine.glb",
+      "changed": false,
+      "beforeSha256": "170d08f9cde4f62d95a0051be7bb4baa4b8c3915cf10f57f0b07ae15984017cc",
+      "afterSha256": "170d08f9cde4f62d95a0051be7bb4baa4b8c3915cf10f57f0b07ae15984017cc",
+      "beforeBytes": 10074036,
+      "afterBytes": 10074036
+    },
+    {
+      "path": "buildings/research_tower.glb",
+      "changed": false,
+      "beforeSha256": "6d7dee79f6ddc45c965cd509a3166aa9870ef9ba1198c717952732af3e4d6bb0",
+      "afterSha256": "6d7dee79f6ddc45c965cd509a3166aa9870ef9ba1198c717952732af3e4d6bb0",
+      "beforeBytes": 10853324,
+      "afterBytes": 10853324
+    },
+    {
+      "path": "buildings/stone_cutter.glb",
+      "changed": false,
+      "beforeSha256": "1593d697b353734de60c884c07bf1b2a8c192556e92c0524b6249678ffc5c5c1",
+      "afterSha256": "1593d697b353734de60c884c07bf1b2a8c192556e92c0524b6249678ffc5c5c1",
+      "beforeBytes": 7338200,
+      "afterBytes": 7338200
+    },
+    {
+      "path": "buildings/town_hall.glb",
+      "changed": false,
+      "beforeSha256": "8d801728b4c863c51819a698775b1c0b187f6f0c467a4445216375f3a98b108f",
+      "afterSha256": "8d801728b4c863c51819a698775b1c0b187f6f0c467a4445216375f3a98b108f",
+      "beforeBytes": 20811552,
+      "afterBytes": 20811552
+    },
+    {
+      "path": "buildings/trade_market.glb",
+      "changed": false,
+      "beforeSha256": "f7a8ddf71f791b1a379eb8ae92b1a491fe9ea87ef0dfed0fe538be4e18f7ece2",
+      "afterSha256": "f7a8ddf71f791b1a379eb8ae92b1a491fe9ea87ef0dfed0fe538be4e18f7ece2",
+      "beforeBytes": 7308496,
+      "afterBytes": 7308496
+    },
+    {
+      "path": "buildings/tree_house.glb",
+      "changed": false,
+      "beforeSha256": "737ff1fda84fd0ca738343f82f74656dc997f29ddc66c0b955b89f82a0acb9a8",
+      "afterSha256": "737ff1fda84fd0ca738343f82f74656dc997f29ddc66c0b955b89f82a0acb9a8",
+      "beforeBytes": 2368296,
+      "afterBytes": 2368296
+    },
+    {
+      "path": "buildings/weaver.glb",
+      "changed": false,
+      "beforeSha256": "20d91874be2faa0faa487ec40960d0efecdff6fb8b3fb24497d2bd4c6e7d0d82",
+      "afterSha256": "20d91874be2faa0faa487ec40960d0efecdff6fb8b3fb24497d2bd4c6e7d0d82",
+      "beforeBytes": 10724148,
+      "afterBytes": 10724148
+    },
+    {
+      "path": "buildings/woodcutter_hut.glb",
+      "changed": false,
+      "beforeSha256": "42e904f52d670ecaf7752b7da7753dade466f721ba3ccb3b443e42fa19b06da0",
+      "afterSha256": "42e904f52d670ecaf7752b7da7753dade466f721ba3ccb3b443e42fa19b06da0",
+      "beforeBytes": 4330596,
+      "afterBytes": 4330596
+    },
+    {
+      "path": "characters/archer.glb",
+      "changed": false,
+      "beforeSha256": "d9ec3649695bc5d63016d26402b8e95dcbce7d1c2e099643aa3861602bf9b718",
+      "afterSha256": "d9ec3649695bc5d63016d26402b8e95dcbce7d1c2e099643aa3861602bf9b718",
+      "beforeBytes": 841352,
+      "afterBytes": 841352
+    },
+    {
+      "path": "characters/berserker.glb",
+      "changed": false,
+      "beforeSha256": "37df34626d36a69ebd630adc2f2f50a8232089d89413ee6fc14f62b35e9b3234",
+      "afterSha256": "37df34626d36a69ebd630adc2f2f50a8232089d89413ee6fc14f62b35e9b3234",
+      "beforeBytes": 1163800,
+      "afterBytes": 1163800
+    },
+    {
+      "path": "characters/evil_berserker_unit.glb",
+      "changed": false,
+      "beforeSha256": "f375f240818b84ce5fabd93f43422468d1ba317d8e19e957d0d22b770980390f",
+      "afterSha256": "f375f240818b84ce5fabd93f43422468d1ba317d8e19e957d0d22b770980390f",
+      "beforeBytes": 800884,
+      "afterBytes": 800884
+    },
+    {
+      "path": "characters/evil_mage_unit.glb",
+      "changed": false,
+      "beforeSha256": "10666c99eb29128dcad4bb920646072e9a9b1039c95f632bbbc40dedce734bc5",
+      "afterSha256": "10666c99eb29128dcad4bb920646072e9a9b1039c95f632bbbc40dedce734bc5",
+      "beforeBytes": 1067444,
+      "afterBytes": 1067444
+    },
+    {
+      "path": "characters/evil_melee_unit.glb",
+      "changed": false,
+      "beforeSha256": "e1b676ef747e6a1afe8318a7aab2238f0861032558c8cd53c254b3f054528a09",
+      "afterSha256": "e1b676ef747e6a1afe8318a7aab2238f0861032558c8cd53c254b3f054528a09",
+      "beforeBytes": 849504,
+      "afterBytes": 849504
+    },
+    {
+      "path": "characters/evil_ranged_unit.glb",
+      "changed": false,
+      "beforeSha256": "62ffc01b2b91ca33d349086514a64eab705cff56aea1bd6af216c2d30ca3ce43",
+      "afterSha256": "62ffc01b2b91ca33d349086514a64eab705cff56aea1bd6af216c2d30ca3ce43",
+      "beforeBytes": 1024176,
+      "afterBytes": 1024176
+    },
+    {
+      "path": "characters/knight.glb",
+      "changed": false,
+      "beforeSha256": "5ae4f55332852ab9b6a19ec15410f2868c4b65d68bbcf36c70b719e152329f83",
+      "afterSha256": "5ae4f55332852ab9b6a19ec15410f2868c4b65d68bbcf36c70b719e152329f83",
+      "beforeBytes": 1026276,
+      "afterBytes": 1026276
+    },
+    {
+      "path": "characters/mage.glb",
+      "changed": false,
+      "beforeSha256": "fca196cc68674bd205aecc585ade7869fb34a3407d24f355320b1546b64e4dad",
+      "afterSha256": "fca196cc68674bd205aecc585ade7869fb34a3407d24f355320b1546b64e4dad",
+      "beforeBytes": 841308,
+      "afterBytes": 841308
+    },
+    {
+      "path": "environment/components/forest_boulder.glb",
+      "changed": false,
+      "beforeSha256": "99105883aade6b08636b341e6da2980b5244fed296ce8a074d2ee116c2f43300",
+      "afterSha256": "99105883aade6b08636b341e6da2980b5244fed296ce8a074d2ee116c2f43300",
+      "beforeBytes": 1148948,
+      "afterBytes": 1148948
+    },
+    {
+      "path": "environment/components/forest_bridge_plank.glb",
+      "changed": false,
+      "beforeSha256": "843d0128afdea04b0666b13ce5ebb2ce53e1f4875664217203973d8e2a57ecfa",
+      "afterSha256": "843d0128afdea04b0666b13ce5ebb2ce53e1f4875664217203973d8e2a57ecfa",
+      "beforeBytes": 942092,
+      "afterBytes": 942092
+    },
+    {
+      "path": "environment/components/forest_fern.glb",
+      "changed": false,
+      "beforeSha256": "79f7282ab45854a84c13702ed22de2a3a6df4dcd93c75df55ba1058c418ab803",
+      "afterSha256": "79f7282ab45854a84c13702ed22de2a3a6df4dcd93c75df55ba1058c418ab803",
+      "beforeBytes": 778164,
+      "afterBytes": 778164
+    },
+    {
+      "path": "environment/components/forest_hex_meadow.glb",
+      "changed": false,
+      "beforeSha256": "e8f316a15f8a322dacbd9c19e5301e357110dc4b9b099e309fe1748caa4815fb",
+      "afterSha256": "e8f316a15f8a322dacbd9c19e5301e357110dc4b9b099e309fe1748caa4815fb",
+      "beforeBytes": 423596,
+      "afterBytes": 423596
+    },
+    {
+      "path": "environment/components/forest_hex_stream.glb",
+      "changed": false,
+      "beforeSha256": "513d8445201c5300366f9dcc1727b8265efbd452ff79f1170c5575c2285db2b3",
+      "afterSha256": "513d8445201c5300366f9dcc1727b8265efbd452ff79f1170c5575c2285db2b3",
+      "beforeBytes": 601444,
+      "afterBytes": 601444
+    },
+    {
+      "path": "environment/components/forest_lantern_post.glb",
+      "changed": false,
+      "beforeSha256": "7fb358bbe7e9484df8789c5426c87e9d3a81944447577fe1459c092bf596919b",
+      "afterSha256": "7fb358bbe7e9484df8789c5426c87e9d3a81944447577fe1459c092bf596919b",
+      "beforeBytes": 1458228,
+      "afterBytes": 1458228
+    },
+    {
+      "path": "environment/components/forest_leaf_clump.glb",
+      "changed": false,
+      "beforeSha256": "91c75f0915614779ea55cd9fbe92e833d6d57230d24994e0068bebbb6d62ed1c",
+      "afterSha256": "91c75f0915614779ea55cd9fbe92e833d6d57230d24994e0068bebbb6d62ed1c",
+      "beforeBytes": 697932,
+      "afterBytes": 697932
+    },
+    {
+      "path": "environment/components/forest_moss.glb",
+      "changed": false,
+      "beforeSha256": "706985df034a73df7026c748cbc16e4fbaf5a0413063fe6e6dd49fd348778905",
+      "afterSha256": "706985df034a73df7026c748cbc16e4fbaf5a0413063fe6e6dd49fd348778905",
+      "beforeBytes": 817404,
+      "afterBytes": 817404
+    },
+    {
+      "path": "environment/components/forest_mushroom_small.glb",
+      "changed": false,
+      "beforeSha256": "b43f583a46b047e84bca31c8c9bec9ce0bab3cd28daf7efdd4237b2fb5111485",
+      "afterSha256": "b43f583a46b047e84bca31c8c9bec9ce0bab3cd28daf7efdd4237b2fb5111485",
+      "beforeBytes": 2331456,
+      "afterBytes": 2331456
+    },
+    {
+      "path": "environment/components/forest_shrine_plinth.glb",
+      "changed": false,
+      "beforeSha256": "602a16c12d237f680cafded4bee5bdf84ffbf6f11c9ae25c751176c0a4862058",
+      "afterSha256": "602a16c12d237f680cafded4bee5bdf84ffbf6f11c9ae25c751176c0a4862058",
+      "beforeBytes": 1030408,
+      "afterBytes": 1030408
+    },
+    {
+      "path": "environment/components/forest_spiral_tree.glb",
+      "changed": false,
+      "beforeSha256": "d6050ffa4ffa5b35fa59e38f81c82ec022b617a4724ee110f38e8903e1d10e11",
+      "afterSha256": "d6050ffa4ffa5b35fa59e38f81c82ec022b617a4724ee110f38e8903e1d10e11",
+      "beforeBytes": 1731092,
+      "afterBytes": 1731092
+    },
+    {
+      "path": "environment/hex_ground_dirt.glb",
+      "changed": true,
+      "beforeSha256": "1047b6db6b37d989c1e602fef8f61fd11379b801bdcd7d59a517df2932f01fc2",
+      "afterSha256": "6d8a2a895b8558cbe8a4d7b2da79b131eaf554eee562297232996f129e09fa33",
+      "beforeBytes": 1762544,
+      "afterBytes": 1691708
+    },
+    {
+      "path": "environment/hex_ground_grass.glb",
+      "changed": true,
+      "beforeSha256": "348b6b2fbeab5bed0dad3389ed8eae881473a51e89f42fa4a5e2df21979a6584",
+      "afterSha256": "a7eb5b33ae06dad227ff3de858ca0b521e5719550fd7b6b53d55e11200e13d86",
+      "beforeBytes": 2229484,
+      "afterBytes": 2141964
+    },
+    {
+      "path": "environment/hex_ground_leaf_litter.glb",
+      "changed": true,
+      "beforeSha256": "cd799e48f11c755e7944432de6ab0cb0041794a7ca54738c0e435c1fba6e50d5",
+      "afterSha256": "b0aff9370b43e97cc5a376cc6e390e8a9c510fc4a258f912cfa9245723aaa16f",
+      "beforeBytes": 2225992,
+      "afterBytes": 2057852
+    },
+    {
+      "path": "environment/hex_ground_moss.glb",
+      "changed": true,
+      "beforeSha256": "b9640f362c4f5ac9993eb291955732214f876e6fbe824d75b8ac32b06fbbed3a",
+      "afterSha256": "d13366a078a3b20e523a616bf62cb8d740f5b854f49ca3d2378582be51c6061f",
+      "beforeBytes": 2175404,
+      "afterBytes": 2039604
+    },
+    {
+      "path": "environment/hex_ground_pine_duff.glb",
+      "changed": true,
+      "beforeSha256": "70c8d0bc648be7585df77e9cfd5eb601c49d34bb13973f389a407e88ce57eefd",
+      "afterSha256": "fcd251444db55664911c4d5b4e3be70486d24030b8417f53b6bd02ff163f885c",
+      "beforeBytes": 1911940,
+      "afterBytes": 1891364
+    },
+    {
+      "path": "environment/hex_path_end.glb",
+      "changed": true,
+      "beforeSha256": "962194b63cc76fc33d8f123a37fc84642e78c7f1c15120940cb8c5fd3461f842",
+      "afterSha256": "cad1a175eb4eddeb58cbb21010c499169b148410936a91e7799f55db2f76037d",
+      "beforeBytes": 286904,
+      "afterBytes": 355760
+    },
+    {
+      "path": "environment/hex_path_straight.glb",
+      "changed": true,
+      "beforeSha256": "0691ac4723ea9a666417e76bf6216707c305a7bc36fef98f90e50d8e1c70d941",
+      "afterSha256": "f9f341dc4f86854c3376b9ae01c7d4890519ac8ff9ca2c670e29a4666261c35a",
+      "beforeBytes": 282800,
+      "afterBytes": 351656
+    },
+    {
+      "path": "environment/hex_path_turn_120.glb",
+      "changed": true,
+      "beforeSha256": "9a8b51697b877d265c07ab1234fa2b74aede06e037f9adb1e39344c73de1f902",
+      "afterSha256": "5b2b385c1ea35597c13ceacdf327c002c005b849f0df1f40f41db91c6491e149",
+      "beforeBytes": 291864,
+      "afterBytes": 360720
+    },
+    {
+      "path": "environment/hex_path_turn_60.glb",
+      "changed": true,
+      "beforeSha256": "95f1ce4d80385c1ab74edb29979d8e73fac58928dd3a677b2f8a98497f7c4b01",
+      "afterSha256": "0f7a5c775d34f49029353e98dbe2081bd9492d3467a1fe3076d10c193f229642",
+      "beforeBytes": 291860,
+      "afterBytes": 360716
+    },
+    {
+      "path": "environment/hex_river_overlay_end.glb",
+      "changed": true,
+      "beforeSha256": "533c50274c29a6febd01530dfa8a7bfcc60e923fbcb9458e2e6f27f851957731",
+      "afterSha256": "2ba8279b3e5016b716abb27ed277a439558b2989fd828ce0e24db5866ff4b42c",
+      "beforeBytes": 194784,
+      "afterBytes": 348436
+    },
+    {
+      "path": "environment/hex_river_overlay_straight.glb",
+      "changed": true,
+      "beforeSha256": "9b5da586b925c1f5b69b8634ecd21facbe41b710142e6cbd60449ccf1b2c6e42",
+      "afterSha256": "6ef4464cd942b99222db78d166eaf0097c6207a3f2f7b55cb298066346f74b54",
+      "beforeBytes": 189368,
+      "afterBytes": 343024
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_120.glb",
+      "changed": true,
+      "beforeSha256": "fbaf4cf17e18a49cf7143c24668da7069b9b6b150e14cd38f15a6424f95f0e40",
+      "afterSha256": "7bdd54af841f3794e1578165c1f2e174f7f86eeecb497ccf506ff845ef058a70",
+      "beforeBytes": 198720,
+      "afterBytes": 352376
+    },
+    {
+      "path": "environment/hex_river_overlay_turn_60.glb",
+      "changed": true,
+      "beforeSha256": "fe554f74f112b9588409ef7daf65a3e3ee65f71ff735307598c05b8c71a2f58e",
+      "afterSha256": "491a64fdef47a1bc1d889c6609f42b5a73d961c8563cd99908873208614125d1",
+      "beforeBytes": 198720,
+      "afterBytes": 352372
+    },
+    {
+      "path": "environment/hex_woodland_bridge.glb",
+      "changed": false,
+      "beforeSha256": "e4fc60abb81b8d91dd1f9224e4a1967e16343b7682e6d2c6c1e4c206fa9cc00c",
+      "afterSha256": "e4fc60abb81b8d91dd1f9224e4a1967e16343b7682e6d2c6c1e4c206fa9cc00c",
+      "beforeBytes": 13563028,
+      "afterBytes": 13563028
+    },
+    {
+      "path": "props/arrow.glb",
+      "changed": false,
+      "beforeSha256": "0e921b3700fde9aaeda4345de72bed4f0cf42b48c9555b54a9e7d652433ec0ca",
+      "afterSha256": "0e921b3700fde9aaeda4345de72bed4f0cf42b48c9555b54a9e7d652433ec0ca",
+      "beforeBytes": 5292,
+      "afterBytes": 5292
+    },
+    {
+      "path": "props/kit_barrel.glb",
+      "changed": false,
+      "beforeSha256": "7421904082e4e53c1e19d2d62782d5087d1424fb83bceb5f48141a54caf7d28e",
+      "afterSha256": "7421904082e4e53c1e19d2d62782d5087d1424fb83bceb5f48141a54caf7d28e",
+      "beforeBytes": 566480,
+      "afterBytes": 566480
+    },
+    {
+      "path": "props/kit_book.glb",
+      "changed": false,
+      "beforeSha256": "9596cb3190e036d883e4df4aba87fe4adf29518034fb0da633d7413e52c5c327",
+      "afterSha256": "9596cb3190e036d883e4df4aba87fe4adf29518034fb0da633d7413e52c5c327",
+      "beforeBytes": 38680,
+      "afterBytes": 38680
+    },
+    {
+      "path": "props/kit_crate.glb",
+      "changed": false,
+      "beforeSha256": "8846ce8f49a5f23f7475ac9de963e83e4d90fc8325b3fe88b00b8de484b42e3c",
+      "afterSha256": "8846ce8f49a5f23f7475ac9de963e83e4d90fc8325b3fe88b00b8de484b42e3c",
+      "beforeBytes": 634800,
+      "afterBytes": 634800
+    },
+    {
+      "path": "props/kit_open_barrel.glb",
+      "changed": false,
+      "beforeSha256": "ee3a3a38b3e4d3f4a63751dc837d08ede5db63b2717cf520084bbed35355e88d",
+      "afterSha256": "ee3a3a38b3e4d3f4a63751dc837d08ede5db63b2717cf520084bbed35355e88d",
+      "beforeBytes": 573468,
+      "afterBytes": 573468
+    },
+    {
+      "path": "props/kit_parcel.glb",
+      "changed": false,
+      "beforeSha256": "487e53ceb4e23cfe92b9f34f9b07c325fd4460800034c0f9ae790e46306c4f20",
+      "afterSha256": "487e53ceb4e23cfe92b9f34f9b07c325fd4460800034c0f9ae790e46306c4f20",
+      "beforeBytes": 26556,
+      "afterBytes": 26556
+    },
+    {
+      "path": "props/kit_pine.glb",
+      "changed": false,
+      "beforeSha256": "ee9e131d130032731dea5d97146081f9c25bd591c4bef30b1e6b03ff9c6b54a7",
+      "afterSha256": "ee9e131d130032731dea5d97146081f9c25bd591c4bef30b1e6b03ff9c6b54a7",
+      "beforeBytes": 398988,
+      "afterBytes": 398988
+    },
+    {
+      "path": "props/kit_spear.glb",
+      "changed": false,
+      "beforeSha256": "46a6779f53fc214b8868bd659639a11d56fb1cac6ade958e07831bad4f0b3c97",
+      "afterSha256": "46a6779f53fc214b8868bd659639a11d56fb1cac6ade958e07831bad4f0b3c97",
+      "beforeBytes": 18824,
+      "afterBytes": 18824
+    },
+    {
+      "path": "props/kit_target.glb",
+      "changed": false,
+      "beforeSha256": "f9871d387966597d6f451b0a559331957c61a2ef59813d130705a2d13684d054",
+      "afterSha256": "f9871d387966597d6f451b0a559331957c61a2ef59813d130705a2d13684d054",
+      "beforeBytes": 41672,
+      "afterBytes": 41672
+    }
+  ],
+  "derivedBefore": 567,
+  "derivedAfter": 569,
+  "standaloneTexturesUnchanged": true,
+  "worldtreeUnchanged": true,
+  "changedGlbs": 14,
+  "selectedGlbBytesBefore": 189734296,
+  "selectedGlbBytesAfter": 192885536,
+  "pocGlbBytesBefore": 27115592,
+  "pocGlbBytesAfter": 30266832
+}

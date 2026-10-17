@@ -2170,3 +2170,27 @@ Coverage admission:
 
 This is a bounded review-fix verification selection, not full test/lint, transport,
 package, native Windows, memory or rendered-performance qualification.
+
+## AI-texture actual-game photo admission (2026-10-17)
+
+- Existing Tier A provenance/indexed-map/placement checks admit all fourteen
+  immutable successor exports and exact derived maps; no duplicate geometry test
+  or source-grep assertion was added. A cheap executable options test rejects the
+  `textures` photo checkpoint outside explicit source `test-vulkan --desktop`.
+- Existing owned desktop Vulkan Tier E gains one selected `--checkpoint textures`
+  witness: fixed seed/light/camera menu landscape, normal solo lobby/Start, paid
+  Archery construction, ordinary picking, return and Exit. It reuses
+  `Child`/`ScenarioScope`, private client state, ordered events, RX6800 renderer/PID/
+  window authentication and game-only captures; no new supervisor or server.
+  It catches loaded-but-hidden maps, obvious repetition/seams and unreadable
+  occupants that cheaper metadata/component tests cannot judge. Successful
+  graphical scopes measured 25.67s before / 25.65s after plus serial preparation.
+- Numerical topology, every orientation/stack/profile and native water/Archery
+  playback remain in existing Tier A/B coverage. Actual photo views are a selected
+  visual sample, not exhaustive live-map orientations or a sustained performance
+  benchmark. The new checkpoint is never automatic CI or a software fallback.
+- [The texture report](ai-textures-game/README.md#executed-checks-headless-first-gpu-second)
+  records exact heads, successful and failed receipts, 833 core / 664 runner
+  passes, two platform skips, image hashes, visual tradeoffs and untested platform/
+  Steam/controller/package boundaries. This does not qualify historical llvmpipe
+  instability as fixed or replace final published-head pipeline/CI evidence.

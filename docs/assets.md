@@ -43,6 +43,16 @@ living research UI retains its [Worldtree import contract](worldtree.md#immutabl
 and [notice](../src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui); its immutable
 members and production adapter are preserved alongside the application-wide kit.
 
+## AI-generated texture POC
+
+The [actual-game texture report and offline gallery](ai-textures-game/README.md)
+record the main-only successor pin, fourteen changed exports, exact hashes,
+matched original/new RX6800 game-camera views, retained animation/placement proof,
+resource observations and rollback. Terrain is visibly richer but more repetitive;
+Archery's change is subtle at overview. This is a local POC, not production art or
+cross-platform visual certification. Unrelated exports/UI and gameplay remain
+unchanged.
+
 ## Earlier quality refresh (2026-10-08)
 
 The [landed asset upgrade](https://github.com/seraph1nia/odot-game-assets/pull/2)
