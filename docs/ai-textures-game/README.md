@@ -175,9 +175,10 @@ mise run test-runner --filter 'FullyQualifiedName~AuthoredAssetTests|FullyQualif
 mise run test-assets --startup-timeout-ms 60000
 mise run test-engine --scenario animation --startup-timeout-ms 60000
 # Only with the explicitly authorized RX6800/X11 surface and readable auth path:
-env -u WAYLAND_DISPLAY DISPLAY=:0 XAUTHORITY=/run/user/1000/xauth_qKdKuN \
+# Reverify this session's DISPLAY and XAUTHORITY path; do not reuse a capture's path.
+env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" \
   xdpyinfo -queryExtensions
-env -u WAYLAND_DISPLAY DISPLAY=:0 XAUTHORITY=/run/user/1000/xauth_qKdKuN \
+env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" \
   ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --desktop \
   --checkpoint textures --startup-timeout-ms 60000
 ```

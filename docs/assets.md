@@ -18,7 +18,7 @@ integration correction; neither rejected optimization candidate ships.
 
 ## Vivid overgrown refresh and ambient playback
 
-See the [current import and runtime report](vivid-ambient-import.md) for the
+See the [earlier import and runtime report](vivid-ambient-import.md) for the
 optimized vivid/overgrown refresh, indexed map admission, building/surface-water
 playback, accepted storage tradeoff and headless-only acceptance boundary.
 
@@ -45,13 +45,10 @@ members and production adapter are preserved alongside the application-wide kit.
 
 ## AI-generated texture POC
 
-The [actual-game texture report and offline gallery](ai-textures-game/README.md)
-record the main-only successor pin, fourteen changed exports, exact hashes,
-matched original/new RX6800 game-camera views, retained animation/placement proof,
-resource observations and rollback. Terrain is visibly richer but more repetitive;
-Archery's change is subtle at overview. This is a local POC, not production art or
-cross-platform visual certification. Unrelated exports/UI and gameplay remain
-unchanged.
+See the [actual-game texture report and offline gallery](ai-textures-game/README.md)
+for the corrected POC, historical comparisons, visual limitations, verification,
+preview and coherent rollback. The manifest linked above owns current provenance
+and inventory.
 
 ## Earlier quality refresh (2026-10-08)
 

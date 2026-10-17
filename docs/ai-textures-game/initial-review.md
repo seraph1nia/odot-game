@@ -1,4 +1,11 @@
-# AI-generated textures — actual game POC
+# AI-generated textures — historical initial game POC
+
+This report preserves the initial implementation observations and receipts, not
+current acceptance or usage guidance. The initial appearance was rejected, and
+its post-photo picking assertion could pass without a selection transition. See
+[the current correction report](README.md) for the superseding visual judgment,
+strengthened picking evidence, reproduction, preview and rollback instructions.
+The original observations below are retained as history, not corrected passes.
 
 Open **[review.html](review.html)** directly, offline. It retains original/new
 Godot viewport images, an actual-size settlement overview, permitted 3× views,
@@ -187,70 +194,15 @@ instantaneous FPS (solo 16 versus 15) and process-time values **are not a contro
 steady-state benchmark**. Viewport GPU timing is zero/unavailable. No speedup,
 no-regression frame-time claim, 60-fps guarantee or cross-GPU conclusion is made.
 
-## Reproduce / preview / review
+## Reproduction and rollback
 
-Use the locked installed Godot **.NET 4.7.2**, SDK **10.0.401**, and locked NuGet
-restores. Do not install tools or replace the source exports manually.
-
-```sh
-# Cheapest byte/metadata/placement gate, then actual imported resources:
-mise run test-runner --filter 'FullyQualifiedName~AuthoredAssetTests|FullyQualifiedName~DetailedGroundTests|FullyQualifiedName~LandscapeChecksTests'
-mise run test-assets --startup-timeout-ms 60000
-mise run test-engine --scenario animation --startup-timeout-ms 60000
-
-# Normal interactive local game, current textured assets:
-mise run play
-# Singleplayer -> Start match -> build Archery Range on an available plot.
-# Menu shows the full forest/paths; solo retains the compact horizontal board.
-
-# Explicit graphical photo witness, ONLY with authorized GPU/X11 access:
-# Reverify your actual DISPLAY and readable XAUTHORITY PATH. Never copy its contents.
-env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" \
-  ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --desktop \
-  --checkpoint textures --startup-timeout-ms 60000
-# Retains owned game-only PNGs/JSON under logs/<run>/desktop-vulkan; closes its window.
-# This selected witness deliberately requires the qualified RX6800/RADV device.
-```
-
-The scoped `tools/Assets/import_ai_textures.py <read-only-assets-repo>` defaults to
-dry-run, verifies reachability from `origin/main`, handoff identity and the entire
-selected inventory before mutation. Independently verify the full main revision
-against the forge first. `--apply` installs only this known main-only POC and its
-exact embedded PNGs. It refuses an unknown game pin or changed existing hashes;
-it is not a general-purpose dependency updater. It never opens/rebuilds sources.
-Update `AssetCatalog.Revision` together with the manifest; preserve all surviving
-sidecars, let Godot create new map sidecars, and enable their existing mipmap
-policy before final engine validation. For a warm pin switch, close owned editors
-and preserve the worktree's generated `.godot` outside `src/Game` before cold
-`mise run prepare` to avoid old removed-map UID dependencies. Never move another
-worktree's output, delete authored sidecars or loosen import errors.
-
-The committed gallery needs no tools/server. To regenerate it from the retained
-successful runs (requires existing ImageMagick, no installation):
-
-```sh
-python3 tools/Assets/texture_review.py \
-  --before logs/20261017-002635-78edd545/desktop-vulkan \
-  --after logs/20261017-003036-0e315b3d/desktop-vulkan \
-  --before-head cf339cc0eba000de7c28681d7b91cbf0d711a34b \
-  --after-head 65926ac6b5b2247b5f5894e2a65eea9fcd83898b \
-  --output docs/ai-textures-game
-```
-
-### Clean rollback
-
-Revert this game change coherently on a clean branch, preserving any later edits:
-return `AssetCatalog.Revision`, the complete authored manifest, changed GLBs,
-extracted maps and import sidecars together to the previous game revision. The
-pin must return **`2d88d355393f145aedfc19fa198960dac741c6fb` →
-`133c7cdeb368cada408d1c95c9414e08488371a9`**. Reverting the eventual game PR merge
-is the straightforward whole-change rollback; reverting only a binary while
-keeping new metadata is invalid. On a clean POC branch before any later asset
-updates, `git revert 65926ac6b5b2247b5f5894e2a65eea9fcd83898b` reverses the isolated
-asset-import commit while leaving photo tooling/evidence. Do not force-reset or
-overwrite later work. Preserve generated cache as described above, then run the
-cheap hash check and supported prepare/asset proof again. Upstream asset main
-need not be rewritten or reverted to roll back the game consumer.
+Use [the current report](README.md#reproduce-the-pin-and-roll-back-coherently)
+for coherent import and rollback instructions and its preceding section for
+verification and preview commands. The importer now targets the corrected pin,
+not this report's initial POC. Preserve the historical gallery and receipts;
+never regenerate over them. `tools/Assets/texture_review.py` packages the historical
+two-stage format only; use a separate worktree-local output directory if repackaging
+retained initial captures.
 
 ## Remaining qualification
 
