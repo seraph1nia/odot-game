@@ -482,11 +482,29 @@ public partial class GameApplication(Main session) : Node
 
     internal void AtmosphereProof(int weather, string view, float time, int glowOverride = -1)
     {
-        if (glowOverride is < -1 or > 1 || weather is < 0 or > 4 || view is not ("menu" or "overview" or "forest" or "river" or "combat") || time is < 0 or > 60) throw new ArgumentException("Invalid fixed atmosphere evidence request.");
+        if (glowOverride is < -1 or > 1 || weather is < 0 or > 4 || view is not ("menu" or "overview" or "forest" or "river" or "combat" or "texture-mixed" or "texture-path" or "texture-forest" or "texture-river" or "texture-archery") || time is < 0 or > 60) throw new ArgumentException("Invalid fixed atmosphere evidence request.");
         GraphicsPreferences preferences = Settings.Graphics.Clone();
         // Exercise the existing default Compatibility policy, not hardware High
         // on software CI. Native Forward+ evidence deliberately exercises High.
         preferences.Edit("quality", AtmosphereController.ForwardPlus ? 2 : 1); preferences.Edit("weather", weather);
+        if (Screen == "menu")
+        {
+            // Supervised photo views of the real installed menu landscape only.
+            // Never add fixtures or change its floor/route/animation consumers.
+            bool texture = view.StartsWith("texture-", StringComparison.Ordinal);
+            _menuRoot.Visible = !texture;
+            Vector3 point = view switch
+            {
+                "texture-path" => VillageLayout.Hex(2, 7),
+                "texture-forest" => VillageLayout.Hex(-3, 2),
+                "texture-river" => VillageLayout.Hex(4, 5),
+                "texture-mixed" => VillageLayout.Hex(0, 6),
+                _ => Vector3.Zero
+            };
+            _menuCamera.Size = texture ? 12 : 28;
+            _menuCamera.Position = point + new Vector3(18, 22, 30);
+            _menuCamera.LookAt(point);
+        }
         _tabletop?.AtmosphereProofView(view);
         _atmosphere.FixedProof(preferences, time);
         // Owned diagnostic counterfactual only; never changes saved/desired settings.

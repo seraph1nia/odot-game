@@ -26,7 +26,8 @@ internal sealed partial class Runner
             await using var owned = new ScenarioScope("desktop-vulkan", _evidence, graphical: true);
             var worker = new Runner(options, deadline.Token, _evidence, owned);
             Console.WriteLine("Explicit windowed desktop Vulkan: isolated test XDG/state, owned game-only viewport captures. No desktop/window-manager/system mutations or unrelated captures/process control.");
-            if (options.UiCheckpoint == "smoke") await worker.UiSmoke(null, deadline.Token);
+            if (options.UiCheckpoint == "textures") await worker.TextureWitness(deadline.Token);
+            else if (options.UiCheckpoint == "smoke") await worker.UiSmoke(null, deadline.Token);
             else await worker.AtmosphereScenario(deadline.Token);
             await owned.QuitGames(deadline.Token);
             await owned.DisposeAsync(); owned.CheckErrors();
