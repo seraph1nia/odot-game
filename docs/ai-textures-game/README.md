@@ -1,262 +1,212 @@
-# AI-generated textures — actual game POC
+# AI-generated textures — corrected game POC
 
-Open **[review.html](review.html)** directly, offline. It retains original/new
-Godot viewport images, an actual-size settlement overview, permitted 3× views,
-native-pixel Archery crops and a downloadable side-by-side overview PNG.
-The gallery uses the existing asset review's olive/parchment palette and serif
-hierarchy, not a new catalog service. No browser bridge inspection is claimed.
+Open **[the fresh three-stage gallery](correction/review.html)** offline: original,
+rejected initial POC, and corrected actual-game captures, including normal-scale
+overviews, close views and native Archery crops.
 
-## Result and artistic limits
+The current immutable asset pin is **`60ce86f04c02419d9c09d30c2e25931345bf2bf3`**,
+landed in [asset PR 15](https://github.com/seraph1nia/odot-game-assets/pull/15),
+whose parent is the initial POC `2d88d355393f145aedfc19fa198960dac741c6fb`.
+Forge main and the supplied read-only repository's `origin/main` were independently
+resolved to that exact commit during this review. No feature-branch pin, source
+rebuild, export-byte edit, terrain shader or gameplay change is used.
 
-**Implemented; local RX 6800 / RADV Forward+ Vulkan acceptance passed.** The
-painted material stage is now used by the real menu and solo settlement, not
-only by a Blender preview. Source geometry, material identities, transforms,
-connectors, native water animation and the horizontal board/Roguelite rules are
-unchanged. This is a visible surface-detail improvement at near/medium range,
-**not an unqualified artistic improvement at every distance or production-ready
-texture certification**.
+## Correction and acceptance status
 
-Implementation-worker inspection of both actual GPU capture sets:
+The initial texture stage had a legitimate appearance regression: a conspicuous
+dark hex grid and large repeating stones/flowers. Its successful import and GPU
+execution did **not** establish artistic acceptance. No exception or waiver is
+being applied. Fresh actual-game comparisons and strengthened picking verification
+have now executed on the authorized RX6800 route. The implementation-worker's
+pixel inspection finds that the correction removes the added enclosing dark grid
+and reduces the dominant whole-tile landmarks; this is a bounded visual judgment,
+not an automated artistic pass or production certification.
 
-| View / material | Observed benefit and remaining issue |
+The bounded upstream correction changes only five ground Base Color bindings:
+moss, grass, dirt, leaf litter and pine duff. Smaller overlapping rotated/flipped
+paint motifs replace whole-tile landmarks; source-family palette means and weak,
+luminance-matched edge hue correction replace the constant dark perimeter.
+Foundation, four path ribbons, four river ribbons and Archery remain byte-identical
+to the initial delivery. Geometry, UVs, material identities, dimensions (radius
+2.55, top Z=0, bottom Z=-.36), animation, connectors and rendering contracts survive.
+
+- [Correction handoff](correction-handoff.json), content identity
+  `62ba705d9dd5e26d4ed6fd0b0c7e64337fc064629148420737f55a5e9057c8a7`.
+- [Correction import receipt](correction-import-receipt.json): all 57 GLB hashes
+  before/after; exactly five change. The manifest and `AssetCatalog.Revision`
+  advance together; all 569 indexed derived records bind exact embedded PNGs.
+  Only five superseded color maps/sidecars are removed. Surviving sidecars/UIDs,
+  mipmaps, standalone textures and the separate Worldtree/UI pin are preserved.
+- [Upstream correction diagnosis, matched triples and preservation reports](https://github.com/seraph1nia/odot-game-assets/tree/60ce86f04c02419d9c09d30c2e25931345bf2bf3/docs/ai-textures/seams).
+  These are source-stage evidence, **not actual-game acceptance**.
+
+Pine input still depicts broad leaves, not convincing pine needles. Low native
+input resolution (~135–171px), close-view softness, quiet/detailed path connector
+bands, the thin foundation lip and modest close-only Archery improvement remain
+limitations. A fixed map still repeats: only actual normal-scale and close game
+views can establish whether the conspicuous regression is sufficiently reduced.
+No sustained frame-time, software-renderer repair or production-art claim follows
+from resource assignment or snapshots.
+
+### Direct actual-game inspection
+
+| View | Original → initial → corrected observation |
 | --- | --- |
-| Fitted actual settlement overview | Earth, leaves and water read more richly than the sparse original stamps. Unit health bars, construction outlines, building labels and faction blue remain legible. The repeated hex perimeter is **more visible**, not less; the original is quieter. |
-| Moss / grass | Painted moss/rock and grass/flower detail is clearly visible near the forest and bridge. Large daisies repeat in the same orientation. Illustrated stones are flat color, not real relief. |
-| Dirt | Pebbles read clearly under the nine building plots. Considerably busier and warmer; pale plot outlines still separate the gameplay controls. Identical pebble patterns are obvious on repeated cells. |
-| Leaf litter / pine duff | Richer litter than before, but pine duff is insufficiently distinct from leaf litter. This is a known input-art limitation, not a claimed pine-specific improvement. |
-| Mixed neighboring hexes | No square atlas boundaries were observed. The source-baked .18m shared-color edge fade survives, reducing sharp fragments, but a dark hex grid and repeated whole-tile patches remain conspicuous. It does **not** solve cross-family blending completely. |
-| Foundation | The thin side lip remains at the same height and depth. Its new masonry is mostly too small/dark to judge from the game camera. Do not infer a visible game-view improvement from successful assignment; the upstream matched sidewall close-up is the useful material evidence. |
-| Path | Connected bends/endcaps remain above the floor and readable. Interior detail is richer, but the deliberately quiet connector regions produce visible alternating soft/detailed bands. Original rounded ends and bank-side timber remain unchanged. |
-| River / bridge | Blue water, narrow banks and curved joins remain coherent, including beneath the original bridge. New static color streaks are visible. Native shimmer still plays; this is not a new fluid simulation or a claim that painted highlights themselves flow. |
-| Archery | Actual paid construction loads and is pickable. Wood/stone/blue-cloth variation is visible in the native-pixel close crop without duplicated shingles or a new target decal. At fitted overview the difference is negligible; preserved overgrowth dominates. It is acceptable for this restrained POC, not a dramatic building upgrade. |
+| Normal fitted settlement | Sparse repeating cushion stamps → conspicuous dark grid/large flowers → finer painted field with no added enclosing same-family line. HUD outlines, labels, blue factions and bars remain readable. The corrected floor is richer than original without the initial whole-tile emphasis. |
+| Forest / mixed neighbors | Large pale rocks, daisies and leaves no longer occupy identical whole-cell compositions. Smaller painted marks remain visible; close views are softer. Same-family neighbors read as a field rather than outlined tiles. Cross-family brown/green boundaries remain angular and visible, as on the original; this is not neighbor-aware blending. |
+| Dirt / building plots | Smaller pebbles retain earth detail beneath the original pale plot outlines. Repeated dirt is much less dominated by large identical stones. |
+| Path / connected river | Ground no longer adds the initial dark grid beside the exact unchanged ribbons. Path quiet/detailed bands remain visible close up. Blue water/banks, bends, bridge and endpoints remain coherent; native animation is separately proven by the component. |
+| Leaf litter / pine duff | Smaller litter strokes and a darker pine-family mean reduce whole-swatch emphasis. Pine still does not convincingly depict needles. |
+| Archery / foundation | Exact initial POC bytes remain. Close Archery grain/stone/blue-cloth detail is modest; overview difference remains negligible. Foundation remains a thin dark side lip, not a demonstrated normal-scale visual upgrade. |
 
-The ground swatches were only ~135–171 native pixels before enlargement. Softness,
-baked painted highlights and repeated density are retained defects, not missing
-texture imports. The existing asset-stage blending already narrows the ground
-edge and preserves quiet ribbon connectors/banks. No extra game shader, neighbor
-state, UV remapping, mesh generation or terrain redesign is justified by these
-captures. Further art refinement should improve the source maps and land on
-asset main first, not silently mutate distributed exports in the game.
+Normal menu and settlement overviews and permitted close views are retained.
+Native pixels were inspected directly; no browser review is claimed. Ordinary
+height-step sidewalls, plot outlines and cross-family borders were not mistaken
+for the removed baked dark same-family perimeter. Fixed-map repetition can still
+be found on careful close inspection; the conspicuous initial regression is not
+observed at normal scale in these fresh captures.
 
-## Exact provenance and scope
+## Historical evidence — preserved, not corrected passes
 
-Asset main was independently resolved through the forge to
-**`2d88d355393f145aedfc19fa198960dac741c6fb`**, with parent
-`133c7cdeb368cada408d1c95c9414e08488371a9`. Local `origin/main` agrees; the asset
-feature result `102de2042734a4bffeff54642e483f249de0cd70` is its ancestor.
-The asset delivery is https://github.com/seraph1nia/odot-game-assets/pull/14.
-No guessed merge SHA or private-branch export is imported.
+[Initial report](initial-review.md) preserves the original implementation-worker
+observations and execution receipts. Its unqualified acceptance language is
+superseded by this report and the R1 appearance finding.
+[Historical gallery](review.html), `before/`, `after/`, `settlement-pair.png`,
+[evidence.json](evidence.json), [checks.json](checks.json),
+[asset-handoff.json](asset-handoff.json) and [import-receipt.json](import-receipt.json)
+remain original/initial POC artifacts, not photographs or checks of the correction.
+Their source heads, DLL/manifest/image hashes and GPU identities are unchanged.
+The old post-capture picking assertion could accept an unchanged selection and is
+not proof of a successful input-driven transition.
 
-- Previous pin: **`133c7cdeb368cada408d1c95c9414e08488371a9`**.
-- New pin: **`2d88d355393f145aedfc19fa198960dac741c6fb`**.
-- [Original handoff](asset-handoff.json) content identity:
-  `702a679862bb25a1e4f7152b2ea97190ba1c3b14b467398dbaa71af725011635`.
-- [Import receipt](import-receipt.json): exact hashes/bytes of all 57 selected
-  GLBs before and after; exactly 14 change (five bases, four paths, four rivers,
-  Archery). All other 43 GLBs, four standalone forest decals, Worldtree/UI pin,
-  permission text and license notices are unchanged.
-- `src/Game/Assets/Authored/manifest.json` and `AssetCatalog.Revision` advance
-  together. Extracted PNGs are exact embedded bytes, with indexed duplicate-name
-  handling; 567 → **569** derived records. Superseded extractions/sidecars are
-  removed, surviving source/import UIDs retained, new maps use mipmaps.
-- No `.blend`, input ZIP, editable source, unused asset or upstream catalog
-  payload is distributed. Original roughness/normal/rendering channels remain;
-  only source-authored Base Color bindings change. Archery's previously unused
-  blue-cloth UVs were already authored upstream; their first portable export is
-  explicitly audited in the asset preservation report, not a game-side unwrap.
+## Focused review-round verification
 
-The authoritative upstream reports and all 37 matched GLB studio comparisons
-remain [at the immutable asset revision](https://github.com/seraph1nia/odot-game-assets/tree/2d88d355393f145aedfc19fa198960dac741c6fb/docs/ai-textures).
-They prove source preservation, not game pixels. The new gallery adds real-game
-acceptance rather than relabeling those studio images.
+The existing owned-window `TextureWitness` now establishes plot 0 before selecting
+plot 2 for paid Archery construction. After restoring the overview it proves the
+transition 2 → 0, sends a missed world click, confirms it cannot satisfy selection
+of plot 2, then proves 0 → 2 with a genuine plot click. `texture-picking.json`
+records the observed sequence. No gameplay selection setter, modal bypass,
+additional journey, timeout relaxation or CI GPU dependency is introduced.
 
-## Capture identity and fairness
+This strengthens existing tier E coverage because unit/resource checks cannot
+prove graphical ray picking after photo framing. It reuses seed 1, normal solo
+construction, ordered Child events, isolated per-client preferences and awaited
+cleanup. Expected incremental cost is a few probes/clicks in the same window;
+actual execution is recorded below.
 
-[Evidence](evidence.json) binds every retained PNG to its SHA-256, asset revision,
-manifest SHA-256, actual built game DLL SHA-256 and observed graphics/camera/
-resource state. Baseline game head **`cf339cc0eba000de7c28681d7b91cbf0d711a34b`**;
-new-assets capture head **`65926ac6b5b2247b5f5894e2a65eea9fcd83898b`**.
-Subsequent documentation/gallery commits do not retrospectively turn these into
-captures of a later pipeline head. Baseline was imported and photographed before
-the pin changed and is preserved here, not re-created with new maps.
+[Fresh evidence](correction/evidence.json) binds all 33 retained viewport PNGs to
+asset/manifest/DLL/image hashes, complete actual graphics/camera fields, projected
+ground-camera footprint and owned PID/native-window identity. All three stages
+match those settings exactly: 1100×820 Windowed X11, RX6800/RADV discrete Vulkan
+1.4.354 Forward+, seed 1, High/Woodland/4×MSAA, exposure 1, fair weather and cosmetic
+time 12. Actual native window IDs can be reused after the prior owned process
+exits; each frame authenticates its own PID. Ambient animation/particles remain
+real-time, not identical-pose or pixel-equality targets.
 
-Both runs authenticate the owned PID/native window, X11, Windowed 1100×820,
-**AMD Radeon RX 6800 (RADV NAVI21)** / discrete GPU / Vulkan API **1.4.354** /
-Forward+ RenderingDevice. Process-local DISPLAY/authentication-path handoff was
-reverified; no credential contents, other windows or desktop pixels were read.
-No display service, ACL, driver, global preference or CI configuration changed.
+These photograph the **uncommitted review-fixed working tree based on
+`c8800772ee8bc3a055ccdee848d98301a0510d1a`**, not that committed head alone or a
+future pipeline head. Per-stage C#/project source hashes, patch hashes and actual
+built DLL hashes are retained. Only coherent assets/catalog revision were switched
+for comparison; corrected inputs and their generated cache were restored afterward.
+Historical pixels remain untouched. Every fresh run observes picking **2 → 0 → 0
+(miss) → 2**, normal paid construction, return and clean owned Exit.
 
-The same witness, seed 1, fair-weather preset, fixed cosmetic time 12, exposure 1,
-High quality, Woodland grading, 4× MSAA, lighting and framing are used. Packaging
-rejects differences in actual camera fields, projected ground-camera footprint,
-viewport dimensions or complete observed graphics settings. Menu photo views
-hide only the central menu controls and use size 12 at the original camera angle;
-the actual installed landscape is reused, not a fabricated fixture. Solo uses
-normal menu → Lobby → Start → paid Archery construction. The actual overview
-retains the current horizontal arena and HUD; close views use permitted 3× zoom.
+[Review checks](correction/checks.json) retain exact summaries and log hashes:
 
-Ambient players/particles retain real elapsed-time playback, so corresponding
-images do not promise identical moving poses or pixel equality. Successive river
-frames show later process frames; other effects also move. The engine component
-separately witnesses automatic animation advancement, all four actual river
-players/targets, fixed non-target transforms and exact loop closure. Numerical
-water-motion evidence is not inferred solely from changing pixels.
-
-## Executed checks (headless first, GPU second)
-
-All logs are retained locally under ignored `logs/`; exact run IDs are below.
-These are scoped receipts, not a claim that every deep/platform check ran.
-
-| Check | Actual result / evidence |
+| Scope | Actual result / run |
 | --- | --- |
-| Baseline cheap provenance/placement selection | 42 passed; `20261017-002135-b40373de` |
-| Adapter selection + existing byte/placement checks | 43 passed each; `20261017-002325-4f8e4aac` (baseline adapter), `20261017-002838-c8c13acc` (new pin) |
-| Baseline imported-buffer/ground proof | Passed 5.50s component; `20261017-002336-92332f7a` |
-| Baseline actual GPU photo/paid-build/picking/return/Exit | Passed 25.67s graphical scope; `20261017-002635-78edd545` |
-| New imported-buffer/ground proof | Passed 5.39s component; `20261017-002954-9d418d79` |
-| New production animation component | Passed 5.24s component; `20261017-003006-f2dc21cc` |
-| New actual GPU photo/paid-build/picking/return/Exit | Passed 25.65s graphical scope; `20261017-003036-0e315b3d` |
-| Broad fast C# | **833 core + 664 runner passed**, **2 runner platform skips**; `20261017-003224-29c950d2`; 70.72s, excludes `Tier=Deep` |
-| C# formatting | `dotnet format Odot.slnx --no-restore`, then `--verify-no-changes`, passed |
-| Import re-admission | Scoped importer dry-run, apply, then unchanged second dry-run; exact 14 matches and all unrelated imports checked against immutable Git objects |
-| Gallery consistency | Executable packaging checks actual capture matching, renderer/ownership, input manifest/head identity; static links/image hashes checked separately |
+| Corrected targeted byte/placement admission | 43 passed, zero skips; `20261017-021641-7ae4cfe0` |
+| Corrected imported geometry / corruption | Passed 5.48s component; `20261017-021645-b997258e` |
+| Corrected actual production animation | Passed 5.23s component; `20261017-021708-bd004d7a` |
+| Corrected owned GPU photos / picking / normal solo | Passed 26.89s graphical scope; `20261017-021800-9709682d` |
+| Fresh original geometry / animation / GPU | Passed; `20261017-022105-be89330a`, `20261017-022131-54c16105`, `20261017-022142-b2e7c2dd` (GPU 26.71s) |
+| Fresh initial geometry / animation / GPU | Passed; `20261017-022216-236e57d3`, `20261017-022242-cd996a5c`, `20261017-022253-7dfc9a3c` (GPU 26.97s); successful execution does not waive its rejected appearance |
+| Formatting | Locked restore, then `dotnet format Odot.slnx --no-restore --include src/Game/AssetCatalog.cs tools/DevRunner/TextureWitness.cs`; passed |
+| Provenance / packaging | Import dry-run reports zero changes; all fourteen immutable source/export hashes match successor handoff. Exact three-stage camera/graphics/footprint matching precedes packaging. |
 
-The existing buffer diagnostic covers **42 pair/end orientations, 72 full-profile
-joins, 40 base/overlay stacks**, native roots versus query buffers, all five floor
-bounds (radius 2.55, top 0, bottom −.36), both ribbon families and bridge adaptation.
-It retains normal opaque depth testing and negative material/UV/normal corruption
-regressions. River U-across/V-along mapping, original U≈.09375–.90625 water region,
-width/banks/elevation and eight-triangle moving shimmer are preserved upstream
-and exercised through the real game importer. The animation component checks
-actual production clips/material bindings, automatic advancement and loop wrap,
-including Archery. The existing headless horizontal-board component remains CI's
-owner of the current divider transforms; no layout or rule assertion was weakened.
+Each geometry proof retains **42 orientations, 72 full-profile neighbor joins,
+40 base/overlay stacks**, five ground bounds/foundation, path/river straight,
+turn60, turn120 and end shapes, UVs/normals/materials, banks/width/elevation and
+bridge adaptation. Existing negative corruption cases remain strict. The minimal
+animation component tests actual imported production players/target transforms,
+automatic water advancement and loop closure, not just changed PNGs.
 
-Live menu captures show neighboring mixed floors, winding paths, connected river
-bends and path endpoints. Solo shows the current lowered curved divider and its
-round end beneath the existing bridge. **Not every orientation is visible in a
-single live composition**; exhaustive connector classes/rotations are the imported
-geometry proof and upstream 37-pair gallery, not fabricated live-map views.
+**Retained failure:** the first fresh original headless static probe
+`20261017-021929-fbba4b40` emitted its fidelity report but exited **134** during
+shutdown, with no emitted engine error or failed assertion explaining it. The
+owned child was awaited and its generated cache preserved. One explicit identical
+source/cold-import repeat passed; no code/assertion/deadline/backend was changed.
+This does not establish the cause or repair the pre-existing headless/software
+instability. The corrected pin's targeted/component/GPU runs passed first time.
+No missing-map or shader error was observed in the successful scopes. Existing
+RGBFloat → RGBAFloat curve-texture warnings remain documented, not suppressed.
 
-### Retained failures, not hidden retries
+### Resource observations
 
-- First baseline graphical attempt (`20261017-002359-6fdd5bff`) captured all views
-  but failed its verification driver's Space-reset assumption after diagnostic
-  camera framing. The user reset correctly targets the current camera base.
-  The driver now restores the original fitted photo view explicitly before
-  ordinary picking. No product input behavior/deadline was changed. One corrected
-  baseline run passed; the failed evidence remains retained.
-- First post-pin warm prepare (`20261017-002841-57823c96`) exited zero but reported
-  missing UIDs for removed maps through old generated imported scenes; it is a
-  **failed** import, not a pass. Moving only editor/UID caches had been insufficient.
-  The entire owned generated `.godot` tree was preserved under
-  `logs/ai-textures-obsolete-import-cache/after-first-import-godot`, then a cold
-  supported `mise run prepare` passed. Authored source/UID sidecars were not reset.
-  Fresh imports and the subsequent component/GPU runs passed without exclusions.
-- Existing RGBFloat → RGBAFloat curve-texture warnings occur in both GPU runs.
-  No missing maps, shader compilation errors or engine errors were observed in
-  the accepted scopes. The historical llvmpipe instability is **unresolved**;
-  hardware success is not evidence of a software-renderer fix.
+Relative to initial POC, the five GLBs grow **9,822,492 → 11,848,892 bytes**
+(+2,026,400); all 57 GLBs grow **192,885,536 → 194,911,936 bytes**. Derived PNG
+bytes grow **64,920,488 → 66,946,880** (+2,026,392). These are more detailed PNGs
+compressing less, not additional decoded images: 569 map records and upstream
+decoded RGBA8 estimates are unchanged from initial delivery (no mips/driver
+allocation included). GLB-embedded and extracted PNG bytes are not two runtime
+texture allocations.
 
-## Resource / performance observations
+| One observed solo frame | Original | Initial | Corrected |
+| --- | ---: | ---: | ---: |
+| Draw calls | 3,548 | 3,548 | 3,548 |
+| Primitives | 806,558 | 806,558 | 806,558 |
+| Texture bytes | 1,126,842,432 | 1,129,726,016 | 1,129,726,016 |
+| Buffer bytes | 122,789,140 | 122,789,140 | 122,789,140 |
+| Nodes / resources | 10,939 / 4,615 | 10,939 / 4,617 | 10,939 / 4,617 |
 
-Exact remeasurement agrees with the asset-stage export estimate: the fourteen
-GLBs grow **27,115,592 → 30,266,832 bytes** (+3,151,240, about 3.01 MiB). All 57
-selected GLBs total **189,734,296 → 192,885,536 bytes**. Extracted PNG distribution
-bytes grow **61,775,117 → 64,920,488** (+3,145,371); these are the same maps also
-embedded in GLBs, not twice the runtime texture allocation. Upstream summed
-embedded RGBA8 estimates are **149,946,368 → 152,043,520 bytes** (+2 MiB), excluding
-mips/compression/deduplication/driver overhead.
+These include cold resource work, readback/PNG encoding and debug traversal.
+Instantaneous FPS/process counters are not controlled steady-state measurements;
+viewport GPU timing is unavailable. No frame-time, physical-VRAM or speedup claim
+is made. Full repository tests/lint, packages, CI, other GPUs/platforms, sustained
+performance, controller/audio and Steam multi-machine qualification remain outside
+this review round and belong to their separate phases.
 
-The paired actual solo-overview observations report:
-
-| Native rendering monitor | Before | After |
-| --- | ---: | ---: |
-| Draw calls (one observed frame) | 3,548 | 3,548 |
-| Primitive count | 806,558 | 806,558 |
-| Buffer bytes | 122,789,140 | 122,789,140 |
-| Texture bytes | 1,126,842,432 | 1,129,726,016 |
-| Nodes / resources | 10,939 / 4,615 | 10,939 / 4,617 |
-
-The observed texture-counter delta is **2,883,584 bytes (2.75 MiB)** in this owned
-process, consistent with two additional decoded maps and mips; this is not total
-physical VRAM accounting. Menu-only texture bytes are unchanged at 683,892,800 in
-the paired mixed view, before Archery loads. The snapshots include cold resource
-work, readback/PNG encoding and expensive debug observation traversal. Their
-instantaneous FPS (solo 16 versus 15) and process-time values **are not a controlled
-steady-state benchmark**. Viewport GPU timing is zero/unavailable. No speedup,
-no-regression frame-time claim, 60-fps guarantee or cross-GPU conclusion is made.
-
-## Reproduce / preview / review
-
-Use the locked installed Godot **.NET 4.7.2**, SDK **10.0.401**, and locked NuGet
-restores. Do not install tools or replace the source exports manually.
+Use the locked installed .NET SDK 10.0.401 and Godot .NET 4.7.2, locked restores,
+and existing tools only. Focused admission/geometry/animation checks precede any
+GPU subprocess; full test/lint/publication phases belong to the outer pipeline.
 
 ```sh
-# Cheapest byte/metadata/placement gate, then actual imported resources:
 mise run test-runner --filter 'FullyQualifiedName~AuthoredAssetTests|FullyQualifiedName~DetailedGroundTests|FullyQualifiedName~LandscapeChecksTests'
 mise run test-assets --startup-timeout-ms 60000
 mise run test-engine --scenario animation --startup-timeout-ms 60000
-
-# Normal interactive local game, current textured assets:
-mise run play
-# Singleplayer -> Start match -> build Archery Range on an available plot.
-# Menu shows the full forest/paths; solo retains the compact horizontal board.
-
-# Explicit graphical photo witness, ONLY with authorized GPU/X11 access:
-# Reverify your actual DISPLAY and readable XAUTHORITY PATH. Never copy its contents.
-env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" \
+# Only with the explicitly authorized RX6800/X11 surface and readable auth path:
+env -u WAYLAND_DISPLAY DISPLAY=:0 XAUTHORITY=/run/user/1000/xauth_qKdKuN \
+  xdpyinfo -queryExtensions
+env -u WAYLAND_DISPLAY DISPLAY=:0 XAUTHORITY=/run/user/1000/xauth_qKdKuN \
   ODOT_ALLOW_GRAPHICAL_TESTS=1 mise run test-vulkan --desktop \
   --checkpoint textures --startup-timeout-ms 60000
-# Retains owned game-only PNGs/JSON under logs/<run>/desktop-vulkan; closes its window.
-# This selected witness deliberately requires the qualified RX6800/RADV device.
 ```
 
-The scoped `tools/Assets/import_ai_textures.py <read-only-assets-repo>` defaults to
-dry-run, verifies reachability from `origin/main`, handoff identity and the entire
-selected inventory before mutation. Independently verify the full main revision
-against the forge first. `--apply` installs only this known main-only POC and its
-exact embedded PNGs. It refuses an unknown game pin or changed existing hashes;
-it is not a general-purpose dependency updater. It never opens/rebuilds sources.
-Update `AssetCatalog.Revision` together with the manifest; preserve all surviving
-sidecars, let Godot create new map sidecars, and enable their existing mipmap
-policy before final engine validation. For a warm pin switch, close owned editors
-and preserve the worktree's generated `.godot` outside `src/Game` before cold
-`mise run prepare` to avoid old removed-map UID dependencies. Never move another
-worktree's output, delete authored sidecars or loosen import errors.
+Do not inspect/copy authentication-file contents, change display configuration,
+use another backend or capture unrelated desktop windows. Missing prerequisites
+are unexecuted, not passes. Run `mise run play` for the normal interactive preview
+when those prerequisites are available; Singleplayer → Start → Archery Range.
 
-The committed gallery needs no tools/server. To regenerate it from the retained
-successful runs (requires existing ImageMagick, no installation):
+## Reproduce the pin and roll back coherently
 
-```sh
-python3 tools/Assets/texture_review.py \
-  --before logs/20261017-002635-78edd545/desktop-vulkan \
-  --after logs/20261017-003036-0e315b3d/desktop-vulkan \
-  --before-head cf339cc0eba000de7c28681d7b91cbf0d711a34b \
-  --after-head 65926ac6b5b2247b5f5894e2a65eea9fcd83898b \
-  --output docs/ai-textures-game
-```
+`python3 tools/Assets/import_ai_textures.py <read-only-assets-repo>` defaults to
+dry-run. Verify forge main first; `--apply` imports only the known landed successor
+from immutable Git objects, checks handoff identity and the entire current
+inventory, and refuses unknown pins/changed bytes. It admits the original,
+initial and corrected known pins, never a private branch. Update the catalog
+revision with the manifest; preserve surviving sidecars and mipmaps. The importer
+never opens or writes `.blend` sources.
 
-### Clean rollback
+For a warm pin switch, preserve the owned generated `src/Game/.godot` beneath
+ignored worktree-local `logs/` before cold preparation, avoiding stale removed-map
+UID dependencies. Do not change developer preferences or delete authored sidecars.
 
-Revert this game change coherently on a clean branch, preserving any later edits:
-return `AssetCatalog.Revision`, the complete authored manifest, changed GLBs,
-extracted maps and import sidecars together to the previous game revision. The
-pin must return **`2d88d355393f145aedfc19fa198960dac741c6fb` →
-`133c7cdeb368cada408d1c95c9414e08488371a9`**. Reverting the eventual game PR merge
-is the straightforward whole-change rollback; reverting only a binary while
-keeping new metadata is invalid. On a clean POC branch before any later asset
-updates, `git revert 65926ac6b5b2247b5f5894e2a65eea9fcd83898b` reverses the isolated
-asset-import commit while leaving photo tooling/evidence. Do not force-reset or
-overwrite later work. Preserve generated cache as described above, then run the
-cheap hash check and supported prepare/asset proof again. Upstream asset main
-need not be rewritten or reverted to roll back the game consumer.
-
-## Remaining qualification
-
-No release/publication/deployment, fresh package export, sustained GPU benchmark,
-Windows/macOS/other GPU visual acceptance, controller, listening-quality/audio,
-Steam friend invitations or multi-machine test was performed here. The POC did
-not change those boundaries. Hosted no-mistakes/PR CI remains GPU-independent and
-must validate the exact eventual published head separately. The committed local
-capture receipt is not a claim that a later review/pipeline head was photographed.
+A coherent revert of the correction returns catalog, full manifest, the five
+GLBs, five derived color maps and sidecars together from
+**`60ce86f04c02419d9c09d30c2e25931345bf2bf3` →
+`2d88d355393f145aedfc19fa198960dac741c6fb`**. Reverting the original POC import
+as well returns the fourteen GLBs/dependencies to
+**`133c7cdeb368cada408d1c95c9414e08488371a9`**. Preserve later edits and historical
+captures; never swap a binary under a stale manifest/hash or force-reset later
+work. Re-run focused hash/import checks after rollback. No upstream rewrite,
+release, deployment, default-branch push or automatic publishing is involved.

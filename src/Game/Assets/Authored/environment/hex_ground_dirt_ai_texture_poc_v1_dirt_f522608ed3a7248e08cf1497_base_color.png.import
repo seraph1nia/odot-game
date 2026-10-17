@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwh8bnsu1t06y"
-path="res://.godot/imported/hex_ground_grass_ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color.png-054c08b61440e40ba69fd414b7eb974f.ctex"
+uid="uid://2jtthggh1ll4"
+path="res://.godot/imported/hex_ground_dirt_ai_texture_poc_v1_dirt_f522608ed3a7248e08cf1497_base_color.png-247fb704ec9ceef3248d0d8b875d8b84.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Authored/environment/hex_ground_grass_ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color.png"
-dest_files=["res://.godot/imported/hex_ground_grass_ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color.png-054c08b61440e40ba69fd414b7eb974f.ctex"]
+source_file="res://Assets/Authored/environment/hex_ground_dirt_ai_texture_poc_v1_dirt_f522608ed3a7248e08cf1497_base_color.png"
+dest_files=["res://.godot/imported/hex_ground_dirt_ai_texture_poc_v1_dirt_f522608ed3a7248e08cf1497_base_color.png-247fb704ec9ceef3248d0d8b875d8b84.ctex"]
 
 [params]
 

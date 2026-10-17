@@ -31,6 +31,7 @@ internal sealed partial class Runner
         await Click(client, "Singleplayer", token);
         await client.WaitFor(e => e.Type == "connected" && e.State?.Phase == Phase.Lobby, "normal solo lobby", options.StartupTimeout, token);
         await ClickAck(client, "Start", token);
+        await Pick(client, 0, token);
         await Pick(client, 2, token); await ClickAck(client, "ArcheryRange", token);
         await WaitUi(client, p => p.Screen == "session" && p.Connected, "live settlement", token);
         await TextureFrame(client, "settlement", "overview", token);
@@ -42,8 +43,24 @@ internal sealed partial class Runner
         // fitted base explicitly before testing ordinary input, not the user
         // Space helper (which correctly resets to its current base).
         await TextureFrame(client, "settlement-restored", "overview", token);
+        UiObservation restored = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(restored.SelectedSlot == 2, "photo views retain the constructed Archery selection");
+        await Pick(client, 0, token);
+        UiObservation different = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(different.SelectedSlot == 0 && different.SelectedSlot != restored.SelectedSlot, "ordinary picking transitions away from Archery");
+        await client.Send("click 32 70");
+        UiObservation missed = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(missed.SelectedSlot == different.SelectedSlot && missed.SelectedSlot != 2, "a missed world click cannot satisfy Archery selection");
         await Pick(client, 2, token);
-        Require((await UiProtocol.Probe(client, options.StartupTimeout, token)).SelectedSlot == 2, "ordinary building picking survives material import");
+        UiObservation selected = await UiProtocol.Probe(client, options.StartupTimeout, token);
+        Require(selected.SelectedSlot == 2 && selected.SelectedSlot != missed.SelectedSlot, "ordinary picking transitions back to constructed Archery");
+        await File.WriteAllTextAsync(Path.Combine(_scope!.EvidenceDirectory, "texture-picking.json"), JsonSerializer.Serialize(new
+        {
+            Restored = restored.SelectedSlot,
+            Different = different.SelectedSlot,
+            Missed = missed.SelectedSlot,
+            Selected = selected.SelectedSlot
+        }, Evidence.JsonOptions), token);
         await Click(client, "ReturnToMenu", token); await Click(client, "ConfirmReturn", token);
         await WaitUi(client, p => p.Screen == "menu" && !p.Connected, "normal return", token);
         await Click(client, "Exit", token);

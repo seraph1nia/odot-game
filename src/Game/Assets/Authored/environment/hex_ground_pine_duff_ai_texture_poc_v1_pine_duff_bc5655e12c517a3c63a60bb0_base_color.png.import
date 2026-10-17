@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bd5snt17rglvc"
-path="res://.godot/imported/hex_ground_dirt_ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color.png-e566275f71824ef5daccb4e2e2f2f3d9.ctex"
+uid="uid://dfej8mk1l61md"
+path="res://.godot/imported/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_bc5655e12c517a3c63a60bb0_base_color.png-99b1fdbc479104a5f0ab3dbf489a99d9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Authored/environment/hex_ground_dirt_ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color.png"
-dest_files=["res://.godot/imported/hex_ground_dirt_ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color.png-e566275f71824ef5daccb4e2e2f2f3d9.ctex"]
+source_file="res://Assets/Authored/environment/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_bc5655e12c517a3c63a60bb0_base_color.png"
+dest_files=["res://.godot/imported/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_bc5655e12c517a3c63a60bb0_base_color.png-99b1fdbc479104a5f0ab3dbf489a99d9.ctex"]
 
 [params]
 

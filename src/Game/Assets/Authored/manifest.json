@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/seraph1nia/odot-game-assets.git",
-  "revision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+  "revision": "60ce86f04c02419d9c09d30c2e25931345bf2bf3",
   "permission": "the repo is my own work, so yes, use it",
   "permissionScope": "Required authored game-ready exports, embedded maps and four standalone forest decal textures for the requested game migration; no invented open-source license or reference-image/editable-source permission.",
   "files": [
@@ -402,8 +402,8 @@
     {
       "path": "environment/hex_ground_dirt.glb",
       "sourcePath": "exports/environment/hex_ground_dirt.glb",
-      "sha256": "6d8a2a895b8558cbe8a4d7b2da79b131eaf554eee562297232996f129e09fa33",
-      "bytes": 1691708,
+      "sha256": "fd3043fc16880b7110fd01d4c769ae414efb068dc927a9f80f8d2841f3777bc9",
+      "bytes": 2040296,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -411,8 +411,8 @@
     {
       "path": "environment/hex_ground_grass.glb",
       "sourcePath": "exports/environment/hex_ground_grass.glb",
-      "sha256": "a7eb5b33ae06dad227ff3de858ca0b521e5719550fd7b6b53d55e11200e13d86",
-      "bytes": 2141964,
+      "sha256": "dfe938bc5f4b2d673c33e61216af6d54907767da93379b16c48ebb5df34a0887",
+      "bytes": 2526636,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -420,8 +420,8 @@
     {
       "path": "environment/hex_ground_leaf_litter.glb",
       "sourcePath": "exports/environment/hex_ground_leaf_litter.glb",
-      "sha256": "b0aff9370b43e97cc5a376cc6e390e8a9c510fc4a258f912cfa9245723aaa16f",
-      "bytes": 2057852,
+      "sha256": "18fd0e594b0447e0e3a6c66b175049880604ff4a2bc5ef824e1dfc03633d4665",
+      "bytes": 2450124,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -429,8 +429,8 @@
     {
       "path": "environment/hex_ground_moss.glb",
       "sourcePath": "exports/environment/hex_ground_moss.glb",
-      "sha256": "d13366a078a3b20e523a616bf62cb8d740f5b854f49ca3d2378582be51c6061f",
-      "bytes": 2039604,
+      "sha256": "36df3e216f7e7e415ecc7b8e048c608302b4d4b585a1455fcb56e3c1b3f69cb2",
+      "bytes": 2477844,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -438,8 +438,8 @@
     {
       "path": "environment/hex_ground_pine_duff.glb",
       "sourcePath": "exports/environment/hex_ground_pine_duff.glb",
-      "sha256": "fcd251444db55664911c4d5b4e3be70486d24030b8417f53b6bd02ff163f885c",
-      "bytes": 1891364,
+      "sha256": "200eabf0233bc157ceeb74dd1b75a32b8cbe35ae1568c7c1e421cbdd3510a251",
+      "bytes": 2353992,
       "embeddedImages": 6,
       "materials": 2,
       "animationNames": []
@@ -4099,11 +4099,11 @@
       "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_dirt_ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color.png",
+      "path": "environment/hex_ground_dirt_ai_texture_poc_v1_dirt_f522608ed3a7248e08cf1497_base_color.png",
       "parent": "environment/hex_ground_dirt.glb",
-      "imageName": "ai_texture_poc_v1_dirt_73a3f7f38918363257637188_base_color",
-      "sha256": "517c953ae826190504038e6b9929fd90b97d4d8e9ff71b583cc34da8ab9fe7d1",
-      "bytes": 653980,
+      "imageName": "ai_texture_poc_v1_dirt_f522608ed3a7248e08cf1497_base_color",
+      "sha256": "6fd5255cc62f0cba2ab41816256beff2022da3e04c86bf72b2e0d48952cecf85",
+      "bytes": 1002565,
       "imageIndex": 4
     },
     {
@@ -4147,11 +4147,11 @@
       "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_grass_ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color.png",
+      "path": "environment/hex_ground_grass_ai_texture_poc_v1_grass_6333d90d209428ed3f88f99a_base_color.png",
       "parent": "environment/hex_ground_grass.glb",
-      "imageName": "ai_texture_poc_v1_grass_82367c4e08670ffc439a2085_base_color",
-      "sha256": "f19097befd7adea74e763daa3ad070a07e8e74e25cfb1b3b18dcf52fd2c10bea",
-      "bytes": 817510,
+      "imageName": "ai_texture_poc_v1_grass_6333d90d209428ed3f88f99a_base_color",
+      "sha256": "8bae88b8b46d848ac08d38f25ff63c8fca8237330e0e104fef3b2665eb0c16bb",
+      "bytes": 1202181,
       "imageIndex": 4
     },
     {
@@ -4195,11 +4195,11 @@
       "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color.png",
+      "path": "environment/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_03d4746e038bb43d1170258c_base_color.png",
       "parent": "environment/hex_ground_leaf_litter.glb",
-      "imageName": "ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color",
-      "sha256": "5b86ec50ae7f3efc5ae7e6471743b5499463d6460abb00c051a40da02ab5299f",
-      "bytes": 753062,
+      "imageName": "ai_texture_poc_v1_leaf_litter_03d4746e038bb43d1170258c_base_color",
+      "sha256": "bd37d5f524ae563b82a4d345079618cbeca272df64648f0f5ba7c3d842532e14",
+      "bytes": 1145334,
       "imageIndex": 4
     },
     {
@@ -4243,11 +4243,11 @@
       "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_moss_ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color.png",
+      "path": "environment/hex_ground_moss_ai_texture_poc_v1_moss_09984e44c349df685fc19379_base_color.png",
       "parent": "environment/hex_ground_moss.glb",
-      "imageName": "ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color",
-      "sha256": "3cddea1022d0e5bec5abcc7bbbe6ba31b9ace7bcd697013225fc033dd86eb11d",
-      "bytes": 779670,
+      "imageName": "ai_texture_poc_v1_moss_09984e44c349df685fc19379_base_color",
+      "sha256": "2d08fe0e46600bc8bc83ff6f80d2374ac5b282c399881f1ab9f6a5c41774ccd9",
+      "bytes": 1217909,
       "imageIndex": 4
     },
     {
@@ -4291,11 +4291,11 @@
       "imageIndex": 3
     },
     {
-      "path": "environment/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color.png",
+      "path": "environment/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_bc5655e12c517a3c63a60bb0_base_color.png",
       "parent": "environment/hex_ground_pine_duff.glb",
-      "imageName": "ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color",
-      "sha256": "4fa470be1060519a35ffb3d46818273d8b32163c073cd5ea019e7bcddbc04b67",
-      "bytes": 722595,
+      "imageName": "ai_texture_poc_v1_pine_duff_bc5655e12c517a3c63a60bb0_base_color",
+      "sha256": "be81a2f590b16d74b9eae0672a593e86d9e9d8321cc4571d15592e4b522d322a",
+      "bytes": 1185220,
       "imageIndex": 4
     },
     {

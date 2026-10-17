@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgigvvrkqicm2"
-path="res://.godot/imported/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color.png-5213b42840bbf8e31987d0bd85368127.ctex"
+uid="uid://1lbo1bopqi5o"
+path="res://.godot/imported/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_03d4746e038bb43d1170258c_base_color.png-a9f3b91a1bc863cc2983dfc4386ebf83.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Authored/environment/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color.png"
-dest_files=["res://.godot/imported/hex_ground_pine_duff_ai_texture_poc_v1_pine_duff_1a2b50f62f17bba29404383f_base_color.png-5213b42840bbf8e31987d0bd85368127.ctex"]
+source_file="res://Assets/Authored/environment/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_03d4746e038bb43d1170258c_base_color.png"
+dest_files=["res://.godot/imported/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_03d4746e038bb43d1170258c_base_color.png-a9f3b91a1bc863cc2983dfc4386ebf83.ctex"]
 
 [params]
 

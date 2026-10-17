@@ -14,8 +14,9 @@ import struct
 import subprocess
 
 BASELINE = '133c7cdeb368cada408d1c95c9414e08488371a9'
-REVISION = '2d88d355393f145aedfc19fa198960dac741c6fb'
-IDENTITY = '702a679862bb25a1e4f7152b2ea97190ba1c3b14b467398dbaa71af725011635'
+PREVIOUS = '2d88d355393f145aedfc19fa198960dac741c6fb'
+REVISION = '60ce86f04c02419d9c09d30c2e25931345bf2bf3'
+IDENTITY = '62ba705d9dd5e26d4ed6fd0b0c7e64337fc064629148420737f55a5e9057c8a7'
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -39,7 +40,7 @@ def import_assets(repo, apply=False):
     folder = ROOT / 'src/Game/Assets/Authored'
     path = folder / 'manifest.json'
     manifest = json.loads(path.read_text())
-    assert manifest['revision'] in (BASELINE, REVISION), 'Unrecognized pin; preserve and review newer work'
+    assert manifest['revision'] in (BASELINE, PREVIOUS, REVISION), 'Unrecognized pin; preserve and review newer work'
     assert len(selected.keys() - {f['sourcePath'] for f in manifest['files']}) == 0
     payloads, derived, files, changed = {}, [], [], []
     # Validate the COMPLETE selected source inventory before any mutation.

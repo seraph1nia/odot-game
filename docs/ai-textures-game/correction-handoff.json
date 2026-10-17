@@ -1,0 +1,1174 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/seraph1nia/odot-game-assets.git",
+  "contentIdentity": "62ba705d9dd5e26d4ed6fd0b0c7e64337fc064629148420737f55a5e9057c8a7",
+  "baselineRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+  "revisionRule": "Import only the immutable assets-main commit containing this exact manifest after the asset PR merges. Resolve that full commit SHA, verify it is an ancestor of origin/main, and pin it explicitly in the game manifest. This content manifest is not permission to import a private branch.",
+  "gameAcceptance": "Partial assets-first milestone. After this asset PR lands on assets main, dependent game ship odot-ai-textures-game must update the explicit immutable pin and hash/derived manifest metadata, then complete actual-GPU acceptance in settlement, forest, river and path views, including placement, tile connections, water motion and asset loading; include Archery Range settlement acceptance if its material stage is visually acceptable. Do not declare the overall request complete until that game work lands with acceptance evidence. No actual-game improvement claim yet.",
+  "files": [
+    {
+      "id": "environment/hex_ground_moss",
+      "sourcePath": "exports/environment/hex_ground_moss.glb",
+      "sha256": "36df3e216f7e7e415ecc7b8e048c608302b4d4b585a1455fcb56e3c1b3f69cb2",
+      "bytes": 2477844,
+      "materials": 2,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_foundation_normal",
+          "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+          "bytes": 161311,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+          "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+          "bytes": 172051,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_foundation_roughness",
+          "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+          "bytes": 4589,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_moss_normal",
+          "sha256": "a0bb89e2f8c421cf95fa90cde680ed968e94ab2c3c82950501a8f0fc4945edcb",
+          "bytes": 649144,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ai_texture_poc_v1_moss_09984e44c349df685fc19379_base_color",
+          "sha256": "2d08fe0e46600bc8bc83ff6f80d2374ac5b282c399881f1ab9f6a5c41774ccd9",
+          "bytes": 1217909,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ground_moss_roughness",
+          "sha256": "1cc49bbc7d460287ddcd08f46c7d18c29f6d9fd7cf1bef032a1cefa5f9dbac7d",
+          "bytes": 266074,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        }
+      ],
+      "source_blend_sha256": "fe816562aac45f5a793cdc186f3b6bdccaaf1d9bdb6aae5c3c701c57e97c41f9"
+    },
+    {
+      "id": "environment/hex_ground_grass",
+      "sourcePath": "exports/environment/hex_ground_grass.glb",
+      "sha256": "dfe938bc5f4b2d673c33e61216af6d54907767da93379b16c48ebb5df34a0887",
+      "bytes": 2526636,
+      "materials": 2,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_foundation_normal",
+          "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+          "bytes": 161311,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+          "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+          "bytes": 172051,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_foundation_roughness",
+          "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+          "bytes": 4589,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_grass_normal",
+          "sha256": "750fbbeb01111ba571c8c38d1be1eb4c5600f7d0fe39756769cbc022c967be9c",
+          "bytes": 692506,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ai_texture_poc_v1_grass_6333d90d209428ed3f88f99a_base_color",
+          "sha256": "8bae88b8b46d848ac08d38f25ff63c8fca8237330e0e104fef3b2665eb0c16bb",
+          "bytes": 1202181,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ground_grass_roughness",
+          "sha256": "21bc23c3ed2d05b095178d466677d3db84e05bb42b52ae1d5023598c7e1de3d1",
+          "bytes": 287212,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        }
+      ],
+      "source_blend_sha256": "0fee2223bf889d4b054935d7ed4935029951a2d559003e7bce4af299853ecdb9"
+    },
+    {
+      "id": "environment/hex_ground_dirt",
+      "sourcePath": "exports/environment/hex_ground_dirt.glb",
+      "sha256": "fd3043fc16880b7110fd01d4c769ae414efb068dc927a9f80f8d2841f3777bc9",
+      "bytes": 2040296,
+      "materials": 2,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_foundation_normal",
+          "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+          "bytes": 161311,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+          "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+          "bytes": 172051,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_foundation_roughness",
+          "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+          "bytes": 4589,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_dirt_normal",
+          "sha256": "3c6a887cc4f642a5a118bf0e7956d151300fc3018052f88a6c9289cd3334fab1",
+          "bytes": 468500,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ai_texture_poc_v1_dirt_f522608ed3a7248e08cf1497_base_color",
+          "sha256": "6fd5255cc62f0cba2ab41816256beff2022da3e04c86bf72b2e0d48952cecf85",
+          "bytes": 1002565,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ground_dirt_roughness",
+          "sha256": "5c58babb3be02e67f93df04a3ed00104781000721103ccb0919d69442b6c9f74",
+          "bytes": 224503,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        }
+      ],
+      "source_blend_sha256": "58bd724c11171ebe16dc4480d8ea2e68a152520a9a8409e910dcecaadaf4e6da"
+    },
+    {
+      "id": "environment/hex_ground_leaf_litter",
+      "sourcePath": "exports/environment/hex_ground_leaf_litter.glb",
+      "sha256": "18fd0e594b0447e0e3a6c66b175049880604ff4a2bc5ef824e1dfc03633d4665",
+      "bytes": 2450124,
+      "materials": 2,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_foundation_normal",
+          "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+          "bytes": 161311,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+          "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+          "bytes": 172051,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_foundation_roughness",
+          "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+          "bytes": 4589,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_leaf_litter_normal",
+          "sha256": "4bafbe18d196fe553cbeafa7772e58989fb06523216d3e9be075c4087e3aaf78",
+          "bytes": 680651,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ai_texture_poc_v1_leaf_litter_03d4746e038bb43d1170258c_base_color",
+          "sha256": "bd37d5f524ae563b82a4d345079618cbeca272df64648f0f5ba7c3d842532e14",
+          "bytes": 1145334,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ground_leaf_litter_roughness",
+          "sha256": "7ad475b23a2daf653fd3b1b4c3f11bf20639e457c4e95ea03e449db045d2db33",
+          "bytes": 279361,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        }
+      ],
+      "source_blend_sha256": "5e0d84b5fb7e1a3567f4d960b48b048a7b3163d9b718c632f39c82d9c27346c3"
+    },
+    {
+      "id": "environment/hex_ground_pine_duff",
+      "sourcePath": "exports/environment/hex_ground_pine_duff.glb",
+      "sha256": "200eabf0233bc157ceeb74dd1b75a32b8cbe35ae1568c7c1e421cbdd3510a251",
+      "bytes": 2353992,
+      "materials": 2,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_foundation_normal",
+          "sha256": "683b53d6807328d817cd7b454661235305b79a417d0b0156bf57a15190bab0d0",
+          "bytes": 161311,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_foundation_3b632abada033e9e70dbad7d_base_color",
+          "sha256": "c16b88dae1c1812d4fc2100a37c451b23cc295477a06c7d94b1e2e61d68221a7",
+          "bytes": 172051,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_foundation_roughness",
+          "sha256": "75ab5ae2a87e674ce7e30f40b117f9ddbc4041e0308c25d9ca4c8e5ae55f1c88",
+          "bytes": 4589,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_pine_duff_normal",
+          "sha256": "ded83a41882ecea7839850d31acfdd434e6d546278f7aa6cd5220a56ea451c0a",
+          "bytes": 567424,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ai_texture_poc_v1_pine_duff_bc5655e12c517a3c63a60bb0_base_color",
+          "sha256": "be81a2f590b16d74b9eae0672a593e86d9e9d8321cc4571d15592e4b522d322a",
+          "bytes": 1185220,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        },
+        {
+          "name": "ground_pine_duff_roughness",
+          "sha256": "d675ffe48262b55aecffbdc573e414832d020533b91a6ac9e56ed61029907a9d",
+          "bytes": 256585,
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "decoded_rgba8_bytes": 4194304
+        }
+      ],
+      "source_blend_sha256": "a39b6c2146fab525b9be1d1eff4767a3d6ae38ca29df94f72b4ebc74e79a242b"
+    },
+    {
+      "id": "environment/hex_path_straight",
+      "sourcePath": "exports/environment/hex_path_straight.glb",
+      "sha256": "f9f341dc4f86854c3376b9ae01c7d4890519ac8ff9ca2c670e29a4666261c35a",
+      "bytes": 351656,
+      "materials": 1,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_path_normal",
+          "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+          "bytes": 78912,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+          "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+          "bytes": 230844,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_path_roughness",
+          "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+          "bytes": 28866,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "ab6c908440e275abc5e7dbf56a000718a48b90c4fb89ab91a008736d4309df95"
+    },
+    {
+      "id": "environment/hex_path_turn_120",
+      "sourcePath": "exports/environment/hex_path_turn_120.glb",
+      "sha256": "5b2b385c1ea35597c13ceacdf327c002c005b849f0df1f40f41db91c6491e149",
+      "bytes": 360720,
+      "materials": 1,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_path_normal",
+          "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+          "bytes": 78912,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+          "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+          "bytes": 230844,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_path_roughness",
+          "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+          "bytes": 28866,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "709e078630f4a04539aa36df1cc02bc33c6eef50d9b51f5cbbf68ce3fd22b33e"
+    },
+    {
+      "id": "environment/hex_path_turn_60",
+      "sourcePath": "exports/environment/hex_path_turn_60.glb",
+      "sha256": "0f7a5c775d34f49029353e98dbe2081bd9492d3467a1fe3076d10c193f229642",
+      "bytes": 360716,
+      "materials": 1,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_path_normal",
+          "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+          "bytes": 78912,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+          "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+          "bytes": 230844,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_path_roughness",
+          "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+          "bytes": 28866,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "9dfcb3f98d8a46c0a6a338c07f145dd425367a29ba47cd09dd423deed863799d"
+    },
+    {
+      "id": "environment/hex_path_end",
+      "sourcePath": "exports/environment/hex_path_end.glb",
+      "sha256": "cad1a175eb4eddeb58cbb21010c499169b148410936a91e7799f55db2f76037d",
+      "bytes": 355760,
+      "materials": 1,
+      "animationNames": [],
+      "embeddedImages": [
+        {
+          "name": "ground_path_normal",
+          "sha256": "b20eee562fd81ec4819db79f5a927d21c83b7e1fcae7c1ef3c94019cb9bb1cde",
+          "bytes": 78912,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_path_6b2f7ce51c09f94858bce631_base_color",
+          "sha256": "b62c4aaa80ff8901232a2a6795baa64ed18a83dad61f345ae896a40ef2ef1e2f",
+          "bytes": 230844,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_path_roughness",
+          "sha256": "32351b4f56b554e7a98547fefe1f2b9a5cd2cad239167ddda194e39e53998d4c",
+          "bytes": 28866,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "dc8eeefd6691222d936e38c2aba6956ad2293f94a0e791138556f0ecbf82a6de"
+    },
+    {
+      "id": "environment/hex_river_overlay_straight",
+      "sourcePath": "exports/environment/hex_river_overlay_straight.glb",
+      "sha256": "6ef4464cd942b99222db78d166eaf0097c6207a3f2f7b55cb298066346f74b54",
+      "bytes": 343024,
+      "materials": 2,
+      "animationNames": [
+        "ambient"
+      ],
+      "embeddedImages": [
+        {
+          "name": "painted_water_ambient_shimmer_color",
+          "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
+          "bytes": 66753,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_water_roughness",
+          "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
+          "bytes": 10602,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_normal",
+          "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+          "bytes": 36716,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+          "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+          "bytes": 202554,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_roughness",
+          "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+          "bytes": 5387,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "157540a5322dc64c9a9560f33af71b0bf9a07c8c3ea01e5779e5cb821c0d7b47"
+    },
+    {
+      "id": "environment/hex_river_overlay_turn_120",
+      "sourcePath": "exports/environment/hex_river_overlay_turn_120.glb",
+      "sha256": "7bdd54af841f3794e1578165c1f2e174f7f86eeecb497ccf506ff845ef058a70",
+      "bytes": 352376,
+      "materials": 2,
+      "animationNames": [
+        "ambient"
+      ],
+      "embeddedImages": [
+        {
+          "name": "painted_water_ambient_shimmer_color",
+          "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
+          "bytes": 66753,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_water_roughness",
+          "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
+          "bytes": 10602,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_normal",
+          "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+          "bytes": 36716,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+          "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+          "bytes": 202554,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_roughness",
+          "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+          "bytes": 5387,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "8ca2585491bd40f7fef9ad7018eff6b0ebfc838e4e6d651a2a607630559d3c4b"
+    },
+    {
+      "id": "environment/hex_river_overlay_turn_60",
+      "sourcePath": "exports/environment/hex_river_overlay_turn_60.glb",
+      "sha256": "491a64fdef47a1bc1d889c6609f42b5a73d961c8563cd99908873208614125d1",
+      "bytes": 352372,
+      "materials": 2,
+      "animationNames": [
+        "ambient"
+      ],
+      "embeddedImages": [
+        {
+          "name": "painted_water_ambient_shimmer_color",
+          "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
+          "bytes": 66753,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_water_roughness",
+          "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
+          "bytes": 10602,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_normal",
+          "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+          "bytes": 36716,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+          "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+          "bytes": 202554,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_roughness",
+          "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+          "bytes": 5387,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "5c1d31fd0d88f0fb07722f64783cf028ff36418ff87b576d99dc07363ce7fcaf"
+    },
+    {
+      "id": "environment/hex_river_overlay_end",
+      "sourcePath": "exports/environment/hex_river_overlay_end.glb",
+      "sha256": "2ba8279b3e5016b716abb27ed277a439558b2989fd828ce0e24db5866ff4b42c",
+      "bytes": 348436,
+      "materials": 2,
+      "animationNames": [
+        "ambient"
+      ],
+      "embeddedImages": [
+        {
+          "name": "painted_water_ambient_shimmer_color",
+          "sha256": "d286d8d7d63797bcc813cb9777c191376d4ae89ef326246b7d4c3fba728b17ef",
+          "bytes": 66753,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_water_roughness",
+          "sha256": "1dd8dc5b94cddb91e068a7ea5aed38db02c5498d4bd29047a90384a37dd1520d",
+          "bytes": 10602,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_normal",
+          "sha256": "3610f9aa6fedba1a8bac5212bcc29aeef7988177f5ec7a5428f122f968ad8c23",
+          "bytes": 36716,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_river_303e547debe718d396f2a242_base_color",
+          "sha256": "3949dd8099c2d7181749e1c616191ac1e364435008a07e810e213429a95d4ad0",
+          "bytes": 202554,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ground_river_roughness",
+          "sha256": "cbd29fc1833eac5bfa86350834e622201322d321e6e320740b68ed3b3d02dde8",
+          "bytes": 5387,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "7ad3c67361296d5246e9b235a0ec30abd603cae7fea5f2a49030a531ec5d4426"
+    },
+    {
+      "id": "buildings/archery_range",
+      "sourcePath": "exports/buildings/archery_range.glb",
+      "sha256": "b10479a00e15116e1d3b09d017cf55c0dc8d1570e78064c5033aea6176a8d231",
+      "bytes": 17619280,
+      "materials": 42,
+      "animationNames": [
+        "ambient"
+      ],
+      "embeddedImages": [
+        {
+          "name": "ai_texture_poc_v1_cloth_cobalt_weave_9bbd6b43ab5b77a88da46bfa_base_color",
+          "sha256": "04f33361a6cc07912be3b3b9fe92d374ff337094fd1512ac80131a38f866b5fc",
+          "bytes": 553908,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_plaster_normal",
+          "sha256": "e9b0ca46ad3b9d97a5f61a59bdfa934644632836609494e120f83494761c31bd",
+          "bytes": 44763,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_stone_mossy_masonry_eafedc80f43f2c124f06f598_base_color",
+          "sha256": "3da15623698e5caaf05d8bd959229f7d81d524504df8d949154eabd005fa0739",
+          "bytes": 218971,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_plaster_roughness",
+          "sha256": "d990428ee7c40575c38c26eeae58af2477c3f9a54b9bcbe891f5b9ff7c9861de",
+          "bytes": 19596,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_wood_normal",
+          "sha256": "e40f9f817ef15f1ae6c1de1678ee556357b38290024743567a62b6e51b1436d1",
+          "bytes": 95248,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_wood_warm_planks_8a6faf8f5e08209af9738a0b_base_color",
+          "sha256": "9f4f6f8eb31467a7deb54bc5c8658de6fc9ed0c3ac6fa5c5e7a7a8c772b6f8a9",
+          "bytes": 221239,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_wood_roughness",
+          "sha256": "1db01e1c3d0efe7080448a78112ce2d0b1627a62f2f329288cae9f34f2de83b8",
+          "bytes": 22819,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_wood_warm_planks_dddb2af4052ed5549d8dd371_base_color",
+          "sha256": "87b87ad3032de00b28ecb330e58b2ddf0a18279538b76d6bc420bc734015b67b",
+          "bytes": 239500,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_dbb5b0f373b17a7d25614072",
+          "sha256": "bb7a5b7af6d57697d379ba75898b5764676b94606063130ce4b648503cacd03e",
+          "bytes": 176810,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_wood_horizontal_planks_1c27487fc89609f997152ab6_base_color",
+          "sha256": "5b58bc22cb44548e88dd4c6e2142ae977032016c8b045882817fcda133d4f25d",
+          "bytes": 149019,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_wood_dark_aged_3daae321dace367dd6d58c4c_base_color",
+          "sha256": "d77f004149a71caca2b902e1bc7b6fdcbd852fcac41ebeac6d89d45bfab262e0",
+          "bytes": 230688,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_plaster_warm_333ff66aa1d9a0cf46783134_base_color",
+          "sha256": "d2aae23786003dd0750af632423c4d49b0228373a055ff399a6028d892dd1d48",
+          "bytes": 430737,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_roof_normal",
+          "sha256": "839d52403003707e5ccb9871319cf89e8d8a3e90e86bba1d54a9835ab8229400",
+          "bytes": 185014,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_roof_blue_shingles_fa6755d02608ec2362442570_base_color",
+          "sha256": "4d79756e9cad68dff43da6902ff78982d85671d4e12d160f374f62fbbcd88fbf",
+          "bytes": 73941,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_roof_roughness",
+          "sha256": "f398e119da1b7de2e52ca9beb2ca4a9a4cdb854dbf210c45e6fbfddab367685a",
+          "bytes": 10146,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_roof_blue_shingles_3fd0bc27dac5125bf13cd7fd_base_color",
+          "sha256": "d4c2b1e12f7d5827aa14ce97a6071fd787e432e286883a66f30cc4f843b0874c",
+          "bytes": 84004,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_stone_normal",
+          "sha256": "f7fef5382240bcba83b6b81a3efc64dfeef1fbd373d7536d306f7400685d96d0",
+          "bytes": 51007,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_stone_mossy_masonry_01398a4fea70b59dd588e4bc_base_color",
+          "sha256": "da2d0903296130a61ce332cb2f32b2817776b5ed5306e2fcb4437f5a1313ce71",
+          "bytes": 198224,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_stone_roughness",
+          "sha256": "ef6dd1198ac85ecb08ec5afc709f26f52ba093d1d0ed4002168083f9d7dfd336",
+          "bytes": 19983,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_leaf_normal",
+          "sha256": "0b2b7bb15e05098ee50c456d7831b8cffe7b6d165674dc7491206e55d86ce0af",
+          "bytes": 128018,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_ivy_moss_foliage_4a0c87662bc16fa5a91045ac_base_color",
+          "sha256": "221d256c551235bdf4ffb9c9882ad8e52b50e378054f295db9e24ee8a276fa35",
+          "bytes": 352440,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_leaf_roughness",
+          "sha256": "8eab1b262bdbc978f295c0e8d35c2f98224cabdf37c80cd3d7c7de06b6010cd8",
+          "bytes": 15561,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_ivy_moss_foliage_0fcd6bfc1e7b46b2e76ec1e8_base_color",
+          "sha256": "b954a33e8534e1f53345826a69421aed0a4daad06b7a8dc141dacae298ac9f8b",
+          "bytes": 372864,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_ivy_moss_foliage_9936f442deaea38577689bac_base_color",
+          "sha256": "eae3af652d7a7d19dbdb20f7c619de08e0ba1bd6469af14853db8ae5cf5b0568",
+          "bytes": 349627,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_moss_roughness",
+          "sha256": "8eab1b262bdbc978f295c0e8d35c2f98224cabdf37c80cd3d7c7de06b6010cd8",
+          "bytes": 15561,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_roof_blue_shingles_85a27017f6c14b87d8ead58c_base_color",
+          "sha256": "10a2dfc3c42d4eaacece877ac2aa2373902e6e7d326b230748282f8d183eb27a",
+          "bytes": 67100,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_7baed00d87ba4678636249bf",
+          "sha256": "664daf4e839bf1ff7fe522547afe9eacaa0afb304e1dfc957a9101666ff34c1c",
+          "bytes": 68435,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_42e8f7b214841ff3aadb58c3",
+          "sha256": "1d60f9a154a9d0a289f8dcd7752216be41fbe2924367ec8edd5cec08ed101b2b",
+          "bytes": 54283,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_window_roughness",
+          "sha256": "1382c1c96fb70f23c67286cf5b780849a5ab4eac28cd5e872734eff56f61f23f",
+          "bytes": 8981,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_e8c19967beb658b4f260c065",
+          "sha256": "9b4b38f52f7b58c35e5a86c5b386a7f8fce1976beb1657a113f242a63b58609b",
+          "bytes": 83034,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_0aced1b1cf9036f83899a8a4",
+          "sha256": "db5b03960c5adf19f24132475d3a1b7bfb1059756d35fcb3ad662a140b3d46cc",
+          "bytes": 66260,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_d103a020b22ca457c4979bd8",
+          "sha256": "e43a957cb2e86744907d2a0ff9e152cada5cd11f3b3046cddfff836d7f4850a8",
+          "bytes": 49844,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_c6c9d2f1742a86471dba7653",
+          "sha256": "94abf29c77019af043c7787fa0a9310308b485581d6dfc9ea5548ce29b859712",
+          "bytes": 39340,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_ivy_moss_foliage_9598238a05dea13da48b9051_base_color",
+          "sha256": "c75552c1ea090e552620a6e7c74311b34a84c91b69a2b5320f21923774f245fe",
+          "bytes": 358392,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "painted_leaf_roughness",
+          "sha256": "b933a345a4da763ddfb04371a9ab167628a4304ee12a1d97d284b1f2c94254de",
+          "bytes": 14341,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_ivy_moss_foliage_b260c7746096644da0bc5092_base_color",
+          "sha256": "92263f01a3f370b8ba079a2d7dd89594c15a790ac6f92dbe4a3be2468806b547",
+          "bytes": 373848,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "ai_texture_poc_v1_ivy_moss_foliage_44261da7ef60b8d0500f3441_base_color",
+          "sha256": "eaf4901a12a3f9d32444e071aa3e921f82bb55ef956f572f95571adf27e4ad0f",
+          "bytes": 336725,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        },
+        {
+          "name": "vivid_painted_v1_ab7731dbbbd9e12c3235e44c",
+          "sha256": "eb35e03f59423cd4e1c56f4e10fc3375a1f28c9e95217b1bec30ed35a9ba5158",
+          "bytes": 146694,
+          "dimensions": [
+            512,
+            512
+          ],
+          "decoded_rgba8_bytes": 1048576
+        }
+      ],
+      "source_blend_sha256": "12df620058ac47b0e9da9390d4d3e6c643e7006ab558c8598fc4914795529e3c"
+    }
+  ]
+}

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bo6truk50heko"
-path="res://.godot/imported/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color.png-d4c5c2b1ddaed25825bb25fa837130cc.ctex"
+uid="uid://cjn76r1vvdgnk"
+path="res://.godot/imported/hex_ground_grass_ai_texture_poc_v1_grass_6333d90d209428ed3f88f99a_base_color.png-5e2ee88ff460767c1523e293e8c6a20c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Authored/environment/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color.png"
-dest_files=["res://.godot/imported/hex_ground_leaf_litter_ai_texture_poc_v1_leaf_litter_4a839095d5504662e786c90a_base_color.png-d4c5c2b1ddaed25825bb25fa837130cc.ctex"]
+source_file="res://Assets/Authored/environment/hex_ground_grass_ai_texture_poc_v1_grass_6333d90d209428ed3f88f99a_base_color.png"
+dest_files=["res://.godot/imported/hex_ground_grass_ai_texture_poc_v1_grass_6333d90d209428ed3f88f99a_base_color.png-5e2ee88ff460767c1523e293e8c6a20c.ctex"]
 
 [params]
 

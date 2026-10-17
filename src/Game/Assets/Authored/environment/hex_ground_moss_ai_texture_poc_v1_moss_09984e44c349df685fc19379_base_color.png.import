@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b5j58k23ax4sn"
-path="res://.godot/imported/hex_ground_moss_ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color.png-8cecdf2c32a5733dd244fd8758110366.ctex"
+uid="uid://16roooe1oq2h"
+path="res://.godot/imported/hex_ground_moss_ai_texture_poc_v1_moss_09984e44c349df685fc19379_base_color.png-2843ed449b2a2e8f6a616dc9449fe0f3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Authored/environment/hex_ground_moss_ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color.png"
-dest_files=["res://.godot/imported/hex_ground_moss_ai_texture_poc_v1_moss_ed30dd0aef9701202bbeffa9_base_color.png-8cecdf2c32a5733dd244fd8758110366.ctex"]
+source_file="res://Assets/Authored/environment/hex_ground_moss_ai_texture_poc_v1_moss_09984e44c349df685fc19379_base_color.png"
+dest_files=["res://.godot/imported/hex_ground_moss_ai_texture_poc_v1_moss_09984e44c349df685fc19379_base_color.png-2843ed449b2a2e8f6a616dc9449fe0f3.ctex"]
 
 [params]
 
