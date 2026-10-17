@@ -42,6 +42,23 @@ public sealed class AuthoredAssetTests
         Assert.Throws<ArgumentException>(() => Options.Parse(["test-assets", "--desktop"]));
     }
 
+    // Tier A: prevent a GPU-only photo selection leaking into automatic or
+    // exported verification. Executes option admission; no process setup cost.
+    [Fact]
+    public void TextureReviewRequiresExplicitSourceDesktopVulkanSelection()
+    {
+        Options admitted = Options.Parse(["test-vulkan", "--desktop", "--checkpoint", "textures"]);
+        Assert.True(admitted.DesktopSurface);
+        Assert.Equal("textures", admitted.UiCheckpoint);
+        foreach (string[] rejected in new[]
+        {
+            new[] { "test-vulkan", "--checkpoint", "textures" },
+            new[] { "test-vulkan", "--desktop", "--exported", "--checkpoint", "textures" },
+            new[] { "test-engine", "--checkpoint", "textures" },
+            new[] { "test-ui", "--scenario", "launcher", "--checkpoint", "textures" }
+        }) Assert.Throws<ArgumentException>(() => Options.Parse(rejected));
+    }
+
     [Fact]
     public void RequiredExportDistributionMatchesImmutableProvenanceAndEmbeddedDependencies()
     {

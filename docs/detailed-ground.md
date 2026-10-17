@@ -7,7 +7,9 @@ The suite was introduced byte-for-byte from `odot-game-assets` at
 https://github.com/seraph1nia/odot-game-assets/pull/3. The existing
 [manifest](../src/Game/Assets/Authored/manifest.json) owns the current revision,
 IDs, source/destination paths, hashes, byte counts and embedded dependencies;
-the [vivid/ambient refresh](vivid-ambient-import.md) records the successor import.
+the [vivid/ambient refresh](vivid-ambient-import.md) records the optimized import,
+and the [AI-texture POC](ai-textures-game/README.md) records its color-only successor
+with matched actual-GPU game-camera evidence and candid repetition/softness limits.
 At introduction, all 44 previously bundled GLBs also matched that pin without
 changing their bytes. No Blender sources or reference art are copied.
 Owner permission and its limitations remain in the [notice](../src/Game/Assets/Authored/NOTICE.md).

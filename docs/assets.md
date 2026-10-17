@@ -18,7 +18,7 @@ integration correction; neither rejected optimization candidate ships.
 
 ## Vivid overgrown refresh and ambient playback
 
-See the [current import and runtime report](vivid-ambient-import.md) for the
+See the [earlier import and runtime report](vivid-ambient-import.md) for the
 optimized vivid/overgrown refresh, indexed map admission, building/surface-water
 playback, accepted storage tradeoff and headless-only acceptance boundary.
 
@@ -42,6 +42,13 @@ member hashes remain attributable outside the runtime pack. The separately lande
 living research UI retains its [Worldtree import contract](worldtree.md#immutable-import-contract)
 and [notice](../src/Game/Assets/Authored/NOTICE.md#living-worldtree-ui); its immutable
 members and production adapter are preserved alongside the application-wide kit.
+
+## AI-generated texture POC
+
+See the [actual-game texture report and offline gallery](ai-textures-game/README.md)
+for the corrected POC, historical comparisons, visual limitations, verification,
+preview and coherent rollback. The manifest linked above owns current provenance
+and inventory.
 
 ## Earlier quality refresh (2026-10-08)
 

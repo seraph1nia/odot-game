@@ -10,7 +10,7 @@ public sealed record UnitVisual(string Name, string Path, string MainProp, strin
 public static class AssetCatalog
 {
     public const string Root = "res://Assets/Authored/";
-    public const string Revision = "133c7cdeb368cada408d1c95c9414e08488371a9";
+    public const string Revision = "60ce86f04c02419d9c09d30c2e25931345bf2bf3";
     public const string Permission = "the repo is my own work, so yes, use it";
     public const string Meadow = "environment/components/forest_hex_meadow.glb";
     public const string Stream = "environment/components/forest_hex_stream.glb";

@@ -2,7 +2,7 @@
 
 ## Immutable input and selection
 
-The game consumes `odot-game-assets` main revision
+This refresh imported `odot-game-assets` main revision
 **`133c7cdeb368cada408d1c95c9414e08488371a9`**, the landed runtime-optimized
 successor to vivid/ambient revision `9a69b514e9fd7b101bf75d358e202da822bbe2c0`
 ([original asset revision](https://github.com/seraph1nia/odot-game-assets/pull/12)).
@@ -38,6 +38,10 @@ texture sidecars enable mipmap generation, retaining the existing forest-distanc
 sampling policy on the newly named maps. Existing source and surviving import
 UIDs remain in place. The separately pinned Worldtree/UI
 members, permission scope, owner-permission text and license notices are unchanged.
+
+The [AI-texture successor](ai-textures-game/README.md) advances the current pin
+and fourteen color-bound exports while retaining this representation/ambient
+contract. The counts and receipts below describe this earlier refresh.
 
 ## Optimized representation and tradeoff
 

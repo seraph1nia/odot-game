@@ -1,0 +1,3139 @@
+{
+  "inputs": {
+    "before": {
+      "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+      "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+      "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+    },
+    "after": {
+      "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+      "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+      "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+    }
+  },
+  "sourceHeads": {
+    "before": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+    "after": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b"
+  },
+  "frames": [
+    {
+      "view": "settlement",
+      "stage": "before",
+      "pngSha256": "e63ed98f7b55eb5c32bb11437f26daae1fd8f9701b0223e24274fe1010d38266",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 1,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 33.111866,
+          "Height": 19.796646,
+          "Rotation": [
+            -0.55850536,
+            0,
+            0
+          ],
+          "ReferenceX": 181.5749,
+          "ReferenceY": 215.10284,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 3548,
+          "Objects": 10362,
+          "Primitives": 806558,
+          "TextureBytes": 1126842432,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4615,
+          "FramesPerSecond": 16,
+          "ProcessMilliseconds": 363.405,
+          "PhysicsMilliseconds": 0.7150000000000001
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 34.6715,
+          "ReadbackMilliseconds": 4.1662,
+          "SamplingMilliseconds": 2.932,
+          "PngMilliseconds": 105.3812,
+          "ObservationMilliseconds": 104.9048,
+          "Live": false,
+          "ProcessFrame": 80,
+          "RenderSetupCpuMs": 0.2,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -5.332054,
+          -20.031174
+        ],
+        [
+          39.086304,
+          -20.031174
+        ],
+        [
+          39.086304,
+          28.737411
+        ],
+        [
+          -5.332054,
+          28.737411
+        ],
+        [
+          -5.332054,
+          -19.391037
+        ],
+        [
+          39.086304,
+          -19.391037
+        ],
+        [
+          39.086304,
+          29.377548
+        ],
+        [
+          -5.332054,
+          29.377548
+        ],
+        [
+          -5.332054,
+          -16.590454
+        ],
+        [
+          39.086304,
+          -16.590454
+        ],
+        [
+          39.086304,
+          32.17813
+        ],
+        [
+          -5.332054,
+          32.17813
+        ]
+      ]
+    },
+    {
+      "view": "settlement",
+      "stage": "after",
+      "pngSha256": "2b43aee9e872f663b15d2c0707c4cb08b7f0a29ad36fc326b5e6e7ddb416d089",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 1,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 33.111866,
+          "Height": 19.796646,
+          "Rotation": [
+            -0.55850536,
+            0,
+            0
+          ],
+          "ReferenceX": 181.5749,
+          "ReferenceY": 215.10284,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 3548,
+          "Objects": 10362,
+          "Primitives": 806558,
+          "TextureBytes": 1129726016,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4617,
+          "FramesPerSecond": 15,
+          "ProcessMilliseconds": 365.88300000000004,
+          "PhysicsMilliseconds": 0.7060000000000001
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 34.8919,
+          "ReadbackMilliseconds": 3.6471,
+          "SamplingMilliseconds": 2.8215,
+          "PngMilliseconds": 82.5962,
+          "ObservationMilliseconds": 106.3788,
+          "Live": false,
+          "ProcessFrame": 81,
+          "RenderSetupCpuMs": 0.196,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -5.332054,
+          -20.031174
+        ],
+        [
+          39.086304,
+          -20.031174
+        ],
+        [
+          39.086304,
+          28.737411
+        ],
+        [
+          -5.332054,
+          28.737411
+        ],
+        [
+          -5.332054,
+          -19.391037
+        ],
+        [
+          39.086304,
+          -19.391037
+        ],
+        [
+          39.086304,
+          29.377548
+        ],
+        [
+          -5.332054,
+          29.377548
+        ],
+        [
+          -5.332054,
+          -16.590454
+        ],
+        [
+          39.086304,
+          -16.590454
+        ],
+        [
+          39.086304,
+          32.17813
+        ],
+        [
+          -5.332054,
+          32.17813
+        ]
+      ]
+    },
+    {
+      "view": "archery",
+      "stage": "before",
+      "pngSha256": "1bade6c35c875484677cbd4b48c1d64033b3b6704ea56972d5720ed167c8e5ea",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 3,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 11.037289,
+          "Height": 22.819033,
+          "Rotation": [
+            -0.5585055,
+            0,
+            0
+          ],
+          "ReferenceX": 475.7064,
+          "ReferenceY": -2.6797628,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 2021,
+          "Objects": 4338,
+          "Primitives": 413487,
+          "TextureBytes": 1126842432,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4615,
+          "FramesPerSecond": 17,
+          "ProcessMilliseconds": 222.786,
+          "PhysicsMilliseconds": 1.141
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 36.8715,
+          "ReadbackMilliseconds": 3.488,
+          "SamplingMilliseconds": 5.1998,
+          "PngMilliseconds": 154.4146,
+          "ObservationMilliseconds": 101.0001,
+          "Live": false,
+          "ProcessFrame": 85,
+          "RenderSetupCpuMs": 0.193,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -4.403059,
+          -3.572075
+        ],
+        [
+          10.403059,
+          -3.572075
+        ],
+        [
+          10.403059,
+          12.684113
+        ],
+        [
+          -4.403059,
+          12.684113
+        ],
+        [
+          -4.403059,
+          -2.9319382
+        ],
+        [
+          10.403059,
+          -2.9319382
+        ],
+        [
+          10.403059,
+          13.324249
+        ],
+        [
+          -4.403059,
+          13.324249
+        ],
+        [
+          -4.403059,
+          -0.13135529
+        ],
+        [
+          10.403059,
+          -0.13135529
+        ],
+        [
+          10.403059,
+          16.124832
+        ],
+        [
+          -4.403059,
+          16.124832
+        ]
+      ]
+    },
+    {
+      "view": "archery",
+      "stage": "after",
+      "pngSha256": "9f66db7fb6871498eeef84ddc4f0d5a9467ea58fd3416546b2c3df0ad4316bd9",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 3,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 11.037289,
+          "Height": 22.819033,
+          "Rotation": [
+            -0.5585055,
+            0,
+            0
+          ],
+          "ReferenceX": 475.7064,
+          "ReferenceY": -2.6797628,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 2021,
+          "Objects": 4338,
+          "Primitives": 413487,
+          "TextureBytes": 1129726016,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4617,
+          "FramesPerSecond": 19,
+          "ProcessMilliseconds": 200.547,
+          "PhysicsMilliseconds": 1.03
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 37.2431,
+          "ReadbackMilliseconds": 3.4439,
+          "SamplingMilliseconds": 2.9022,
+          "PngMilliseconds": 180.4032,
+          "ObservationMilliseconds": 101.3443,
+          "Live": false,
+          "ProcessFrame": 86,
+          "RenderSetupCpuMs": 0.22,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -4.403059,
+          -3.572075
+        ],
+        [
+          10.403059,
+          -3.572075
+        ],
+        [
+          10.403059,
+          12.684113
+        ],
+        [
+          -4.403059,
+          12.684113
+        ],
+        [
+          -4.403059,
+          -2.9319382
+        ],
+        [
+          10.403059,
+          -2.9319382
+        ],
+        [
+          10.403059,
+          13.324249
+        ],
+        [
+          -4.403059,
+          13.324249
+        ],
+        [
+          -4.403059,
+          -0.13135529
+        ],
+        [
+          10.403059,
+          -0.13135529
+        ],
+        [
+          10.403059,
+          16.124832
+        ],
+        [
+          -4.403059,
+          16.124832
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-mixed",
+      "stage": "before",
+      "pngSha256": "7c617c3ecf3cc86c3dd2b848fc45ea0f7f0610b4f4d41d6b7a64f15e13b477d0",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1868,
+          "Objects": 6314,
+          "Primitives": 746012,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 6,
+          "ProcessMilliseconds": 5050.372,
+          "PhysicsMilliseconds": 1.952
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 36.3398,
+          "ReadbackMilliseconds": 4.4346,
+          "SamplingMilliseconds": 2.9478,
+          "PngMilliseconds": 220.4355,
+          "ObservationMilliseconds": 87.4267,
+          "Live": false,
+          "ProcessFrame": 14,
+          "RenderSetupCpuMs": 0.034,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -13.175334,
+          9.273586
+        ],
+        [
+          0.62821007,
+          0.9914589
+        ],
+        [
+          12.226245,
+          20.321512
+        ],
+        [
+          -1.577301,
+          28.60364
+        ],
+        [
+          -12.848062,
+          9.819038
+        ],
+        [
+          0.9554825,
+          1.536911
+        ],
+        [
+          12.553516,
+          20.866964
+        ],
+        [
+          -1.2500296,
+          29.149092
+        ],
+        [
+          -11.416244,
+          12.205402
+        ],
+        [
+          2.3873005,
+          3.923275
+        ],
+        [
+          13.985335,
+          23.25333
+        ],
+        [
+          0.1817894,
+          31.535458
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-mixed",
+      "stage": "after",
+      "pngSha256": "def4cf61b53a30d1519f331f95180142316b4071bccd7ac5a6987ed957dba0ca",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1868,
+          "Objects": 6314,
+          "Primitives": 746012,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 6,
+          "ProcessMilliseconds": 5000.843,
+          "PhysicsMilliseconds": 9.907
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 35.8662,
+          "ReadbackMilliseconds": 4.1586,
+          "SamplingMilliseconds": 2.8934,
+          "PngMilliseconds": 260.0627,
+          "ObservationMilliseconds": 92.6748,
+          "Live": false,
+          "ProcessFrame": 14,
+          "RenderSetupCpuMs": 0.036,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -13.175334,
+          9.273586
+        ],
+        [
+          0.62821007,
+          0.9914589
+        ],
+        [
+          12.226245,
+          20.321512
+        ],
+        [
+          -1.577301,
+          28.60364
+        ],
+        [
+          -12.848062,
+          9.819038
+        ],
+        [
+          0.9554825,
+          1.536911
+        ],
+        [
+          12.553516,
+          20.866964
+        ],
+        [
+          -1.2500296,
+          29.149092
+        ],
+        [
+          -11.416244,
+          12.205402
+        ],
+        [
+          2.3873005,
+          3.923275
+        ],
+        [
+          13.985335,
+          23.25333
+        ],
+        [
+          0.1817894,
+          31.535458
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-forest",
+      "stage": "before",
+      "pngSha256": "81c3358b19e389848db35e77c3585f9bc08d61a139e437befb002f0b1f744286",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1630,
+          "Objects": 5378,
+          "Primitives": 716775,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 8,
+          "ProcessMilliseconds": 322.405,
+          "PhysicsMilliseconds": 0.7929999999999999
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 35.4491,
+          "ReadbackMilliseconds": 3.6574,
+          "SamplingMilliseconds": 3.7586,
+          "PngMilliseconds": 217.904,
+          "ObservationMilliseconds": 97.8129,
+          "Live": false,
+          "ProcessFrame": 19,
+          "RenderSetupCpuMs": 0.03,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -22.02806,
+          -0.8732681
+        ],
+        [
+          -8.224517,
+          -9.1553955
+        ],
+        [
+          3.373518,
+          10.17466
+        ],
+        [
+          -10.430028,
+          18.456787
+        ],
+        [
+          -21.70079,
+          -0.327816
+        ],
+        [
+          -7.8972445,
+          -8.609943
+        ],
+        [
+          3.7007904,
+          10.720116
+        ],
+        [
+          -10.102756,
+          19.002243
+        ],
+        [
+          -20.26897,
+          2.058548
+        ],
+        [
+          -6.4654245,
+          -6.2235794
+        ],
+        [
+          5.1326084,
+          13.106478
+        ],
+        [
+          -8.670938,
+          21.388605
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-forest",
+      "stage": "after",
+      "pngSha256": "f274b18db9616afa38b604740de417fb8979cd1030948cf5bf5937fd099a5261",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1630,
+          "Objects": 5378,
+          "Primitives": 716775,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 8,
+          "ProcessMilliseconds": 366.73299999999995,
+          "PhysicsMilliseconds": 0.762
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 36.0258,
+          "ReadbackMilliseconds": 4.1313,
+          "SamplingMilliseconds": 4.0306,
+          "PngMilliseconds": 253.2495,
+          "ObservationMilliseconds": 99.2002,
+          "Live": false,
+          "ProcessFrame": 19,
+          "RenderSetupCpuMs": 0.041,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -22.02806,
+          -0.8732681
+        ],
+        [
+          -8.224517,
+          -9.1553955
+        ],
+        [
+          3.373518,
+          10.17466
+        ],
+        [
+          -10.430028,
+          18.456787
+        ],
+        [
+          -21.70079,
+          -0.327816
+        ],
+        [
+          -7.8972445,
+          -8.609943
+        ],
+        [
+          3.7007904,
+          10.720116
+        ],
+        [
+          -10.102756,
+          19.002243
+        ],
+        [
+          -20.26897,
+          2.058548
+        ],
+        [
+          -6.4654245,
+          -6.2235794
+        ],
+        [
+          5.1326084,
+          13.106478
+        ],
+        [
+          -8.670938,
+          21.388605
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-path",
+      "stage": "before",
+      "pngSha256": "53463884b9093cd9204f48df774f8599a1fb9b5efdee996c5e1f1721fcf7c83f",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1816,
+          "Objects": 6087,
+          "Primitives": 685472,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 8,
+          "ProcessMilliseconds": 322.405,
+          "PhysicsMilliseconds": 0.7929999999999999
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 35.9602,
+          "ReadbackMilliseconds": 4.2239,
+          "SamplingMilliseconds": 2.9405,
+          "PngMilliseconds": 225.3182,
+          "ObservationMilliseconds": 86.1225,
+          "Live": false,
+          "ProcessFrame": 24,
+          "RenderSetupCpuMs": 0.038,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -5.675333,
+          11.871662
+        ],
+        [
+          8.12821,
+          3.5895348
+        ],
+        [
+          19.726246,
+          22.919588
+        ],
+        [
+          5.922698,
+          31.201715
+        ],
+        [
+          -5.3480606,
+          12.417114
+        ],
+        [
+          8.4554825,
+          4.134987
+        ],
+        [
+          20.053516,
+          23.46504
+        ],
+        [
+          6.2499695,
+          31.747168
+        ],
+        [
+          -3.9162426,
+          14.803478
+        ],
+        [
+          9.8873005,
+          6.521351
+        ],
+        [
+          21.485336,
+          25.851406
+        ],
+        [
+          7.6817884,
+          34.133533
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-path",
+      "stage": "after",
+      "pngSha256": "de57b7bf26f7f6ecf92efd1d4c1e1f7a8cd5c0a87747c4be6309a11a290f677c",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1816,
+          "Objects": 6087,
+          "Primitives": 685472,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 8,
+          "ProcessMilliseconds": 366.73299999999995,
+          "PhysicsMilliseconds": 0.762
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 36.1007,
+          "ReadbackMilliseconds": 4.6203,
+          "SamplingMilliseconds": 3.0033,
+          "PngMilliseconds": 260.2757,
+          "ObservationMilliseconds": 87.7384,
+          "Live": false,
+          "ProcessFrame": 24,
+          "RenderSetupCpuMs": 0.04,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -5.675333,
+          11.871662
+        ],
+        [
+          8.12821,
+          3.5895348
+        ],
+        [
+          19.726246,
+          22.919588
+        ],
+        [
+          5.922698,
+          31.201715
+        ],
+        [
+          -5.3480606,
+          12.417114
+        ],
+        [
+          8.4554825,
+          4.134987
+        ],
+        [
+          20.053516,
+          23.46504
+        ],
+        [
+          6.2499695,
+          31.747168
+        ],
+        [
+          -3.9162426,
+          14.803478
+        ],
+        [
+          9.8873005,
+          6.521351
+        ],
+        [
+          21.485336,
+          25.851406
+        ],
+        [
+          7.6817884,
+          34.133533
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-river",
+      "stage": "before",
+      "pngSha256": "aca6e83063e9199741b7803c814561e1021b0133540fb645fa59b9fa76f805a8",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1400,
+          "Objects": 5404,
+          "Primitives": 471423,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 10,
+          "ProcessMilliseconds": 327.779,
+          "PhysicsMilliseconds": 0.559
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 35.1198,
+          "ReadbackMilliseconds": 3.1927,
+          "SamplingMilliseconds": 3.0575,
+          "PngMilliseconds": 220.5603,
+          "ObservationMilliseconds": 86.4912,
+          "Live": false,
+          "ProcessFrame": 29,
+          "RenderSetupCpuMs": 0.033,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          0.49648666,
+          6.9618683
+        ],
+        [
+          14.30003,
+          -1.3202591
+        ],
+        [
+          25.898064,
+          18.009798
+        ],
+        [
+          12.094518,
+          26.291925
+        ],
+        [
+          0.8237572,
+          7.507324
+        ],
+        [
+          14.6273,
+          -0.77480316
+        ],
+        [
+          26.225336,
+          18.555252
+        ],
+        [
+          12.421789,
+          26.83738
+        ],
+        [
+          2.255577,
+          9.893688
+        ],
+        [
+          16.05912,
+          1.6115608
+        ],
+        [
+          27.657154,
+          20.941616
+        ],
+        [
+          13.853607,
+          29.223743
+        ]
+      ]
+    },
+    {
+      "view": "menu-texture-river",
+      "stage": "after",
+      "pngSha256": "f09f2a4c21e745aefa00c9d893ec3051383c9afbb02b47fb5c90499151dd3755",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 0,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 0,
+          "Size": 0,
+          "Height": 0,
+          "Rotation": [],
+          "ReferenceX": 0,
+          "ReferenceY": 0,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "menu",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1400,
+          "Objects": 5404,
+          "Primitives": 471423,
+          "TextureBytes": 683892800,
+          "BufferBytes": 30749680,
+          "Nodes": 7138,
+          "Resources": 1416,
+          "FramesPerSecond": 10,
+          "ProcessMilliseconds": 366.047,
+          "PhysicsMilliseconds": 0.565
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 35.4268,
+          "ReadbackMilliseconds": 3.7849,
+          "SamplingMilliseconds": 3.1517,
+          "PngMilliseconds": 263.8406,
+          "ObservationMilliseconds": 86.3034,
+          "Live": false,
+          "ProcessFrame": 29,
+          "RenderSetupCpuMs": 0.035,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          0.49648666,
+          6.9618683
+        ],
+        [
+          14.30003,
+          -1.3202591
+        ],
+        [
+          25.898064,
+          18.009798
+        ],
+        [
+          12.094518,
+          26.291925
+        ],
+        [
+          0.8237572,
+          7.507324
+        ],
+        [
+          14.6273,
+          -0.77480316
+        ],
+        [
+          26.225336,
+          18.555252
+        ],
+        [
+          12.421789,
+          26.83738
+        ],
+        [
+          2.255577,
+          9.893688
+        ],
+        [
+          16.05912,
+          1.6115608
+        ],
+        [
+          27.657154,
+          20.941616
+        ],
+        [
+          13.853607,
+          29.223743
+        ]
+      ]
+    },
+    {
+      "view": "settlement-river",
+      "stage": "before",
+      "pngSha256": "0678e725b054724acfccee00fb3a7346745ef8a98d833d44245c10dd0beee02b",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 3,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 11.037289,
+          "Height": 22.999033,
+          "Rotation": [
+            -0.5585053,
+            0,
+            0
+          ],
+          "ReferenceX": 252.82555,
+          "ReferenceY": -195.90906,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1839,
+          "Objects": 3996,
+          "Primitives": 408145,
+          "TextureBytes": 1126842432,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4615,
+          "FramesPerSecond": 17,
+          "ProcessMilliseconds": 222.786,
+          "PhysicsMilliseconds": 1.141
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 33.3773,
+          "ReadbackMilliseconds": 4.0192,
+          "SamplingMilliseconds": 2.8812,
+          "PngMilliseconds": 161.1324,
+          "ObservationMilliseconds": 102.4817,
+          "Live": false,
+          "ProcessFrame": 91,
+          "RenderSetupCpuMs": 0.232,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -1.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          21.03292
+        ],
+        [
+          -1.403059,
+          21.03292
+        ]
+      ]
+    },
+    {
+      "view": "settlement-river",
+      "stage": "after",
+      "pngSha256": "b5f191da87445762873fec15c034f352b44e8058fcd0ecadeb095fb03620b8e6",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 3,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 11.037289,
+          "Height": 22.999033,
+          "Rotation": [
+            -0.5585053,
+            0,
+            0
+          ],
+          "ReferenceX": 252.82555,
+          "ReferenceY": -195.90906,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1839,
+          "Objects": 3996,
+          "Primitives": 408145,
+          "TextureBytes": 1129726016,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4617,
+          "FramesPerSecond": 19,
+          "ProcessMilliseconds": 200.547,
+          "PhysicsMilliseconds": 1.03
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 33.0433,
+          "ReadbackMilliseconds": 3.2327,
+          "SamplingMilliseconds": 5.1638,
+          "PngMilliseconds": 185.5707,
+          "ObservationMilliseconds": 100.099,
+          "Live": false,
+          "ProcessFrame": 92,
+          "RenderSetupCpuMs": 0.228,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -1.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          21.03292
+        ],
+        [
+          -1.403059,
+          21.03292
+        ]
+      ]
+    },
+    {
+      "view": "settlement-river-motion",
+      "stage": "before",
+      "pngSha256": "a0b30b20845771f94c6e2ba4328020f8a8ca471017bcc3b0cb1ec33349d16f38",
+      "input": {
+        "AssetRevision": "133c7cdeb368cada408d1c95c9414e08488371a9",
+        "ManifestSha256": "cf99d560e682aa019292fc15b6302d9265dcf7a368d850b2e4d5d83cf11276e5",
+        "GameAssemblySha256": "9f427978871a3d121e6ba6819321accf97f7c1ffb13247cc715fc1ec4c6cebce"
+      },
+      "sourceHead": "cf339cc0eba000de7c28681d7b91cbf0d711a34b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 3,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 11.037289,
+          "Height": 22.999033,
+          "Rotation": [
+            -0.5585053,
+            0,
+            0
+          ],
+          "ReferenceX": 252.82555,
+          "ReferenceY": -195.90906,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3702439,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1839,
+          "Objects": 3996,
+          "Primitives": 408145,
+          "TextureBytes": 1126842432,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4615,
+          "FramesPerSecond": 11,
+          "ProcessMilliseconds": 274.991,
+          "PhysicsMilliseconds": 0.795
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 32.4151,
+          "ReadbackMilliseconds": 3.7063,
+          "SamplingMilliseconds": 2.8926,
+          "PngMilliseconds": 160.312,
+          "ObservationMilliseconds": 98.4743,
+          "Live": false,
+          "ProcessFrame": 94,
+          "RenderSetupCpuMs": 0.225,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -1.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          21.03292
+        ],
+        [
+          -1.403059,
+          21.03292
+        ]
+      ]
+    },
+    {
+      "view": "settlement-river-motion",
+      "stage": "after",
+      "pngSha256": "0003183f67c7e5f063491ad2f2bffba5b2d6028b744ba0d6bdf3eb1da7503fd8",
+      "input": {
+        "AssetRevision": "2d88d355393f145aedfc19fa198960dac741c6fb",
+        "ManifestSha256": "34af8ca071d6586725641d5d2e7ea05c6c66efb7c53b85c90bcde8619affeb19",
+        "GameAssemblySha256": "8e07fe532306387fd5a9241e34621b8aee3712af502e686ee1e63c67cf52de59"
+      },
+      "sourceHead": "65926ac6b5b2247b5f5894e2a65eea9fcd83898b",
+      "observation": {
+        "Graphics": {
+          "DesiredRenderer": "forward_plus",
+          "Method": "forward_plus",
+          "Driver": "vulkan",
+          "Gpu": "AMD Radeon RX 6800 (RADV NAVI21)",
+          "Vendor": "AMD",
+          "DeviceType": "DiscreteGpu",
+          "Api": "1.4.354",
+          "RenderingDevice": true,
+          "Display": "X11",
+          "Settings": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "Effective": {
+            "quality": 2,
+            "renderer": 0,
+            "vsync": 1,
+            "fps": 1,
+            "scale": 2,
+            "aa": 4,
+            "shadows": 3,
+            "ao": 1,
+            "indirect": 0,
+            "atmosphere": 1,
+            "weather": 0,
+            "fog": 2,
+            "volumetric": 1,
+            "particles": 1,
+            "rain": 1,
+            "wind": 1,
+            "foliage": 1,
+            "glow": 1,
+            "forest_theme": 2,
+            "magic": 1,
+            "reduce_motion": 0,
+            "reduce_weather": 0,
+            "reduce_effects": 0
+          },
+          "RenderScale": 1,
+          "Msaa": "Msaa4X",
+          "Taa": false,
+          "Fxaa": "Disabled",
+          "FpsLimit": 30,
+          "Vsync": "Enabled",
+          "Shadows": true,
+          "SsaoEnabled": true,
+          "SsilEnabled": false,
+          "FogEnabled": true,
+          "FogDensity": 0.16000001,
+          "VolumetricFogEnabled": true,
+          "VolumetricFogDensity": 0.0009885541,
+          "GlowEnabled": true,
+          "TonemapExposure": 1,
+          "SunEnergy": 0.52,
+          "Wind": 0.2625,
+          "Rain": false,
+          "RainRatio": 0,
+          "Leaves": true,
+          "LocalFog": false,
+          "CosmeticTime": 12,
+          "SkyUploads": 8
+        },
+        "Camera": {
+          "Zoom": 3,
+          "PanX": 0,
+          "PanZ": 0,
+          "BaseSize": 33.111866,
+          "Size": 11.037289,
+          "Height": 22.999033,
+          "Rotation": [
+            -0.5585053,
+            0,
+            0
+          ],
+          "ReferenceX": 252.82555,
+          "ReferenceY": -195.90906,
+          "MovementSeconds": 0,
+          "DirectionX": 0,
+          "DirectionY": 0
+        },
+        "Width": 1100,
+        "Height": 820,
+        "Screen": "session",
+        "ProcessId": 3714524,
+        "NativeWindow": 16777218,
+        "WindowMode": "Windowed",
+        "RenderCosts": {
+          "DrawCalls": 1839,
+          "Objects": 3996,
+          "Primitives": 408145,
+          "TextureBytes": 1129726016,
+          "BufferBytes": 122789140,
+          "Nodes": 10939,
+          "Resources": 4617,
+          "FramesPerSecond": 11,
+          "ProcessMilliseconds": 298.429,
+          "PhysicsMilliseconds": 0.875
+        },
+        "ProbeCosts": {
+          "FrameWaitMilliseconds": 32.7742,
+          "ReadbackMilliseconds": 3.9225,
+          "SamplingMilliseconds": 2.9052,
+          "PngMilliseconds": 185.2991,
+          "ObservationMilliseconds": 99.4572,
+          "Live": false,
+          "ProcessFrame": 95,
+          "RenderSetupCpuMs": 0.243,
+          "ViewportCpuMs": 0,
+          "ViewportGpuMs": 0
+        }
+      },
+      "groundCameraFootprint": [
+        [
+          -1.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          1.3360138
+        ],
+        [
+          13.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          17.592201
+        ],
+        [
+          -1.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          1.9761429
+        ],
+        [
+          13.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          18.232338
+        ],
+        [
+          -1.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          4.7767334
+        ],
+        [
+          13.403059,
+          21.03292
+        ],
+        [
+          -1.403059,
+          21.03292
+        ]
+      ]
+    }
+  ],
+  "captureScope": "Owned game viewports only; no desktop captures. Ambient poses/particles use real elapsed time, not pixel-equality targets.",
+  "crop": {
+    "source": "archery",
+    "xywh": [
+      420,
+      125,
+      270,
+      240
+    ]
+  },
+  "encodedArtifacts": {
+    "settlement-pair.png": "dc1ab6cf9749711b0506a5bf6aaa02ab67557a417168e60633691168c63cad45",
+    "before/settlement.png": "e63ed98f7b55eb5c32bb11437f26daae1fd8f9701b0223e24274fe1010d38266",
+    "before/archery.png": "1bade6c35c875484677cbd4b48c1d64033b3b6704ea56972d5720ed167c8e5ea",
+    "before/menu-texture-mixed.png": "7c617c3ecf3cc86c3dd2b848fc45ea0f7f0610b4f4d41d6b7a64f15e13b477d0",
+    "before/menu-texture-forest.png": "81c3358b19e389848db35e77c3585f9bc08d61a139e437befb002f0b1f744286",
+    "before/menu-texture-path.png": "53463884b9093cd9204f48df774f8599a1fb9b5efdee996c5e1f1721fcf7c83f",
+    "before/menu-texture-river.png": "aca6e83063e9199741b7803c814561e1021b0133540fb645fa59b9fa76f805a8",
+    "before/settlement-river.png": "0678e725b054724acfccee00fb3a7346745ef8a98d833d44245c10dd0beee02b",
+    "before/settlement-river-motion.png": "a0b30b20845771f94c6e2ba4328020f8a8ca471017bcc3b0cb1ec33349d16f38",
+    "before/archery-crop.png": "73eb9804a2cdeacb3c52f115ac510431c1f9f02900423b8cb024481e56301384",
+    "after/settlement.png": "2b43aee9e872f663b15d2c0707c4cb08b7f0a29ad36fc326b5e6e7ddb416d089",
+    "after/archery.png": "9f66db7fb6871498eeef84ddc4f0d5a9467ea58fd3416546b2c3df0ad4316bd9",
+    "after/menu-texture-mixed.png": "def4cf61b53a30d1519f331f95180142316b4071bccd7ac5a6987ed957dba0ca",
+    "after/menu-texture-forest.png": "f274b18db9616afa38b604740de417fb8979cd1030948cf5bf5937fd099a5261",
+    "after/menu-texture-path.png": "de57b7bf26f7f6ecf92efd1d4c1e1f7a8cd5c0a87747c4be6309a11a290f677c",
+    "after/menu-texture-river.png": "f09f2a4c21e745aefa00c9d893ec3051383c9afbb02b47fb5c90499151dd3755",
+    "after/settlement-river.png": "b5f191da87445762873fec15c034f352b44e8058fcd0ecadeb095fb03620b8e6",
+    "after/settlement-river-motion.png": "0003183f67c7e5f063491ad2f2bffba5b2d6028b744ba0d6bdf3eb1da7503fd8",
+    "after/archery-crop.png": "8936da569fa36b4e628cec050766feb44711365342c02994ad2914d8a3037717"
+  }
+}

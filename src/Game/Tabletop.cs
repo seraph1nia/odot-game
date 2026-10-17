@@ -132,8 +132,15 @@ public partial class Tabletop : Node3D
     internal VillageLandscape? AtmosphereLandscape => _landscapes.GetValueOrDefault(_focus);
     internal void AtmosphereProofView(string view)
     {
-        Vector3 point = Center(_focus) + (view == "forest" ? VillageLayout.Hex(-4, 4) : VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow));
-        _navigation.ProofView(view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
+        Vector3 point = Center(_focus) + (view switch
+        {
+            "texture-archery" => VillageLayout.Slot(2),
+            "texture-river" => VillageLayout.Hex(2, 4),
+            "texture-forest" => VillageLayout.Hex(-3, 4),
+            "forest" => VillageLayout.Hex(-4, 4),
+            _ => VillageLayout.Hex(VillageLayout.BridgeColumn, VillageLayout.RiverRow)
+        });
+        _navigation.ProofView(view.StartsWith("texture-", StringComparison.Ordinal) ? "forest" : view, point, _panel.Size.Y / GetViewport().GetVisibleRect().Size.Y);
     }
     internal Node?[] DetailModals => [_hallDialog, _detailsDialog, _researchDialog, _squadDialog, _runDialog];
     internal bool DetailsOpen => GameApplication.SelectModal(DetailModals) is not null;

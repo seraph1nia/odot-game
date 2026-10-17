@@ -2170,3 +2170,40 @@ Coverage admission:
 
 This is a bounded review-fix verification selection, not full test/lint, transport,
 package, native Windows, memory or rendered-performance qualification.
+
+## AI-texture actual-game photo admission (2026-10-17)
+
+- Existing Tier A provenance/indexed-map/placement checks admit all fourteen
+  immutable successor exports and exact derived maps; no duplicate geometry test
+  or source-grep assertion was added. A cheap executable options test rejects the
+  `textures` photo checkpoint outside explicit source `test-vulkan --desktop`.
+- Existing owned desktop Vulkan Tier E gains one selected `--checkpoint textures`
+  witness: fixed seed/light/camera menu landscape, normal solo lobby/Start, paid
+  Archery construction, ordinary picking, return and Exit. It reuses
+  `Child`/`ScenarioScope`, private client state, ordered events, RX6800 renderer/PID/
+  window authentication and game-only captures; no new supervisor or server.
+  It catches loaded-but-hidden maps, obvious repetition/seams and unreadable
+  occupants that cheaper metadata/component tests cannot judge. Successful
+  graphical scopes measured 25.67s before / 25.65s after plus serial preparation.
+- Numerical topology, every orientation/stack/profile and native water/Archery
+  playback remain in existing Tier A/B coverage. Actual photo views are a selected
+  visual sample, not exhaustive live-map orientations or a sustained performance
+  benchmark. The new checkpoint is never automatic CI or a software fallback.
+- [The historical texture report](ai-textures-game/initial-review.md#executed-checks-headless-first-gpu-second)
+  records the initial heads, successful and failed receipts, 833 core / 664 runner
+  passes, two platform skips, image hashes and remaining boundaries. Its original
+  post-photo pick could accept an unchanged selection; it does not establish a
+  successful input-driven transition or waive the rejected initial appearance.
+- [The correction review](ai-textures-game/README.md#focused-review-round-verification)
+  strengthens that same Tier E witness, not another journey: known plot 0 before
+  paid Archery selection, then post-photo 2 → 0, missed click retaining 0, genuine
+  click returning to 2. Numerical/resource checks cannot establish ray-picking
+  transitions. Same deterministic seed, owned window and ordered probes; no modal
+  assertion, gameplay action, deadline or CI protection was removed. Fresh original,
+  initial and corrected GPU scopes measured 26.71s / 26.97s / 26.89s. The correction
+  round ran only 43 targeted A tests plus existing imported geometry/animation
+  components, not the broad fast suite again. Exact working-tree source/DLL/image
+  hashes are retained; no later pipeline head is claimed photographed. One original
+  headless probe exited 134 after its report, and one identical-input repeat passed;
+  the failure remains recorded, not a software-renderer repair or stability claim.
+  This does not replace final published-head pipeline/CI evidence.
