@@ -38,7 +38,10 @@ internal sealed partial class Runner
         await TextureFrame(client, "settlement-forest", "texture-forest", token);
         await TextureFrame(client, "settlement-river", "texture-river", token);
         await TextureFrame(client, "settlement-river-motion", "texture-river", token);
-        await Click(client, "ResetView", token);
+        // Photo framing changes the camera's diagnostic base. Restore the
+        // fitted base explicitly before testing ordinary input, not the user
+        // Space helper (which correctly resets to its current base).
+        await TextureFrame(client, "settlement-restored", "overview", token);
         await Pick(client, 2, token);
         Require((await UiProtocol.Probe(client, options.StartupTimeout, token)).SelectedSlot == 2, "ordinary building picking survives material import");
         await Click(client, "ReturnToMenu", token); await Click(client, "ConfirmReturn", token);
